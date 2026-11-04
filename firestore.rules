@@ -1,3 +1,9 @@
+// Batch 436 (PS-40): NOT DEPLOYED, and not to be extended. Production is
+// SQL Server behind the PathScribe API server (ASP.NET Core); access control
+// is the server's (docs/architecture/AUTHORIZATION_API.md, AUTHENTICATION_OIDC.md,
+// CASE_PRIVACY_MODEL.md, Jira PS-345). The "backend requirements" document
+// cited below (backend-requirements-concurrency-security.md) was never
+// written; the citations are kept only as history.
 // firestore.rules
 // ─────────────────────────────────────────────────────────────────────────────
 // Real server-side enforcement for the Case Hydration & Optimistic

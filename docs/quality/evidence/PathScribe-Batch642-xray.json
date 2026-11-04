@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 642 — Sign-out authentication policy: enterprise default, facility override and lock, strict or session mode, second factor, session expiry, audit",
+    "description": "Vitest, 2026-10-20: full suite 1700 files (1695 passed, 4 skipped, 1 failed); 14,292 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts (needs the Firestore emulator). Type-check clean."
+  },
+  "tests": [
+    {
+      "testKey": "PS-858",
+      "start": "2026-10-21T02:20:00Z",
+      "finish": "2026-10-21T02:50:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/auth/signOutPolicy/signOutPolicy.test.ts (resolve, lock, session timeout, role change, facility change, button state, CSV, audit text)\nPASSED: src/services/auth/signOutPolicy/signOutPolicyService.test.ts (permission, audited changes with old/new, session start/reuse/expiry once, logout)\nPASSED: src/services/auth/signerConfirmation.mfa.test.ts (strict asks each time; session reuse; other actions not covered; timeout; forced second factor; not enrolled blocks)\nPASSED: src/components/Config/System/SignOutPolicyCard.test.tsx\nPASSED: src/i18n/localeParity.test.ts; style, demo-reset and docs guards\nNot tested: remote sign-out restriction, workstation lock, network classification (phase 2e, API server); native-speaker review of the six languages."
+    }
+  ]
+}

@@ -4,6 +4,16 @@
 This document describes the exact steps required to replace the mock case
 services with production data sources when PathScribe goes live.
 
+> **Status (Oct 2026).** The production database is now Microsoft SQL Server,
+> reached through the PathScribe API server (ASP.NET Core, not built yet —
+> PS-358). The Firestore target below predates that decision: Orchestration
+> cases will be served by that API server, not `FirestoreCaseService.ts`, and
+> the Firestore steps and checklist items are superseded. The server's case
+> contract is `docs/architecture/CASE_API.md`. The FHIR (LIS) steps still apply.
+>
+> *Corrected in the Batch 496 README audit (Oct 9, 2026): added this status
+> note; Step 3 and Option C below also corrected.*
+
 ---
 
 ## Current architecture (mock / dev)
@@ -86,8 +96,9 @@ Choose **one** of the following:
 
 **Option C — Client credentials (server-side / M2M only)**
 - Never expose client secrets in the browser bundle
-- Use a Vercel serverless function (already exists at `api/ai/anthropic/v1/messages.ts`)
-  as a proxy — add a FHIR proxy endpoint alongside it
+- Proxy it through the PathScribe API server, the same way the AI proxy routes
+  work (`docs/architecture/AI_PROXY.md`; `vite.config.ts` in development). There
+  is no `api/ai/anthropic/v1/messages.ts` serverless function in the repo.
 
 ### 2c. Verify FHIR resource mappings
 
@@ -120,10 +131,12 @@ export const caseRouter = new CaseRouter(fhirCaseService, firestoreCaseService);
 
 ## Step 3 — Audit logging
 
-`AuditLogger.ts` currently writes to `console.debug` in development.
+`AuditLogger.ts` writes every case event to the app's audit store
+(`mockAuditService.logEvent`, the store the System Audit page reads), and also
+to `console.debug` in development.
 
-For production, replace the `console.debug` call with a write to your
-audit store. Requirements differ by jurisdiction:
+For production, point that write at the API server's audit store.
+Requirements differ by jurisdiction:
 
 | Jurisdiction | Standard              | Minimum requirement                              |
 |--------------|-----------------------|--------------------------------------------------|
@@ -186,14 +199,14 @@ Before go-live, confirm with your IG lead:
 
 The `O26-` prefix in `CaseRouter.ts` is a development convenience.
 
-In production, replace `isOrchCase()` with a call to a lightweight
+In production, replace `isOrchCaseId()` (`reportingModeRouting.ts`) with a call to a lightweight
 **Case Registry** microservice that maps `{ caseId → serviceType }` without
 touching patient data. This satisfies UK GDPR Article 25 (data minimisation)
 by ensuring the router never needs to fetch or inspect patient records to
 make routing decisions.
 
 ```typescript
-// Future isOrchCase() replacement:
+// Future isOrchCaseId() replacement:
 async function resolveService(caseId: string): Promise<'lis' | 'orch'> {
   const res = await fetch(`/api/case-registry/${caseId}/service-type`);
   const { serviceType } = await res.json();

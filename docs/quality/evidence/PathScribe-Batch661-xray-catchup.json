@@ -1,0 +1,42 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 661 \u2014 sex never defaults, signing time sent (catch-up; no Xray file was made at the time)",
+  "description": "Vitest, re-run 2026-10-27 against the current code, so the result is for today's code, not the Batch 661 snapshot. Not run: browser check of the Accession Sex field and a reprinted report's signing date; native review of the new Korean text. Jira Test keys are created by the import."
+ },
+ "tests": [
+  {
+   "testInfo": {
+    "summary": "Accession: Sex starts blank and must be chosen",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 661): src/pages/AccessionPage/accessionSexNoDefault.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Field Requirements: Sex is a locked required field",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 661): src/services/fieldRequirements/fieldRequirements.test.ts"
+  },
+  {
+   "testInfo": {
+    "summary": "Surgical report request carries the sign-out time (signedAt)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 661): src/pages/SynopticReportPage/reportSigningTime.guard.test.ts"
+  }
+ ]
+}

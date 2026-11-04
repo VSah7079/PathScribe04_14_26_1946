@@ -36,26 +36,32 @@
 //   - handleProtocolChangesDetected: from useAmendmentWorkflow.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, type MutableRefObject } from 'react';
+import type { AuditLogFn } from '@/components/Audit/useAuditLog';
+import { useState, useCallback, useRef, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { routeCase, routeStatCase } from '@/services/cases/casePoolAssignmentService';
-import { aiBehaviorService } from '@/services';
+import { routeCaseAfterGrossing } from '@/services/grossing/routeCaseAfterGrossing';
+import { aiBehaviorService, authorizationService, auditService, specimenDeficiencyService, serviceChargeService, outboundChargeQueueService, billingTypeTriggerConfigService } from '@/services';
+import { useAuth } from '@/contexts/AuthContext';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
+import { checkReportGrossComplete, specimensWithoutGrossEntry } from '@/services/grossing/reportGrossComplete';
+import { raiseGrossedWithoutProtocol, type MissingGrossingItem } from '@/services/grossing/grossingCompletion';
 import type { Case, ProtocolChange } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
-import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
-import { mockOutboundChargeQueueService } from '@/services/billing/mockOutboundChargeQueueService';
+
 import { sweepChargesForOutbox } from '@/services/billing/sweepChargesForOutbox';
-import { mockBillingTypeTriggerConfigService } from '@/services/billing/mockBillingTypeTriggerConfigService';
+
 import { validateChargeMetadata } from '@/services/billing/validateChargeMetadata';
 
 interface UseGrossingCompletionParams {
   caseData: Case | null;
   setCaseData: React.Dispatch<React.SetStateAction<Case | null>>;
   showToast: (message: string, kind?: import('@/utils/toastPolicy').ToastKind) => void;
-  log: (event: string, detail: Record<string, unknown>) => void;
+  // Batch 511 (PS-478): the page's typed audit logger, so each event and its details are checked against the audit catalogue.
+  log: AuditLogFn;
   knownVersionRef: MutableRefObject<number>;
   setConcurrencyConflict: SetConcurrencyConflict;
   grossingSnapshotRef: MutableRefObject<Map<string, string>>;
@@ -87,10 +93,44 @@ export function useGrossingCompletion({
   handleGrossingProtocolChangesDetected,
   orchSections,
 }: UseGrossingCompletionParams) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [isEvaluatingSynopticFit, setIsEvaluatingSynopticFit] = useState(false);
+  // Batch 398 (PS-359): the organisation's Grossing field requirements, the
+  // same ones Complete grossing applies on the Grossing screen.
+  const grossingRequirements = useFieldRequirements('grossing');
+  // Specimens with neither a protocol nor a Grossing template, waiting for the
+  // user to confirm completing them (the protocol rule switched off).
+  const [pendingProtocolConfirmation, setPendingProtocolConfirmation] = useState<string[] | null>(null);
+  // Batch 474-prep quick fix: the "reason for updating Gross" capture used to
+  // be a blocking window.prompt() (see the comment at its call site below for
+  // the original MVP rationale). Promise + ref here is what lets an async
+  // function `await` a React modal instead of a synchronous browser prompt —
+  // ReasonPromptModal (rendered in SynopticReportPage.tsx) resolves it via
+  // confirmUpdateReason/cancelUpdateReason.
+  const [showUpdateReasonPrompt, setShowUpdateReasonPrompt] = useState(false);
+  const updateReasonResolverRef = useRef<((reason: string | null) => void) | null>(null);
+  const promptForUpdateReason = useCallback(() => new Promise<string | null>(resolve => {
+    updateReasonResolverRef.current = resolve;
+    setShowUpdateReasonPrompt(true);
+  }), []);
+  const confirmUpdateReason = useCallback((reason: string) => {
+    setShowUpdateReasonPrompt(false);
+    updateReasonResolverRef.current?.(reason);
+    updateReasonResolverRef.current = null;
+  }, []);
+  const cancelUpdateReason = useCallback(() => {
+    setShowUpdateReasonPrompt(false);
+    updateReasonResolverRef.current?.(null);
+    updateReasonResolverRef.current = null;
+  }, []);
+  const missingText = useCallback((missing: MissingGrossingItem[]) => t('fieldRequirements.stillRequired', {
+    fields: formatList(missing.map(m => m.where.length
+      ? t('grossingScreen.complete.missingAt', { field: t(`fieldRequirements.fields.grossing.${m.fieldId}`), where: formatList(m.where, i18n.language) })
+      : t(`fieldRequirements.fields.grossing.${m.fieldId}`)), i18n.language),
+  }), [t, i18n.language]);
 
-  const handleGrossComplete = useCallback(async () => {
+  const handleGrossComplete = useCallback(async (confirmedWithoutProtocol = false) => {
     if (!caseData) return;
 
     const draftGrossing = (caseData.grossingReports ?? []).filter(g => g.status === 'draft');
@@ -119,38 +159,38 @@ export function useGrossingCompletion({
     // always did, since that path genuinely does cover every specimen
     // together in one narrative (mockReportPartService.ts's
     // grossPart — a single repeat-group over all specimens).
+    // Batch 398: the rule itself moved to services/grossing/reportGrossComplete.ts.
     const grossSections = orchSections.filter(s => s.sourcePartId === 'std_body_gross');
     const caseWideGrossSection = grossSections.find(s => !s.specimenId);
     const hasDictatedGrossText = !!caseWideGrossSection?.text?.trim();
-
-    const hasDictatedTextForSpecimen = (specimenId: string) =>
-      grossSections.some(s => s.specimenId === specimenId && s.text?.trim());
-
-    const specimensWithoutAnswers = hasDictatedGrossText ? [] : (caseData.specimens ?? []).filter(sp => {
-      if (hasDictatedTextForSpecimen(sp.id)) return false;
-      const spGrossing = (caseData.grossingReports ?? []).filter(g => g.specimenId === sp.id);
-      if (spGrossing.length === 0) return true; // no grossing report at all for this specimen
-      return !spGrossing.some(g =>
-        Object.values(g.answers ?? {}).some(v => v !== '' && !(Array.isArray(v) && !v.length))
-      );
-    });
-    if (specimensWithoutAnswers.length > 0) {
-      const labels = specimensWithoutAnswers.map(sp => sp.label).join(', ');
-      showToast(t('useGrossingCompletion.toast.specimensMissingGrossing', { count: specimensWithoutAnswers.length, labels }), 'warning');
+    const withoutEntry = specimensWithoutGrossEntry(caseData, orchSections);
+    if (withoutEntry.length > 0) {
+      showToast(t('useGrossingCompletion.toast.specimensMissingGrossing', { count: withoutEntry.length, labels: withoutEntry.join(', ') }), 'warning');
       return;
     }
 
     const isUpdate = draftGrossing.some(g => g.previouslyFinalized);
+
+    // Batch 398 (PS-359): the organisation's Grossing field requirements and
+    // the case:grossing:complete permission, as on the Grossing screen. A
+    // Grossing template counts as the specimen's protocol here (Pete).
+    const check = await checkReportGrossComplete(caseData, grossingRequirements, { isUpdate, confirmedWithoutProtocol }, { authorization: authorizationService });
+    if (!check.ok) {
+      if (check.reason === 'needsConfirmation') { setPendingProtocolConfirmation(check.withoutProtocol ?? []); return; }
+      if (check.reason === 'missing') { showToast(missingText(check.missing ?? []), 'warning'); return; }
+      showToast(t('grossingScreen.complete.refusals.notPermitted'), 'warning');
+      return;
+    }
 
     let reason = '';
     if (isUpdate) {
       // Matches the Grossing SOP's own audited-correction precedent for
       // post-handoff cassette edits ("must be flagged, logged with a
       // timestamp, and require a user-entered reason for modification").
-      // MVP reason capture via prompt() — a dedicated modal (matching
-      // RequestReviewModal/PoolClaimModal's pattern) is the real long-term
-      // UI here, not a browser prompt.
-      const entered = window.prompt(t('useGrossingCompletion.prompt.reasonForUpdate'));
+      // Reason capture via ReasonPromptModal (matching
+      // RequestReviewModal/PoolClaimModal's pattern), not a browser prompt —
+      // see promptForUpdateReason above.
+      const entered = await promptForUpdateReason();
       if (!entered || !entered.trim()) {
         showToast(t('useGrossingCompletion.toast.updateCancelledReasonRequired'), 'warning');
         return;
@@ -278,6 +318,24 @@ export function useGrossingCompletion({
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData({ ...caseData, ...patch } as typeof caseData);
 
+      // Batch 398: specimens completed without a protocol or Grossing template
+      // (the protocol rule switched off, and confirmed) go for secondary
+      // review, as on the Grossing screen. Never a reason to undo the save.
+      if (check.forReview.length) {
+        const actorName = user?.name ?? user?.id ?? 'unknown';
+        const review = await raiseGrossedWithoutProtocol(caseData, check.forReview, {
+          raiseDeficiency: input => specimenDeficiencyService.raise(input),
+          audit: entry => auditService.logEvent(entry),
+          actorName, actorId: user?.id ?? 'unknown',
+        });
+        if (review.routedForReview.length) {
+          showToast(t('grossingScreen.complete.routedForReview', { count: review.routedForReview.length, specimens: formatList(review.routedForReview, i18n.language) }));
+        }
+        if (review.reviewNotRaised.length) {
+          showToast(t('grossingScreen.complete.reviewNotRaised', { count: review.reviewNotRaised.length, specimens: formatList(review.reviewNotRaised, i18n.language) }), 'warning');
+        }
+      }
+
       // Real, per Epic: PathScribe Outbound Billing & Charge Event
       // Engine, User Story 2 - "emit TC codes immediately upon
       // SPECIMEN_GROSSED." Fire-and-forget, deliberately never awaited
@@ -287,17 +345,17 @@ export function useGrossingCompletion({
       // once (see its own header), so every specimen is genuinely,
       // simultaneously grossed at this moment.
       (async () => {
-        const chargesRes = await mockServiceChargeService.getChargesForCase(caseData.id);
+        const chargesRes = await serviceChargeService.getChargesForCase(caseData.id);
         if (!chargesRes.ok) return;
-        const alreadyQueuedRes = await mockOutboundChargeQueueService.getByServiceChargeRecordIds(
+        const alreadyQueuedRes = await outboundChargeQueueService.getByServiceChargeRecordIds(
           chargesRes.data.map(c => c.id)
         );
         const alreadyQueuedIds = new Set(alreadyQueuedRes.ok ? alreadyQueuedRes.data.map(e => e.serviceChargeRecordId) : []);
-        const triggerMapRes = await mockBillingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
+        const triggerMapRes = await billingTypeTriggerConfigService.getEffectiveTriggerMap(caseData.order?.siteId);
         const toEnqueue = sweepChargesForOutbox(chargesRes.data, 'SPECIMEN_GROSSED', alreadyQueuedIds, triggerMapRes.ok ? triggerMapRes.data : undefined);
         const metadataFailures = validateChargeMetadata(caseData);
         await Promise.all(toEnqueue.map(async f => {
-          const enqueueRes = await mockOutboundChargeQueueService.enqueue({
+          const enqueueRes = await outboundChargeQueueService.enqueue({
             serviceChargeRecordId: f.serviceChargeRecordId,
             caseId: f.caseId,
             specimenId: f.specimenId,
@@ -308,7 +366,7 @@ export function useGrossingCompletion({
           // metadata is flagged FAILED immediately, not left QUEUED
           // with data already known to be bad.
           if (enqueueRes.ok && metadataFailures.length > 0) {
-            await mockOutboundChargeQueueService.markFailed(enqueueRes.data.id, {
+            await outboundChargeQueueService.markFailed(enqueueRes.data.id, {
               errorCode: metadataFailures[0].errorCode,
               errorMessage: metadataFailures[0].errorMessage,
               maxRetriesExceeded: false,
@@ -329,17 +387,10 @@ export function useGrossingCompletion({
       // transition above - only the first, genuine completion routes;
       // a later re-finalize on an already-in-progress case does not.
       if (!hasRealDiagnosticWorkBegun) {
-        try {
-          const casePriority = caseData?.order?.priority;
-          const routingResult = casePriority === 'STAT'
-            ? await routeStatCase({ ...caseData, ...patch })
-            : await routeCase({ ...caseData, ...patch });
-          if (routingResult.outcome === 'routed_to_pool' || routingResult.outcome === 'routed_to_fallback') {
-            showToast(t('useGrossingCompletion.toast.routedToPool', { poolName: routingResult.poolName }));
-          }
-        } catch (e) {
-          console.error('Pool routing failed (non-blocking):', e);
-        }
+        // Batch 652: the same call the Grossing screen makes (services/grossing/routeCaseAfterGrossing.ts).
+        const routing = await routeCaseAfterGrossing({ ...caseData, ...patch });
+        if (routing.error) console.error('Pool routing failed (non-blocking):', routing.error);
+        if (routing.routed) showToast(t('useGrossingCompletion.toast.routedToPool', { poolName: routing.poolName }));
       }
 
       log(isUpdate ? 'gross_updated' : 'gross_complete', {
@@ -367,7 +418,7 @@ export function useGrossingCompletion({
         // while any resulting review modal is open — see isEvaluatingSynopticFit.
         setIsEvaluatingSynopticFit(true);
         try {
-          const { evaluateSynopticAssignment } = await import('@/services/cases/mockCaseService');
+          const { evaluateSynopticAssignment } = await import('@/services');
           const result = await evaluateSynopticAssignment(evaluationInput);
           const allWarnings = [...evalWarnings, ...result.warnings];
           if (allWarnings.length) {
@@ -414,7 +465,7 @@ export function useGrossingCompletion({
           let specimensWithProposedGrossingChange = new Set<string>();
           if (grossAiEnabled && combinedDictatedGrossText.trim()) {
             try {
-              const { evaluateGrossingTemplateFit } = await import('@/services/cases/mockCaseService');
+              const { evaluateGrossingTemplateFit } = await import('@/services');
               const grossingAvailableTemplates = allTemplates
                 .filter(t => t.isDiagnostic === false)
                 .map(t => ({ id: t.id, name: t.name, category: t.category }));
@@ -467,7 +518,7 @@ export function useGrossingCompletion({
             .filter(s => !specimensWithProposedGrossingChange.has(s.specimenId!));
           if ((hasDictatedGrossText || perSpecimenGrossSections.length > 0) && (caseData.specimens ?? []).some(sp => !specimensWithProposedGrossingChange.has(sp.id))) {
             try {
-              const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services/cases/mockCaseService');
+              const { generateGrossingFieldSuggestionsFromDictation } = await import('@/services');
               // stripHtml already imported and in scope from the
               // fit-evaluation block above.
 
@@ -554,10 +605,22 @@ export function useGrossingCompletion({
       console.error('[Gross Complete] Failed:', err);
       showToast(t(isUpdate ? 'useGrossingCompletion.toast.updateGrossFailed' : 'useGrossingCompletion.toast.grossCompleteFailed'), 'warning');
     }
-  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t]);
+  }, [caseData, log, showToast, handleProtocolChangesDetected, setCaseData, knownVersionRef, setConcurrencyConflict, grossingSnapshotRef, orchSections, t, i18n.language, grossingRequirements, missingText, user, promptForUpdateReason, handleGrossingProtocolChangesDetected]);
+
+  const confirmGrossCompleteWithoutProtocol = useCallback(async () => {
+    setPendingProtocolConfirmation(null);
+    await handleGrossComplete(true);
+  }, [handleGrossComplete]);
+  const cancelGrossCompleteWithoutProtocol = useCallback(() => setPendingProtocolConfirmation(null), []);
 
   return {
     isEvaluatingSynopticFit,
     handleGrossComplete,
+    pendingProtocolConfirmation,
+    confirmGrossCompleteWithoutProtocol,
+    cancelGrossCompleteWithoutProtocol,
+    showUpdateReasonPrompt,
+    confirmUpdateReason,
+    cancelUpdateReason,
   };
 }

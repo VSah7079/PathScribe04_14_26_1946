@@ -73,6 +73,8 @@ export type AdtEventType =
 export interface ParsedPatientIdentifier {
   identifierValue: string;
   assigningAuthority: string;
+  /** Batch 417: CX.5, e.g. 'MR' (medical record number), 'NH' (national health identifier), 'NI'. */
+  identifierTypeCode?: string;
 }
 
 export interface ParsedAdtMessage {
@@ -89,6 +91,8 @@ export interface ParsedAdtMessage {
      *  expects, for a caller that doesn't need the full, real
      *  multi-authority list. */
     primaryMrn: string;
+    /** Batch 605: PID-32 (identity reliability code), where UK feeds carry the NHS Number Status Indicator ('01' = verified). */
+    nhsStatusCode?: string;
     firstName: string;
     lastName: string;
     dateOfBirth?: string;
@@ -219,6 +223,7 @@ function parsePID(pid: ParsedHL7Segment | null): ParsedAdtMessage['patient'] {
     .map(raw => ({
       identifierValue: getComponent(raw, 0),
       assigningAuthority: getComponent(raw, 3),
+      ...(getComponent(raw, 4) ? { identifierTypeCode: getComponent(raw, 4) } : {}),
     }))
     .filter(id => id.identifierValue); // never a real identifier row for a genuinely empty repetition
 
@@ -259,6 +264,7 @@ function parsePID(pid: ParsedHL7Segment | null): ParsedAdtMessage['patient'] {
   return {
     identifiers,
     primaryMrn: identifiers[0]?.identifierValue ?? '',
+    ...(getField(pid, 32) ? { nhsStatusCode: getField(pid, 32) } : {}),
     lastName: getComponent(nameField, 0),
     firstName: getComponent(nameField, 1),
     dateOfBirth: fromHL7Date(getField(pid, 7)),

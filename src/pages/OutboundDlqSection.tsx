@@ -24,11 +24,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockOutboundChargeQueueService } from '@/services/billing/mockOutboundChargeQueueService';
+
 import { validateChargeMetadata } from '@/services/billing/validateChargeMetadata';
 import { simulateDispatchFailure } from '@/services/billing/simulateDispatchFailure';
+import { dispatchQueuedCharge } from '@/services/interfaceDispatch/dispatchCharge';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { auditService, specimenDeficiencyService } from '@/services';
+import { auditService, specimenDeficiencyService, outboundChargeQueueService } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { listAllSites } from '@/services/organisation/organisationService';
 import type { Site } from '@/services/organisation/organisationService';
@@ -53,7 +54,7 @@ const OutboundDlqSection: React.FC = () => {
   const [capturedIds, setCapturedIds] = useState<Set<string>>(new Set());
 
   const loadAll = useCallback(() => {
-    mockOutboundChargeQueueService.getAll().then(async res => {
+    outboundChargeQueueService.getAll().then(async res => {
       if (!res.ok) return;
       setAllEntries(res.data);
       // Real, per direct follow-up: resolve each entry's real
@@ -108,14 +109,14 @@ const OutboundDlqSection: React.FC = () => {
       const refreshed = await caseRouter.getCase(entry.caseId);
       const stillFailing = refreshed ? validateChargeMetadata(refreshed) : [];
       if (stillFailing.length === 0) {
-        await mockOutboundChargeQueueService.retryDispatch(entry.id);
+        await outboundChargeQueueService.retryDispatch(entry.id);
       } else {
         // Real fix, found during verification: the entry's own error
         // must reflect whatever's genuinely still wrong, not the
         // stale reason from before this fix - otherwise a user who
         // just resolved the ICD-10 gap would keep seeing "Missing
         // ICD-10" even though the real, remaining issue is now the NPI.
-        await mockOutboundChargeQueueService.markFailed(entry.id, {
+        await outboundChargeQueueService.markFailed(entry.id, {
           errorCode: stillFailing[0].errorCode,
           errorMessage: stillFailing[0].errorMessage,
           maxRetriesExceeded: false,
@@ -131,7 +132,9 @@ const OutboundDlqSection: React.FC = () => {
   const handleRetryDispatch = async (entry: OutboundChargeQueueEntry) => {
     setBusyId(entry.id);
     try {
-      await mockOutboundChargeQueueService.retryDispatch(entry.id);
+      const re = await outboundChargeQueueService.retryDispatch(entry.id);
+      // Batch 605: the retry now actually sends (the simulated engine answers in the demo).
+      if (re.ok) await dispatchQueuedCharge(re.data);
       loadAll();
     } finally {
       setBusyId(null);
@@ -165,7 +168,7 @@ const OutboundDlqSection: React.FC = () => {
     setBusyId(entry.id);
     try {
       const failure = simulateDispatchFailure(kind);
-      await mockOutboundChargeQueueService.markFailed(entry.id, failure);
+      await outboundChargeQueueService.markFailed(entry.id, failure);
       loadAll();
     } finally {
       setBusyId(null);
@@ -179,7 +182,7 @@ const OutboundDlqSection: React.FC = () => {
           <h2 className="ps-conf-section-title">{t('outboundDlq.title')}</h2>
           <p className="ps-conf-section-subtitle">{t('outboundDlq.subtitle')}</p>
         </div>
-        <select value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.lab')} value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
           <option value="">{t('outboundDlq.allPerformingLabs')}</option>
           {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>

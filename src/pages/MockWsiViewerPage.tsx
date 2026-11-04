@@ -33,6 +33,7 @@ import {
   EMPTY_WSI_VIEWER_CASE_SUMMARY,
   type WsiViewerCaseSummary,
 } from '@/services/cases/resolveWsiViewerCaseSummary';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const MockWsiViewerPage: React.FC = () => {
   const { t } = useTranslation();
@@ -63,7 +64,7 @@ const MockWsiViewerPage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="ps-conf-loading">{t('common.loading')}</div>
+        <LoadingState label={t('common.loading')} />
       ) : !caseId ? (
         <div className="ps-wsi-viewer-error">{t('wsiViewer.noCaseSpecified')}</div>
       ) : !accessionNumber ? (

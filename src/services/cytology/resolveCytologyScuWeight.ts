@@ -25,3 +25,14 @@ export const CYTOLOGY_REVIEW_MODE_SCU_WEIGHTS: Record<CytologyReviewMode, number
 export function resolveCytologyScuWeight(reviewMode: CytologyReviewMode): number {
   return CYTOLOGY_REVIEW_MODE_SCU_WEIGHTS[reviewMode];
 }
+
+/**
+ * Batch 574 (review): what a save adds to the workload. A new review adds its mode's weight; an edit of an
+ * existing review adds only what its new mode weighs beyond the old (an escalation, such as an imager pass
+ * becoming a manual rescreen: 0.5 → 1.5 adds 1), never the slide again. Before this, every edit counted the
+ * slide once more against the limit.
+ */
+export function resolveCytologyScuWeightAdded(existingMode: CytologyReviewMode | undefined, targetMode: CytologyReviewMode): number {
+  const target = resolveCytologyScuWeight(targetMode);
+  return existingMode === undefined ? target : Math.max(0, target - resolveCytologyScuWeight(existingMode));
+}

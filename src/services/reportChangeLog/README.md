@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reportChangeLog/
 
 Batch 368 (PS-353): the report change log. It records who changed what on a case, when, and from which workstation, so a log can be pulled.
@@ -66,5 +68,19 @@ Batch 368 (PS-353): the report change log. It records who changed what on a case
 
 `canExportChangeLog(role)` is removed.
 
+## Batch 437 (PS-282)
+
+`exportChangeLog` records the shared `DOCUMENT_EXPORTED` entry (document `report-change-history`) instead of its own wording.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-353)
+
+`recordCaseChange.test.ts`: each change entry records the workstation (device lock, else the user's home station) and the save time.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`changeHistoryView` in `reportChangeRules.ts`: newest first, filter by area (PS-353).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+Batch 616 (part A, PS-483): `httpReportChangeLogService.ts` and `reportChangeLogInstance.ts`; routes follow `REPORT_CHANGE_LOG_API.md` (`/api/cases/{id}/change-log`).

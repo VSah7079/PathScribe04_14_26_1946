@@ -32,6 +32,10 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { IAmendmentService } from './IAmendmentService';
+import { dataStorage } from '../browserData/dataStorage';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { enforceRevisionRelease, revisionReleaseRefusal } from './revisionReleaseCapability';
+import { S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT } from '../cases/demoProstateBiopsyChecklist';
 
 // Phase 3 helper — reused wherever the "here's what changed since the
 // last signed-out version" confirmation is built (SynopticReportPage's
@@ -57,13 +61,13 @@ export function diffAnswersForSummary(before: Record<string, unknown> | undefine
 }
 
 const STORAGE_KEY = 'amendment_records';
-const AMENDMENT_VERSION = '7';
+const AMENDMENT_VERSION = '9'; // Batch 755a: plain checklist names. 8 (Batch 753): S26-4404's original answers differ from today's only where the amendment corrected them
 const VERSION_KEY = 'pathscribe_mock_amendment_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== AMENDMENT_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, AMENDMENT_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, AMENDMENT_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 
@@ -73,7 +77,7 @@ const SEED_RECORDS: AmendmentRecord[] = [
     caseId: 'S26-4404',
     type: 'amendment',
     sequenceNumber: 1,
-    explanationOfChange: 'Highest Score and involvement count corrected following second pathologist review of stained slides — an additional positive unit was identified on re-examination, raising the overall grade.',
+    explanationOfChange: 'Highest Gleason score and the number of cores with carcinoma corrected after a second pathologist reviewed the stained slides: one more core with carcinoma was found, and the highest score rose from 3+3=6 to 3+4=7.',
     notification: { clinicianName: 'Dr. Anil Sharma', method: 'verbal_phone', notifiedAt: '2026-07-13T10:00:00.000Z' },
     body: '',
     initiatedAt: '2026-07-13T09:55:00.000Z',
@@ -83,20 +87,9 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4404-SP-1_prostate_001',
       specimenId: 'S26-4404-SP-1',
       templateId: 'prostate_needle_biopsy',
-      templateName: 'Generic Template — Prostate Needle Biopsy',
+      templateName: 'Prostate needle biopsy',
       status: 'finalized',
-      answers: {
-        procedure: ['procedure_opt_1'],
-        positive_specimen_locations: ['positive_specimen_locations_opt_1'],
-        highest_gleason_score: 'highest_gleason_score_opt_1',
-        sites_with_highest_gleason: ['sites_with_highest_gleason_opt_1'],
-        total_number_of_cores: 12,
-        number_of_positive_cores: 3,
-        greatest_percentage_core_involvement: 'greatest_percentage_core_involvement_opt_7',
-        perineural_invasion: 'perineural_invasion_opt_2',
-        lymphatic_vascular_invasion: 'lymphatic_vascular_invasion_opt_1',
-        treatment_effect: ['treatment_effect_opt_1'],
-      },
+      answers: S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT, // Batch 753
     },
   },
   {
@@ -114,10 +107,10 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4401-SP-1_breast_invasive_001',
       specimenId: 'S26-4401-SP-1',
       templateId: 'breast_invasive',
-      templateName: 'Generic Template — Breast Invasive',
+      templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
-        histologic_type: 'histologic_type_opt_2',
+        histologic_type: 'histologic_type_opt_1',
         histologic_grade: 'Grade 2',
         tumor_size: '2.3 cm',
       },
@@ -151,13 +144,13 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4401-SP-1_breast_invasive_001',
       specimenId: 'S26-4401-SP-1',
       templateId: 'breast_invasive',
-      templateName: 'Generic Template — Breast Invasive',
+      templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_2',
         specimen_laterality: 'specimen_laterality_opt_2',
         tumor_site: ['tumor_site_opt_1'],
-        histologic_type: 'histologic_type_opt_2',
+        histologic_type: 'histologic_type_opt_1',
         histologic_grade: 'Grade 1',
         tumor_size: '1.8 cm',
         tumor_focality: 'tumor_focality_opt_1',
@@ -176,10 +169,10 @@ const SEED_RECORDS: AmendmentRecord[] = [
         extranodal_extension: 'extranodal_extension_opt_1',
         total_ln_examined: '1',
         sentinel_ln_examined: '1',
-        dcis: 'Secondary finding present, small extent',
-        tumor_extent: 'Confined to primary organ',
+        dcis: 'Present, intermediate nuclear grade, small extent',
+        tumor_extent: 'Confined to the breast',
         distant_metastasis: 'distant_metastasis_opt_1',
-        ptnm_classification: 'Category A: Level 2; Category B: Level 1 (micro)',
+        ptnm_classification: 'pT2 pN1mi',
       },
     },
   },
@@ -199,7 +192,7 @@ const SEED_RECORDS: AmendmentRecord[] = [
       instanceId: 'S26-4402-SP-1_colon_resection_001',
       specimenId: 'S26-4402-SP-1',
       templateId: 'colon_resection',
-      templateName: 'Generic Template — Colon Resection',
+      templateName: 'Colon resection',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_4',
@@ -277,6 +270,10 @@ export const mockAmendmentService: IAmendmentService = {
   },
 
   async startDraft(input) {
+    // Batch 540 (Pete): no correction or addendum while the report is still in its release delay
+    // (reportRelease/revisionDuringDelay.ts); the pathologist recalls it instead.
+    const { revisionAllowedNow, REVISION_IN_RELEASE_DELAY } = await import('../reportRelease/revisionDuringDelay');
+    if (!(await revisionAllowedNow(input.caseId))) return err(REVISION_IN_RELEASE_DELAY);
     const existing = load().filter(r => r.caseId === input.caseId && r.type === input.type);
     const newRecord: AmendmentRecord = {
       // Batch 381: a random suffix, so two drafts opened in the same
@@ -367,6 +364,10 @@ export const mockAmendmentService: IAmendmentService = {
     const idx = records.findIndex(r => r.id === id);
     if (idx === -1) return err(`Amendment/addendum ${id} not found`);
     const record = records[idx];
+    // Batch 649: the capability for this kind of revision (surgical:amendment|correction|addendum:release), audited.
+    if (!(await enforceRevisionRelease(record.type, record.caseId, (c, ctx) => authorizationService.enforce(c, ctx)))) {
+      return err(revisionReleaseRefusal(record.type));
+    }
 
     if (!fields.body.trim()) {
       return err(record.type === 'addendum' ? 'Addendum body cannot be empty.' : record.type === 'correction' ? 'Correction body cannot be empty.' : 'Amendment body cannot be empty.');
@@ -414,6 +415,42 @@ export const mockAmendmentService: IAmendmentService = {
       status: 'released',
     };
     persist(records);
+    // Batch 438 (PS-146): a clinically significant amendment or correction
+    // recommends a CAPA (linked to a discordance already found on the case,
+    // PS-148). Never blocks the release.
+    await recommendCapaForRevision(records[idx]);
+    return ok({ ...records[idx] });
+  },
+
+  // Batch 535: Recall within the release delay. The CAPA recommendation made at
+  // release (if any) stays for the QA lead to dismiss: recalling isn't a QA decision.
+  async reopen(id, by) {
+    const records = load();
+    const idx = records.findIndex(r => r.id === id);
+    if (idx === -1) return err(`Amendment/addendum ${id} not found`);
+    const record = records[idx];
+    if (record.status !== 'released') return err('Only a released amendment, correction or addendum can be reopened.');
+    records[idx] = {
+      ...record, status: 'draft', releasedAt: undefined,
+      recalls: [...(record.recalls ?? []), { at: new Date().toISOString(), by, ...(record.releasedAt ? { releasedAt: record.releasedAt } : {}) }],
+    };
+    persist(records);
     return ok({ ...records[idx] });
   },
 };
+
+async function recommendCapaForRevision(record: AmendmentRecord): Promise<void> {
+  if (record.type === 'addendum' || !record.reasonId) return;
+  try {
+    const [{ mockReasonDictionaryService }, { revisionRecommendation }, { mockCapaRecommendationService }] = await Promise.all([
+      import('../reasons/mockReasonDictionaryService'), import('../reasons/revisionReasonRules'), import('../quality/mockCapaRecommendationService'),
+    ]);
+    const category = record.type === 'correction' ? 'CORRECTION' : 'AMENDMENT';
+    const reasons = await mockReasonDictionaryService.getAll(category);
+    const reason = reasons.ok ? reasons.data.find(r => r.id === record.reasonId) : undefined;
+    const input = revisionRecommendation(record, reason, record.authoringPathologist?.userId ?? 'system');
+    if (input) await mockCapaRecommendationService.recommend(input);
+  } catch (e) {
+    console.error('[mockAmendmentService] Failed to recommend a CAPA for a released revision:', e);
+  }
+}

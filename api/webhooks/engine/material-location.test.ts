@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { verifyEngineAuth, claimMessageId, applyEngineCaseUpdate, docCreate, logIntegrationError } = vi.hoisted(() => ({
+const { verifyEngineAuth, applyEngineCaseUpdate, docCreate, logIntegrationError } = vi.hoisted(() => ({
   verifyEngineAuth: vi.fn(),
-  claimMessageId: vi.fn(),
   applyEngineCaseUpdate: vi.fn(),
   docCreate: vi.fn(),
   logIntegrationError: vi.fn(),
 }));
 
 vi.mock('./_lib/verifyEngineAuth', () => ({ verifyEngineAuth }));
-vi.mock('./_lib/idempotency', () => ({ claimMessageId }));
 vi.mock('./_lib/applyEngineCaseUpdate', () => ({ applyEngineCaseUpdate }));
 vi.mock('./_lib/logIntegrationError', () => ({ logIntegrationError }));
 vi.mock('./_lib/firebaseAdmin', () => ({
@@ -54,12 +52,10 @@ function mockApplied() {
 describe('material-location webhook handler', () => {
   beforeEach(() => {
     verifyEngineAuth.mockReset();
-    claimMessageId.mockReset();
     applyEngineCaseUpdate.mockReset();
     docCreate.mockReset();
     logIntegrationError.mockReset();
     verifyEngineAuth.mockReturnValue({ ok: true });
-    claimMessageId.mockResolvedValue({ alreadyProcessed: false });
     docCreate.mockResolvedValue(undefined);
     mockApplied();
   });
@@ -86,7 +82,7 @@ describe('material-location webhook handler', () => {
   });
 
   it('returns 200 already-processed on a redelivered messageId', async () => {
-    claimMessageId.mockResolvedValue({ alreadyProcessed: true });
+    applyEngineCaseUpdate.mockResolvedValue({ outcome: 'already-processed', caseId: 'S26-4403' });
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe('already-processed');
@@ -95,6 +91,8 @@ describe('material-location webhook handler', () => {
   it('returns 404 when the case is not found', async () => {
     applyEngineCaseUpdate.mockResolvedValue({ outcome: 'case-not-found', caseId: 'S26-4403' });
     expect((await handler(makeRequest(validPayload))).status).toBe(404);
+    // Batch 545 (F10): the claim is made inside the update's transaction, so a not-found leaves none.
+    expect(applyEngineCaseUpdate).toHaveBeenCalledWith(expect.any(String), expect.any(Function), { messageId: validPayload.messageId, eventType: expect.any(String) });
   });
 
   it('returns 404 when the real target is not found', async () => {

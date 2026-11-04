@@ -38,6 +38,8 @@ import { useSearchParams } from 'react-router';
 import ActiveProtocolsSection from './ActiveProtocolsSection';
 import ReviewQueueSection     from './ReviewQueueSection';
 import AllProtocolsSection    from './AllProtocolsSection';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import { pressable } from '@/utils/a11y/pressable';
 
 type Section = 'active' | 'review' | 'all';
 
@@ -48,6 +50,8 @@ const NAV_ITEMS: { id: Section; icon: string; labelKey: string; subKey: string }
 ];
 
 const ProtocolsTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -75,7 +79,7 @@ const ProtocolsTab: React.FC = () => {
           return (
             <div
               key={item.id}
-              onClick={() => setSection(item.id)}
+              {...pressable(() => guardNav(() => setSection(item.id)))}
               className={`ps-protocols-tab-nav-item${isActive ? ' ps-protocols-tab-nav-item--active' : ''}`}
             >
               <div className={`ps-protocols-tab-nav-item-label${isActive ? ' ps-protocols-tab-nav-item-label--active' : ''}`}>

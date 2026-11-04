@@ -1,0 +1,39 @@
+// PathScribe reporting feed: DAX measures for the lab workflow reports (spec §9).
+// Batch 730. NOT TESTED in Power BI Desktop and NOT RUN against real data. See POWER_BI_KIT.md.
+// Tables come from PathScribeFeed.pq: StationEvents, StepReached, Batches, AddOnOrders, Cases.
+// A TargetHours table (two columns: tat_step, target_hours) is entered by hand (Home > Enter data) with the
+// laboratory's own targets, for example embed 36, cut 48, stain 54, distribute 60.
+
+// ── Turnaround by step (accession to embed, cut, stain, distribute) ──
+Median Hours = MEDIAN ( StepReached[hours_from_accession] )
+P90 Hours = PERCENTILE.INC ( StepReached[hours_from_accession], 0.9 )
+Cases Reaching Step = DISTINCTCOUNT ( StepReached[case_key] )
+Late Cases =
+    VAR Target = SELECTEDVALUE ( TargetHours[target_hours] )
+    RETURN COUNTROWS ( FILTER ( StepReached, NOT ISBLANK ( Target ) && StepReached[hours_from_accession] > Target ) )
+Late % = DIVIDE ( [Late Cases], [Cases Reaching Step] )
+// Accession to gross and to sign-out come from Cases (turnaround_hours is accession to sign-out).
+Median Sign-out Hours = MEDIAN ( Cases[turnaround_hours] )
+
+// ── STAT performance: the same measures with Cases[priority] = "STAT" as a page or visual filter ──
+// (StepReached relates to Cases on case_key.)
+
+// ── Volume per station ──
+Items Scanned = DISTINCTCOUNT ( StationEvents[item_key] )
+Scans = COUNTROWS ( StationEvents )
+
+// ── Add-on orders ──
+Add-ons Ordered = COUNTROWS ( AddOnOrders )
+Add-ons Cut = COUNTROWS ( FILTER ( AddOnOrders, NOT ISBLANK ( AddOnOrders[minutes_to_cut] ) ) )
+Median Minutes to Cut = MEDIAN ( AddOnOrders[minutes_to_cut] )
+STAT Add-ons = COUNTROWS ( FILTER ( AddOnOrders, AddOnOrders[priority] = "STAT/Urgent" ) )
+Recut Orders = COUNTROWS ( FILTER ( AddOnOrders, AddOnOrders[order_type] = "recut" ) )
+
+// ── Reconciliation exceptions ──
+Missing Items = SUM ( Batches[missing_count] )
+Unexpected Items = SUM ( Batches[unexpected_count] )
+Overrides = COUNTROWS ( FILTER ( Batches, Batches[override] = TRUE () ) )
+
+// ── Batch duration against target (completed batches; time at Decal/Staining needs step_history, see the guide) ──
+Batch Minutes = AVERAGEX ( FILTER ( Batches, NOT ISBLANK ( Batches[completed_at] ) ), DATEDIFF ( Batches[created_at], Batches[completed_at], MINUTE ) )
+Batches Over Target = COUNTROWS ( FILTER ( Batches, NOT ISBLANK ( Batches[target_minutes] ) && DATEDIFF ( Batches[created_at], Batches[completed_at], MINUTE ) > Batches[target_minutes] ) )

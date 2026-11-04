@@ -11,6 +11,10 @@ import type { CytologyQcCaseAssignment } from '@/types/cytologyQc/CytologyQcRule
 
 export type NewCytologyQcCaseAssignment = Omit<CytologyQcCaseAssignment, 'id'>;
 
+/** The fields a later trigger may change on an open assignment (Batch 501). */
+export type QcTriggerChanges = Partial<Pick<CytologyQcCaseAssignment,
+  'priorityTier' | 'slaDeadline' | 'eligibleReviewerRoles' | 'triggerSource' | 'matchedRuleId' | 'badges' | 'selectionReasons' | 'history'>>;
+
 export interface ICytologyQcCaseAssignmentService {
   getAll(): Promise<ServiceResult<CytologyQcCaseAssignment[]>>;
   getById(id: ID): Promise<ServiceResult<CytologyQcCaseAssignment>>;
@@ -22,6 +26,12 @@ export interface ICytologyQcCaseAssignmentService {
    *  job of the badge/tab UI layer, not this data source. */
   getUnifiedQueue(): Promise<ServiceResult<CytologyQcCaseAssignment[]>>;
   create(assignment: NewCytologyQcCaseAssignment): Promise<ServiceResult<CytologyQcCaseAssignment>>;
+  /** Batch 501: a later trigger (ROSE discrepancy, a QC rule) selected a
+   *  specimen that already has this OPEN assignment, so it is upgraded rather
+   *  than duplicated (resolveQcAssignmentUpsert.ts decides the changes). Only
+   *  the trigger fields can change; refuses unless the assignment is
+   *  QC_PENDING or QC_IN_REVIEW. A system action at sign-out, audited. */
+  applyAdditionalTrigger(id: ID, changes: QcTriggerChanges): Promise<ServiceResult<CytologyQcCaseAssignment>>;
   /** Real, per spec §2.2's own Self-Review Prevention — rejects
    *  honestly (never silently reassigns to someone else) if
    *  `reviewerId` is the case's own real primary sign-out provider.
@@ -38,8 +48,10 @@ export interface ICytologyQcCaseAssignmentService {
    *  assignment to genuinely be QC_IN_REVIEW. */
   recordDiscrepancy(
     id: ID,
-    discrepancy: { primaryDiagnosticCode: string; secondaryDiagnosticCode: string; severity: 'major' | 'minor'; reviewerCommentary?: string },
+    discrepancy: { primaryDiagnosticCode: string; secondaryDiagnosticCode: string; severity: 'major' | 'minor'; reviewerCommentary?: string; divergenceConfirmed?: boolean },
   ): Promise<ServiceResult<CytologyQcCaseAssignment>>;
+  // Batch 669f (cyt-6): the secondary code is optional; when given and it diverges significantly from the primary
+  // (resolveQcCodeDivergence.ts) the call needs divergenceConfirmed, else it returns QC_DIVERGENCE_NOT_CONFIRMED.
   /** Real, per spec §2.3's own "reassign the case to an available
    *  reviewer" — see resolveNewQcCaseAssignment.ts's own header for
    *  the real, honest scope this reflects (no real "available

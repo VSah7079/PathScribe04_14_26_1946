@@ -1,3 +1,13 @@
+**Batch 759:** `OutsideCaseCard.tsx` (new): the Outside Patient Data card moved out of `AccessionPage.tsx` unchanged, with the new **Originating case** section (case number and institution, saved as `order.originatingCase`). `AccessionPage.tsx` 4,162 → 4,002 lines.
+
+**Batch 738:** the received time defaults to local time (`localInputValueFromDate`), not UTC; `AccessionPage.tsx` stays at 4,162 lines.
+
+**Batch 721:** the Accession screen is in two columns on a wide window (1,480 CSS px or more): Case & Patient on the left, Specimens on the right, the Cytology card under the specimens, and no Next or Back button. A narrower window keeps the tabs. New: `AccessionTabBar.tsx` (the tabs, moved out of `AccessionPage.tsx`), `AccessionColumnSlot.tsx` (draws the Cytology card in the right column), `accessionColumns.css`, `AccessionPage.twoColumn.e2e.test.tsx`. `AccessionPage.tsx` 4,165 to 4,163 lines. No new text, so no locale changes.
+
+**Batch 703:** **Go to Worklist** (after a save) opens the Worklist on the context that holds the case just saved (`worklistPathForCase`): an Orchestration case is listed under the Outreach tile, not LIS Cases, which is where the button used to land.
+
+**Batch 649:** creating a case needs `case:accession:create` (`createAccessionedCase` checks it; a refusal shows the reason and saves nothing). Tests updated: `AccessionPage.e2e.test.tsx`, `AccessionPage.contactBleeding.e2e.test.tsx`.
+
 # pages/AccessionPage/
 
 Orchestration Stage 0 entry point — Stage 0 Requirements §6.1. Captures
@@ -6,7 +16,7 @@ Grossing Template assignment per specimen, and creates the Case.
 
 ## Files
 
-- **`AccessionPage.tsx`** (1,745 lines) — the page itself. Extensively
+- **`AccessionPage.tsx`** (about 4,150 lines) — the page itself. Extensively
   self-documented inline (SPECIMEN MODEL, ID generation scheme,
   skeleton-scope notes are all explained in the file's own header and
   section comments) — that documentation wasn't duplicated here.
@@ -22,7 +32,7 @@ Grossing Template assignment per specimen, and creates the Case.
   **Fixed this review:** 4 unnecessary `as any` casts, verified
   non-load-bearing by removing them and running `npx tsc --noEmit -p .`
   project-wide (zero new errors) — see `DEAD_CODE_TRACKING.md` for the
-  specifics of each. A 5th `as any` (a native `<select>`'s `onChange`)
+  specifics of each (that file is no longer in the repo). A 5th `as any` (a native `<select>`'s `onChange`)
   was narrowed to `as 'M' | 'F' | 'U'` rather than removed, since some
   assertion is genuinely needed there.
 
@@ -190,7 +200,7 @@ Grossing Template assignment per specimen, and creates the Case.
 - **`ReportDeficiencyModal.tsx`** — Manual deficiency reporting, distinct
   from the auto-detected order-import dictionary mismatch. Raised, not
   raised-and-resolved — actual resolution happens later from the
-  dedicated Deficiencies work queue (`pages/DeficienciesPage.tsx`),
+  dedicated Deficiencies work queue (`pages/QualityAssurancePage.tsx`, renamed from `DeficienciesPage.tsx`),
   independent of this case's own lifecycle. Clean — no inline styles, no
   dead code, correctly reuses `ps-conf-*`/`ps-ms-*` shared classes.
   **Updated in a later session:** now takes a `context: 'case' |
@@ -205,11 +215,20 @@ Grossing Template assignment per specimen, and creates the Case.
   — see that entry above) — this modal's own context filter composes on
   top of that, not instead of it.
 
+- **`PatientLinkSearch.tsx`**, **`autopsyOrganLabelKeys.ts`** — see the
+  batch notes below. **`ClinicalHistory/ClinicalHistoryEntryPanel.tsx`** —
+  the Clinical History tab's structured entry (specimen type → category →
+  history code cascade, metadata fields, Alt+1–6 category shortcuts, typeahead).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `AccessionPage.tsx` is about 4,150 lines (`wc -l`), not 1,745; the Deficiencies queue is `QualityAssurancePage.tsx`; added the files the list left out. `DEAD_CODE_TRACKING.md` and `PRIORITY_FIXES.md`, cited above, are no longer in the repo.*
+
 ## Notes
 
-All four files in this folder (including the new `OrderLookupModal.tsx`
-above) are clean of inline styles — verified via `grep -n "style="`
-across the whole folder, zero matches.
+Every component file in this folder, including `ClinicalHistory/`, is
+clean of inline styles — verified via `grep -n "style="` across the
+whole folder (the only match is a comment).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this said "all four files"; the folder now has six component files plus `ClinicalHistory/`.*
 
 **`AccessionPage.tsx`, added for Phase B of the "Interface Exception &
 Case-Binding Module," per direct confirmation** (superseded below —
@@ -757,7 +776,8 @@ listener, GS1 DataMatrix/delimited/plain-alphanumeric payload parsing,
 and error/ambiguity handling. Deliberately scoped as separate,
 follow-up work — different technical shape from the Encounter Selector
 above, large enough to deserve its own dedicated pass rather than a
-rushed addition here.
+rushed addition here. *(Since closed: built in the very next entry below
+— `utils/parseScannedPayload.ts` — checked in the Batch 496 README audit.)*
 
 **Real feature, per direct, detailed specification: "Barcode Listener
 & Form Auto-Ingestion," built.** Found substantial, real, pre-existing
@@ -1008,3 +1028,101 @@ built speculatively here.
 ## Batch 377
 
 A required Patient ID left blank is generated at submit, as before, and isn't listed as missing. If none can be generated, submit stops with an alert (`accessionPage.toast.patientIdNotGenerated`). The generation rule moved out of the page into `services/accessioning/patientIdGeneration.ts`.
+
+## Batch 417: national identifier
+
+Under the MRN, the facility's jurisdiction decides which national identifier inputs appear (`NationalIdentifierFields`: NHS number for an English trust, BSN for a Dutch lab, PPSN and IHI for Ireland, none for a US lab). The check digit shows as the person types. Once the case is created, each value is saved through `recordNationalPatientIdentifier` (permission, check digit, MPI mirror, audit); a refusal shows a toast and the case stands. Not done yet: prefilling from an existing MPI patient's national identifiers, and editing them after accession. *(Since closed in Batch 425: picking a known patient prefills them (`prefillPatientRegistryDetails`), and `PatientRegistryDetailsModal` edits them after accession, from Registry Exceptions — checked in the Batch 496 README audit.)*
+
+## Batch 418: registry opt-outs
+
+Under the national identifier, two checkboxes: opted out of cervical screening programme reporting; opted out of cancer registry reporting (honoured only where Configuration says the jurisdiction allows it). Saved through `recordPatientRegistryConsent` after the case is created, like the national identifier.
+
+## Batch 425
+
+Picking a known patient from the index fills in their national identifiers and registry opt-outs as the MPI holds them (`services/patients/patientRegistryDetails.ts`, `prefillPatientRegistryDetails`). The hospital's system can now send these as JSON too.
+
+## Batch 430: personal settings per person; view-only fields
+
+Test only: the end-to-end test's auth mock also provides `useAuthOptional` (the voice provider reads who is signed in).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+The contact-bleeding decision moved to `services/accessioning/resolveAccessionSpecimenCytologyScreening.ts`; `AccessionPage.contactBleeding.e2e.test.tsx` accessions a Pap, an FNA and a biopsy (PS-212). Batch 452 replaced the checkbox with Yes / No / Not recorded, so an explicit 'no' is kept.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+Persistent contact bleeding is now a Yes / No / Not recorded choice. An explicit "no" is stored on each cytology and FNA specimen.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Follow-up writes to the just-created case use `updateCaseWithRetry`. A conflict on the national identifier or registry opt-out save is now shown.
+
+## Batch 468
+
+`AUTOPSY_ORGAN_LABEL_KEY` (the organ display-label map for the specimen organ picker) moved out to its own file, `autopsyOrganLabelKeys.ts`, so `SynopticReportPage.tsx`'s new consent-scope warning banner can reuse the same labels instead of defining a second, divergent map. No behavior change on this page.
+
+## Batch 473 — Case-type key migration
+
+No behavior change. This page's own intake flow references `caseAuthority`'s renamed forensic-path value, `'medicolegal_forensic'` → `'statutory_judicial'`. See `services/autopsy/README.md`.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. "Print Labels", the MRN label, the patient title options (labels only; stored values unchanged) and the order picker's "Routine".
+
+## Batch 514 (PS-269)
+
+The name preview under the demographics fields shows in the screen's language (Korean: full name + 님).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 528: required clinical history (PS-359)
+
+For cytology and FNA cases, the organisation's clinical-history requirements (Field Requirements page Clinical history) join the Case & Patient check: until they are met, Next is disabled and "Still required" names them. *(Changed in Batch 530: a note, never a block.)* The check is `services/clinicalHistory/clinicalHistoryRequirementChecks.ts`. Nothing is required by default.
+
+## Batch 530 (Pete: no hard blocks at intake)
+
+Missing clinical history (cytology and FNA, Field Requirements page Clinical history) no longer disables Next: it shows as a note, and the case is accessioned. *(Corrects Batch 528.)*
+
+- Batch 608: the cytology section records a prior cervical procedure.
+
+## Batch 618 (PS-336)
+
+`AccessionTechnicalFacilityField.tsx` (+ test): the optional "Technical component performed by" list; renders nothing unless the intake is outside material or a consultation, so an ordinary accession has no extra click. `AccessionPage.tsx` only holds the choice and puts it on the order (net lines unchanged, per CLAUDE.md rule 10).
+
+## Batch 652 — Specimen pipeline gaps
+
+- After saving a case from a pending order, the page calls `linkLockboxReceiptAtAccession` (`services/accessioning/linkLockboxReceipt.ts`) so a lockbox receipt for that order is linked to the case and marked accessioned. File length unchanged (4204 lines).
+
+- Batch 661/662: Sex at birth starts blank and is required (Female, Male, Indeterminate, Not known); `accessionSexNoDefault.test.ts` guards the blank start.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the Grossing Templates assigned card shows the template and reason, not a confidence.
+
+## Batch 707 — date of birth saved as the entered calendar date
+
+The date of birth and last menstrual period were saved as `new Date(x).toISOString()` (midnight UTC), so a US time zone showed the day before (entered 05/14/1980, listed 05/13/1980). They are now saved as the plain `YYYY-MM-DD` the date box gives, through `utils/plainCalendarDate.ts`. Cases accessioned before this batch keep the old timestamp in browser storage; a demo Full Reset clears them.
+
+## Batch 712 — the Downtime Reason blocks Next and Submit Accession
+
+With the Temporary / Downtime intake the reason is a required field like the others: `missingDowntimeReasonFieldIds` (`services/accessioning/downtimeReasonRule.ts`) names it (`fieldRequirements.fields.accession.downtimeReason`), the page adds that name to the "Still required" lists and to `caseInfoValid`, so Next and Submit Accession are disabled until a reason is chosen. Standard and Outside intake never require or list it. The `handleSubmit` guard stays as a backstop. Test: `AccessionPage.downtimeReason.e2e.test.tsx`. `AccessionPage.tsx` shrank by one line (baseline 4186).
+
+## Batch 714 — Clinical Indication shows where it came from
+
+The box is now `ClinicalIndicationField.tsx`: after Import from Order a note under it names the order field ("From the order: OBR-31 Reason for Study. Check it; edit if needed."), and after an edit it reads "Edited from the order" with the order text. Decisions are in `services/orderIntake/clinicalIndicationProvenance.ts`; the case stores `clinicalIndicationSource`, `orderClinicalIndication` and `orderClinicalIndicationField` beside `clinicalIndication`. `AccessionPage.tsx` got shorter (4,185 to 4,183 lines).
+
+## Batch 715 — letters or numbers for labels
+
+`useAccessionLabelStyle.ts` resolves the style for the chosen facility (its performing lab over its enterprise), relabels the specimens still on the form when it changes, and the case saves it as `Case.labelStyle`. Specimen labels, default blocks (`generateDefaultMaterial`) and the Remove-specimen renumbering all use it. `AccessionPage.tsx` stays at 4,183 lines.
+
+Batch 756: the "accessioned" message names the accession number on the labels (S26-0001), not the internal case id (O26-0031). One line changed; the page is still 4,162 lines.

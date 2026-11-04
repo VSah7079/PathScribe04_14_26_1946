@@ -1,3 +1,5 @@
+**Batch 649:** a signature record can carry a link to the exact report version it signed: `ISignatureRecordService.ts` gains `SignatureRecordLink` fields for the version id, its number and the SHA-256 of its signed PDF bytes (absent when the PDF failed to render). Orchestration sign-out, a resident's release for countersign and Assist Finalize all record it, after the version exists (`services/surgicalSignOut/`).
+
 # services/signatures/
 
 Batch 345 (PS-60 follow-up). **The signature records: one per signature applied to a case.** Each record holds:
@@ -18,8 +20,18 @@ Batch 345 (PS-60 follow-up). **The signature records: one per signature applied 
 
 **Production:** a SQL Server table owned by the API server, written in the same transaction as the signed change, with `verifiedBy: 'server'` (`docs/architecture/AUTHENTICATION_OIDC.md` §5.4–§5.5).
 
-**Not yet:** no screen lists these records. The case's audit trail has a matching *Signature recorded* entry.
+**Where they're shown:** the report page's header bar carries a signature chip ("N signatures recorded — click to view history") that opens `pages/SynopticReportPage/modals/SignatureHistoryModal.tsx`, a read-only list of the case's records (Batch 483). The case's audit trail also has a matching *Signature recorded* entry.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): said no screen lists these records; the Signature History modal does.*
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 533
+
+`ISignatureRecordService.ts`: link kind `cytology-preliminary` (the signature on an urgent cytology preliminary report, when the laboratory requires it).
+
+## Batch 617 (part C): server versions (PS-514)
+
+The signature record service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/SIGNATURES_SMART_CAPTURE_API.md`. The mocks are unchanged.

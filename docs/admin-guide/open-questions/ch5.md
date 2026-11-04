@@ -1,0 +1,21 @@
+# Chapter 5 open questions
+
+- The root `orchestrator/` folder is a stale August copy outside the build. The live code is `src/orchestrator/`. Remove or mark it.
+- The outline lists computer-vision specimen tracking, tumour detection, cell counting, biomarker scoring, an NLP engine and weight calibration. None exists. They are documented as Not built.
+- Smart Capture is a deterministic billing-rule prototype, not computer vision and not AI. Rename it in the outline?
+- `showConfidenceScores` was removed in Batch 682. `macroSuggestions` and `subspecialtyRouting` were removed in Batch 687 (saved but read by nothing). The Admin Guide chapter 5 still mentions them; fix when the guide is updated.
+- The Validation Studies tab and the AI Provider panel are gated by role (admin, pathologist-admin, superadmin), not capability. Lab Director holds the capabilities but is excluded.
+- AI Instructions: the section gate needs edit or approve, but listing needs view. A QA Reviewer holds view only and cannot open the screen.
+- Saving an edited study logs `validation_study_created`. Probably a bug.
+- The IRB field on the study form is not saved. It is recorded at the approval step.
+- "How this works" says a second pathologist or admin reviews, but the form records only a committee name.
+- Activation records the literal name `admin` as `activatedBy`.
+- The principal investigator has no input field. It defaults to the first selected pathologist.
+- The model store licence check is a mock that always passes (PS-59).
+- The AI Instructions service has no server route of its own.
+- The provider list offers Gemini 1.5 flash and pro, but the model catalogue has Gemini 2.x entries. The catalogue also uses `claude-sonnet-5` and `claude-opus-5`, the provider list `claude-sonnet-4-6` and `claude-opus-4-8`.
+- Provider `mock` or an unknown value still calls the Anthropic route through the proxy (disclosed in AI_PROXY.md).
+- Orchestrator step editing is not built ("configurable in a future release").
+- The Orchestrator text says the facility override is on the General tab. The override is on the Facility Dictionary AI & Performance tab.
+- Bedrock needs a server route that signs requests and returns a normalised stream.
+- Whether `validation:approval:record` is seeded separately from the quality configuration group was not confirmed.

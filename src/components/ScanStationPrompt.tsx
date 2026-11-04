@@ -29,23 +29,21 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+
 import { resolveStationBenchRoute } from '@/services/workstationGroups/resolveStationBenchRoute';
-import type { ScanStation } from '@/services/scanStations/IScanStationService';
+import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
 
 export function ScanStationPrompt() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { effectiveStationId, setStationId, hasBeenPrompted, markPrompted } = useEffectiveScanStation();
-  const [stations, setStations] = useState<ScanStation[]>([]);
+  const { effectiveStationId, unavailableStationId, setStationId, hasBeenPrompted, markPrompted } = useEffectiveScanStation();
+  // Batch 713: only the Active stations this user may use (services/scanStations/stationsForUser.ts).
+  const { stations, allStations } = useSelectableScanStations();
   const [selected, setSelected] = useState<string>('');
+  // Batch 713: "skip" on the not-available notice lasts for this sign-in; the computer's stored station is left alone.
+  const [skippedUnavailableFor, setSkippedUnavailableFor] = useState<string | null>(null);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    mockScanStationService.getAll().then(res => {
-      if (res.ok) setStations(res.data.filter(s => s.status === 'Active'));
-    });
-  }, []);
+  useEffect(() => { setSelected(''); setSkippedUnavailableFor(null); }, [user?.id]);
 
   // Real, deliberate show condition: a real, logged-in user, with
   // NEITHER a device-level station NOR a resolved user default
@@ -54,7 +52,11 @@ export function ScanStationPrompt() {
   // prompt before — never re-shown just because the device's own
   // stationId happens to be null (a resolved user default, or an
   // intentional skip, are both real reasons that's true too).
-  const shouldShow = !!user && !effectiveStationId && !hasBeenPrompted;
+  // Batch 713: also shown again when the station stored on this computer is one
+  // this user may not use (it counts as no station until they pick their own or skip).
+  const notAvailableStation = unavailableStationId ? allStations.find(s => s.id === unavailableStationId) : undefined;
+  const showUnavailable = !!user && !!unavailableStationId && !effectiveStationId && skippedUnavailableFor !== user.id;
+  const shouldShow = !!user && !effectiveStationId && (!hasBeenPrompted || showUnavailable);
   if (!shouldShow) return null;
 
   // Real fix, per direct follow-up: "The workstation selection will
@@ -91,18 +93,24 @@ export function ScanStationPrompt() {
 
   const handleSkip = () => {
     markPrompted();
+    if (user) setSkippedUnavailableFor(user.id);
   };
 
   return (
     <div className="ps-overlay ps-scan-prompt-overlay">
-      <div className="ps-modal-dark ps-scan-prompt-modal">
+      <div className="ps-modal-dark ps-scan-prompt-modal" role="dialog" aria-modal="true">
         <div>
           <div className="ps-scan-prompt-title">📍 {t('scanStationPrompt.title')}</div>
           <div className="ps-scan-prompt-subtitle">
             {t('scanStationPrompt.subtitle')}
           </div>
         </div>
-        <select
+        {showUnavailable && (
+          <div className="ps-scan-prompt-subtitle" role="status">
+            {t('scanStationPrompt.notAvailable', { station: notAvailableStation?.name ?? unavailableStationId })}
+          </div>
+        )}
+        <select aria-label={t('scanStationPrompt.subtitle')}
           value={selected}
           onChange={e => setSelected(e.target.value)}
           className="ps-scan-prompt-select"

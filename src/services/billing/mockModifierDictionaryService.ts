@@ -4,6 +4,7 @@ import type { ServiceResult } from '../types';
 import type { IModifierDictionaryService } from './IModifierDictionaryService';
 import type { ModifierTableVersion } from './ModifierTableVersion';
 import { DEFAULT_CPT_MODIFIERS } from './cptModifierDictionary';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'modifier_dictionary_versions_v1';
 
@@ -62,7 +63,7 @@ const persist = (versions: ModifierTableVersion[]) => storageSet(STORAGE_KEY, ve
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockModifierDictionaryService: IModifierDictionaryService = {
+const modifierDictionaryServiceUnchecked: IModifierDictionaryService = {
   async getAllVersions() {
     return ok([...load()].sort((a, b) => b.effectiveDate.localeCompare(a.effectiveDate)));
   },
@@ -149,3 +150,13 @@ export const mockModifierDictionaryService: IModifierDictionaryService = {
     return ok(rejected);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockModifierDictionaryService: IModifierDictionaryService = guardConfigWrites(modifierDictionaryServiceUnchecked, [
+  ['config:billing-tables:approve', ['approveVersion', 'rejectVersion', 'activateVersion']],
+  ['config:billing-modifiers:manage', ['createVersion']],
+]);
+
+/** Batch 455: the seeded versions, so a demo Full Reset can put them back to
+ *  their seeded state (services/demoReset/demoReset.ts). */
+export const MODIFIER_DICTIONARY_SEED_VERSIONS: readonly ModifierTableVersion[] = [SEED_VERSION, SEED_PENDING_LICENSED_VERSION];

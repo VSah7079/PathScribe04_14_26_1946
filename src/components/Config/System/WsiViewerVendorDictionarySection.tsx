@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per direct follow-up: "where is the url to the vendor
 // configured?" — confirmed directly first: it wasn't. The data layer
-// (IWsiViewerVendorService.ts) and the consumer (WsiViewerLaunchButton.tsx)
+// (IWsiViewerVendorService.ts) and the consumer (WsiViewerLaunchButton.tsx; since Batch 750 SlideImagePreview.tsx)
 // existed with no admin screen to actually set a real vendor's real
 // launchUrlTemplate. Same real list/add-edit-modal/deactivate pattern
 // as DpVendorDictionarySection.tsx (this app's own established
@@ -29,10 +29,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import SlideImageSettingsCard from './SlideImageSettingsCard';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockWsiViewerVendorService } from '../../../services/digitalPathology/mockWsiViewerVendorService';
+
 import type { WsiViewerVendorEntry, NewWsiViewerVendorEntry } from '../../../services/digitalPathology/IWsiViewerVendorService';
+import { wsiViewerVendorService } from '@/services';
 
 type Draft = NewWsiViewerVendorEntry;
 
@@ -87,7 +89,7 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: WsiViewerVendorEntry } | null>(null);
 
   const refresh = () => {
-    mockWsiViewerVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
+    wsiViewerVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -96,17 +98,17 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.entry) {
-      await mockWsiViewerVendorService.update(modal.entry.id, draft);
+      await wsiViewerVendorService.update(modal.entry.id, draft);
     } else {
-      await mockWsiViewerVendorService.add(draft);
+      await wsiViewerVendorService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: WsiViewerVendorEntry) => {
-    if (e.active) await mockWsiViewerVendorService.deactivate(e.id);
-    else await mockWsiViewerVendorService.reactivate(e.id);
+    if (e.active) await wsiViewerVendorService.deactivate(e.id);
+    else await wsiViewerVendorService.reactivate(e.id);
     refresh();
   };
 
@@ -122,6 +124,9 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
         <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'add' })}>{t('wsiViewerVendorSection.addVendor')}</button>
       </div>
 
+      {/* Batch 750: the slide preview and viewer addresses; a laboratory's own address is used before this list. */}
+      <SlideImageSettingsCard />
+
       <label className="ps-conf-toggle-label-row ps-conf-toggle-label-row--gap-below">
         <input type="checkbox" checked={showInactive} onChange={e => setShowInactive(e.target.checked)} className="ps-conf-radio-input" />
         <span className="ps-conf-option-text">{t('wsiViewerVendorSection.showInactive')}</span>
@@ -134,8 +139,8 @@ const WsiViewerVendorDictionarySection: React.FC = () => {
               {e.name}
               <span className="ps-conf-row-meta">
                 {e.launchUrlTemplate.trim() ? e.launchUrlTemplate : t('wsiViewerVendorSection.noUrlConfigured')}
-                {!e.active ? ` · ${t('wsiViewerVendorSection.inactive')}` : ''}
               </span>
+              {!e.active && <span className="ps-conf-row-meta">{t('wsiViewerVendorSection.inactive')}</span>}
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.active ? t('wsiViewerVendorSection.actions.deactivate') : t('wsiViewerVendorSection.actions.reactivate')}</button>

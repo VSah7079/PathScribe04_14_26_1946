@@ -42,7 +42,7 @@ describe('configDirtyGuardContext — PS-128', () => {
   it('a consumer rendered under a real provider reaches that provider\'s own setDirty', () => {
     const setDirty = vi.fn();
     render(
-      <ConfigDirtyGuardContext.Provider value={{ setDirty }}>
+      <ConfigDirtyGuardContext.Provider value={{ setDirty, report: () => {}, guard: (a: () => void) => a() }}>
         <Consumer />
       </ConfigDirtyGuardContext.Provider>
     );

@@ -26,7 +26,14 @@ export interface CytologyOutboundResultQueueEntry {
    *  at all... work this"), then corrected ("Cytology cases can have
    *  addendums") — mirrors buildCytologyOruR01Payload.ts's own real
    *  resultState union exactly. */
-  resultState: 'FINAL' | 'CORRECTED' | 'ADDENDUM';
+  resultState: 'FINAL' | 'CORRECTED' | 'ADDENDUM' | 'PRELIMINARY';
+  /** Batch 532: 'case' = one consolidated message for the accession
+   *  (signOutRecordId is then the record that closed the case, or the
+   *  correction / addendum that changed it). Absent on entries from before
+   *  Batch 532, which were one message per specimen.
+   *  Batch 533: 'preliminary' = an urgent preliminary for one specimen
+   *  (signOutRecordId is then the CytologyPreliminaryRelease id, on the case). */
+  scope?: 'case' | 'preliminary';
   organisationId: string;
   status: 'QUEUED' | 'SENT' | 'FAILED';
   queuedAt: string;
@@ -35,4 +42,7 @@ export interface CytologyOutboundResultQueueEntry {
   retryCount: number;
   maxRetriesExceeded: boolean;
   lastAttemptAt?: string;
+  /** Batch 538: the released report document this message carries; a retry sends the same one. */
+  reportDocumentId?: string;
+  pdfSha256?: string;
 }

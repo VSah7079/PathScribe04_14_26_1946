@@ -13,59 +13,36 @@
 // builder, never buildOruR01Payload/mockOutboundResultQueueService.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { GenerateReportPdf } from '../reports/resolveOruReportPdf';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockCytologySignOutRecordService } from './mockCytologySignOutRecordService';
-import { mockCytologyOutboundResultQueueService } from './mockCytologyOutboundResultQueueService';
-import { buildCytologyOruR01Payload } from './buildCytologyOruR01Payload';
-import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { resolveCytologyDispatchOrganisation } from './resolveCytologyDispatchOrganisation';
+import { cytologySignOutRecordService } from './cytologySignOutRecordServiceInstance';
+import { sendCaseMessage } from './dispatchCytologyCaseInstances';
+import { cytologyCaseIsReleased } from './cytologyCaseReportMessage';
 
+/**
+ * Batch 532 (Pete, Oct 12, 2026: a correction or addendum reissues the whole
+ * case report). Sends the consolidated case report again as CORRECTED or
+ * ADDENDUM, naming the specimen that changed. If the case hasn't been released
+ * yet (other specimens still to sign out), nothing was sent before, so
+ * nothing is sent now: the changed record is in the case report at release.
+ */
 export async function dispatchCytologyAmendedCaseInstance(
   caseId: string,
   signOutRecordId: string,
-  /** Real, per direct correction ("Cytology cases can have addendums")
-   *  — mirrors services/reports/dispatchAmendedCaseInstance.ts's own
-   *  real signature. */
   resultState: 'CORRECTED' | 'ADDENDUM',
   previouslyReportedAs?: string,
+  /** Batch 538: the release's report document. */
+  generatePdf?: GenerateReportPdf,
 ): Promise<void> {
   const caseData = await caseRouter.getCase(caseId);
-  if (!caseData) return;
+  if (!caseData || !cytologyCaseIsReleased(caseData)) return;
 
-  const patientId = (caseData as any)?.patient?.id;
-  const patientRecord = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  // Honest, non-blocking skip — same real posture as
-  // dispatchCytologyCaseInstances.ts's own identical check: no real
-  // organisationId to enqueue against.
-  if (!patientRecord) return;
+  // Non-blocking skip (recorded in the audit log): no organisationId to enqueue against.
+  const organisationId = await resolveCytologyDispatchOrganisation(caseData, 'amended');
+  if (!organisationId) return;
 
-  // Real, honest lookup — getByCaseId returns every real record for
-  // the case; find() locates this one, specific real record rather
-  // than assuming which one is "current." A correction's own new
-  // record is always the most recent by construction, but this
-  // function never relies on that — it dispatches whichever real
-  // record its own caller (releaseCytologyCorrection.ts) names.
-  const recordsRes = await mockCytologySignOutRecordService.getByCaseId(caseId);
-  if (!recordsRes.ok) return;
-  const record = recordsRes.data.find(r => r.id === signOutRecordId);
-  if (!record) return;
-
-  const payload = buildCytologyOruR01Payload(record, resultState, previouslyReportedAs);
-
-  const enqueueRes = await mockCytologyOutboundResultQueueService.enqueue({
-    caseId, signOutRecordId: record.id, resultState,
-    organisationId: (patientRecord as any).organisationId,
-  });
-  if (!enqueueRes.ok) return;
-
-  const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', payload as any);
-  if (result.ok) {
-    await mockCytologyOutboundResultQueueService.markSent(enqueueRes.data.id);
-  } else {
-    await mockCytologyOutboundResultQueueService.markFailed(enqueueRes.data.id, {
-      errorCode: (result as any).errorCode ?? 'DISPATCH_REJECTED',
-      errorMessage: (result as any).error ?? 'Unknown dispatch failure.',
-      maxRetriesExceeded: false,
-    });
-  }
+  const recordsRes = await cytologySignOutRecordService.getByCaseId(caseId);
+  if (!recordsRes.ok || !recordsRes.data.some(r => r.id === signOutRecordId)) return;
+  await sendCaseMessage(caseData, recordsRes.data, organisationId, resultState, signOutRecordId, previouslyReportedAs, generatePdf);
 }

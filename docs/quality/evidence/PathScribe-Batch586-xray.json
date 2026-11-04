@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 586 — review tests (Playwright) for PS-63, PS-277, PS-283, PS-342",
+    "description": "Playwright review tests (Chromium, against the demo on the Vite dev server) at Batch 586: 6 passed, 0 skipped. Run 2026-10-16."
+  },
+  "tests": [
+    {
+      "testKey": "PS-733",
+      "start": "2026-10-16T14:10:00Z",
+      "finish": "2026-10-16T14:40:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: e2e/review/ps-63.template-workflow.spec.ts › Step 1: the Protocols README has the admin guide and names the approving roles\nPASSED: e2e/review/ps-63.template-workflow.spec.ts › Step 6: self-approval defaults to Disabled, reviewers to 1; switching it on is audited, then back off\nPASSED: e2e/review/ps-277.master-template-branding.spec.ts › Step 1: director, CLIA / ISO number, header logo and \"addenda on their own page\" save and reopen\nPASSED: e2e/review/ps-277.master-template-branding.spec.ts › Step 2: a department has the \"Report Branding Override (optional)\" fields\nPASSED: e2e/review/ps-283.restricted-printing-flag.spec.ts › Step 5: \"Confidential — Restricted Printing\" restricts printing; an ordinary flag does not\nPASSED: e2e/review/ps-342.medical-spell-check.spec.ts › Steps 1–5: UK English, codes accepted, suggestions and dictionaries, US English and back"
+    }
+  ]
+}

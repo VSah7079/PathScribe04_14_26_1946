@@ -5,7 +5,7 @@ import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 function baseCase(overrides: Partial<AutopsyCaseDetails>): AutopsyCaseDetails {
   return {
     jurisdiction: 'US',
-    caseAuthority: 'medicolegal_forensic',
+    caseAuthority: 'statutory_judicial',
     scope: 'full',
     addenda: [],
     ancillaryHold: { active: false },
@@ -72,30 +72,54 @@ describe('resolveAutopsyGrossExaminationGate — hospital-consented path', () =>
   it('a real hospitalConsent record with no consentGivenAt is blocked', () => {
     const result = resolveAutopsyGrossExaminationGate(baseCase({
       caseAuthority: 'hospital_consented',
-      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '', consentScope: ['full'] },
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '', status: 'active', consentScope: ['full'], excludedOrgans: [], retentionPermitted: true },
     }));
     expect(result.allowed).toBe(false);
   });
 
-  it('a real, active consent with no revokedOrNarrowedAt at all is allowed', () => {
+  it('a real, active consent is allowed', () => {
     const result = resolveAutopsyGrossExaminationGate(baseCase({
       caseAuthority: 'hospital_consented',
-      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '2026-09-01T10:00:00Z', consentScope: ['full'] },
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '2026-09-01T10:00:00Z', status: 'active', consentScope: ['full'], excludedOrgans: [], retentionPermitted: true },
     }));
     expect(result.allowed).toBe(true);
   });
 
-  it('a real, present revokedOrNarrowedAt blocks conservatively, even when the real revocationNote suggests it was only a scope narrowing, not a full revocation', () => {
+  it('Batch 468: a real, ‘narrowed’ consent is allowed through the gate — it constrains what’s examined/retained, never blocks gross exam itself', () => {
     const result = resolveAutopsyGrossExaminationGate(baseCase({
       caseAuthority: 'hospital_consented',
       hospitalConsent: {
         consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner',
-        consentGivenAt: '2026-09-01T10:00:00Z', consentScope: ['full'],
-        revokedOrNarrowedAt: '2026-09-02T09:00:00Z',
-        revocationNote: 'Family narrowed scope to exclude brain retention; autopsy itself still authorized.',
+        consentGivenAt: '2026-09-01T10:00:00Z', status: 'narrowed', consentScope: ['full'],
+        excludedOrgans: ['brain'], retentionPermitted: false,
+      },
+    }));
+    expect(result.allowed).toBe(true);
+  });
+
+  it('a real, ‘revoked’ consent hard-blocks', () => {
+    const result = resolveAutopsyGrossExaminationGate(baseCase({
+      caseAuthority: 'hospital_consented',
+      hospitalConsent: {
+        consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner',
+        consentGivenAt: '2026-09-01T10:00:00Z', status: 'revoked', consentScope: ['full'],
+        excludedOrgans: [], retentionPermitted: true,
+        revocationNote: 'Family withdrew consent entirely.',
       },
     }));
     expect(result.allowed).toBe(false);
-    expect(result.blockedReasons[0]).toContain('revocation or scope narrowing');
+    expect(result.blockedReasons[0]).toBe('consent_revoked');
+  });
+});
+
+describe('resolveAutopsyGrossExaminationGate — reason codes (Batch 479)', () => {
+  it('a missing judicial authorization yields the missing_judicial_authorization code, not prose', () => {
+    const result = resolveAutopsyGrossExaminationGate(baseCase({}));
+    expect(result.blockedReasons).toEqual(['missing_judicial_authorization']);
+  });
+
+  it('a missing hospital consent yields the missing_hospital_consent code, not prose', () => {
+    const result = resolveAutopsyGrossExaminationGate(baseCase({ caseAuthority: 'hospital_consented' }));
+    expect(result.blockedReasons).toEqual(['missing_hospital_consent']);
   });
 });

@@ -4,7 +4,7 @@
 // the one place that resolves the real recipient, decides real
 // channels (resolveCriticalAlertChannels.ts, pure), calls each real
 // channel adapter, and persists the real audit record
-// (mockCriticalAlertDispatchService.ts). Wired into
+// (criticalAlertDispatchService.ts). Wired into
 // useSignOutWorkflow.ts's handleRecordCriticalNotification, firing
 // automatically the moment a critical finding is confirmed — additive
 // to, never a replacement for, the existing mandatory human
@@ -21,10 +21,10 @@
 import type { AbnormalSeverity } from '@/services/abnormalDetection/IAbnormalTriggerRuleService';
 import type { CriticalAlertDispatchRecord, CriticalAlertRecipient } from '@/types/clinical/CriticalAlertDispatch';
 import type { ServiceResult } from '../types';
-import { mockPhysicianService } from '@/services/physicians/mockPhysicianService';
+import { physicianService } from '@/services/physicians/physicianServiceInstance';
 import { resolveCriticalAlertChannels } from './resolveCriticalAlertChannels';
-import { mockCriticalAlertDispatchService } from './mockCriticalAlertDispatchService';
-import { mockCriticalAlertReferenceTokenService } from './mockCriticalAlertReferenceTokenService';
+import { criticalAlertDispatchService } from './criticalAlertDispatchServiceInstance';
+import { criticalAlertReferenceTokenService } from './criticalAlertReferenceTokenServiceInstance';
 import { sendSecureEmailAlert } from './alertChannels/sendSecureEmailAlert';
 import { sendSmsAlert } from './alertChannels/sendSmsAlert';
 import { pushEhrInboxAlert } from './alertChannels/pushEhrInboxAlert';
@@ -98,7 +98,7 @@ export async function dispatchCriticalAlerts(
     return { ok: true, data: null };
   }
 
-  const physicianResult = await mockPhysicianService.getById(input.orderingPhysicianId);
+  const physicianResult = await physicianService.getById(input.orderingPhysicianId);
   if (!physicianResult.ok || !physicianResult.data) {
     return { ok: true, data: null };
   }
@@ -111,7 +111,7 @@ export async function dispatchCriticalAlerts(
   // instead get a single, shared, opaque reference link — one token per
   // dispatch, not one per channel, since they point at the exact same
   // underlying finding. Pre-generating the dispatch record's own id here
-  // (rather than letting mockCriticalAlertDispatchService.record()
+  // (rather than letting criticalAlertDispatchService.record()
   // generate it after the fact) is what lets the token honestly link
   // back to a real dispatchRecordId from the moment it's issued — see
   // ICriticalAlertDispatchService.ts's own record() doc comment.
@@ -120,7 +120,7 @@ export async function dispatchCriticalAlerts(
   let referenceUrl: string | undefined;
 
   if (needsReferenceLink) {
-    const tokenResult = await mockCriticalAlertReferenceTokenService.issue({
+    const tokenResult = await criticalAlertReferenceTokenService.issue({
       dispatchRecordId,
       caseId: input.caseId,
       accessionNumber: input.accessionNumber,
@@ -155,7 +155,7 @@ export async function dispatchCriticalAlerts(
     return pushEhrInboxAlert(payload);
   }));
 
-  return mockCriticalAlertDispatchService.record({
+  return criticalAlertDispatchService.record({
     id: dispatchRecordId,
     caseId: input.caseId,
     findingTerm: input.findingTerm,

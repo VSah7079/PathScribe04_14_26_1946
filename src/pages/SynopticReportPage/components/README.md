@@ -1,6 +1,20 @@
+**Batch 759:** `HeaderBar.tsx`: the Foreign case ID beside the accession (704 → 708 lines).
+
+**Batch 755b (part 2):** `RightSynopticPanel.tsx` offers the picker only what `offeredOnCasePicker()` allows (no TEST forms, no unused demo checklists).
+
+**Batch 755a:** `TemplatePicker.tsx` (new file, moved unchanged out of `RightSynopticPanel.tsx`, now 1,750 lines): the "pick a checklist for this specimen" list, with the "Demo wording" tag; `RightSynopticPanel.tsx` header and `Sidebar.tsx` entry show the tag.
+
+**Batch 742:** `BottomActionBar.tsx`: the Attach images button is now the case's Attachments badge, "Attachments (n)" or "Add Attachments" (`useCaseAttachmentCount`).
+
+**Batch 650:** `BottomActionBar.tsx` draws Sign Out Case, Finalise / Finalise & Next and Request Amendment from `bottomBarVisibility` and calls `useBottomBarActionEvents`, so a command and its button can never disagree.
+
+**Batch 649 (Amendment window):** `BottomActionBar.tsx` Amend is greyed (title: `caseActionPermissions.revisionNone`) when the person may release none of an amendment, a correction or an addendum; `AmendmentDraftBanner.tsx` Edit likewise. Test: `AmendmentDraftBanner.capability.test.tsx`.
+
+**Batch 649:** `BottomActionBar.tsx` Claim, Release preliminary, Sign out and Finalize are `CapabilityButton`s (`BottomActionBar.css` styles them); `ReleaseBufferBanner.tsx` Recall is greyed without `report:release:recall`.
+
 # pages/SynopticReportPage/components/
 
-Presentational and semi-presentational pieces specific to the case report page — real business logic lives in `../hooks/`, not here. 17 files.
+Presentational and semi-presentational pieces specific to the case report page — real business logic lives in `../hooks/`, not here. 27 component files (plus tests).
 
 ## Layout & navigation
 
@@ -33,6 +47,10 @@ Presentational and semi-presentational pieces specific to the case report page �
 
 - **`MarkersPanel.tsx`** — resolved biomarker values grouped by marker (e.g. all ER-related fields — Status, % Positivity, Intensity — under one card).
 - **`EMRSidecarDrawer.tsx`** — slide-in EMR sidecar drawer (replaces an earlier floating/draggable modal version, now matching the app's standard drawer convention).
+- Added later and described in the batch notes below: `AiReportToolButtons.tsx` (Batch 451), `AutopsyCaseTimeline.tsx`, `DispatchHistoryTimeline.tsx`, `EditConflictDialog.tsx`, `MergeReviewDialog.tsx`, `PeerReviewBanner.tsx` (Batch 439).
+- **`WsiViewerLaunchButton.tsx`** — opens a slide's scan in the external whole-slide-image viewer. Used by `../modals/BlockStainEditorModal.tsx` and the Cytology screening page.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has 27 component files, not 17; listed the ones the sections above left out.*
 
 ## Batch 338 (PS-342): spell checking
 
@@ -79,6 +97,196 @@ Presentational and semi-presentational pieces specific to the case report page �
 - **`HeaderBar.tsx`:** optional `changeCount` / `onOpenChangeHistory` add the Change history chip beside the version chip.
 - **`BottomActionBar.tsx`:** reads the release settings through `reportReleaseService` from `@/services`, and is off the deployment baseline.
 
+## Batch 425
+
+`HeaderBar` shows the registry opt-out badge under the patient's name when the patient has opted out.
+
+## Batch 426
+
+`RightSynopticPanel`'s field rows show "The updated narrative suggests X — Keep mine / Accept new value" for a re-evaluated field.
+
+## Batch 427
+
+The `Sidebar` has a "Parts covered" button (⧉) on each draft synoptic workup, and shows "Parts A + B" on a combined one.
+
+## Batch 428: Configuration permissions
+
+`HeaderBar.tsx`: resolving (and, when new, adding) the flag a LIS-reported code stands for is `services/flags/resolveLisFlagDefinition.ts` now, not the component. Adding to the flag catalog is a Configuration change; this one is the LIS sync's, so it isn't checked against the person.
+
+## Batch 437 (PS-329)
+
+`RightSynopticPanel.tsx` reports the template's Must Have fields (`onMustHaveFieldsUpdate`). `HeaderBar.tsx` takes `AiSynthesisStatus` from the service instead of a duplicate type.
+
+## Batch 439 (PS-144)
+
+`PeerReviewBanner.tsx`: recommended or required (first-time malignancy), waiting on the reviewer (who records their read here; the requester can withdraw), a disagreement (either pathologist records the outcome), overridden for urgent care, or complete. Any pathologist can ask for a review on a case not yet signed out.
+
+## Batch 445
+
+- `HeaderBar.tsx` and `LeftReportPanel.tsx` show the date of birth with `formatDate(…, i18n.language)`.
+- `MaterialTreePanel.tsx` shows location and exception dates in the user's language (it hard-coded `'en-US'`).
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+See `../README.md` (Batch 450): logic moved to services and new tests for PS-57, PS-141, PS-274, PS-275, PS-317, PS-318, PS-324.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+New `AiReportToolButtons.tsx`; tests for billing/material sync (PS-316), Assign Code (PS-310) and the synoptic empty state (PS-310).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+- `BillingReviewPanel`: rows come from the material tree with decants included. It listens to the case's material events, and takes `caseId` and `materialSelectionSeq`.
+- `MaterialTreePanel`: decant rows can split a cell block from a residual fluid decant, or be removed.
+- `OrchestratorSectionEditor` and `LeftReportPanel` take `criticalFindings` and highlight them.
+- New tests: `DecantBillingSync.test.tsx` (integration).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`MicroscopicEntryPanel.tsx` takes `highlightFindings` and passes it to the editor, so the microscopic findings are highlighted per specimen (PS-323). The saved text is unchanged. Test: `MicroscopicEntryPanel.highlight.test.tsx`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`EditConflictDialog.tsx` (with its test): the report page's conflict dialog.
+
+## Batch 458 — PS-71 (review before saving over someone else's save)
+
+`MergeReviewDialog.tsx` (with its test): "Someone else changed this case while you were working". It shows what they changed and what you're saving, with Save mine with theirs or Not yet. The page uses it for draft and instant saves; the Edit Conflict dialog is shown only when the same field was changed both ways.
+
+## Batch 459
+
+`BottomActionBar.tsx` takes `followUpOffer` and `onMarkFollowUp`. When the offer is `offer`, it shows "Mark follow-up expected" (a `CapabilityButton` for `case:follow-up:expect`). When the offer is `marked`, it shows "Follow-up expected · due <date>", with who marked it in the tooltip. The bar decides nothing itself: the page loads the offer from `loadFollowUpMarkOffer`.
+
+## Batch 460
+
+`MaterialTreePanel.tsx` shows each slide's printed level (`material/slideLevels.ts`), not its position.
+
+## Batch 461
+
+`RightSynopticPanel.tsx`: renders the results grid question (`partGrid`: a row per part of the case, a dropdown or number per cell; each cell is an ordinary answer via `setAnswer`). Answered/unanswered checks now use `synopticFieldAnswered` (progress badge, section counts, "next unanswered", required-field validation, the sign-out statistics; `useSignOutWorkflow`'s required-field gate too), and a hidden question's answers are cleared with `clearSynopticFieldAnswers` (all of a grid's cells).
+
+## Batch 462
+
+`RightSynopticPanel.tsx`: a results grid uses the template's own rows when it has them (numbered foci, one row per margin), with the template's heading over them; number cells don't take negatives.
+
+## Batch 463
+
+`RightSynopticPanel.tsx`: a `spatialStageCanvas` question renders the Mohs stage question (`MohsStagesInput`) with the facility's map colours and the default histology from the tumour type; its patches go through `applyAnswerPatch` and the usual hidden-question clean-up.
+
+## Batch 463b
+
+`RightSynopticPanel.tsx`: progress, Next unanswered / Next required and the Cannot-finalise list use `synopticFieldComplete` / `synopticFieldMissing`, so a Mohs question with an unassigned block counts as incomplete and is listed, required or not.
+
+## Batch 467 — In-house molecular orders
+
+`RightSynopticPanel.tsx`: a question filled from a molecular result says so; when the answer differs from the result it shows the engine-delta tag "Result differs" with the result's answer and **Use result**.
+
+## Batch 476 — Autopsy: unified case timeline (PS-261 follow-up, Module 4)
+
+New `AutopsyCaseTimeline.tsx`: renders the real, merged timeline `services/autopsy/buildAutopsyCaseTimeline.ts` builds from the case's own autopsy record. Per-kind rendering, same pattern as `DispatchHistoryTimeline.tsx` — each of the 14 real event kinds gets its own translated label line, newest-first. No `data-phi` tagging: every name shown (staff, next-of-kin) is already displayed untagged elsewhere in this same autopsy section.
+
+## Batch 478 — Autopsy: two new timeline entry kinds (PS-261 follow-up, Module 6)
+
+`AutopsyCaseTimeline.tsx` gains two more per-kind render cases, now 16 in all: `organ_tag_recorded` (organ name via the existing `AUTOPSY_ORGAN_LABEL_KEY`, plus status) and `gate_overridden` (tier, who, reason). No new component, no new props shape — `buildAutopsyCaseTimeline.ts` already carries the fields these two cases need.
+
+## Batch 483 — HeaderBar: a new "recorded signatures" chip (PS-359 tracker follow-up)
+
+`HeaderBar.tsx` gains `signatureCount`/`onOpenSignatureHistory` props, rendered as a chip in the same row as the existing version/change-history chips, only shown once there's actually something to see — same real gap this section's deficiency/version indicators already closed, now closed for `services/signatures/` too. Opens the new `SignatureHistoryModal.tsx` (see `modals/README.md`'s own Batch 483 entry).
+
+## Batch 492 — BottomActionBar: a real button for "Flag for Tumor Board / MDT" (PS-359 follow-up; real, found-while-testing bug fix)
+
+Real, found-while-testing bug: `showFlagForMdtModal` in `SynopticReportPage.tsx` was only ever set by the `'delegation.tumorBoard'` voice/keyboard action handler — there was no clickable UI entry point for it at all, and Batch 491's own deactivation of `DelegateModal.tsx`'s `'TUMOR_BOARD'` delegation type removed the last (awkward) menu path that used to exist. A pathologist with no reason to know the voice phrase or `F18+PS006` shortcut had no way to reach it by mouse. `BottomActionBar.tsx` gains a new `onFlagForMdt?` prop and a `CapabilityButton` (capability `case:tumor-board:flag`, context `{ caseId }`) next to Flags/Codes — `CapabilityButton` rather than the plain `ActionButton` other delegation-family buttons use here, since this maps to exactly one capability rather than opening a modal with several actions of its own. New CSS class `.ps-bab-action-btn--flag-mdt` (`#EC4899`, distinct from the bar's existing purple/red/teal hues). Full i18n in all 5 locales (`bottomActionBar.actions.flagForMdt{Label,Title}`).
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 495
+
+`BottomActionBar.tsx`: the assist-mode Print button is a `CapabilityButton` for `report:case-report:print` (new `.ps-bab-action-btn--print` modifier carries its colour, replacing the inline `ActionButton` colour). It opens the CoPilot report view, whose own Print is checked in the service.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 512
+
+`Sidebar`: the specimen badge component is `LisSyncBadge`, reading `specimen.lisSyncState`.
+
+## Batch 519 (PS-494)
+
+`RightSynopticPanel.tsx`: a free-text node count shows an inline hint when it isn't a count, "cannot be determined" or "at least N", when it exceeds its limit, and when a total is below the counts it covers (props `exceeds`, `belowSum`).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`Sidebar` specimen and report rows and the `RightSynopticPanel` field header keep their click and keyboard handling but no button role, because they hold buttons of their own (axe: nested-interactive).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- `ReleaseBufferBanner.tsx` (Batch 555): the countdown's end goes through `services/reportRelease/releaseCountdown.ts` (the page releases, or waits for the server's release).
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `BillingReviewPanel.tsx`: a pending code's row holds buttons (confirm, override, dismiss), so it is no longer a button; clicking it still selects it, and its code is the button (`aria-current` when selected). The dismiss button has a name.
+- `SequencerPanel.tsx`: a report's preview card holds its own "more fields" control, so it is no longer a button; its name is the button that opens the report.
+
+## Batch 569 (WCAG 2.1 AA, 4.1.2)
+
+- `Sidebar.tsx`: the collapsed rail's "changes to review" dot is a button beside the specimen's button (it was inside it), named with the review hint.
+
+## Batch 572 (PS-539)
+
+- `CaseUpdatedBanner.tsx` (new): "Someone else saved this case" with Reload and Later; shown above the tabs; not a window (click economy); only the message is a polite live region.
+
+## Batch 573 (PS-539)
+
+- `CasePresenceStrip.tsx` (new): each other person with the case open, editing or viewing, with email and call links when known; "You, in another window"; one polite announcement (repeated words are read again). Takes no space when nobody else is there.
+
+## Batch 575
+
+- `CaseUpdatedBanner.tsx`: Show their changes (in place) and Later; after an overlap, a lasting note with "Got it".
+
+## Batch 583
+
+- `HeaderBar.tsx`: the breadcrumb's second crumb and the compact header's back button use `caseReturnTarget` (Search or Worklist); strings `headerBar.breadcrumb.search`, `headerBar.nav.backToSearchTooltip`.
+
+## Batch 612 (part C)
+
+`OrchestratorSectionEditor` takes `fontUnits` so a specimen title uses the template's units.
+
+## Batch 611 (part G)
+
+`SmartCaptureLauncher.tsx`: the Smart Capture prototype drawer in `BillingReviewPanel` (suggested lines with rule and evidence, accept/reject, pathologist confirmation, payload preview, export). Labelled *Prototype, not compliance-reviewed*.
+
+- Batch 612 (part A): `Sidebar.tsx` mounts `VendorFieldsPanel` after the add-synoptic button.
+
+## Batch 650 (650a)
+
+`OrchestratorSectionEditor.tsx` and `MicroscopicEntryPanel.tsx` put dictated text in through `dictationWriterFor(editor)` (replace the provisional text once; learn corrections). The Report Draft listens for `PATHSCRIBE_ORCH_DICTATE_SECTION` with a `kind` (gross, microscopic, synoptic, diagnosis, admin) as well as an index; the Microscopic entry listens for `PATHSCRIBE_ENTER_MICRO`. The effects that waited for dictation phase with no target (never produced) are removed.
+
+
+
+## Batch 651
+`NarrativeProvenanceNote.tsx`: the AI's confidence and source quote under an AI-written narrative section in `OrchestratorSectionEditor` (same inline style as the synoptic suggestions; unverified when the quote is not found).
+
+- Batch 664: `BottomActionBar.tsx` has a Sign Out & Next button (Orchestration, shown with Sign Out Case, same capability); `OrchestratorSectionEditor.tsx` and `MicroscopicEntryPanel.tsx` give their dictation targets `uncommitted` / `discard` so Cancel can remove a session's dictated text.
+
+- Batch 665: `RightSynopticPanel.tsx` calls `useSynopticEditField` (no line added; still 1,886 lines).
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): no AI confidence percentage is rendered by RightSynopticPanel (field badges are 'AI suggestion' / 'Check source' / Confirmed / Overridden, no colour tiers), HeaderBar (the AI chip carries no score), AddSynopticModal or NarrativeProvenanceNote, in either regulatory profile. The score stays in the data and drives only the internal review decision. Guard: services/aiGovernance/noConfidencePercent.test.tsx.
+
+## Batch 750
+
+`WsiViewerLaunchButton.tsx` (listed above) is deleted: the block and stain window shows `components/SlideImage/SlideImagePreview.tsx` instead (PathScribe has no viewer; the preview opens the laboratory's own application).

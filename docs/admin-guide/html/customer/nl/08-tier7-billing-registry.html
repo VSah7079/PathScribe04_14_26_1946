@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen · PathScribe-beheerdershandleiding</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html">1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html">5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html">7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html" aria-current=page>8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html">9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch8-billing-architecture">Architectuur van de facturatie-engine</a></li><li class="l3"><a href="#screen-billing_type_triggers">Kostenvrijgavetriggers (TC/26/Global)</a></li><li class="l2"><a href="#ch8-charge-capture">Regels voor kostenregistratie, CPT/HCPCS-koppeling en tarieflijsten</a></li><li class="l3"><a href="#screen-modifier_dictionary">CPT-modifierwoordenboek</a></li><li class="l3"><a href="#screen-rvu_code_map">RVU-codetabel (productiviteit)</a></li><li class="l3"><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a></li><li class="l2"><a href="#ch8-autocoding-holds">Auto-codeermodule en aanhoudregels voor facturatie</a></li><li class="l3"><a href="#screen-ncci_edit_rules">NCCI-bewerkingsregels (bundeling)</a></li><li class="l3"><a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a></li><li class="l3"><a href="#screen-billing_release">Facturatievrijgave</a></li><li class="l3"><a href="#screen-dft_export_preview">Voorbeeld facturatie-export</a></li><li class="l2"><a href="#ch8-cancer-registry">Configuratie van kankerregisters</a></li><li class="l3"><a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a></li><li class="l3"><a href="#screen-cosd_destination">Brits kankerregister (COSD)</a></li><li class="l3"><a href="#screen-us_epath">Elektronische pathologie (VS)</a></li><li class="l3"><a href="#screen-cytology_registry">Registerrapportage cytologie</a></li><li class="l3"><a href="#screen-batch_registry_feed">Batchbestanden voor registers</a></li><li class="l2"><a href="#ch8-quality-reporting">Kwaliteits- en volksgezondheidsrapportage (MIPS/MACRA)</a></li><li class="l2"><a href="#ch8-payment-reference">Jurisdictiebetalingstoewijzingen, hoofdbetalingstypen en het financiële logboek</a></li><li class="l3"><a href="#screen-master_payment_types">Hoofdwoordenboek betalingstypen</a></li><li class="l3"><a href="#screen-jurisdiction_payment_mappings">Jurisdictiebetalingstoewijzing</a></li><li class="l3"><a href="#screen-audit-financial">Systeemlogboeken: Financieel</a></li></ul></aside><article><h1 id="ch8"><a class="anchor" href="#ch8" aria-label="Link to this section">#</a> Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</h1>
+<p>Dit hoofdstuk beschrijft hoe PathScribe bepaalt wat er in rekening wordt gebracht, wanneer een kostenpost het systeem mag verlaten en aan welke kanker- en screeningsregisters een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> wordt gemeld. Het behandelt ook de betalingslookups die de kostenpayload gebruikt en de pagina Systeemlogboeken waarin u financiële gebeurtenissen volgt.</p>
+<p>Lees eerst deze drie punten, want zij bepalen wat u wel en niet mag verwachten.</p>
+<ol>
+<li><strong>Wat PathScribe met geld doet.</strong> PathScribe zet elke kostenpost eenmalig, bij de finalisatie, om in een vast record: CPT- of HCPCS-code, relatieve waarde-eenheden (<a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a>) en <a class="term" href="99-glossary.html#g-modifier" title="Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.">modifier</a>. PathScribe bewaart geen prijzen. <strong>Tarieflijsten: Niet gerealiseerd.</strong> Nergens in de facturatieregels bestaat een veld voor een dollarbedrag, prijs of tarief per betaler. De kostenpayload bevat geen dollarbedragen. De vergoeding wordt berekend door uw facturatiesysteem of door de interface-engine, niet door PathScribe.</li>
+<li><strong>Wat PathScribe met registers doet.</strong> PathScribe bepaalt of een casus meldingsplichtig is, controleert de verplichte gegevens en bouwt een gestructureerde JSON-payload. PathScribe schrijft zelf geen <a class="term" href="99-glossary.html#g-naaccr" title="De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a>, <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, de Engelse nationale dataset voor kankerregistratie.">COSD</a> XML of ander registerformaat. De interface-engine (de engine van ForMedrixAI, meegeleverd met PathScribe) vertaalt en verzendt. Geen enkele registerspecificatie in het product is getoetst aan de eigen gepubliceerde specificatie van het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>, tenzij de sectie dat zegt.</li>
+<li><strong>Het grootste deel van dit hoofdstuk is vandaag Demonstratie.</strong> De productieopslag is Microsoft SQL Server achter een <a class="term" href="99-glossary.html#g-asp-net-core" title="Het webframework van Microsoft waarop de API-server van PathScribe is gebouwd.">ASP.NET Core</a> <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a>. De services achter deze schermen zijn demonstratieservices die in de browser worden bewaard, en de API-contracten in <code>docs/architecture</code> vermelden nergens dat iets tegen een echte server is beproefd. Elk scherm vermeldt zijn eigen status.</li>
+</ol>
+<h2>Volgorde van inrichting voor niveau 7</h2>
+<p>Richt de schermen in deze volgorde in. Het kader "Inrichtingsvolgorde" van elk scherm toont wat dat scherm vereist.</p>
+<ol>
+<li><a href="#screen-modifier_dictionary">CPT-modifierwoordenboek</a>: de modifierlijst die het Facturatiewoordenboek aanbiedt.</li>
+<li><a href="#screen-rvu_code_map">RVU-codetabel</a>: de lijst met CPT-codes en relatieve waarden waarnaar elke facturatieregel verwijst.</li>
+<li><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>: de facturatieregels met versiebeheer.</li>
+<li><a href="#screen-ncci_edit_rules">NCCI-bewerkingsregels</a>: de bundelingsparen (u uploadt ze zelf; er worden er geen meegeleverd).</li>
+<li><a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a>: een tweede persoon keurt stap 1 tot en met 4 goed voordat iets van kracht wordt.</li>
+<li><a href="#screen-billing_type_triggers">Kostenvrijgavetriggers</a>: de casusmijlpaal waarop elk facturatietype zijn kostenpost aanmaakt.</li>
+<li><a href="#screen-billing_release">Facturatievrijgave</a>: aanhoud- en batchregels voor kostenposten die gereed zijn.</li>
+<li><a href="#screen-master_payment_types">Hoofdwoordenboek betalingstypen</a>: de betalingscategorieën.</li>
+<li><a href="#screen-jurisdiction_payment_mappings">Jurisdictiebetalingstoewijzing</a>: lokale betalersstelsels gekoppeld aan die categorieën.</li>
+<li><a href="#screen-dft_export_preview">Voorbeeld facturatie-export</a>: controleer wat een echte <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> zou verzenden.</li>
+<li><a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a>: het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> per <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> en de goedkeuring voor livegang.</li>
+<li><a href="#screen-cosd_destination">Brits kankerregister (COSD)</a>: bestemmingsinstellingen voor Engeland.</li>
+<li><a href="#screen-us_epath">Elektronische pathologie (VS)</a>: staatsprofielen voor de Amerikaanse ePath-feed.</li>
+<li><a href="#screen-cytology_registry">Registerrapportage cytologie</a>: instellingen voor het bevolkingsonderzoek naar baarmoederhalskanker.</li>
+<li><a href="#screen-batch_registry_feed">Batchbestanden voor registers</a>: bestandsgebaseerde registerleveringen.</li>
+</ol>
+<p>Het <a href="#screen-audit-financial">financiële tabblad van Systeemlogboeken</a> is een naslagpagina. Het maakt geen deel uit van de inrichting.</p>
+<p>Niet gerealiseerd in dit hoofdstuk: tarieflijsten, AI- of natuurlijketaalsuggesties voor facturatie op basis van verslagtekst, <a class="term" href="99-glossary.html#g-x12" title="De ANSI-standaard voor elektronische zakelijke transacties, waaronder zorgdeclaraties in de Verenigde Staten.">X12</a> 837P, uitvoer voor KVDT en SESAM-Vitale, <a class="term" href="99-glossary.html#g-naaccr" title="De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.">NAACCR</a> XML-batchbestanden, en kwaliteitsrapportage voor <a class="term" href="99-glossary.html#g-mips" title="Het Merit-based Incentive Payment System, een Amerikaans Medicare-programma dat de betaling aanpast op basis van gerapporteerde kwaliteitsmaten.">MIPS</a> en <a class="term" href="99-glossary.html#g-macra" title="De Amerikaanse Medicare Access and CHIP Reauthorization Act, die het Quality Payment Program creëerde waar MIPS onder valt.">MACRA</a>.</p>
+<h2 id="ch8-billing-architecture"><a class="anchor" href="#ch8-billing-architecture" aria-label="Link to this section">#</a> Architectuur van de facturatie-engine</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span></nav>
+
+<p><strong>Hoe een kostenpost wordt gemodelleerd.</strong> PathScribe splitst een kostenpost in een technische component, een professionele component, of beide samen. Het product noemt dit facturatietypen:</p>
+<table>
+<thead>
+<tr>
+<th>Facturatietype</th>
+<th>Label op het scherm</th>
+<th>Wat het dekt</th>
+<th>Modifierset</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a></td>
+<td>Technisch (TC)</td>
+<td>Laboratoriumwerk: <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a>, verwerking, preparaten, kleuringen</td>
+<td><code>-TC</code></td>
+</tr>
+<tr>
+<td>26</td>
+<td>Professioneel (26 prof.)</td>
+<td>De interpretatie door de patholoog</td>
+<td><code>-26</code></td>
+</tr>
+<tr>
+<td>Global</td>
+<td>Gecombineerd (Global)</td>
+<td>Beide delen samen gefactureerd</td>
+<td>Geen van beide</td>
+</tr>
+</tbody>
+</table>
+<p>PathScribe bepaalt de <a class="term" href="99-glossary.html#g-modifier" title="Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.">modifier</a> zonder uitzonderingen uit het facturatietype: TC krijgt <code>-TC</code>, 26 krijgt <code>-26</code>, Global krijgt er geen. Andere modifiers zijn uitsluitend informatief.</p>
+<p><strong>Wanneer een kostenpost wordt aangemaakt.</strong> Standaard wordt de technische component aangemaakt wanneer het <a class="term" href="99-glossary.html#g-specimen" title="Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.">monster</a> wordt uitgesneden. De professionele en de globale component worden aangemaakt bij de definitieve ondertekening. U kunt dit wijzigen voor de hele <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> of voor één locatie bij <a href="#screen-billing_type_triggers">Kostenvrijgavetriggers</a>.</p>
+<p><strong>Kostenposten liggen vast zodra ze zijn aangemaakt.</strong> Bij de finalisatie zet PathScribe de kostenpost eenmalig om in een onveranderlijk kostenrecord dat een momentopname van <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a>, <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, de Amerikaanse codeset die codes aan CPT toevoegt voor benodigdheden en diensten.">HCPCS</a>, <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> en modifier bewaart. Latere wijzigingen in een facturatieregel veranderen een reeds gemaakte kostenpost niet. Een correctie na ondertekening gebruikt een paar van een creditering en een herfacturering, geen wijziging.</p>
+<p><strong>Facturatieregels hebben versiebeheer.</strong> Een facturatieregel wordt geïdentificeerd door facturatiecode, bereik en versie. Versies worden alleen toegevoegd. De statussen zijn DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED en RETIRED. De persoon die een versie opstelt of indient, kan die niet goedkeuren (het <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Een regel dat één persoon een wijziging voorbereidt en een andere persoon die goedkeurt. Het importeren van factureringscodes gebruikt dit.">vierogenprincipe</a>, afgedwongen in de services). Bij goedkeuring gaat de nieuwe versie van kracht en eindigt de versie die zij vervangt.</p>
+<p><strong>Bereik.</strong> Een regel geldt onderneming-breed of voor één locatie. Op deze schermen wordt het woord Locatie gebruikt, niet Faciliteit.</p>
+<p><strong>Gesplitste <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>.</strong> Wanneer de technische component in een ander laboratorium wordt uitgevoerd dan de professionele beoordeling, bevat de casus een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> voor de technische component en de uitvoerende faciliteit. De vrijgavebeslissing controleert dit (zie <a href="#screen-billing_release">Facturatievrijgave</a>).</p>
+<p><strong>Waar kostenposten naartoe gaan.</strong> Gereedstaande kostenposten gaan naar de Uitgaande wachtrij. Een kostenpost met de status PENDING_APPROVAL of HOLD wordt door de uitgaande sweep overgeslagen. De interface-engine zorgt voor transport, vertaling en nieuwe pogingen. PathScribe bepaalt alleen wat er wordt vrijgegeven en wanneer.</p>
+<p><strong>Optionele goedkeuring van kostenposten.</strong> Een kostenpost kan ter goedkeuring worden aangehouden. De goedkeuringsmachtiging <code>billing:charge:approve</code> wordt per <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a> gecontroleerd. Zij staat in de <a class="term" href="99-glossary.html#g-capability-catalog" title="De volledige lijst van machtigingen, met per machtiging het risiconiveau en elke machtiging die vereist is.">machtigingencatalogus</a>, maar geen enkele ingebouwde <a class="term" href="99-glossary.html#g-role" title="Een benoemde set machtigingen die aan medewerkers wordt gegeven, zoals Beheerder of Patholoog. Een persoon kan meerdere rollen hebben.">rol</a> heeft haar standaard. Verleen haar dus via <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a> als u goedkeuring van kostenposten gebruikt.</p>
+<h3 id="screen-billing_type_triggers"><a class="anchor" href="#screen-billing_type_triggers" aria-label="Link to this section">#</a> Kostenvrijgavetriggers (TC/26/Global)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Kostenvrijgavetriggers (TC/26/Global)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Kostenvrijgavetriggers (<a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a>/26/Global)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Kostenvrijgavetriggers (TC/26/Global)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Bepaalt de casusmijlpaal waarop elk facturatietype zijn kostenpost aanmaakt. De standaardwaarden zijn: TC bij <a class="term" href="99-glossary.html#g-specimen" title="Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.">monster</a> uitgesneden, 26 en Global bij <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> ondertekend. U kunt een standaardwaarde overschrijven voor de hele <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> of voor één locatie. Een locatie zonder eigen uitzondering gebruikt de instelling van de onderneming.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Een locatie-uitzondering kan alleen worden ingesteld voor een locatie die bestaat, dus richt eerst de faciliteiten in. Zonder locatie in de lijst kunt u nog wel triggers voor de hele onderneming instellen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 6</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-billing_release">Facturatievrijgave</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-billing_type_triggers.webp" alt="Kostenvrijgavetriggers met per facturatietype een lijst van mijlpalen" loading="lazy"><figcaption>Kostenvrijgavetriggers met per facturatietype een lijst van mijlpalen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_type_triggers-scope-selector"><td>Bereikkeuze</td>
+<td>Keuze uit Onderneming of één Locatie</td>
+<td>Verplicht</td>
+<td>Bepaalt van wie u de triggers bekijkt en wijzigt.</td>
+<td>Onderneming</td>
+</tr>
+<tr id="f-billing_type_triggers-technical-tc-trigger"><td>Trigger Technisch (TC)</td>
+<td>Keuze uit casusmijlpalen</td>
+<td>Verplicht</td>
+<td>De mijlpaal waarop de technische kostenpost wordt aangemaakt. Het kiezen in de keuzelijst wordt direct opgeslagen.</td>
+<td>Specimen gesneden (<code>SPECIMEN_GROSSED</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-professional-26-prof-trigger"><td>Trigger Professioneel (26 prof.)</td>
+<td>Keuze uit casusmijlpalen</td>
+<td>Verplicht</td>
+<td>De mijlpaal waarop de professionele kostenpost wordt aangemaakt. Wordt direct opgeslagen.</td>
+<td>Zaak afgemeld (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-combined-global-trigger"><td>Trigger Gecombineerd (Global)</td>
+<td>Keuze uit casusmijlpalen</td>
+<td>Verplicht</td>
+<td>De mijlpaal waarop de globale kostenpost wordt aangemaakt. Wordt direct opgeslagen.</td>
+<td>Zaak afgemeld (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-reset-to-default"><td>Terugzetten naar standaard</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Verwijdert de uitzondering voor het gekozen bereik en zet het terug naar de ingebouwde standaard.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:billing-triggers:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard. Elke wijziging schrijft een auditgebeurtenis ("Charge release trigger changed", "Charge release triggers reset to default").</p>
+<p><strong>Bekende beperkingen.</strong> Alleen demonstratieservice. Een wijziging van een trigger geldt voor kostenposten die daarna worden aangemaakt en verandert reeds aangemaakte kostenposten niet.</p>
+<h2 id="ch8-charge-capture"><a class="anchor" href="#ch8-charge-capture" aria-label="Link to this section">#</a> Regels voor kostenregistratie, CPT/HCPCS-koppeling en tarieflijsten</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span></nav>
+
+<p><strong>Tarieflijsten: Niet gerealiseerd.</strong> De opzet vraagt om tarieflijsten. Er is geen scherm, contract of veld voor een dollarbedrag, prijs of betalerspecifiek tarief. Een facturatieregel bevat alleen de CPT-code, de HCPCS-code en de RVU-waarden voor werk, praktijkkosten (PE) en aansprakelijkheid (MP). Het dichtstbijzijnde dat bestaat zijn de RVU-waarden in het <a href="#screen-billing_dictionary">Facturatiewoordenboek</a> en de <a href="#screen-rvu_code_map">RVU-codetabel</a>. De controle <code>ZERO_FEE_MAPPING_ERROR</code> is geformuleerd als een tariefcontrole, maar toetst op een kostenpost die is uitgekomen op nul <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> voor werk, PE en MP en geen onderdrukkingsadvies heeft.</p>
+<p><strong>Codes in bulk laden.</strong> Gebruik <a href="03-tier2-master-dictionaries.html#screen-code_import">Code-import (bulk)</a> om CPT-, HCPCS- of andere codelijsten in bulk te laden. Het staat bij de andere lookups beschreven.</p>
+<p><strong>Automatisch coderen.</strong> Zie de statusalinea onder <a href="#ch8-autocoding-holds">Auto-codeermodule en aanhoudregels voor facturatie</a>.</p>
+<h3 id="screen-modifier_dictionary"><a class="anchor" href="#screen-modifier_dictionary" aria-label="Link to this section">#</a> CPT-modifierwoordenboek</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; CPT-modifierwoordenboek"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>CPT-modifierwoordenboek</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> CPT-modifierwoordenboek</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> De lijst met CPT-modifiercodes (bijvoorbeeld 26, <a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a>, 59, XS) die het tabblad Coderingsregels van het Facturatiewoordenboek aanbiedt. De modifiers hier zijn informatief. PathScribe controleert of voegt geen <a class="term" href="99-glossary.html#g-modifier" title="Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.">modifier</a> toe, behalve de vaste TC- en 26-regel uit de inleiding van dit hoofdstuk.</p>
+<p>De meegeleverde omschrijvingen zijn plaatshouders zoals "Modifier 59", als synthetisch gemarkeerd, omdat de tekst van de American Medical Association (<a class="term" href="99-glossary.html#g-ama" title="American Medical Association, de uitgever en eigenaar van de CPT-codeset.">AMA</a>) onder licentie valt. Als u een licentie hebt, laadt u uw eigen omschrijvingen.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Dit is een startpunt. Elke wijziging wordt een nieuwe versie die op goedkeuring wacht, dus een tweede persoon met goedkeuringsrechten is nodig voordat een wijziging van kracht wordt.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 1</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>, <a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-modifier_dictionary.webp" alt="CPT-modifierwoordenboek met actieve versie en codelijst" loading="lazy"><figcaption>CPT-modifierwoordenboek met actieve versie en codelijst</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-modifier_dictionary-version-label"><td>Versielabel</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>De actieve woordenboekversie. Seed-versie-id <code>modifier-v-seed-2026</code>. Een tweede, openstaande gelicentieerde versie is ook meegeleverd.</td>
+<td>Seed-versie</td>
+</tr>
+<tr id="f-modifier_dictionary-code"><td>Code</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>De modifiercode. Meegeleverd: 26, TC, 22, 52, 53, 59, XE, XS, XP, XU, 76, 77, 90, 91, 92 (15 codes).</td>
+<td>15 meegeleverde codes</td>
+</tr>
+<tr id="f-modifier_dictionary-description"><td>Omschrijving</td>
+<td>Tekst</td>
+<td>Verplicht bij het bewerken van een rij</td>
+<td>De omschrijving die medewerkers zien. Opslaan maakt een nieuwe versie met de status PENDING_APPROVAL; die wordt nooit automatisch geactiveerd.</td>
+<td>"Modifier {code}" (synthetisch)</td>
+</tr>
+<tr id="f-modifier_dictionary-license-status"><td>Licentiestatus</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Toont <code>synthetic</code> voor de meegeleverde plaatshouders.</td>
+<td>synthetic</td>
+</tr>
+<tr id="f-modifier_dictionary-upload-csv"><td><a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> uploaden</td>
+<td>Bestand, CSV</td>
+<td>Optioneel</td>
+<td>Vervangt het woordenboek door een bestand met de kolommen Code en Description. Sjabloon: <code>ModifierDictionaryTemplate.csv</code>. Maakt een openstaande versie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-modifier_dictionary-licence-confirmation"><td>Licentiebevestiging</td>
+<td>Selectievakje</td>
+<td>Verplicht om te uploaden</td>
+<td>U bevestigt dat u het recht hebt de geüploade omschrijvingen te gebruiken. Zonder dit gaat de upload niet door.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-modifier_dictionary-version-label-for-the-upload"><td>Versielabel voor de upload</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Geeft de openstaande versie een naam.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Aanmaken of bewerken: <code>config:billing-modifiers:manage</code>. Een versie goedkeuren, afwijzen of activeren: <code>config:billing-tables:approve</code>, gebruikt bij <a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a>. Beheerder en Laboratoriumdirecteur hebben beide standaard. De persoon die een versie heeft ingediend, kan die niet goedkeuren.</p>
+<p><strong>Bekende beperkingen.</strong> Het woordenboek is alleen een lijst. Geen enkel scherm of enkele controle dwingt een modifier af op een kostenpost. De meegeleverde tekst is synthetisch.</p>
+<h3 id="screen-rvu_code_map"><a class="anchor" href="#screen-rvu_code_map" aria-label="Link to this section">#</a> RVU-codetabel (productiviteit)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; RVU-codetabel (productiviteit)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>RVU-codetabel (productiviteit)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> RVU-codetabel (productiviteit)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Een kleine samengestelde lijst met CPT-codes en hun relatieve waarde-eenheden, gebruikt voor de productiviteit van de patholoog (werk-RVU) en als bronlijst waaruit het Facturatiewoordenboek CPT-codes kiest. Het is geen facturatiesysteem en bevat geen dollarbedragen. De seed is een deelverzameling van het relatieve-waardenbestand van de CMS-tariefstelling voor artsen 2026, gelabeld "<a class="term" href="99-glossary.html#g-cms" title="De Centers for Medicare and Medicaid Services, het Amerikaanse agentschap dat de factureringsregels van Medicare vaststelt, waaronder de NCCI-edits.">CMS</a> 2026 (April update)" (versie-id <code>rvu-v-seed-2026</code>). Meerdere rijen hebben geen werk-RVU en worden getoond als Niet geverifieerd.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Dit is een startpunt. Een openstaande of afgewezen versie wordt nooit gebruikt om een kostenpost vast te stellen, dus niets wat u uploadt telt mee totdat een tweede persoon het goedkeurt.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 2</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>, <a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-rvu_code_map.webp" alt="RVU-codetabel met upload en bewerken" loading="lazy"><figcaption>RVU-codetabel met upload en bewerken</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-version"><td>Versie</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Het label van de actieve versie.</td>
+<td>CMS 2026 (April update)</td>
+</tr>
+<tr id="f-rvu_code_map-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filtert de tabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-rvu_code_map-upload-csv"><td><a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> uploaden</td>
+<td>Bestand, CSV</td>
+<td>Optioneel</td>
+<td>Kolommen: Code of <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, de Amerikaanse codeset die codes aan CPT toevoegt voor benodigdheden en diensten.">HCPCS</a>, Description, WorkRVU. Respecteert de CMS-statuscode (alleen rijen met A, R en T zijn betaalbaar) en slaat modifierrijen over. Van geüploade rijen wordt het niveau afgeleid uit de omschrijving (standaard specimen) en het facturatietype is Global. Maakt een openstaande versie. Sjabloon: <code>RvuCodeMapTemplate.csv</code>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-rvu_code_map-version-label-for-the-upload"><td>Versielabel voor de upload</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Geeft de openstaande versie een naam.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<h4>Bewerkvenster</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-code"><td>Code</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De CPT-code. Vergrendeld wanneer u een bestaande rij bewerkt. Een dubbele code wordt geweigerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-rvu_code_map-billing-code"><td>Facturatiecode</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De PathScribe-facturatiecode. Vergrendeld bij het bewerken.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-rvu_code_map-description"><td>Omschrijving</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Gewone omschrijving.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-rvu_code_map-level"><td>Niveau</td>
+<td>Keuze: specimen, block, stain, decant</td>
+<td>Verplicht</td>
+<td>Waartegen de code wordt geteld.</td>
+<td>specimen</td>
+</tr>
+<tr id="f-rvu_code_map-component-type"><td>Componenttype</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a>, 26, Global</td>
+<td>Verplicht</td>
+<td>Het facturatietype waarop deze rij van toepassing is.</td>
+<td>Global</td>
+</tr>
+<tr id="f-rvu_code_map-work-rvu"><td>Werk-RVU</td>
+<td>Positief getal</td>
+<td>Optioneel</td>
+<td>Laat leeg om de rij als Niet geverifieerd te markeren.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-pe"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> PE</td>
+<td>Getal</td>
+<td>Optioneel</td>
+<td>RVU voor praktijkkosten.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-mp"><td>RVU MP</td>
+<td>Getal</td>
+<td>Optioneel</td>
+<td>RVU voor aansprakelijkheid.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-rvu_code_map-hcpcs"><td><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, de Amerikaanse codeset die codes aan CPT toevoegt voor benodigdheden en diensten.">HCPCS</a></td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Code van niveau II als die van toepassing is.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Bewerken of uploaden: <code>config:billing-rvu:manage</code>. Goedkeuren: <code>config:billing-tables:approve</code>. Beheerder en Laboratoriumdirecteur hebben beide standaard. Het <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Een regel dat één persoon een wijziging voorbereidt en een andere persoon die goedkeurt. Het importeren van factureringscodes gebruikt dit.">vierogenprincipe</a> is van toepassing.</p>
+<p><strong>Bekende beperkingen.</strong> De lijst is een samengestelde deelverzameling, niet het volledige CMS-bestand. De keuze van de basiscode op specimenniveau (88302, 88305, 88309) kan niet uit de casusgegevens worden afgeleid en is daarom niet automatisch.</p>
+<h3 id="screen-billing_dictionary"><a class="anchor" href="#screen-billing_dictionary" aria-label="Link to this section">#</a> Facturatiewoordenboek (kostenregistratie)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Facturatiewoordenboek (kostenregistratie)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Facturatiewoordenboek (<a class="term" href="99-glossary.html#g-charge-capture" title="Het vastleggen van het factureerbare werk aan een casus zodat het naar facturatie kan worden verzonden.">kostenregistratie</a>)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Facturatiewoordenboek (kostenregistratie)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> De lijst met facturatieregels met versiebeheer. Elke regel koppelt een PathScribe-facturatiecode aan een CPT-code, een optionele HCPCS-code, een facturatietype en RVU-waarden, voor de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> of voor één locatie. Een locatie-uitzondering vervangt voor die locatie de regel van de onderneming. Kostenposten worden uit deze regels vastgesteld wanneer een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> wordt gefinaliseerd.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De CPT-kiezer leest de RVU-codetabel en de modifier-selectievakjes lezen het CPT-modifierwoordenboek. Slaat u ze over, dan is het zoeken naar <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a> leeg en worden geen modifiers aangeboden.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 3</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-rvu_code_map">RVU-codetabel</a>, <a href="#screen-modifier_dictionary">CPT-modifierwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a>, <a href="#screen-billing_release">Facturatievrijgave</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-billing_dictionary.webp" alt="Facturatiewoordenboek met locatiekeuze" loading="lazy"><figcaption>Facturatiewoordenboek met locatiekeuze</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-viewing"><td>Bekijken</td>
+<td>Keuze uit Onderneming of één Locatie</td>
+<td>Verplicht</td>
+<td>Van wie de tabel de regels toont.</td>
+<td>Onderneming</td>
+</tr>
+<tr id="f-billing_dictionary-billing-code"><td>Facturatiecode</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>De PathScribe-facturatiecode.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td>CPT</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>De CPT-code.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Omschrijving</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>De omschrijving van de regel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> (werk)</td>
+<td>Getal, kolom</td>
+<td>Niet van toepassing</td>
+<td>Werk-RVU. Een <a class="term" href="99-glossary.html#g-flag" title="Een teken op een casus of monster, bijvoorbeeld om een extra kleuring aan te vragen of een casus aan te houden.">markering</a> "Code Map: N" verschijnt wanneer de opgeslagen RVU afwijkt van de RVU-codetabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Geldig vanaf</td>
+<td>Datum, kolom</td>
+<td>Niet van toepassing</td>
+<td>De datum waarop de actieve versie begint.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Bereik</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Organisatiebreed, Locatie-override of Overgeërfd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Status</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>De versiestatus.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-versions"><td>Versies</td>
+<td>Getal, kolom</td>
+<td>Niet van toepassing</td>
+<td>Hoeveel versies er bestaan.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Acties</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Geschiedenis, Dupliceren, Nieuwe versie.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Nieuwe versie, tabblad Facturatie en RVU</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-billing-code"><td>Facturatiecode</td>
+<td>Tekst</td>
+<td>Verplicht voor een nieuwe code</td>
+<td>De code waartoe deze regel behoort.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Bereik</td>
+<td>Keuze uit Onderneming of een Locatie</td>
+<td>Verplicht</td>
+<td>Waar de regel van toepassing is.</td>
+<td>Het bekeken bereik</td>
+</tr>
+<tr id="f-billing_dictionary-country"><td>Land</td>
+<td>Keuze: US, UK, AU, CA, de 27 EU-lidstaten, NZ</td>
+<td>Optioneel</td>
+<td>Het land waarvoor de code bedoeld is.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-hcpcs-code"><td>HCPCS-code</td>
+<td>Zoeken</td>
+<td>Optioneel</td>
+<td>Zoekt in het ingebouwde HCPCS-woordenboek van niveau II dat in het publieke domein valt.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-cpt-code"><td>CPT-code</td>
+<td>Zoeken in items van de RVU-codetabel</td>
+<td>Verplicht</td>
+<td>De CPT-code die wordt gefactureerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Omschrijving</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Omschrijving van de regel.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-level"><td>Niveau</td>
+<td>Keuze: specimen, block, stain, decant</td>
+<td>Verplicht</td>
+<td>Waartegen de code wordt geteld.</td>
+<td>specimen</td>
+</tr>
+<tr id="f-billing_dictionary-component-type"><td>Componenttype</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a>, 26, Global</td>
+<td>Verplicht</td>
+<td>Het facturatietype.</td>
+<td>Global</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work-pe-mp"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> werk, PE, MP</td>
+<td>Getallen</td>
+<td>Optioneel</td>
+<td>De drie RVU-waarden.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Geldig vanaf</td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>Begindatum van de versie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Reden voor wijziging</td>
+<td>Tekst</td>
+<td>Verplicht als het bereik al versies heeft</td>
+<td>Bewaard bij de versie voor de audit.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-notes"><td>Notities</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Vrije notities.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Nieuwe versie, tabblad Coderingsregels</h4>
+<p>Deze zijn informatief en worden nooit afgedwongen.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-modifiers-commonly-associated"><td>Vaak geassocieerde modifiers</td>
+<td>Selectievakjes uit het CPT-modifierwoordenboek</td>
+<td>Optioneel</td>
+<td>Herinnering aan modifiers die vaak bij deze code horen.</td>
+<td>Niets aangevinkt</td>
+</tr>
+<tr id="f-billing_dictionary-quantity-rule"><td>Aantalregel</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Advies over aantallen.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-bundling-rule"><td>Bundelingsregel</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Advies over bundeling. NCCI-paren staan bij <a href="#screen-ncci_edit_rules">NCCI-bewerkingsregels</a>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-documentation-requirements"><td>Documentatie-eisen</td>
+<td>Tekst met komma's als scheidingsteken</td>
+<td>Optioneel</td>
+<td>Wat het dossier moet laten zien.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-billing_dictionary-suppression-advisory"><td>Onderdrukkingsadvies</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Markeert een regel met nul <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> als bedoeld, zodat de controle op nultarief stil blijft.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4>Venster Geschiedenis</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-version"><td>Versie</td>
+<td>Getal, kolom</td>
+<td>Niet van toepassing</td>
+<td>Versienummer.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a></td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>CPT van die versie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> (werk)</td>
+<td>Getal, kolom</td>
+<td>Niet van toepassing</td>
+<td>Werk-RVU.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from-effective-to"><td>Geldig vanaf, Geldig tot</td>
+<td>Datums, kolommen</td>
+<td>Niet van toepassing</td>
+<td>De periode waarin de versie gold.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Status</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED of RETIRED.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Reden voor wijziging</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>De ingevoerde reden.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Acties</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Dupliceren. Indienen ter goedkeuring (DRAFT-versies). Intrekken (ACTIVE-versies).</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Een nieuwe versie wordt altijd als DRAFT opgeslagen. <strong>Indienen ter goedkeuring</strong> zet haar op PENDING_APPROVAL.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Aanmaken, indienen en intrekken: <code>config:billing-rules:manage</code>. Goedkeuren of afwijzen: <code>config:billing-tables:approve</code>. Beheerder en Laboratoriumdirecteur hebben beide standaard. Auditgebeurtenissen worden geschreven voor ingediend, goedgekeurd en afgewezen ("Billing rule submitted for approval").</p>
+<p><strong>Bekende beperkingen.</strong> Er is geen prijs- of tariefveld (zie Tarieflijsten hierboven). Coderingsregels zijn alleen advies.</p>
+<h2 id="ch8-autocoding-holds"><a class="anchor" href="#ch8-autocoding-holds" aria-label="Link to this section">#</a> Auto-codeermodule en aanhoudregels voor facturatie</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span></nav>
+
+<p><strong>Auto-codeermodule: Gedeeltelijk.</strong> Wat is gerealiseerd, is regelgebaseerd en wordt altijd door een persoon bevestigd:</p>
+<ul>
+<li>Voorgestelde codes op basis van gestructureerde casusgegevens: kleuringscategorieën, 88312 voor een speciale <a class="term" href="99-glossary.html#g-stain" title="Een kleurstof of antilichaam dat op een preparaat wordt aangebracht zodat een kenmerk van het weefsel zichtbaar wordt.">kleuring</a>, 88342 en +88341 voor immunohistochemie per <a class="term" href="99-glossary.html#g-specimen" title="Een van een patiënt genomen staal, zoals één biopsie of één gereseceerd orgaan. Een casus bevat een of meer monsters.">monster</a>, en 88331 of 88332 voor een <a class="term" href="99-glossary.html#g-frozen-section" title="Een weefselmonster dat tijdens een operatie wordt ingevroren en gesneden, zodat een patholoog snel antwoord kan geven.">vriescoupe</a>.</li>
+<li>Een terugvallijst met standaardcodes. Deze is niet gereed voor facturatie.</li>
+<li>Handmatige code-invoer in het codevenster en in het paneel voor facturatiecontrole.</li>
+</ul>
+<p><strong>Niet gerealiseerd:</strong> suggesties op basis van de verslagtekst door AI of natuurlijketaalverwerking. Dat werk wacht op advies van juristen en compliance. Basiscodes voor monsters (88302, 88305, 88309) worden niet automatisch bepaald. Het dichtstbijzijnde configuratiescherm is <a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>.</p>
+<p><strong>Facturatiecontroles bij ondertekening.</strong> Bij ondertekening voert PathScribe zes controles uit en registreert het voor elke bevinding een deficiëntie:</p>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Code</th>
+<th>Ernst</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>UNSUPPORTED_CPT_LEVEL</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>NCCI_BUNDLING_VIOLATION</code> (alleen paren met modifierindicator 0)</td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>MISSING_DIAGNOSTIC_ICD10</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>UNATTACHED_ANCILLARY_ORDER</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>MODIFIER_MISMATCH</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>F</td>
+<td><code>ZERO_FEE_MAPPING_ERROR</code></td>
+<td>REVENUE_LEAKAGE</td>
+</tr>
+</tbody>
+</table>
+<p><code>MISSING_CHARGE</code>, <code>POST_SIGNOUT_CORRECTION</code> en <code>BLOCK_DELETED</code> worden buiten de ondertekening om gemeld. Deze controles verhinderen nooit dat de patholoog ondertekent. Een melding zegt dat facturatiepunten voor <a class="term" href="99-glossary.html#g-qa" title="Kwaliteitsborging (quality assurance), de beoordeling van werk om problemen te vinden en te corrigeren.">QA</a> zijn gemarkeerd en de bevindingen gaan naar QA. Zij blokkeren wel de export: een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> kan niet worden geëxporteerd zolang een deficiëntie OPEN of UNDER_REVIEW is. De statussen zijn OPEN, UNDER_REVIEW, RESOLVED en OVERRIDDEN_WITH_JUSTIFICATION.</p>
+<h3 id="screen-ncci_edit_rules"><a class="anchor" href="#screen-ncci_edit_rules" aria-label="Link to this section">#</a> NCCI-bewerkingsregels (bundeling)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; NCCI-bewerkingsregels (bundeling)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>NCCI-bewerkingsregels (bundeling)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> NCCI-bewerkingsregels (bundeling)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Bevat de procedure-tot-procedureparen van de National Correct Coding Initiative (<a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, een set Amerikaanse Medicare-edits die aangeeft welke codeparen niet samen mogen worden gefactureerd.">NCCI</a>): een code van kolom 1 en een code van kolom 2 die niet samen mogen worden gefactureerd. Een paar met modifierindicator 0 veroorzaakt bij ondertekening een deficiëntie. Echte CMS-gegevens worden niet meegeleverd. De seed is één synthetisch paar (88305 met 88300, indicator 0, kwartaal <code>DEMO</code>) en het scherm toont een waarschuwing. De licentiehouder uploadt de <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Dit is een startpunt. Een upload of wijziging wordt een openstaande import, dus goedkeuring is nodig voordat de paren worden gebruikt.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 4</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-pending_approvals">Openstaande goedkeuringen facturatieregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-ncci_edit_rules.webp" alt="NCCI-bewerkingsregels met waarschuwing over synthetische gegevens en paartabel" loading="lazy"><figcaption>NCCI-bewerkingsregels met waarschuwing over synthetische gegevens en paartabel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-quarter-version"><td>Kwartaalversie</td>
+<td>Tekst, bijvoorbeeld <code>2026Q3</code></td>
+<td>Verplicht om te uploaden</td>
+<td>Geeft de import een naam.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-ncci_edit_rules-upload-csv"><td>CSV uploaden</td>
+<td>Bestand, CSV</td>
+<td>Optioneel</td>
+<td>Kolommen: Column 1, Column 2, Modifier Indicator (0, 1 of 9), Effective Date, Deletion Date. Sjabloon: <code>NcciPtpEditTemplate.csv</code>. Maakt een openstaande import.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-ncci_edit_rules-pair-table"><td>Paartabel</td>
+<td>Tabel, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Kolom 1, kolom 2, indicator en data van de actieve import.</td>
+<td>Eén synthetisch paar</td>
+</tr>
+<tr id="f-ncci_edit_rules-synthetic-data-warning"><td>Waarschuwing synthetische gegevens</td>
+<td>Melding</td>
+<td>Niet van toepassing</td>
+<td>Wordt getoond zolang de actieve import de synthetische seed is.</td>
+<td>Getoond</td>
+</tr>
+</tbody>
+</table>
+<h4>Bewerkvenster</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-modifier-indicator"><td>Modifierindicator</td>
+<td>Keuze: 0 nooit omzeilen, 1 omzeilbaar met een <a class="term" href="99-glossary.html#g-modifier" title="Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.">modifier</a>, 9 edit is niet van toepassing</td>
+<td>Verplicht</td>
+<td>Alleen paren met 0 veroorzaken bij ondertekening een deficiëntie.</td>
+<td>Huidige waarde</td>
+</tr>
+<tr id="f-ncci_edit_rules-deletion-date"><td>Verwijderdatum</td>
+<td>Datum</td>
+<td>Optioneel</td>
+<td>De datum waarop het paar niet meer geldt.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p>Elke wijziging verzendt de hele tabel opnieuw als een nieuwe import met de status PENDING_APPROVAL, genaamd "Manual edit" met het paar.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Uploaden of bewerken: <code>config:billing-ncci:manage</code>. Goedkeuren: <code>config:billing-tables:approve</code>. Beheerder en Laboratoriumdirecteur hebben beide standaard.</p>
+<p><strong>Bekende beperkingen.</strong> Er worden geen echte NCCI-gegevens meegeleverd. Indicatoren 1 en 9 veroorzaken geen deficiëntie.</p>
+<h3 id="screen-pending_approvals"><a class="anchor" href="#screen-pending_approvals" aria-label="Link to this section">#</a> Openstaande goedkeuringen facturatieregels</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Openstaande goedkeuringen facturatieregels"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Openstaande goedkeuringen facturatieregels</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Openstaande goedkeuringen facturatieregels</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> De goedkeuringswachtrij voor de tweede persoon. Versies van facturatieregels, versies van het modifierwoordenboek, NCCI-imports, RVU-versies en code-importtaken wachten hier. Niets wordt van kracht totdat een andere persoon dan de indiener het goedkeurt.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De wachtrij toont alleen items die de eerdere schermen hebben ingediend. De goedkeurder heeft de goedkeuringsmachtiging nodig en mag niet de indiener zijn.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 5</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-modifier_dictionary">CPT-modifierwoordenboek</a>, <a href="#screen-rvu_code_map">RVU-codetabel</a>, <a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>, <a href="#screen-ncci_edit_rules">NCCI-bewerkingsregels</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-pending_approvals.webp" alt="Tabellen Openstaande goedkeuringen facturatieregels en Openstaande woordenboekwijzigingen" loading="lazy"><figcaption>Tabellen Openstaande goedkeuringen facturatieregels en Openstaande woordenboekwijzigingen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-pending_approvals-billing-code"><td>Facturatiecode</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel: de code van de regel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a></td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-rvu-work"><td><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, de maat voor het werk en de kosten van een dienst die wordt gebruikt bij Medicare-betalingen en in productiviteitsrapporten.">RVU</a> (werk)</td>
+<td>Getal, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-effective-from"><td>Ingangsdatum</td>
+<td>Datum, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-scope"><td>Bereik</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-drafted-by"><td>Opgesteld door</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel: de persoon die de regel heeft opgesteld.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-submitted-by"><td>Ingediend door</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel: de persoon die de regel heeft ingediend.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-change-reason"><td>Reden voor wijziging</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Regeltabel.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-dictionary"><td>Woordenboek</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Woordenboektabel: welk woordenboek (code-import, <a class="term" href="99-glossary.html#g-modifier" title="Een korte code die aan een CPT-code wordt toegevoegd om aan te geven hoe een dienst is verricht, bijvoorbeeld dat alleen de technische component is geleverd.">modifier</a>, <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, een set Amerikaanse Medicare-edits die aangeeft welke codeparen niet samen mogen worden gefactureerd.">NCCI</a>, RVU).</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-label"><td>Label</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Woordenboektabel: het label van de versie of taak.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-pending_approvals-approve"><td>Goedkeuren</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Activeert het item. Bij een code-import wordt de hele taak toegepast. Als u het item zelf hebt ingediend, is de knop vergrendeld en legt een hint uit waarom.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-pending_approvals-reject"><td>Afwijzen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Opent een vak voor de reden; met <strong>Afwijzing bevestigen</strong> beëindigt u het item.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-pending_approvals-rejection-reason"><td>Reden van afwijzing</td>
+<td>Tekst</td>
+<td>Verplicht om af te wijzen</td>
+<td>Bewaard bij de beslissing.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Goedkeuren en afwijzen: <code>config:billing-tables:approve</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard. Beslissingen schrijven auditgebeurtenissen.</p>
+<p><strong>Bekende beperkingen.</strong> In een systeem met één gebruiker kan niemand goedkeuren, omdat de indiener zijn eigen item niet kan goedkeuren.</p>
+<h3 id="screen-billing_release"><a class="anchor" href="#screen-billing_release" aria-label="Link to this section">#</a> Facturatievrijgave</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Facturatievrijgave"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Facturatievrijgave</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Facturatievrijgave</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> De aanhoudregels. Elke regel zegt op welke kostenposten zij van toepassing is en wat ermee moet gebeuren: direct vrijgeven, een tijd aanhouden of vrijgeven in een geplande batch, met of zonder handmatige controle. De meest specifieke passende regel wint. PathScribe bepaalt wat en wanneer. De interface-engine verplaatst het bericht.</p>
+<p><strong>Specificiteitspunten:</strong> <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> 100, facturatietype 8, casustypen 4, aanvragende locatie 4, patholoog 2, amendement 1.</p>
+<p><strong>Als geen regel past:</strong> vrijgeven op de mijlpaal, handmatige controle aan, automatische vrijgave aan.</p>
+<p><strong>Geldt altijd:</strong> een amendementswijziging wordt voor controle geparkeerd; een kostenpost waarvan de <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, de codeset van de AMA voor medische en laboratoriumhandelingen, gebruikt voor facturering in de Verenigde Staten.">CPT</a> geen koppeling heeft, wordt geparkeerd (<code>unmappedCpt</code>); een gesplitste <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> zonder technische faciliteit wordt geparkeerd (<code>missingTechnicalFacility</code>).</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Een regel kan een faciliteit of aanvragende locatie noemen, dus richt die eerst in. Een geplande batch wordt verzonden volgens een tijdschema dat in Verzendschema's is vastgelegd.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 7</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>, <a href="#screen-billing_type_triggers">Kostenvrijgavetriggers</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Verzendschema&#x27;s</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-dft_export_preview">Voorbeeld facturatie-export</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-billing_release.webp" alt="Regellijst van Facturatievrijgave met paneel Een kost uitproberen" loading="lazy"><figcaption>Regellijst van Facturatievrijgave met paneel Een kost uitproberen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_release-billing-type"><td>Facturatietype</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-tc" title="Technische component, het deel van een dienst dat het werk van het laboratorium dekt en apart van de professionele component wordt gefactureerd (code 26).">TC</a>, 26, Global, any</td>
+<td>Verplicht</td>
+<td>Criterium.</td>
+<td>any</td>
+</tr>
+<tr id="f-billing_release-case-types"><td>Casustypen</td>
+<td>Lijst met komma's als scheidingsteken</td>
+<td>Optioneel</td>
+<td>Criterium.</td>
+<td>Leeg (alle)</td>
+</tr>
+<tr id="f-billing_release-ordering-site"><td>Aanvragende locatie</td>
+<td>Keuze uit locaties</td>
+<td>Optioneel</td>
+<td>Criterium.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-billing_release-primary-pathologist"><td>Primaire patholoog</td>
+<td>Keuze uit medewerkers</td>
+<td>Optioneel</td>
+<td>Criterium.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-billing_release-amendment"><td>Amendement</td>
+<td>Keuze: any, original, amended</td>
+<td>Verplicht</td>
+<td>Criterium.</td>
+<td>any</td>
+</tr>
+<tr id="f-billing_release-release-mode"><td>Vrijgavemodus</td>
+<td>Keuze: DYNAMIC_WITH_HOLD, SCHEDULED_BATCH</td>
+<td>Verplicht</td>
+<td>Vrijgeven na een aanhouding, of bij de volgende batch.</td>
+<td>DYNAMIC_WITH_HOLD</td>
+</tr>
+<tr id="f-billing_release-hold-duration-minutes"><td>Aanhoudduur (minuten)</td>
+<td>Geheel getal, 0 tot 43.200</td>
+<td>Verplicht voor een aanhouding</td>
+<td>Hoe lang wordt aangehouden vóór de vrijgave.</td>
+<td>0</td>
+</tr>
+<tr id="f-billing_release-batch-schedule"><td>Batchschema</td>
+<td>Schema-instellingen</td>
+<td>Verplicht voor een batch</td>
+<td>De editor begint bij wekelijks, maandag tot en met vrijdag, 22:00, America/New_York.</td>
+<td>Zie links</td>
+</tr>
+<tr id="f-billing_release-auto-release-on-complete"><td>Automatisch vrijgeven na voltooiing</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Vrijgeven wanneer de aanhouding eindigt.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-billing_release-manual-review-required"><td>Handmatige controle vereist</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Een persoon controleert vóór de vrijgave.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-billing_release-try-a-charge"><td>Een kost uitproberen</td>
+<td>Testpaneel</td>
+<td>Optioneel</td>
+<td>Voert de beslissing uit voor een voorbeeldkostenpost en toont de regel die paste.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>De regelcontroles geven deze probleemcodes: <code>billingTypeInvalid</code>, <code>modeInvalid</code>, <code>holdInvalid</code>, <code>batchRequired</code>, <code>amendmentInvalid</code>, <code>caseTypesInvalid</code>. Drie regels voor de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> (TC, 26, Global) zijn meegeleverd, elk DYNAMIC_WITH_HOLD, 0 minuten, automatische vrijgave aan, handmatige controle aan.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:billing-release:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard. Opslaan wordt geaudit. Berichten vrijgeven, aanhouden, terugtrekken en opnieuw verzenden zijn afzonderlijke interfacemachtigingen (<code>interface:outbound:release</code>, <code>hold</code>, <code>retract</code>, <code>resend</code>), die Beheerder heeft.</p>
+<p><strong>Bekende beperkingen.</strong> Alleen in de demonstratieservice gekoppeld aan de Uitgaande wachtrij.</p>
+<h3 id="screen-dft_export_preview"><a class="anchor" href="#screen-dft_export_preview" aria-label="Link to this section">#</a> Voorbeeld facturatie-export</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Voorbeeld facturatie-export"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Voorbeeld facturatie-export</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Voorbeeld facturatie-export</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Zoek een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> op en zie wat PathScribe voor facturatie zou verzenden. De JSON-payload is wat PathScribe verzendt. De <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a> <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, het HL7-bericht dat kosten naar een factureringssysteem overbrengt.">DFT</a>^P03-tekst is een voorbeeld van wat de interface-engine zou bouwen. PathScribe maakt of verzendt geen HL7. <a class="term" href="99-glossary.html#g-x12" title="De ANSI-standaard voor elektronische zakelijke transacties, waaronder zorgdeclaraties in de Verenigde Staten.">X12</a> 837P, KVDT en SESAM-Vitale bestaan niet.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> U hebt een gefinaliseerde casus met kostenposten nodig. Als de casus een openstaande facturatiedeficiëntie heeft, is de export geblokkeerd.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 10</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>, <a href="#screen-billing_release">Facturatievrijgave</a>, <a href="#screen-jurisdiction_payment_mappings">Jurisdictiebetalingstoewijzing</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-dft_export_preview.webp" alt="Voorbeeld facturatie-export met JSON-payload en HL7-voorbeeld" loading="lazy"><figcaption>Voorbeeld facturatie-export met JSON-payload en HL7-voorbeeld</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-dft_export_preview-case-id-or-accession"><td>Casus-id of <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De casus waarvan u een voorbeeld wilt zien.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-dft_export_preview-json-payload"><td>JSON-payload</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>De webhookpayload plus de financiële klasse.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-dft_export_preview-hl7-dft-p03-preview"><td>HL7 DFT^P03-voorbeeld</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Alleen ter illustratie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-dft_export_preview-send-to-billing-engine"><td>Naar facturatie-engine sturen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Verzendt naar de gesimuleerde engine (label "Gesimuleerd"). Geblokkeerd zolang een deficiëntie openstaat.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-dft_export_preview-send-financial-class-preview"><td>Financiële klasse sturen (voorbeeld)</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Toont de payload van de financiële klasse.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen en gebruiken: <code>config:interface-preview:view</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard.</p>
+<p><strong>Bekende beperkingen.</strong> Het verzenden is gesimuleerd. Er is geen echte facturatie-engine gekoppeld.</p>
+<h2 id="ch8-cancer-registry"><a class="anchor" href="#ch8-cancer-registry" aria-label="Link to this section">#</a> Configuratie van kankerregisters</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span></nav>
+
+<p><strong>Wat er bestaat.</strong> PathScribe heeft 14 definities van kankerregisters en 12 definities van registers voor baarmoederhalsscreening. Elk <a class="term" href="99-glossary.html#g-cancer-registry" title="Een instantie die kankerdiagnoses verzamelt voor een land of regio, zoals de NAACCR-registers in Noord-Amerika of de COSD-verzameling in Engeland.">kankerregister</a> is gemarkeerd als <code>configurable</code>, wat betekent dat de specificatie niet is getoetst aan de gepubliceerde specificatie van het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>. Van de screeningsregisters zijn er drie als geverifieerd gemarkeerd: het Britse beheersysteem voor baarmoederhalsscreening (CSMS), PALGA in Nederland en het Australische National Cancer Screening Register (NCSR).</p>
+<table>
+<thead>
+<tr>
+<th>Id kankerregister</th>
+<th>Genoemd verzendformaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naaccr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-naaccr" title="De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a></td>
+</tr>
+<tr>
+<td><code>epath_npcr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-hl7-v2" title="Het veelgebruikte HL7-berichtformaat dat bestaat uit regels met door een verticale streep gescheiden velden, waarbij elk bericht begint met een MSH-segment.">HL7 v2</a> <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a></td>
+</tr>
+<tr>
+<td><code>cpac_canada</code></td>
+<td>NAACCR XML</td>
+</tr>
+<tr>
+<td><code>cosd_uk</code></td>
+<td><a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, de Engelse nationale dataset voor kankerregistratie.">COSD</a> XML (GB_EW)</td>
+</tr>
+<tr>
+<td><code>phs_scotland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nicr_northern_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>ncri_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nkr_netherlands</code></td>
+<td>PALGA <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a></td>
+</tr>
+<tr>
+<td><code>inca_france</code></td>
+<td>CDA CR-ACP</td>
+</tr>
+<tr>
+<td><code>adt_gekid_germany</code></td>
+<td>oBDS XML</td>
+</tr>
+<tr>
+<td><code>bcr_belgium</code></td>
+<td>HD-S4S <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a></td>
+</tr>
+<tr>
+<td><code>aihw_australia</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nz_cancer_registry</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>kccr_korea</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Wat elk formaat vandaag betekent.</strong> PathScribe bouwt één gestructureerde JSON-payload. Het genoemde formaat is het doel waarnaar de interface-engine zou vertalen. PathScribe schrijft geen NAACCR XML, COSD XML, oBDS, CDA of de andere formaten. <strong>Er is geen kankerregister en geen screeningsregister voor Spanje</strong>, hoewel Spanje in het product een <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a> is. <strong>NAACCR XML als batchbestand: Niet gerealiseerd.</strong> <strong><a class="term" href="99-glossary.html#g-mips" title="Het Merit-based Incentive Payment System, een Amerikaans Medicare-programma dat de betaling aanpast op basis van gerapporteerde kwaliteitsmaten.">MIPS</a> en <a class="term" href="99-glossary.html#g-macra" title="De Amerikaanse Medicare Access and CHIP Reauthorization Act, die het Quality Payment Program creëerde waar MIPS onder valt.">MACRA</a>: Niet gerealiseerd</strong> (zie <a href="#ch8-quality-reporting">Kwaliteits- en volksgezondheidsrapportage</a>).</p>
+<p><strong>Ingebouwde meldingsregels.</strong></p>
+<ul>
+<li>De trigger is uitsluitend de ondertekening van chirurgische pathologie. Cytologie veroorzaakt nooit een kankermelding. Melden gebeurt zonder terugkoppeling (fire-and-forget) en houdt de ondertekening nooit tegen.</li>
+<li>Verplichte gegevens: geboortedatum, diagnosedatum, primaire diagnose en ICD-O-code. Een register dat op een patiëntidentificatie werkt, heeft ook die identificatie nodig. Een melding met ontbrekende gegevens wordt aangehouden als <code>HOLD_MISSING_MANDATORY_DATA</code> en verschijnt bij Registeruitzonderingen.</li>
+<li>Meldingsplicht: alleen de gedocumenteerde NAACCR-uitzonderingen zijn ingebouwd (carcinoma in situ van de cervix en CIN III, prostatische intra-epitheliale neoplasie III, en basaalcel- en plaveiselcelcarcinoom van de huid). De lijst is niet uitputtend.</li>
+<li>Verzendpoort: een validatie-instantie verzendt nooit echte <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>. Een productie-instantie houdt een melding aan totdat de livegang voor dat register is goedgekeurd.</li>
+<li>Opt-out van de patiënt: de instelling <strong>Honours opt-out</strong> staat standaard uit. Als de instelling uit staat, wordt een patiënt die zich heeft afgemeld toch gemeld en legt het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a> dat vast.</li>
+</ul>
+<h3 id="screen-cancer_registry_settings"><a class="anchor" href="#screen-cancer_registry_settings" aria-label="Link to this section">#</a> Kankerregistratierapportage</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Kankerregistratierapportage"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Kankerregistratierapportage</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Labmaterialen &amp; workflows</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Kankerregistratierapportage</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Kiest aan welk <a class="term" href="99-glossary.html#g-cancer-registry" title="Een instantie die kankerdiagnoses verzamelt voor een land of regio, zoals de NAACCR-registers in Noord-Amerika of de COSD-verzameling in Engeland.">kankerregister</a> de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> standaard meldt en laat een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> dit overschrijven. Het bevat ook de goedkeuring voor livegang van elk <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>. Elke registerrij toont zijn specificatiestatuslabel, zijn jurisdicties, zijn identificatie en zijn verzendformaat.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De uitzonderingen per faciliteit kiezen uit de faciliteitenlijst, dus richt eerst de faciliteiten in. Zonder gekozen register wordt geen kankermelding gemaakt.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 11</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-batch_registry_feed">Batchbestanden voor registers</a>, <a href="#screen-cosd_destination">Brits kankerregister (COSD)</a>, <a href="#screen-us_epath">Elektronische pathologie (VS)</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-cancer_registry_settings.webp" alt="Standaardregister van de onderneming, uitzonderingen per faciliteit en paneel Registerverbinding" loading="lazy"><figcaption>Standaardregister van de onderneming, uitzonderingen per faciliteit en paneel Registerverbinding</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-enterprise-default-registry"><td>Ondernemingsstandaard (register)</td>
+<td>Keuze uit Geen plus de 14 registers</td>
+<td>Verplicht</td>
+<td>Het register dat wordt gebruikt voor elke faciliteit zonder uitzondering.</td>
+<td>Geen (de demonstratieseed zet Metro General op <code>naaccr_us</code>)</td>
+</tr>
+<tr id="f-cancer_registry_settings-honours-opt-out"><td>Honours opt-out</td>
+<td>Selectievakje</td>
+<td>Optioneel</td>
+<td>Indien aangevinkt, wordt een patiënt die zich heeft afgemeld niet gemeld.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-cancer_registry_settings-save"><td>Opslaan</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Slaat de twee bovenstaande velden op.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-go-live"><td>Register (livegang)</td>
+<td>Keuze</td>
+<td>Verplicht als meer dan één register in gebruik is</td>
+<td>Kiest welk register het verbindingspaneel hieronder toont.</td>
+<td>Het eerste in gebruik</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-override"><td>Overschrijving toevoegen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Opent een nieuwe rij voor een uitzondering per faciliteit.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-facility"><td>Faciliteit</td>
+<td>Keuze uit faciliteiten</td>
+<td>Verplicht voor een uitzondering</td>
+<td>De faciliteit waarop de uitzondering van toepassing is.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry"><td>Register</td>
+<td>Keuze uit de 14 registers</td>
+<td>Verplicht voor een uitzondering</td>
+<td>Het register voor die faciliteit.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-save-cancel-remove"><td>Opslaan, Annuleren, Verwijderen</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Een uitzondering opslaan of verwerpen, of een opgeslagen uitzondering verwijderen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Paneel Registerverbinding (livegang)</h4>
+<p>Hetzelfde paneel verschijnt bij <a href="#screen-cytology_registry">Registerrapportage cytologie</a>. Het leidt een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> door Pending, Testing, Validated en Live. Een instantie heeft een van twee rollen. Een validatie-instantie verzendt nooit echte gegevens en voert alleen de testsuite uit. Een productie-instantie verzendt echte uitslagen alleen naar live registers met een geldige goedkeuring; anders worden uitslagen aangehouden en bij goedkeuring ingehaald.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-template-version-and-status"><td>Sjabloonversie en status</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>De versie van het registersjabloon en of die actueel is.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-changed"><td>Wat er is gewijzigd</td>
+<td>Lijst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Wijzigingen sinds de versie die u het laatst hebt bevestigd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-agreement-reference"><td>Verwijzing naar de overeenkomst</td>
+<td>Tekst</td>
+<td>Verplicht om vast te leggen</td>
+<td>De verwijzing naar de overeenkomst voor gegevensdeling. <strong>Overeenkomst vastleggen</strong> slaat die op.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cancer_registry_settings-run-test-suite"><td>Testsuite uitvoeren</td>
+<td>Knop (validatie-instantie)</td>
+<td>Optioneel</td>
+<td>Voert de synthetische testcasus uit (<code>SYN-</code>-patiënten): 3 screening en 2 kanker. Ten minste 1 geaccepteerde uitslag is nodig (<code>REGISTRY_GO_LIVE_MIN_TEST_ACCEPTS</code>).</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-export-validation-record"><td>Validatierecord exporteren</td>
+<td>Knop (validatie-instantie)</td>
+<td>Optioneel</td>
+<td>Downloadt het bestand met het validatierecord.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-validation-record-file"><td>Bestand met validatierecord</td>
+<td>JSON-bestand (productie-instantie)</td>
+<td>Optioneel</td>
+<td>Importeert een record dat uit een validatie-instantie is geëxporteerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-pre-checks"><td>Controles voor livegang</td>
+<td>Lijst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td><code>agreementRecorded</code>, <code>templateCurrent</code>, <code>validationRecord</code>, <code>testEvidence</code>, <code>specificationConfirmed</code>, <code>codesMapped</code>, <code>identifierHold</code>, <code>overridesReviewed</code>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-test-sign-off-reference"><td>Verwijzing naar de testgoedkeuring van het register</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>De eigen goedkeuringsverwijzing van het register voor de test.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cancer_registry_settings-specification-confirmed"><td>Specificatie bevestigd</td>
+<td>Selectievakje</td>
+<td>Verplicht voor registers met <code>configurable</code></td>
+<td>U bevestigt de specificatie aan de hand van die van het register zelf.</td>
+<td>Niet aangevinkt</td>
+</tr>
+<tr id="f-cancer_registry_settings-request-go-live"><td>Livegang aanvragen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Start de goedkeuring.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-i-am-approving-as"><td>Ik keur goed als</td>
+<td>Keuze: Sitebeheerder, Laboratoriumdirecteur, Gedelegeerde van de laboratoriumdirecteur</td>
+<td>Verplicht om goed te keuren</td>
+<td>De hoedanigheid waarin u goedkeurt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-approve-with-my-credentials"><td>Goedkeuren met mijn inloggegevens</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Vraagt u uw inloggegevens opnieuw in te voeren en legt dan de goedkeuring vast.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-withdraw-request-stop-live-reporting"><td>Aanvraag intrekken, Livemelding stoppen</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Een openstaande aanvraag annuleren, of een live register stoppen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-part-of-the-template"><td>Onderdeel van het sjabloon</td>
+<td>Keuze</td>
+<td>Verplicht voor een lokale regel</td>
+<td>Welk deel van het sjabloon een lokale wijziging raakt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-the-rule-does"><td>Wat de regel doet</td>
+<td>Tekst</td>
+<td>Verplicht voor een lokale regel</td>
+<td>Beschrijft de lokale wijziging of adapterregel.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-rule-remove-confirm-reviewed"><td>Regel toevoegen, Verwijderen, Beoordeling bevestigen</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Lokale regels beheren en bevestigen dat ze zijn beoordeeld.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cancer_registry_settings-the-person-who-requests-go-live-may-also-approve-it"><td>De persoon die livegang aanvraagt, mag die ook goedkeuren</td>
+<td>Ja/Nee (alleen productie)</td>
+<td>Optioneel</td>
+<td>Staat toe dat de aanvrager goedkeurt.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-cancer_registry_settings-approvals-required"><td>Vereiste goedkeuringen</td>
+<td>Geheel getal, 1 tot 3 (alleen productie)</td>
+<td>Optioneel</td>
+<td>Hoeveel goedkeuringen nodig zijn.</td>
+<td>1</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-history"><td>Geschiedenis van livegang</td>
+<td>Lijst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Elke aanvraag, goedkeuring en stopzetting.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. De registerinstellingen wijzigen: <code>config:cancer-registry:manage</code>. De testsuite uitvoeren: <code>registry:test-suite:run</code>. Livegang goedkeuren: <code>registry:live-register:approve</code>. Beheerder heeft deze standaard; de Laboratoriumdirecteur heeft <code>config:cancer-registry:manage</code> niet, en heeft de goedkeuring voor livegang via een eigen seed. Goedkeuring vereist het opnieuw invoeren van inloggegevens.</p>
+<p><strong>Bekende beperkingen.</strong> Het vastleggen van ICD-O-3 is nog open: het tabblad <a class="term" href="99-glossary.html#g-icd-o" title="International Classification of Diseases for Oncology, die tumorlocatie en -type (morfologie) codeert. De derde editie is ICD-O-3, met codes zoals 8500/3.">ICD-O</a> van het codevenster bewaart SNOMED-morfologie-identificaties, geen codes zoals <code>8500/3</code>. De registerspecificaties zijn niet geverifieerd. Dit scherm heeft in de toegangstabel geen <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> voor wijzigingen op sectieniveau; de knoppen worden grijs via de machtigingsknoppen.</p>
+<h3 id="screen-cosd_destination"><a class="anchor" href="#screen-cosd_destination" aria-label="Link to this section">#</a> Brits kankerregister (COSD)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Brits kankerregister (COSD)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Brits <a class="term" href="99-glossary.html#g-cancer-registry" title="Een instantie die kankerdiagnoses verzamelt voor een land of regio, zoals de NAACCR-registers in Noord-Amerika of de COSD-verzameling in Engeland.">kankerregister</a> (<a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, de Engelse nationale dataset voor kankerregistratie.">COSD</a>)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Brits kankerregister (COSD)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Bestemmingsinstellingen voor de Cancer Outcomes and Services Dataset (COSD), op het scherm getoond als COSD (Engeland). U stelt het transportlabel, het correctievenster en de niet-werkdagen eenmaal in voor de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> en eventueel eenmaal per <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. De elementnamen in het controlepaneel zijn het vereenvoudigde model van PathScribe, niet het officiële COSD-schema.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Kies eerst het COSD-register op het scherm voor kankerregisters. Wanneer u het item van een faciliteit verwijdert, valt die faciliteit terug op de instellingen van de onderneming.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 12</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-cosd_destination.webp" alt="COSD-bestemmingsinstellingen met controlepaneel en calculator voor de correctietermijn" loading="lazy"><figcaption>COSD-bestemmingsinstellingen met controlepaneel en calculator voor de correctietermijn</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-scope"><td>Bereik</td>
+<td>Onderneming of één faciliteit</td>
+<td>Verplicht</td>
+<td>Eén item per bereik.</td>
+<td>Onderneming</td>
+</tr>
+<tr id="f-cosd_destination-transport"><td>Transport</td>
+<td>Keuze: restMtls, sftp, portalUpload</td>
+<td>Verplicht</td>
+<td>Alleen een label. De interface-engine bewaart het adres en de inloggegevens.</td>
+<td>Beveiligde <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a> (restMtls)</td>
+</tr>
+<tr id="f-cosd_destination-correction-working-days"><td>Werkdagen voor correctie</td>
+<td>Geheel getal, 1 tot 30</td>
+<td>Verplicht</td>
+<td>Aantal werkdagen om een geweigerde indiening te corrigeren.</td>
+<td>5</td>
+</tr>
+<tr id="f-cosd_destination-non-working-dates"><td>Niet-werkdagen</td>
+<td>Lijst met data, JJJJ-MM-DD</td>
+<td>Optioneel</td>
+<td>Dagen die niet als werkdag tellen. Er wordt er geen aangenomen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cosd_destination-remove"><td>Verwijderen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Alleen items van faciliteiten; zet terug naar de instellingen van de onderneming.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Een voorbeeldindiening controleren</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-nhs-number"><td><a class="term" href="99-glossary.html#g-nhs-number" title="De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.">NHS-nummer</a></td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De voorbeeldpatiënt.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cosd_destination-date-of-birth"><td>Geboortedatum</td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>Voorbeeld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cosd_destination-diagnosis-date"><td>Diagnosedatum</td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>Voorbeeld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cosd_destination-icd-o-3"><td>ICD-O-3</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Voorbeeld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cosd_destination-primary-diagnosis"><td>Primaire diagnose</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Voorbeeld.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4>Wanneer is een correctie verschuldigd?</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-rejected-on"><td>Geweigerd op</td>
+<td>Datum</td>
+<td>Verplicht</td>
+<td>Telt de werkdagen voor correctie vooruit, waarbij weekenden en uw niet-werkdagen worden overgeslagen.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:cosd-destination:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard.</p>
+<p><strong>Bekende beperkingen.</strong> De punten die nog aan de echte COSD-specificatie moeten worden getoetst, zijn: elementnamen, de lijst met verplichte items, waarden van codelijsten, datumregels, de indieningsenvelop, weigeringscodes en het begin van het correctievenster.</p>
+<h3 id="screen-us_epath"><a class="anchor" href="#screen-us_epath" aria-label="Link to this section">#</a> Elektronische pathologie (VS)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Elektronische pathologie (VS)"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Elektronische pathologie (VS)</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Elektronische pathologie (VS)</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Elektronische pathologierapportage (<a class="term" href="99-glossary.html#g-epath" title="Elektronische pathologierapportage, het verzenden van pathologieverslagen naar een kankerregister in een standaard elektronische vorm.">ePath</a>) aan Amerikaanse staatskankerregisters. Een generiek basisbericht van het National Program of Cancer Registries (NPCR) (<a class="term" href="99-glossary.html#g-hl7-v2" title="Het veelgebruikte HL7-berichtformaat dat bestaat uit regels met door een verticale streep gescheiden velden, waarbij elk bericht begint met een MSH-segment.">HL7 v2</a>.5.1 <a class="term" href="99-glossary.html#g-oru" title="Het HL7-berichttype voor ongevraagde waarnemingsuitslagen. ORU^R01 bevat een uitslag.">ORU</a>^R01) wordt aangepast door een staatsprofiel en verzonden via een transport (<a class="term" href="99-glossary.html#g-phin-ms" title="Het Public Health Information Network Messaging System, een Amerikaans transportsysteem voor het verzenden van volksgezondheidsrapporten.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.">SFTP</a>, Direct TCP of een HTTPS-API). De staat wordt gekozen uit de staat van de uitvoerende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>, nooit uit het adres van de patiënt. Er wordt alleen een als voorbeeld gelabeld profiel meegeleverd.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De staat van de faciliteit moet in het faciliteitenwoordenboek zijn ingesteld. Zonder faciliteit of profiel wordt de melding geparkeerd (<code>routing:noFacility</code>, <code>routing:noProfile</code>) en wordt de ondertekening niet aangehouden.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 13</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a>, <a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-us_epath.webp" alt="Lijst met ePath-profielen voor de VS en toewijzingen" loading="lazy"><figcaption>Lijst met ePath-profielen voor de VS en toewijzingen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-assignment-scope"><td>Toewijzingsbereik</td>
+<td>Onderneming of één faciliteit</td>
+<td>Verplicht</td>
+<td>Waar een profiel van toepassing is. Een faciliteit valt terug op een profiel voor haar eigen staat en daarna op de standaard van de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>.</td>
+<td>Onderneming</td>
+</tr>
+<tr id="f-us_epath-assigned-profile"><td>Toegewezen profiel</td>
+<td>Keuze uit profielen</td>
+<td>Verplicht</td>
+<td>Het profiel dat wordt gebruikt.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<h4>Profielvenster</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-state"><td>Staat</td>
+<td>Twee letters</td>
+<td>Verplicht</td>
+<td>De staat waarvoor het profiel is.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-us_epath-name"><td>Naam</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Weergavenaam.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-us_epath-required-fields"><td>Verplichte velden</td>
+<td>Lijst met codes van segmentvelden zoals <code>PID-11</code></td>
+<td>Optioneel</td>
+<td>Moeten zijn ingevuld. Nooit <code>MSH</code>. Mogen niet overlappen met Optionele velden.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-us_epath-optional-fields"><td>Optionele velden</td>
+<td>Lijst met codes van segmentvelden</td>
+<td>Optioneel</td>
+<td>Verzonden wanneer aanwezig.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-us_epath-transport"><td>Transport</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-phin-ms" title="Het Public Health Information Network Messaging System, een Amerikaans transportsysteem voor het verzenden van volksgezondheidsrapporten.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.">SFTP</a>, Direct TCP, HTTPS <a class="term" href="99-glossary.html#g-api" title="Application programming interface. De PathScribe API-server is de ASP.NET Core-service die de browser aanroept voor alle productiegegevens.">API</a></td>
+<td>Verplicht</td>
+<td>Transportlabel voor de interface-engine.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-us_epath-which-facility-decides-the-state"><td>Welke <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> de staat bepaalt</td>
+<td>Keuze: faciliteit van de technische component, beoordelende faciliteit</td>
+<td>Verplicht</td>
+<td>Kiest de faciliteit waarvan de staat het profiel selecteert.</td>
+<td>Technische component</td>
+</tr>
+<tr id="f-us_epath-final-report-only"><td>Alleen definitief verslag</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Controle.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-us_epath-icd-o-morphology-required"><td>ICD-O-morfologie vereist</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Controle.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-us_epath-snomed-required"><td>SNOMED vereist</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Controle.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-us_epath-specimen-identifier-required"><td>Monsteridentificatie vereist</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Controle.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-us_epath-provider-npi-required"><td><a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, de identificatie van tien cijfers van een Amerikaanse zorgverlener, vereist op een kostenregel.">NPI</a> van de zorgverlener vereist</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Controle. Mislukt bij demonstratiecasus, die geen NPI hebben.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-us_epath-state-specific-fields"><td>Staatspecifieke velden</td>
+<td>Rijen met veld, modus (verplicht of vast), waarde</td>
+<td>Optioneel</td>
+<td>Extra staatsregels.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p>Een melding die een controle niet doorstaat, wordt voor beoordeling aangehouden (<code>HOLD_EPATH_PROFILE</code>).</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:us-epath:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard.</p>
+<p><strong>Bekende beperkingen.</strong> De OBR- en OBX-identificaties zijn standaardwaarden, die nog aan de NPCR-gids moeten worden getoetst. Geen enkel staatsprofiel is geverifieerd.</p>
+<h3 id="screen-cytology_registry"><a class="anchor" href="#screen-cytology_registry" aria-label="Link to this section">#</a> Registerrapportage cytologie</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Cytologie &gt; Registerrapportage"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Cytologie</span> <span aria-hidden="true">›</span> <span>Registerrapportage</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Cytologie</strong> &gt; sectie <strong>Registerrapportage</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Registerrapportage</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Rapportage van het bevolkingsonderzoek naar baarmoederhalskanker, gescheiden van de kankerregisters. Een screeninguitslag veroorzaakt nooit een kankermelding. Er zijn 12 definities: <code>csms_uk</code>, <code>nicsp_northern_ireland</code>, <code>sccrs_scotland</code>, <code>cervicalcheck_ireland</code>, <code>palga_netherlands</code>, <code>germany_okfe</code>, <code>france_crcdc</code>, <code>belgium_chr</code>, <code>ncsr_australia</code>, <code>ncsp_new_zealand</code>, <code>canada_provincial</code> en <code>kncsp_kccr_korea</code>. Er is geen screeningsregister voor de VS of Spanje. De koppeling van elk <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> verbindt uw cytologiecategorieën met de codes van het register voor adequaatheid, primaire interpretatie, aanvullende interpretatie en aanbeveling.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De koppeltabel toont uw cytologische interpretatiecategorieën, dus die komen eerst. Slaat u ze over, dan is de tabel leeg.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 14</p><dl><dt>Eerst inrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-cytology_categories">Interpretatie en aanbevelingen</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_nomenclature">Nomenclatuursysteem</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitenwoordenboek</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-batch_registry_feed">Batchbestanden voor registers</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/cytology-cytology_registry.webp" alt="Registerrapportage cytologie met standaard van de onderneming, uitzonderingen en koppeltabel" loading="lazy"><figcaption>Registerrapportage cytologie met standaard van de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>, uitzonderingen en koppeltabel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-enterprise-default-registry"><td>Ondernemingsstandaard (register)</td>
+<td>Keuze uit Geen plus de 12 registers</td>
+<td>Verplicht</td>
+<td>Gebruikt door elke <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> zonder uitzondering.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cytology_registry-save"><td>Opslaan</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Slaat de standaard op.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cytology_registry-add-override"><td>Overschrijving toevoegen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Start een uitzondering voor een faciliteit.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-cytology_registry-facility"><td>Faciliteit</td>
+<td>Keuze uit faciliteiten</td>
+<td>Verplicht voor een uitzondering</td>
+<td>De faciliteit.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cytology_registry-registry"><td>Register</td>
+<td>Keuze uit de 12 registers</td>
+<td>Verplicht voor een uitzondering</td>
+<td>Het register ervoor.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cytology_registry-save-cancel-configure-remove"><td>Opslaan, Annuleren, Configureren, Verwijderen</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Een uitzondering opslaan of verwerpen, de configuratie ervan openen, of haar verwijderen.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Registerconfiguratie</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-registry"><td>Register</td>
+<td>Keuze</td>
+<td>Verplicht</td>
+<td>Het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> dat wordt geconfigureerd.</td>
+<td>Het eerste</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-until-every-category-it-uses-has-a-registry-code"><td>Een uitslag aanhouden totdat elke categorie die hij gebruikt een registercode heeft</td>
+<td>Selectievakje</td>
+<td>Optioneel</td>
+<td>Uitgeschakeld voor ingebouwde registers.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-unless-the-patient-has-a-verified-identifier"><td>Een uitslag aanhouden tenzij de patiënt een geverifieerde identificatie heeft</td>
+<td>Selectievakje</td>
+<td>Optioneel</td>
+<td>Alleen getoond wanneer het register een identificatieformaat heeft.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-cytology_registry-category"><td>Categorie</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Uw cytologiecategorie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cytology_registry-field"><td>Veld</td>
+<td>Tekst, kolom</td>
+<td>Niet van toepassing</td>
+<td>Adequaatheid, primaire interpretatie, aanvullende interpretatie of aanbeveling.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-cytology_registry-registry-code"><td>Registercode</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>De code van het register.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cytology_registry-registry-text"><td>Registertekst</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>De tekst van het register, voor registers die tekstcodering gebruiken.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-cytology_registry-save-registry-configuration"><td>Registerconfiguratie opslaan</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Slaat de koppeling op.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p>Het <strong>paneel Registerverbinding</strong> wordt beschreven bij <a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a>. Hier gebruikt het de screeningsmachtigingen.</p>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:screening-registry:manage</code>. De testsuite uitvoeren: <code>registry:test-suite:run</code>. Livegang goedkeuren: <code>registry:live-register:approve</code>. Beheerder heeft deze standaard. De Laboratoriumdirecteur heeft <code>config:screening-registry:manage</code> standaard niet.</p>
+<p><strong>Bekende beperkingen.</strong> Drie registers zijn als geverifieerd gemarkeerd (CSMS, PALGA, NCSR); de andere zijn configureerbaar en niet geverifieerd. Duitsland, Frankrijk en België zijn registers met batchbestanden (zie Batchbestanden voor registers).</p>
+<h3 id="screen-batch_registry_feed"><a class="anchor" href="#screen-batch_registry_feed" aria-label="Link to this section">#</a> Batchbestanden voor registers</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows &gt; Batchbestanden voor registers"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span> <span aria-hidden="true">›</span> <span>Batchbestanden voor registers</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Labmaterialen &amp; workflows</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Batchbestanden voor registers</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Voor een <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> dat bestanden afneemt in plaats van berichten, bepaalt een batchprofiel welke records erin gaan, hoe het bestand is opgebouwd en hoe het heet. Formaten: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a> en <a class="term" href="99-glossary.html#g-naaccr" title="De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.">NAACCR</a> XML. <strong>NAACCR XML staat in de lijst maar is Niet gerealiseerd</strong>: het meegeleverde NAACCR-profiel is uitgeschakeld. Eén voorbeeldprofiel wordt meegeleverd (gebaseerd op <code>germany_okfe</code>, CSV, scheidingsteken <code>;</code>, 10 kolommen, uit) en is geen programmaspecificatie. Echte programma-indelingen zijn Niet gerealiseerd.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Een batch wordt gemaakt volgens het tijdschema in Verzendschema's en door de interface-engine via <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.">SFTP</a> verzonden. Kies eerst het register op het scherm voor kanker of cytologie.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 15</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-cancer_registry_settings">Kankerregistratierapportage</a>, <a href="#screen-cytology_registry">Registerrapportage cytologie</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Verzendschema&#x27;s</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-batch_registry_feed.webp" alt="Profielkaarten van Batchbestanden voor registers" loading="lazy"><figcaption>Profielkaarten van Batchbestanden voor registers</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-waiting"><td>Wachtend</td>
+<td>Tellers, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td><strong>Wachtende bekijken</strong> toont wachtend, nu verschuldigd, achtergehouden, achterstallig en volgend bestand.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-batch_registry_feed-make-the-file-now"><td>Bestand nu maken</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Maakt handmatig een bestand. Het wordt eenmaal gedownload en nooit opgeslagen. Een manifest vermeldt <a class="term" href="99-glossary.html#g-sha-256" title="Een cryptografische hash die een bestand of registratie omzet in een vaste vingerafdruk, gebruikt om een wijziging op te sporen.">SHA-256</a>, volgnummer, aantallen en achtergehouden records.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-batch_registry_feed-turn-on-turn-off"><td>Inschakelen, Uitschakelen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Schakelt het profiel in.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-batch_registry_feed-edit"><td>Bewerken</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Opent de profieleditor.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-batch_registry_feed-remove"><td>Verwijderen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Niet beschikbaar voor meegeleverde profielen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-batch_registry_feed-run-status"><td>Uitvoerstatus</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>awaitingAck, accepted, partlyRejected of rejected.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<h4>Profieleditor</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-program-name"><td>Programmanaam</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Geeft het programma een naam.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-batch_registry_feed-registry"><td>Register</td>
+<td>Keuze uit alle 26 registers (screening en kanker)</td>
+<td>Verplicht</td>
+<td>Welk <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-batch_registry_feed-file-format"><td>Bestandsformaat</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a>, <a class="term" href="99-glossary.html#g-naaccr" title="De North American Association of Central Cancer Registries, die gegevensstandaarden vaststelt voor rapportage aan kankerregisters in Noord-Amerika.">NAACCR</a> XML</td>
+<td>Verplicht</td>
+<td>NAACCR XML wordt geweigerd (<code>formatNotAvailable</code>).</td>
+<td>CSV</td>
+</tr>
+<tr id="f-batch_registry_feed-delimiter"><td>Scheidingsteken</td>
+<td>Keuze: komma, puntkomma, tab</td>
+<td>Verplicht voor CSV</td>
+<td>Kolomscheiding.</td>
+<td>Komma</td>
+</tr>
+<tr id="f-batch_registry_feed-first-row-holds-headings"><td>Eerste rij bevat koppen</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Schrijft een kopregel.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-batch_registry_feed-protect-against-spreadsheet-formulas"><td>Beschermen tegen spreadsheetformules</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Beveiligt tekst die op een formule lijkt te beginnen.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-batch_registry_feed-xml-root-and-record-element"><td>XML-hoofdelement en recordelement</td>
+<td>Tekst, twee vakken</td>
+<td>Verplicht voor XML</td>
+<td>Geldige en verschillende namen.</td>
+<td>Results, Result</td>
+</tr>
+<tr id="f-batch_registry_feed-code-in-file-name"><td>Code in bestandsnaam</td>
+<td>Tekst, 1 tot 20 letters, cijfers, koppelteken of underscore</td>
+<td>Optioneel</td>
+<td>De programmacode in de bestandsnaam.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-batch_registry_feed-file-name-pattern"><td>Patroon van de bestandsnaam</td>
+<td>Tekst met {program} {date} {time} {seq}</td>
+<td>Verplicht</td>
+<td>Moet {date} of {seq} bevatten.</td>
+<td><code>{program}_{date}_{seq}</code></td>
+</tr>
+<tr id="f-batch_registry_feed-columns"><td>Kolommen</td>
+<td>Lijst: veld (15 velden), Kop, Verplicht, omhoog, omlaag, verwijderen, Kolom toevoegen</td>
+<td>Verplicht</td>
+<td>Elk veld eenmaal. Een record waarin een verplichte kolom ontbreekt, wordt achtergehouden als <code>REGISTRY_NOT_READY</code>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-batch_registry_feed-live-preview"><td>Live voorbeeld</td>
+<td>Tekst, alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td>Toont de indeling van het bestand.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Profielen beheren: <code>config:batch-registry-feed:manage</code> (Beheerder en Laboratoriumdirecteur). Een bestand maken: <code>registry:batch-file:generate</code> (Beheerder, en daarvoor is de eerste <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> nodig).</p>
+<p><strong>Bekende beperkingen.</strong> Het opnieuw verzenden van één record vanuit Registeruitzonderingen verzendt voor een batchprogramma nog steeds een bericht. Het schema komt uit Verzendschema's. De levering via <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, een beveiligde manier om bestanden naar een ander systeem te kopiëren.">SFTP</a> is een taak van de interface-engine.</p>
+<h2 id="ch8-quality-reporting"><a class="anchor" href="#ch8-quality-reporting" aria-label="Link to this section">#</a> Kwaliteits- en volksgezondheidsrapportage (MIPS/MACRA)</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Labmaterialen &amp; workflows"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Labmaterialen &amp; workflows</span></nav>
+
+<p><strong>Status:</strong> Niet gerealiseerd</p>
+<p>PathScribe heeft geen maatstaf, scherm, export of contract voor het Merit-based Incentive Payment System (<a class="term" href="99-glossary.html#g-mips" title="Het Merit-based Incentive Payment System, een Amerikaans Medicare-programma dat de betaling aanpast op basis van gerapporteerde kwaliteitsmaten.">MIPS</a>), de Medicare Access and CHIP Reauthorization Act (<a class="term" href="99-glossary.html#g-macra" title="De Amerikaanse Medicare Access and CHIP Reauthorization Act, die het Quality Payment Program creëerde waar MIPS onder valt.">MACRA</a>) of het Quality Payment Program. Een zoekopdracht in de broncode en de documenten vond er geen. Niets hier berekent een kwaliteitsmaatstaf of bouwt een indieningsbestand.</p>
+<p><strong>Het dichtstbijzijnde dat bestaat:</strong></p>
+<ul>
+<li>De <a href="07-tier6-interface-engine.html#screen-bi_feed">Rapportagefeed</a> stuurt casusgegevens naar een business-intelligencetool, waarin u uw eigen maatstaven kunt bouwen.</li>
+<li>Exports: gebruikers met de juiste <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> kunnen exports uit de applicatie downloaden, en het <a href="#screen-audit-financial">financiële tabblad van Systeemlogboeken</a> exporteert facturatiegebeurtenissen als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>.</li>
+<li>Registermelding voor kanker en baarmoederhalsscreening (hierboven) is de rapportage voor de volksgezondheid die is gerealiseerd, binnen de beschreven beperkingen.</li>
+</ul>
+<h2 id="ch8-payment-reference"><a class="anchor" href="#ch8-payment-reference" aria-label="Link to this section">#</a> Jurisdictiebetalingstoewijzingen, hoofdbetalingstypen en het financiële logboek</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span></nav>
+
+<p>PathScribe beschrijft in twee lagen wie betaalt. Een <strong>hoofdbetalingstype</strong> is een categorie die overal wordt gebruikt (bijvoorbeeld commerciële verzekering). Een <strong>jurisdictiebetalingstoewijzing</strong> zegt dat een lokaal stelsel (bijvoorbeeld <code>DE_GKV</code>) bij één categorie hoort en voor welk uitgaand formaat het bedoeld is. De financiële klasse die bij een kostenpost hoort, wordt uit beide opgebouwd. De uitgaande formaten die bij de toewijzing staan, zijn alleen labels: <a class="term" href="99-glossary.html#g-x12" title="De ANSI-standaard voor elektronische zakelijke transacties, waaronder zorgdeclaraties in de Verenigde Staten.">X12</a> 837P, KVDT en SESAM-Vitale zijn Gepland en geen ervan wordt gegenereerd.</p>
+<h3 id="screen-master_payment_types"><a class="anchor" href="#screen-master_payment_types" aria-label="Link to this section">#</a> Hoofdwoordenboek betalingstypen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Hoofdwoordenboek betalingstypen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Hoofdwoordenboek betalingstypen</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Hoofdwoordenboek betalingstypen</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> De betalingscategorieën die koppelingen, <a class="term" href="99-glossary.html#g-accession" title="Het ontvangen van een monster en het toekennen van een permanent casusnummer; ook dat nummer zelf (het accessienummer). Het verbindt een casus met het fysieke weefsel en de bijbehorende chain of custody.">accessie</a> en de kostenpayload gebruiken. Elf zijn meegeleverd: SELF_PAY, PATIENT_COPAY_GAP, COMMERCIAL_INSURANCE, MUTUELLE_COMPLEMENTARY, STATUTORY_SOCIAL_HEALTH, PUBLIC_UNIVERSAL_BENEFIT, PUBLIC_NHS (identificatielabel "NHS Number"), RECIPROCAL_INTERNATIONAL, SPONSOR_CLINICAL_TRIAL, OCCUPATIONAL_WORKERS_COMP (identificatielabel "Claim #") en DIRECT_CONTRACT_INSTITUTIONAL.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Dit is een startpunt voor betaling. Koppelingen kunnen hier alleen een actief type kiezen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 8</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-jurisdiction_payment_mappings">Jurisdictiebetalingstoewijzing</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-master_payment_types.webp" alt="Lijst van het Hoofdwoordenboek betalingstypen" loading="lazy"><figcaption>Lijst van het Hoofdwoordenboek betalingstypen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-master_payment_types-id"><td>Id</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Opgeslagen in hoofdletters, spaties worden underscores. Na het aanmaken vergrendeld, omdat koppelingen ernaar verwijzen. Een duplicaat wordt geweigerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-master_payment_types-display-name"><td>Weergavenaam</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De naam die medewerkers zien.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-master_payment_types-requires-subscriber-id"><td>Vereist verzekerdennummer</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Medewerkers moeten een verzekerden- of polisnummer invoeren.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-master_payment_types-subscriber-id-label"><td>Label verzekerdennummer</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Het label voor dat nummer (bijvoorbeeld "Claim #").</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-master_payment_types-requires-guarantor"><td>Vereist garantsteller</td>
+<td>Keuze: required, optional, not required</td>
+<td>Verplicht</td>
+<td>Of een garantsteller nodig is.</td>
+<td>not required</td>
+</tr>
+<tr id="f-master_payment_types-supports-split-billing"><td>Ondersteunt gesplitste facturering</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Of technische en professionele delen naar verschillende betalers mogen gaan.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-master_payment_types-notes"><td>Notities</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Vrije notities.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-master_payment_types-active"><td>Actief</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Knoppen <strong>Deactiveren</strong> en <strong>Reactiveren</strong>.</td>
+<td>Actief</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:payment-types:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard.</p>
+<p><strong>Bekende beperkingen.</strong> Het deactiveren van een type wordt niet getoetst aan de koppelingen die het gebruiken.</p>
+<h3 id="screen-jurisdiction_payment_mappings"><a class="anchor" href="#screen-jurisdiction_payment_mappings" aria-label="Link to this section">#</a> Jurisdictiebetalingstoewijzing</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Financiële en omzet-lookups &gt; Jurisdictiebetalingstoewijzing"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Financiële en omzet-lookups</span> <span aria-hidden="true">›</span> <span>Jurisdictiebetalingstoewijzing</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Configuratietabblad <strong>Systeem</strong> &gt; groep <strong>Financiële en omzet-lookups</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Jurisdictiebetalingstoewijzing</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Koppelt elk lokaal betalersstelsel aan een hoofdbetalingstype. Het tabblad "Externe patiëntgegevens" van Accessie leest deze koppelingen (keuzelijst Primaire <a class="term" href="99-glossary.html#g-jurisdiction" title="Een land of nationaal gezondheidsstelsel waarvan PathScribe de regels toepast, zoals de Verenigde Staten, Engeland en Wales of Duitsland. Zij bepaalt codesystemen, ondertekeningsregels, minimale bewaartermijnen en formaten.">jurisdictie</a>), en de payload van de financiële klasse gebruikt ze. Dertien rijen zijn meegeleverd: US_MEDICARE, US_COMMERCIAL, CA_OHIP (landcode CA_ON), UK_NHS_TRUST, DE_GKV, DE_BG, FR_CPAM, FR_MUTUELLE, NL_BASIS, BE_MUT, AU_MBS, NZ_ACC en KR_NHIS. <strong>Er is geen rij voor Spanje, Schotland, Noord-Ierland of Ierland</strong>, hoewel de code 14 jurisdicties definieert, waaronder Spanje.</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> De lijst met hoofdtypen moet eerst de categorie bevatten. Alleen actieve typen worden aangeboden.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 7, stap 9</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-master_payment_types">Hoofdwoordenboek betalingstypen</a>, <a href="02-tier1-primary-prerequisites.html#screen-jurisdiction_overview">Overzicht per rechtsgebied</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-dft_export_preview">Voorbeeld facturatie-export</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-jurisdiction_payment_mappings.webp" alt="Lijst van Jurisdictiebetalingstoewijzing met landenfilter" loading="lazy"><figcaption>Lijst van Jurisdictiebetalingstoewijzing met landenfilter</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-jurisdiction_payment_mappings-country-filter"><td>Landenfilter</td>
+<td>Keuze uit landen</td>
+<td>Optioneel</td>
+<td>Beperkt de lijst.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-show-inactive"><td>Inactieve tonen</td>
+<td>Ja/Nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Neemt inactieve rijen mee.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-country-code"><td>Landcode</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Opgeslagen in hoofdletters. Vrije tekst, niet getoetst aan de lijst met jurisdicties.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-scheme-code"><td>Code van het lokale stelsel</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Opgeslagen in hoofdletters.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-display-terminology"><td>Lokale weergaveterminologie</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>De naam die medewerkers zien.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-master-payment-type"><td>Hoofdbetalingstype</td>
+<td>Keuze uit actieve hoofdtypen</td>
+<td>Verplicht</td>
+<td>De categorie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-primary-outbound-format"><td>Primair uitgaand formaat</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Een label zoals <a class="term" href="99-glossary.html#g-x12" title="De ANSI-standaard voor elektronische zakelijke transacties, waaronder zorgdeclaraties in de Verenigde Staten.">X12</a> 837P. Er wordt geen bestand gegenereerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-notes"><td>Notities</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Vrije notities.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-active"><td>Actief</td>
+<td>Ja/Nee</td>
+<td>Optioneel</td>
+<td>Inactieve rijen worden verborgen in de keuzelijst Primaire jurisdictie.</td>
+<td>Actief</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het scherm openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:payment-mappings:manage</code>. Beheerder en Laboratoriumdirecteur hebben deze standaard.</p>
+<p><strong>Bekende beperkingen.</strong> Er is geen controle op duplicaten van landcode en stelselcode. Uitvoer voor X12 837P, KVDT en SESAM-Vitale is Gepland.</p>
+<h3 id="screen-audit-financial"><a class="anchor" href="#screen-audit-financial" aria-label="Link to this section">#</a> Systeemlogboeken: Financieel</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Systeemlogboeken &gt; Financieel"><span>Start</span> <span aria-hidden="true">›</span> <span>Systeemlogboeken</span> <span aria-hidden="true">›</span> <span>Financieel</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> Pagina <strong>Systeemlogboeken</strong> &gt; tabblad <strong>Financieel</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Niet van toepassing, dit is een logboekpagina.</p>
+<p><strong>3. Zakelijk doel en bereik.</strong> Een alleen-lezen overzicht van facturatiegebeurtenissen en van mislukte of in de wachtrij geplaatste uitgaande kostenposten. Het heeft twee subtabbladen: <strong>Factureringslogboeken</strong> en <strong>Uitgaande <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, de lijst van berichten waarvan alle nieuwe pogingen zijn mislukt. Systeemlogboeken heeft er een voor uitgaande interfaceberichten en een voor kosten.">DLQ</a></strong> (<a class="term" href="99-glossary.html#g-dead-letter" title="Een bericht of taak waarvan alle automatische nieuwe pogingen zijn mislukt en dat nu wacht tot iemand het opnieuw verzendt of verwijdert.">dead letter</a> queue, de lijst met kostenposten die niet konden worden verzonden).</p>
+<p><strong>4. Voorwaarden en afhankelijkheden.</strong> Het toont pas gegevens nadat er kostenposten bestaan.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-billing_dictionary">Facturatiewoordenboek (kostenregistratie)</a>, <a href="#screen-billing_release">Facturatievrijgave</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-financial.webp" alt="Tabblad Financieel van Systeemlogboeken, filters en resultaten van Factureringslogboeken" loading="lazy"><figcaption>Tabblad Financieel van Systeemlogboeken, filters en resultaten van Factureringslogboeken</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<h4>Filters van Factureringslogboeken</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-number"><td>Dossiernummer</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-patient-name"><td>Patiëntnaam</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-patient-name-range-a-z"><td>Bereik patiëntnaam (A-Z)</td>
+<td>Twee letters</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-patient-id-mrn-mpi"><td>Patiënt-id (<a class="term" href="99-glossary.html#g-mrn" title="Medisch dossiernummer (medical record number), de identificatie die een faciliteit aan een patiënt geeft.">MRN</a>/<a class="term" href="99-glossary.html#g-mpi" title="Master patient index, het register dat de verschillende identificaties van één patiënt aan elkaar koppelt.">MPI</a>)</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-billing-event-date-from-to"><td>Datum facturatiegebeurtenis van, tot</td>
+<td>Data</td>
+<td>Optioneel</td>
+<td>Filter op de datum van de gebeurtenis.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-date-of-service-from-to"><td>Datum van dienstverlening van, tot</td>
+<td>Data</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-report-sign-out-date-from-to"><td>Datum ondertekening verslag van, tot</td>
+<td>Data</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-type"><td>Type</td>
+<td>Keuze: Kosten, Credit, Tekortkoming, Codebeoordeling, Verzending, Wijziging, Audit</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-financial-billing-type"><td>Facturatietype</td>
+<td>Keuze</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-financial-status"><td>Status</td>
+<td>Keuze: Concept, In afwachting van goedkeuring, Goedgekeurd, Geëxporteerd, Afgewezen, In de wacht</td>
+<td>Optioneel</td>
+<td>Filter.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-financial-staff-signing-pathologist-ordering-facility"><td>Personeel, Ondertekenende patholoog, Aanvragende instelling</td>
+<td>Opzoekvelden (Bladeren)</td>
+<td>Optioneel</td>
+<td>Filters.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-detail-text-search"><td>Zoeken in detailtekst</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Doorzoekt de detailtekst.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-audit-financial-saved-queries"><td>Opgeslagen zoekopdrachten</td>
+<td>Keuze en Opslaan</td>
+<td>Optioneel</td>
+<td>Bewaard als persoonlijke instellingen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-audit-financial-clear-search"><td>Wissen, Zoeken</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Herstellen of uitvoeren.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-financial-export-csv"><td><a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a> exporteren</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Vereist <code>audit:billing-log:export</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4>Resultaten van Factureringslogboeken</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-patient-patient-id"><td>Casus, Patiënt, Patiënt-id</td>
+<td>Kolommen</td>
+<td>Niet van toepassing</td>
+<td>Patiëntgegevens worden gemarkeerd als beschermde gezondheidsinformatie.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-audit-financial-timestamp-type-billing-type-status-event-detail"><td>Tijdstempel, Type, Facturatietype, Status, Gebeurtenis, Detail</td>
+<td>Kolommen</td>
+<td>Niet van toepassing</td>
+<td>De gebeurtenis.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-audit-financial-staff-pathologist-facility"><td>Personeel, Patholoog, Faciliteit</td>
+<td>Kolommen</td>
+<td>Niet van toepassing</td>
+<td>Wie en waar.</td>
+<td>Geen</td>
+</tr>
+</tbody>
+</table>
+<p>De zoekopdracht toont maximaal 50 <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>. Er verschijnt een melding "Case limit reached" wanneer er meer overeenkomen.</p>
+<h4>Uitgaande DLQ</h4>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-lab-filter"><td>Labfilter</td>
+<td>Keuze, "Alle uitvoerende laboratoria"</td>
+<td>Optioneel</td>
+<td>Beperkt beide tabellen.</td>
+<td>Alle uitvoerende laboratoria</td>
+</tr>
+<tr id="f-audit-financial-failed-case-performing-lab-component-error-retries"><td>Mislukt: Casus, Uitvoerend lab, Component, Fout, Nieuwe pogingen</td>
+<td>Kolommen</td>
+<td>Niet van toepassing</td>
+<td>Foutcodes: <code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_REJECTED</code>. De laatste twee verschijnen alleen via de testknoppen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-save-amp-re-queue"><td>Herstellen &amp; opnieuw proberen: Opslaan &amp; opnieuw in wachtrij plaatsen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Koppelt een ICD-10-code of <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, de identificatie van tien cijfers van een Amerikaanse zorgverlener, vereist op een kostenregel.">NPI</a> van de zorgverlener aan de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> (geaudit) en plaatst die opnieuw in de wachtrij.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-retry-dispatch"><td>Herstellen &amp; opnieuw proberen: Verzending opnieuw proberen</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Probeert het opnieuw.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-financial-capa-capture-as-capa"><td><a class="term" href="99-glossary.html#g-capa" title="Corrigerende en preventieve actie. Een bijgehouden reactie op een kwaliteitsprobleem, met een eigenaar en een reden om de actie te openen of af te wijzen.">CAPA</a>: Vastleggen als CAPA</td>
+<td>Knop</td>
+<td>Optioneel</td>
+<td>Registreert een deficiëntie van het type <code>def-outbound-dispatch-failure</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-audit-financial-queued-case-performing-lab-component-trigger"><td>In wachtrij: Casus, Uitvoerend lab, Component, Trigger</td>
+<td>Kolommen</td>
+<td>Niet van toepassing</td>
+<td>Kostenposten die wachten op verzending.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-audit-financial-simulate-timeout-simulate-rejected"><td>Time-out simuleren, Afwijzing simuleren</td>
+<td>Knoppen</td>
+<td>Optioneel</td>
+<td>Alleen om te testen. Echte verzending is niet gerealiseerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:audit-log:open</code>, standaard bij Beheerder, Laboratoriumdirecteur en QA-beoordelaar. Facturatielogboeken exporteren naar <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, een platte-tekstindeling voor spreadsheets. De exports van PathScribe zijn CSV-bestanden.">CSV</a>: <code>audit:billing-log:export</code>. Dezelfde pagina heeft de tabbladen Auditlogboek, Foutenlogboek, Interfacelogboek, Kwaliteitsborging, Kritieke meldingen, Consultlinks en Servertaken; zie <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Interfacelogboeken</a> en <a href="09-appendices.html#screen-audit-log">Auditlogboek</a>.</p>
+<p><strong>Bekende beperkingen.</strong> De verzendsimulatie is een hulpmiddel voor tests. Geen enkel live facturatiesysteem ontvangt kostenposten.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

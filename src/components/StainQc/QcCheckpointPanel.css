@@ -1,0 +1,27 @@
+/* Batch 763: the Slide Distribution QC checkpoint. */
+.ps-qc-panel { margin: 0 0 16px; padding: 14px 16px; border-radius: var(--ps-radius-lg); background: var(--ps-surface); border: 1px solid rgba(251, 191, 36, 0.55); color: var(--ps-text); }
+.ps-qc-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.ps-qc-subtitle { font-size: 14px; font-weight: 700; margin: 12px 0 6px; }
+.ps-qc-hint, .ps-qc-meta { color: var(--ps-text-muted); font-size: 13px; }
+.ps-qc-hint { margin: 0 0 10px; }
+.ps-qc-note { margin: 0 0 8px; font-size: 13px; color: var(--ps-warning-text); }
+.ps-qc-problem { color: var(--ps-danger-text); font-size: 13px; }
+.ps-qc-run { border: 1px solid var(--ps-border); border-radius: var(--ps-radius-md); margin-bottom: 8px; background: var(--ps-navy-input); }
+.ps-qc-run-head { width: 100%; display: flex; gap: 12px; align-items: center; padding: 10px 12px; background: none; border: none; color: inherit; cursor: pointer; text-align: left; }
+.ps-qc-rack { font-family: monospace; font-weight: 700; font-size: 15px; }
+.ps-qc-mode { margin-left: auto; font-size: 12px; padding: 2px 8px; border-radius: var(--ps-radius-sm); border: 1px solid var(--ps-border-bright); }
+.ps-qc-mode--vendorSignOff { border-color: rgba(56, 189, 248, 0.6); color: var(--ps-teal-light); }
+.ps-qc-mode--pathscribeSignOff { border-color: rgba(251, 191, 36, 0.6); color: var(--ps-warning-text); }
+.ps-qc-run-body { padding: 0 12px 12px; }
+.ps-qc-field { display: flex; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 8px; }
+.ps-qc-select { background: var(--ps-navy-input); color: var(--ps-text); border: 1px solid var(--ps-border-bright); border-radius: var(--ps-radius-sm); padding: 5px 8px; font-size: 13px; }
+.ps-qc-slides { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ps-qc-slide { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 6px 8px; border-radius: var(--ps-radius-sm); border: 1px solid transparent; }
+.ps-qc-slide--fail { border-color: rgba(248, 113, 113, 0.55); background: rgba(248, 113, 113, 0.08); }
+.ps-qc-slide-id { font-family: monospace; font-size: 14px; min-width: 170px; }
+.ps-qc-toggle { display: inline-flex; border: 1px solid var(--ps-border-bright); border-radius: var(--ps-radius-sm); overflow: hidden; }
+.ps-qc-toggle button { background: transparent; color: var(--ps-text-muted); border: none; padding: 5px 12px; font-size: 13px; cursor: pointer; min-height: 32px; }
+.ps-qc-toggle .ps-qc-on { background: rgba(52, 211, 153, 0.18); color: #bbf7d0; font-weight: 700; }
+.ps-qc-toggle .ps-qc-on--fail { background: rgba(248, 113, 113, 0.2); color: var(--ps-danger-text); }
+.ps-qc-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+.ps-qc-modes { padding-left: 18px; margin: 10px 0 0; display: flex; flex-direction: column; gap: 4px; }

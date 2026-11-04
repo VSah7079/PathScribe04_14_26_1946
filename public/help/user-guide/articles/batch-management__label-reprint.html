@@ -1,0 +1,277 @@
+<h1 id="top">Label Reprint</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Label Reprint reprints requisition, specimen container and cassette labels for many cases at once. You find the cases by accession date or accession number range, tick the label types you want, and PathScribe prints them one at a time. Each label is recorded in the audit log, and any that fail can be retried.</p>
+<p><strong>Intended users.</strong> Histotechnologists and laboratory managers (and administrators). Printing needs its own permission, "Batch label reprint", which is not given to every role that can open the screen.</p>
+<p><strong>Where it fits.</strong> Use it after a printer jam, a lost tray or a damaged batch of labels, when labels for a whole day's cases must be redone. For a single case, use the print buttons on the case itself. Once labels are reprinted, the items can be scanned into batches on <a href="/help/batch-management">Batch Management</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-label-reprint-overview.png" alt="The Label Reprint screen with the filters, case list and label options"><figcaption>The Label Reprint screen with the filters, case list and label options</figcaption></figure>
+
+<p>The page title is <strong>Label reprint</strong>. The subtitle reads: "Find cases by accession date or number, choose the labels, and reprint them one at a time. Every label is audited; failed labels can be retried."</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Filters.</strong> Enter at least one. An empty search finds nothing, on purpose, so that the whole laboratory is never reprinted by accident.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accessioned from, Accessioned to</td>
+<td>A date range, inclusive, on the day each case was accessioned.</td>
+</tr>
+<tr>
+<td>Accession number from, Accession number to</td>
+<td>A range of accession numbers, inclusive. They are compared as text, so type them in the same format as the case numbers.</td>
+</tr>
+</tbody>
+</table>
+<p>You can combine a date range with a number range. A case must satisfy every filter you fill in.</p>
+<p><strong>Case list (after Find cases)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"(n) cases found; (m) selected."</td>
+<td>How many cases matched and how many are ticked.</td>
+</tr>
+<tr>
+<td>Reprint (tick box)</td>
+<td>Tick or untick a case. All found cases start ticked. Unticked cases are left out.</td>
+</tr>
+<tr>
+<td>Accession</td>
+<td>The case accession number. Cases are listed in accession order, oldest first.</td>
+</tr>
+<tr>
+<td>Specimens</td>
+<td>How many specimens the case has.</td>
+</tr>
+<tr>
+<td>No cases match. Enter a date range or an accession number range.</td>
+<td>Nothing matched, or no filter was entered.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Label options</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Requisition</td>
+<td>One requisition label sheet per case. Ticked by default.</td>
+</tr>
+<tr>
+<td>Specimen containers</td>
+<td>One container label per specimen. Ticked by default.</td>
+</tr>
+<tr>
+<td>Cassettes</td>
+<td>One cassette label per block, and one per matrix block. Not ticked by default.</td>
+</tr>
+<tr>
+<td>Cassette printer</td>
+<td>Appears only when Cassettes is ticked. Choose the cassette printer from your printers.</td>
+</tr>
+<tr>
+<td>"(n) labels to print."</td>
+<td>The total for the cases and label types currently chosen.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Find cases</td>
+<td>Searches with your filters. It also clears any earlier results and unticks nothing. Disabled while a print is running.</td>
+</tr>
+<tr>
+<td>Reprint labels</td>
+<td>Starts printing. Disabled when nothing is to print or a print is running; dimmed with a tooltip if you lack the permission.</td>
+</tr>
+<tr>
+<td>Retry (n) failed label(s)</td>
+<td>Appears after a run that had failures. Prints only the failed labels again.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Printing (done) of (total)...</td>
+<td>The run is in progress. The tick boxes and buttons are disabled meanwhile.</td>
+</tr>
+<tr>
+<td>Printed (n); failed (n); blocked by the on-demand guardrail (n).</td>
+<td>The summary at the end of a run.</td>
+</tr>
+<tr>
+<td>A list of problems</td>
+<td>One line per failed or blocked label: the accession, the label type and target (for example a specimen letter or block), the status and any message. Statuses are printed, failed, blocked and not printed.</td>
+</tr>
+<tr>
+<td>Choose the cassette printer first.</td>
+<td>You ticked Cassettes without choosing a printer.</td>
+</tr>
+<tr>
+<td>There is nothing to print.</td>
+<td>No labels in the selection.</td>
+</tr>
+<tr>
+<td>Sending label to the printer…</td>
+<td>A small line at the bottom of the screen while a label goes to a printer through the PathScribe site agent. It goes away when the job finishes; the screen that printed reports the outcome.</td>
+</tr>
+<tr>
+<td>Label queued: prints next</td>
+<td>The label is waiting and will print as soon as the one in front is done. When others are ahead it reads "Label queued: n jobs ahead", and "n more labels waiting" is added when several are queued.</td>
+</tr>
+<tr>
+<td>Printing on …</td>
+<td>The printer (for example a ZD421) is printing your label now. It appears only when the site agent reports that printing has started.</td>
+</tr>
+<tr>
+<td>Network print jobs</td>
+<td>Labels sent to printers set to "Direct via Interface Engine" are listed in a small area at the bottom of the screen, each with its state: sent and waiting ("Label … sent to …. Waiting for the printer…"), printed, or failed with the reason (for example the printer is out of labels or out of ribbon, the print head is open, or the printer could not be reached). A failed label, or one with no answer after two minutes, shows <strong>Retry</strong> and <strong>Dismiss</strong>; retry is never automatic.</td>
+</tr>
+<tr>
+<td>Simulate: printed / Simulate: out of labels</td>
+<td>Two small demonstration buttons shown beside a waiting network print job only when no interface engine is connected (the demonstration). They stand in for the engine's answer; they do not print anything.</td>
+</tr>
+<tr>
+<td>You don't have permission to reprint labels in a batch.</td>
+<td>Your role lacks the permission.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Label reprint</strong> tile.</li>
+<li>Enter the date range and/or accession number range of the cases and select <strong>Find cases</strong>. The list appears with every case ticked.</li>
+<li>Untick any case you do not want to reprint.</li>
+<li>Under <strong>Labels</strong>, tick the types you need. If you tick <strong>Cassettes</strong>, choose the <strong>Cassette printer</strong>.</li>
+<li>Check the line "(n) labels to print."</li>
+<li>Select <strong>Reprint labels</strong>. The line "Printing (done) of (total)..." counts up. Labels are sent one at a time with a short pause between them.</li>
+<li>When it finishes, read the summary. If everything printed, collect the labels.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To reprint only cassettes for a run, untick Requisition and Specimen containers, tick Cassettes, and choose the printer.</li>
+<li>To reprint one case, search by an accession number range with the same number in both boxes.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Some labels failed.</strong> Read the problem list. Fix the cause (printer off, paper out, pop-ups blocked) and select <strong>Retry (n) failed label(s)</strong>. Labels that already printed are not printed again.</li>
+<li><strong>Cassette labels are blocked.</strong> The summary says "blocked by the on-demand guardrail". Your laboratory's print settings turn off batch cassette printing. A manager must change that setting, or the cassettes must be printed from the case.</li>
+<li><strong>Pop-ups are blocked.</strong> When labels print through the browser's print window, the browser asks you to allow pop-ups for this site. Allow them and retry.</li>
+<li><strong>A case changed since you searched.</strong> A message such as "Specimen (letter) is no longer on the case" or "Cassette (target) is no longer on the case" appears in the list for that label only.</li>
+<li><strong>You ticked Cassettes without a printer.</strong> Choose the printer and start again; nothing was printed.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Choose the cassette printer first." Select a printer in the list.</li>
+<li>"There is nothing to print." Tick at least one label type and at least one case.</li>
+<li>"You don't have permission to reprint labels in a batch." Ask your laboratory manager.</li>
+<li>A run is interrupted by closing the page. Labels already sent are recorded in the audit log. Search again and reprint only what is missing, to avoid duplicates.</li>
+<li>"The case could not be loaded." or "The cassette printer was not found." Refresh the page and try again, or choose another printer.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Duplicate labels on a specimen</p>
+<p>A reprinted label is a second label for the same item. Remove and destroy the old label before attaching the new one, so two labels are never in circulation for one container.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Pressing Find cases with nothing entered and expecting every case.</li>
+<li>Leaving a range too wide and reprinting hundreds of labels. Check the count line first.</li>
+<li>Forgetting to choose the cassette printer.</li>
+<li>Treating "printed" as proof of paper in the tray. When a label goes to the browser print window, "printed" means the window opened and the print was handed over.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use accession number ranges for a tray of consecutive cases.</li>
+<li>Untick the few cases you do not need rather than searching again.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Reprint at the start of a shift for cases whose labels were damaged, then check <a href="/help/batch-management/pending-load">Pending Batch Load</a> to see what still needs loading.</li>
+<li>Keep the Cassettes box unticked unless you have the cassette printer loaded.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/grossing">Grossing</a>: original cassette printing.</li>
+<li><a href="/help/batch-management/engraver-monitor">Engraver Monitor</a>: check the engraver and cassette supply before a large cassette run.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/pending-load">Pending Batch Load</a> and <a href="/help/batch-management">Batch Management</a>: scan the new labels into batches.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No cases match"</td>
+<td>No filter entered, or nothing in that range.</td>
+</tr>
+<tr>
+<td>Reprint labels is dimmed</td>
+<td>You lack the permission; hover for the permission name.</td>
+</tr>
+<tr>
+<td>Cassettes blocked</td>
+<td>The on-demand guardrail in print settings.</td>
+</tr>
+<tr>
+<td>Only the first label opens</td>
+<td>Pop-ups are blocked in the browser.</td>
+</tr>
+<tr>
+<td>The cassette printer list is empty</td>
+<td>No printer profiles are set up. Ask your administrator.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the summary and the problem list.</li>
+<li>Fix the printer or browser setting and select Retry.</li>
+<li>Search again with a narrower range.</li>
+<li>Ask your laboratory manager to check your permission and the print settings.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when labels fail repeatedly with a working printer, or a summary does not match what came out. Have the accession range, the time and the message ready.</p>

@@ -45,15 +45,19 @@ import type { CytologyHpvPositivityMonitorRow } from './resolveCytologyHpvPositi
 import type { CytologyMolecularQcFailureRateRow } from './resolveCytologyMolecularQcFailureRateReport';
 import type { CytologyMolecularLotToLotTrendRow } from './resolveCytologyMolecularLotToLotTrendReport';
 import type { CytologyApacProficiencyTestReport } from './resolveCytologyApacProficiencyTestReport';
+import type { CytologyFiveYearLookbackReport } from './resolveCytologyFiveYearRetrospectiveLookbackReport';
 
 export interface ICytologyQaReportService {
   get10PercentRandomRescreeningReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getDirectedHighRiskRescreeningReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getCtVsPathologistCorrelationReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getPostSignOutPeerReviewCorrelationReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
+  /** Batch 459 (PS-152): each signed-out specimen's primary screen vs the review chosen as its Final Diagnosis. */
+  getPrimaryVsFinalDiagnosisReport(scope: QaScope): Promise<ServiceResult<CytologyQaAggregateReport>>;
   getCtStatisticalComparisonReport(scope: QaScope): Promise<ServiceResult<CytologyCtStatisticalComparisonRow[]>>;
   getAscusHpvReflexReport(scope: QaScope): Promise<ServiceResult<CytologyAscusHpvReflexRow[]>>;
-  getWorkloadTrackingReport(scope: QaScope): Promise<ServiceResult<CytologyWorkloadTrackingRow[]>>;
+  /** Batch 572: `timezone`, the lab's, decides each entry's day (as the end-of-day sign-off does). */
+  getWorkloadTrackingReport(scope: QaScope, timezone?: string): Promise<ServiceResult<CytologyWorkloadTrackingRow[]>>;
   getRegistryTransmissionAuditReport(scope: QaScope, registryId: RegistryId): Promise<ServiceResult<CytologyRegistryTransmissionAuditRow[]>>;
   getGynCytologySecondaryScreeningAuditReport(scope: QaScope): Promise<ServiceResult<QaActivityRecord[]>>;
   getHistologyCorrelationReport(scope: QaScope): Promise<ServiceResult<CytologyHistologyCorrelationReport>>;
@@ -64,4 +68,10 @@ export interface ICytologyQaReportService {
   getMolecularQcFailureRateReport(scope: QaScope): Promise<ServiceResult<CytologyMolecularQcFailureRateRow[]>>;
   getMolecularLotToLotTrendReport(scope: QaScope): Promise<ServiceResult<CytologyMolecularLotToLotTrendRow[]>>;
   getApacProficiencyTestReport(scope: QaScope): Promise<ServiceResult<CytologyApacProficiencyTestReport>>;
+  /** Batch 483 (PS-359 tracker follow-up — "CYT-QA-03 vs CYT-QA-04 report
+   *  asymmetry"): the aggregate CYT-QA-03 (5-Year Retrospective Lookback)
+   *  report — every specimen whose retrospectiveReviewFlag has been set
+   *  (Specimen.ts, Phase 58), its outcome once reviewed (Phase 60), and
+   *  roll-up counts. See this report's own resolver for the real reasoning. */
+  getFiveYearRetrospectiveLookbackReport(scope: QaScope): Promise<ServiceResult<CytologyFiveYearLookbackReport>>;
 }

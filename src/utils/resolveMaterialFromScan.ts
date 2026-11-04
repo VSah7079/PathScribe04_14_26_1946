@@ -35,6 +35,7 @@
 // took in types/labels/LabelData.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { cassetteIdentifier, slideIdentifier, matrixBlockIdentifier, matrixSlideIdentifier, specimenIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { Case } from '@/types/case/Case';
@@ -120,7 +121,7 @@ function matchRemainderToTarget(caseData: Case, fullAccession: string, remainder
     // one, shared scheme, not a second one invented for the matrix
     // case.
     for (let i = 0; i < (matrixBlock.slides ?? []).length; i++) {
-      const level = `L${i + 1}`;
+      const level = slideLevelOf(matrixBlock.slides[i], i);
       const matrixSlideRemainder = matrixSlideIdentifier(fullAccession, matrixBlock.label, level).slice(fullAccession.length + 1);
       if (matrixSlideRemainder === remainder) {
         return { target: { level: 'matrix_slide', matrixBlockId: matrixBlock.id, slideLevel: level } };
@@ -143,7 +144,7 @@ function matchRemainderToTarget(caseData: Case, fullAccession: string, remainder
         return { specimenLetter: specimen.label, target: { level: 'block', blockNumber: block.label } };
       }
       for (let i = 0; i < (block.stains ?? []).length; i++) {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(block.stains[i], i);
         const slideRemainder = slideIdentifier(fullAccession, specimen.label, block.label, level).slice(fullAccession.length + 1);
         if (slideRemainder === remainder) {
           return { specimenLetter: specimen.label, target: { level: 'slide', blockNumber: block.label, slideLevel: level } };
@@ -159,7 +160,7 @@ function matchRemainderToTarget(caseData: Case, fullAccession: string, remainder
         return { specimenLetter: specimen.label, target: { level: 'decant', decantLabel: decant.label } };
       }
       for (let i = 0; i < (decant.stains ?? []).length; i++) {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(decant.stains[i], i);
         const decantSlideRemainder = decantSlideIdentifier(fullAccession, specimen.label, decant.label, level).slice(fullAccession.length + 1);
         if (decantSlideRemainder === remainder) {
           return { specimenLetter: specimen.label, target: { level: 'decant_slide', decantLabel: decant.label, slideLevel: level } };

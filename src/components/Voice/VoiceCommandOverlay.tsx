@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
+
 import { SystemAction } from '../../services/actionRegistry/IActionRegistryService';
 import { useVoice } from '../../contexts/VoiceProvider';
+import { actionRegistryService } from '@/services';
 
 interface VoiceCommandOverlayProps {
   /**
@@ -44,8 +45,8 @@ export const VoiceCommandOverlay: React.FC<VoiceCommandOverlayProps> = ({
       return () => clearTimeout(timer);
     };
 
-    const unSubSuccess = mockActionRegistryService.onActionExecuted(showSuccessToast);
-    const unSubFail    = mockActionRegistryService.onActionFailed(showFailToast);
+    const unSubSuccess = actionRegistryService.onActionExecuted(showSuccessToast);
+    const unSubFail    = actionRegistryService.onActionFailed(showFailToast);
 
     return () => { unSubSuccess(); unSubFail(); };
   }, [showSuccess]);

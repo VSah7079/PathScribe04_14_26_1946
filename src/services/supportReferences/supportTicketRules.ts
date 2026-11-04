@@ -20,18 +20,18 @@ import { SUPPORT_REFERENCE_IN_TEXT } from './supportReferenceRules';
  * this in step with App.tsx.
  */
 export const SUPPORT_ROUTE_PATTERNS: readonly string[] = [
-  '/', '/login', '/auth/callback/:providerId', '/or-suite-dashboard', '/facility-ops-dashboard',
-  '/consult/:token', '/critical-alert/:token', '/accession', '/worklist', '/pathology-workspace',
+  '/', '/login', '/auth/callback/:providerId', '/or-suite-dashboard', '/facility-ops-dashboard', '/window-position',
+  '/consult', '/consult/:token', '/critical-alert/:token', '/accession', '/accession/requisitions', '/worklist', '/pathology-workspace',
   '/quality-compliance', '/cytology-worklist', '/cytology-worklist/:caseId', '/molecular',
   '/molecular-batch/:batchId', '/molecular-rack', '/molecular-rack/:rackId', '/molecular-control-rules',
   '/dev/mock-interface-engine', '/quality-assurance', '/batch-management', '/batch-management/disposal',
-  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor',
-  '/workstations/microtomy', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
+  '/batch-management/disposal-report', '/batch-management/pending-load', '/batch-management/engraver-monitor', '/batch-management/equipment-log', '/batch-management/wsi-scan', '/batch-management/label-reprint', '/batch-management/retention-holds', '/batch-management/workflow-reports',
+  '/workstations/grossing', '/workstations/microtomy', '/workstations/cytology-prep', '/workstations/embedding', '/workstations/slide-distribution', '/add-on-orders',
   '/intraop-queue', '/molecular-order-queue', '/cytology-qc-queue', '/surgical-qa-worklist', '/migration-jobs',
-  '/search', '/audit', '/configuration', '/contribution', '/case/:caseId/synoptic', '/case/:caseId/grossing',
+  '/search', '/audit', '/registry-exceptions', '/autopsy-dashboards', '/outbound-queue', '/lockbox-drop-off', '/my-exports', '/configuration', '/contribution', '/bench-contributions', '/tumor-board', '/margin-exception-review', '/case/:caseId/synoptic', '/case/:caseId/grossing',
   '/report/:caseId', '/admin/parts/new', '/admin/parts/:partId/edit', '/admin/templates/new',
   '/admin/templates/:templateId/edit', '/template-editor/new', '/template-editor/:templateId',
-  '/template-review/:templateId', '/mock-emr', '/wsi-viewer',
+  '/template-review/:templateId', '/mock-emr', '/wsi-viewer', '/help/*',
 ];
 
 export interface SupportPage {
@@ -62,7 +62,25 @@ const IDENTIFYING_KINDS: ReadonlySet<IdentifierKind> = new Set(['accession', 'mr
 
 export interface IdentifierInText {
   text: string;
-  kind: IdentifierKind;
+  /** Batch 604 (PS-349): 'patientName' (the open case's patient is named in the text) and
+   *  'screenshot' (a screenshot is attached; it is masked automatically, check it) join the identifier kinds. */
+  kind: IdentifierKind | 'patientName' | 'screenshot';
+}
+
+/**
+ * Batch 604 (PS-349): the open case's patient named in the text. Any word of the name of
+ * three letters or more, on its own, in any case. Over-warning is acceptable here: the
+ * person can keep editing or send anyway.
+ */
+export function findPatientNameInText(text: string, nameParts: readonly string[]): IdentifierInText[] {
+  const found = new Map<string, IdentifierInText>();
+  const words = nameParts.flatMap(p => p.split(/[\s,'-]+/)).map(w => w.trim()).filter(w => w.length >= 3);
+  for (const w of words) {
+    const re = new RegExp(`(?<![\\p{L}\\p{N}])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu');
+    const m = text.match(re);
+    if (m && !found.has(w.toLowerCase())) found.set(w.toLowerCase(), { text: m[0], kind: 'patientName' });
+  }
+  return [...found.values()];
 }
 
 /**
@@ -92,4 +110,29 @@ export function replaceIdentifiers(text: string, replacements: ReadonlyMap<strin
     out = out.replace(new RegExp(`(?<![\\w-])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`, 'gi'), to);
   }
   return out;
+}
+
+// ── The warning step (Batch 450, moved from EnhancementRequestModal.tsx) ────
+
+/**
+ * What pressing Send does with what the user typed: the identifiers to warn
+ * about (stop at the warning), or null (send). "Send anyway" skips the check.
+ */
+export function identifierWarningOnSend(
+  input: { title: string; description: string; sendAnyway: boolean },
+  find: (text: string) => IdentifierInText[] = findIdentifiersInText,
+): IdentifierInText[] | null {
+  if (input.sendAnyway) return null;
+  const found = find(`${input.title}\n${input.description}`);
+  return found.length > 0 ? found : null;
+}
+
+/** Whether the warning offers "replace case numbers with support references": only when a case number was found. */
+export function canReplaceCaseNumbers(found: readonly IdentifierInText[]): boolean {
+  return found.some(f => f.kind === 'accession');
+}
+
+/** The case numbers among the identifiers found (the ones a support reference can replace). */
+export function caseNumbersIn(found: readonly IdentifierInText[]): string[] {
+  return found.filter(f => f.kind === 'accession').map(f => f.text);
 }

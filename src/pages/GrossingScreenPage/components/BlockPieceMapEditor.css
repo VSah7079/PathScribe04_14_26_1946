@@ -1,0 +1,14 @@
+/* Batch 732 (spec §11.1, §11.2): a block's type and piece map at grossing (BlockPieceMapEditor.tsx). */
+.ps-piece-map-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--ps-text-dim); }
+.ps-piece-map-toggle, .ps-piece-map-remove { background: transparent; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 6px; padding: 2px 8px; color: inherit; font-size: 12px; cursor: pointer; }
+.ps-piece-map-toggle:focus-visible, .ps-piece-map-remove:focus-visible { outline: 2px solid var(--ps-conf-teal, #14b8a6); outline-offset: 2px; }
+.ps-piece-map { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 8px; }
+.ps-piece-map-label { font-size: 12px; color: var(--ps-text-dim); }
+.ps-piece-map-input { padding: 4px 6px; border-radius: 6px; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); background: transparent; color: inherit; font-size: 12px; }
+.ps-piece-map-input--narrow { inline-size: 56px; }
+.ps-piece-map-note { margin: 0; font-size: 12px; color: var(--ps-text-dim); }
+.ps-piece-map-table { border-collapse: collapse; font-size: 12px; }
+.ps-piece-map-table th, .ps-piece-map-table td { padding: 2px 4px; text-align: start; }
+.ps-piece-map-actions { display: flex; gap: 8px; }
+.ps-piece-map-warn { margin: 0; color: var(--ps-danger, #f87171); font-size: 12px; }
+.ps-piece-map-ok { color: var(--ps-success, #10b981); font-size: 12px; }

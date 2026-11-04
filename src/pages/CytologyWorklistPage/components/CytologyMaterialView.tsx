@@ -13,6 +13,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
+import { decantTypeText } from '@/utils/decantTypeText';
 import { useTranslation } from 'react-i18next';
 import { StainMultiSelect } from '@/pages/SynopticReportPage/modals/BlockStainEditorModal';
 import type { Decant, DecantType } from '@/types/case/Material';
@@ -47,7 +48,7 @@ const CytologyMaterialView: React.FC<CytologyMaterialViewProps> = ({ specimenDes
         <div key={decant.id} className="ps-cytmaterial-decant-card">
           <div className="ps-cytmaterial-decant-header">
             <div className="ps-cytmaterial-decant-label">
-              {decant.label} — {t(`cytologyScreening.materialDrawer.decantType.${decant.decantType}`)}
+              {t('cytologyScreening.materialDrawer.decantHeading', { label: decant.label, type: decantTypeText(t, decant) })}
             </div>
           </div>
           <StainMultiSelect

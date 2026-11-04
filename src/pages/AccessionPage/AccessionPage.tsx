@@ -33,24 +33,32 @@
 //     real specimen descriptions per template is real per-template-field
 //     mapping work, not part of this skeleton.
 // ─────────────────────────────────────────────────────────────
-
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { AccessionTabBar } from './AccessionTabBar';
+import { AccessionColumnSlot } from './AccessionColumnSlot';
+import { useAccessionTwoColumn } from '@/hooks/useAccessionTwoColumn';
+import { resolveAccessionPanels, type AccessionTab } from '@/services/accessioning/resolveAccessionPanels';
+import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'react-toastify';
-import { PhiToastMessage } from '@/components/Common/PhiToastMessage';
-
+import { PhiToastMessage } from '@/components/Common/PhiToastMessage'; import { RequisitionInboxLink } from '@/components/Requisitions/RequisitionInboxLink'; import { AccessionFromRequisition } from '@/components/Requisitions/AccessionFromRequisition'; // Batch 762
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { createAccessionedCase } from '@/services/accessioning/createAccessionedCase';
+import { linkLockboxReceiptAtAccession } from '@/services/accessioning/linkLockboxReceipt';
+import { localInputValueFromDate } from '@/services/lockbox/lockboxRules';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { updateCaseWithRetry, type CaseWriteDeps } from '@/services/cases/caseWrite';
 import { ORCH_ID_PREFIX, isOrchCaseId, formatOrchCaseId } from '@/services/cases/reportingModeRouting';
 import {
   evaluateGrossingTemplateAssignment, facilityService, departmentService, userService, clinicalHistoryDictionaryService,
   accessionOutboundQueueService, molecularOrderOutboundQueueService, interfaceEngineService, patientIndexService,
   encounterService, caseMaskService, actionRegistryService, masterPaymentTypeService, jurisdictionPaymentMappingService,
-  fieldRequirementService, resolveFieldRequirements, missingRequiredFields, type ResolvedFieldRequirement,
+  fieldRequirementService, resolveFieldRequirements, missingRequiredFields, type ResolvedFieldRequirement, missingClinicalHistory,
 } from '@/services';
 import type { Facility } from '@/services/facilities/IFacilityService';
 import { formatList } from '@/utils/formatList';
 import { resolveSubmittedPatientId } from '@/services/accessioning/patientIdGeneration';
+import { isDowntimeReasonMissing, missingDowntimeReasonFieldIds } from '@/services/accessioning/downtimeReasonRule';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { locationService } from '@/services';
 import type { Location as LocationRecord } from '@/services/locations/ILocationService';
@@ -59,7 +67,10 @@ import type { StaffUser } from '@/services/users/IUserService';
 import type { Case, GrossingReportInstance } from '@/types/case/Case';
 import type { RecordedClinicalHistoryEntry, ClinicalHistoryCategoryCode } from '@/types/clinicalHistory/RecordedClinicalHistoryEntry';
 import ClinicalHistoryEntryPanel from './ClinicalHistory/ClinicalHistoryEntryPanel';
+import AccessionTechnicalFacilityField from './AccessionTechnicalFacilityField';
+import { technicalFacilityForOrder } from '@/services/accessioning/resolveTechnicalFacilityOffer';
 import { resolveAccessionValidation, type AccessionValidationResult } from '@/services/accessioning/resolveAccessionValidation';
+import { resolveAccessionSpecimenCytologyScreening, contactBleedingFromChoice, PRIOR_CERVICAL_PROCEDURE_CHOICES, type ContactBleedingChoice, type PriorCervicalProcedureChoice } from '@/services/accessioning/resolveAccessionSpecimenCytologyScreening';
 import { resolveOutboundMolecularAssaysForProtocol } from '@/utils/resolveOutboundMolecularAssaysForProtocol';
 import type { HistologyBlock, Specimen } from '@/types/case/Specimen';
 import { generateDefaultMaterial } from '@/utils/generateDefaultMaterial';
@@ -82,34 +93,49 @@ import type { DeficiencyType } from '@/services/deficiencies/IDeficiencyService'
 import { ReportDeficiencyModal } from './ReportDeficiencyModal';
 import { IntraopMergePromptModal } from './IntraopMergePromptModal';
 import { OrderLookupModal } from './OrderLookupModal';
+import ClinicalIndicationField from './ClinicalIndicationField'; import { RequiredMark } from './RequiredMark'; import { printAccessionLabels, armAccessionLabelWindow, handOffAccessionLabels, closeUnusedAccessionLabelWindow } from '@/services/accessioning/printAccessionLabels';
+import { importedClinicalIndication, clinicalIndicationCaseFields, type ImportedClinicalIndication } from '@/services/orderIntake/clinicalIndicationProvenance';
 import { PatientLinkSearch } from './PatientLinkSearch';
 import ConfirmModal from '@/components/Common/ConfirmModal';
 import type { EntryMatch } from '@/types/intraop/IntraoperativeEntry';
 import { getSpecimenLabel } from '@/utils/specimenLabeling';
+import { useAccessionLabelStyle } from './useAccessionLabelStyle';
 import type { GrossingTemplateAssignment } from '@/services/grossing/IGrossingEvaluationService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { useCodePolicy } from '@/pages/Synoptic/Codes/useCodePolicy';
+import { systemAllowed } from '@/services/coding/codePolicyEnforcement';
+import { CodeSystemOffNote } from '@/components/Coding/CodeSystemOffNote';
 import { getFacilityDateParts } from '@/utils/facilityTime';
 import { useSpecimenDictionary } from '@/components/Config/System/useSpecimenDictionary';
 import { orderIntakeService } from '@/services';
 import type { IncomingOrder } from '@/services';
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
 import { dobIncludesQuery, dobExactlyMatches } from '@/utils/isoDateForSearch';
+import { plainCalendarDate } from '@/utils/plainCalendarDate'; import { worklistPathForCase } from '@/services/worklist/worklistContext';
 import { normalizeIdForSearch } from '@/utils/normalizeIdForSearch';
 import { isEncounterActive } from '@/utils/isEncounterActive';
 import { inferLateralityFromText } from '@/utils/inferLateralityFromText';
 import { parseScannedPayload } from '@/utils/parseScannedPayload';
 import { playScanBeep } from '@/utils/playScanBeep';
-import { buildOrderCreationPayload } from '@/services/interfaceEngine/buildOrderCreationPayload';
+import { buildOrderCreationPayload, toOrderCreationEncounter } from '@/services/interfaceEngine/buildOrderCreationPayload';
 import { applyGrossingRefinement, markGrossingRefinementFailed } from '@/utils/applyGrossingRefinement';
 import { PatientIdStatusDot } from '@/components/Common/PatientIdStatusDot';
+import { prefillPatientRegistryDetails } from '@/services/patients/patientRegistryDetails';
+import { patientRegistryDetailsDeps } from '@/services/patients/patientRegistryDetailsDeps';
+import { NationalIdentifierFields } from '@/components/Common/NationalIdentifierFields';
+import { RegistryConsentFields } from '@/components/Common/RegistryConsentFields';
+import { recordPatientRegistryConsent } from '@/services/registryConsent/recordPatientRegistryConsent';
+import { recordPatientRegistryConsentDeps } from '@/services/registryConsent/recordPatientRegistryConsentDeps';
+import { recordNationalPatientIdentifier } from '@/services/patientIdentifiers/recordNationalPatientIdentifier';
+import { recordNationalPatientIdentifierDeps } from '@/services/patientIdentifiers/recordNationalPatientIdentifierDeps';
 import { dateFormatHint } from '@/utils/formatDate';
 import { specimenDeficiencyService } from '@/services';
 import { priorityService } from '@/services';
 import type { PriorityLevel } from '@/services';
 import type { CasePriority } from '@/services/cases/ICaseService';
 import { SuffixSelect } from '@/components/Common/SuffixSelect';
-import { formatFullDisplayName } from '@/utils/personName';
+import { formatDisplayNameForLanguage } from '@/utils/personName';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
 import { getHospitalIdForOrganisation, getOrganisationDisplayName, getOrganisationByHospitalId, resolveMpiScopeEnterpriseId } from '@/services/organisation/organisationService';
@@ -126,6 +152,8 @@ import { BREAK_GLASS_REASON_CODES } from '@/types/patients/BreakGlassReasonCode'
 import type { OutsidePatientFinancialData } from '@/types/billing/OutsidePatientFinancialData';
 import type { MasterPaymentType } from '@/types/billing/MasterPaymentType';
 import type { JurisdictionPaymentMapping } from '@/types/billing/JurisdictionPaymentMapping';
+import OutsideCaseCard, { type OriginatingCaseDraft } from './OutsideCaseCard';
+import { originatingCaseOf } from '@/services/cases/originatingCase';
 import { resolveAutopsyIntakeFormValidation, type AutopsyIntakeFormState } from '@/services/autopsy/resolveAutopsyIntakeFormValidation';
 import { buildAutopsyCaseDetailsFromIntakeForm } from '@/services/autopsy/buildAutopsyCaseDetailsFromIntakeForm';
 import { JURISDICTION_LABELS, type Jurisdiction as AutopsyJurisdiction } from '@/types/systemConfig';
@@ -134,7 +162,9 @@ import { resolveSpecimenEntryMatchesCategory } from '@/services/specimenDictiona
 import type { AutopsyOrganCode } from '@/types/autopsy/AutopsyOrganCode';
 import { AUTOPSY_ORGAN_TO_SECTION } from '@/types/autopsy/AutopsyOrganCode';
 import { classifyAutopsyOrganCodeFromSiteText } from '@/services/autopsy/classifyAutopsyOrganCodeFromSiteText';
+import { AUTOPSY_ORGAN_LABEL_KEY } from './autopsyOrganLabelKeys';
 import { formatConsentingRelativePriorityHint } from '@/services/autopsy/formatConsentingRelativePriorityHint';
+import { pressable } from '@/utils/a11y/pressable';
 
 /** Real, UI-presentation-only grouping for the Autopsy organ picker
  *  below — deliberately kept out of AutopsyOrganCode.ts itself, which
@@ -167,29 +197,9 @@ const AUTOPSY_ORGAN_PICKER_GROUPS: { sectionId: string; titleKey: string; organs
   }));
 })();
 
-const AUTOPSY_ORGAN_LABEL_KEY: Record<AutopsyOrganCode, string> = {
-  brain: 'accessionPage.autopsy.organLabel.brain', pituitary: 'accessionPage.autopsy.organLabel.pituitary',
-  eyes: 'accessionPage.autopsy.organLabel.eyes', spinal_cord: 'accessionPage.autopsy.organLabel.spinalCord',
-  thyroid: 'accessionPage.autopsy.organLabel.thyroid', parathyroid: 'accessionPage.autopsy.organLabel.parathyroid',
-  larynx_trachea: 'accessionPage.autopsy.organLabel.larynxTrachea',
-  heart: 'accessionPage.autopsy.organLabel.heart', pericardium: 'accessionPage.autopsy.organLabel.pericardium',
-  aorta: 'accessionPage.autopsy.organLabel.aorta', major_vessels: 'accessionPage.autopsy.organLabel.majorVessels',
-  right_lung: 'accessionPage.autopsy.organLabel.rightLung', left_lung: 'accessionPage.autopsy.organLabel.leftLung',
-  pleura: 'accessionPage.autopsy.organLabel.pleura',
-  tracheobronchial_tree: 'accessionPage.autopsy.organLabel.tracheobronchialTree',
-  esophagus: 'accessionPage.autopsy.organLabel.esophagus', stomach: 'accessionPage.autopsy.organLabel.stomach',
-  duodenum: 'accessionPage.autopsy.organLabel.duodenum', small_intestine: 'accessionPage.autopsy.organLabel.smallIntestine',
-  large_intestine: 'accessionPage.autopsy.organLabel.largeIntestine', appendix: 'accessionPage.autopsy.organLabel.appendix',
-  liver: 'accessionPage.autopsy.organLabel.liver', gallbladder_biliary: 'accessionPage.autopsy.organLabel.gallbladderBiliary',
-  pancreas: 'accessionPage.autopsy.organLabel.pancreas', peritoneum_omentum: 'accessionPage.autopsy.organLabel.peritoneumOmentum',
-  right_kidney: 'accessionPage.autopsy.organLabel.rightKidney', left_kidney: 'accessionPage.autopsy.organLabel.leftKidney',
-  adrenal_glands: 'accessionPage.autopsy.organLabel.adrenalGlands', bladder: 'accessionPage.autopsy.organLabel.bladder',
-  ureters: 'accessionPage.autopsy.organLabel.ureters', prostate: 'accessionPage.autopsy.organLabel.prostate',
-  uterus_adnexa: 'accessionPage.autopsy.organLabel.uterusAdnexa', testes: 'accessionPage.autopsy.organLabel.testes',
-  spleen: 'accessionPage.autopsy.organLabel.spleen', lymph_nodes: 'accessionPage.autopsy.organLabel.lymphNodes',
-  bone_marrow: 'accessionPage.autopsy.organLabel.boneMarrow', skin_subcutis: 'accessionPage.autopsy.organLabel.skinSubcutis',
-  musculoskeletal_specimen: 'accessionPage.autopsy.organLabel.musculoskeletalSpecimen',
-};
+// Batch 468: moved to its own file (autopsyOrganLabelKeys.ts, imported
+// above) so SynopticReportPage.tsx's consent-scope warning banner can
+// reuse the same label keys instead of defining a second, divergent map.
 
 // ── Local form types ────────────────────────────────────────────────────────
 
@@ -339,7 +349,6 @@ interface SpecimenDraft {
   externalIdSource: string;
 }
 
-
 // Auto-generates Block A with stain orders from the matched dictionary
 // entry's defaultStains — falls back to H&E if unset, which is most
 // entries today (defaultStains was added to the SpecimenEntry type but
@@ -451,9 +460,8 @@ function emptySpecimen(label: string): SpecimenDraft {
   return {
     label, dictionaryEntryId: '', description: '', comments: [], clinicalHistory: [],
     collectedAt: '', processedAt: '', processedAtIsEstimated: false,
-    // receivedAt defaults to "now" — the one moment the accessioner is
-    // actually present for. Formatted for a datetime-local input.
-    receivedAt: new Date().toISOString().slice(0, 16),
+    // "now", in the browser's local time for a datetime-local input (Batch 738: was UTC, an hour off or more in the US).
+    receivedAt: localInputValueFromDate(new Date()),
     containerType: '', fixativeVolumeMl: '', anatomicSite: '', laterality: '', lateralityInferred: false,
     manualDeficiencies: [],
     externalId: '', externalIdSource: '',
@@ -462,7 +470,6 @@ function emptySpecimen(label: string): SpecimenDraft {
 
 // ── Component ────────────────────────────────────────────────────────────
 
-type TabKey = 'case' | 'specimens' | 'outside_patient';
 
 const AccessionPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -500,7 +507,10 @@ const AccessionPage: React.FC = () => {
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('accessionPage.page.title'), '/accession'); }, [pushCrumb, t]);
 
-  const [tab, setTab] = useState<TabKey>('case');
+  const [tab, setTab] = useState<AccessionTab>('case');
+  const [cytologyHost, setCytologyHost] = useState<HTMLElement | null>(null); // two columns: where the Cytology card is drawn
+  const twoColumn = useAccessionTwoColumn();
+  const panels = resolveAccessionPanels(tab, twoColumn);
   const [submitting, setSubmitting] = useState(false);
 
   // ── Reference data ──────────────────────────────────────────────────────
@@ -534,7 +544,7 @@ const AccessionPage: React.FC = () => {
   const [preferredName, setPreferredName] = useState('');
   const [nameSuffix, setNameSuffix] = useState('');
   const [dob, setDob] = useState('');
-  const [sex, setSex] = useState<'M' | 'F' | 'U'>('F');
+  const [sex, setSex] = useState<'M' | 'F' | 'I' | 'U' | ''>(''); // Batch 661 (Pete): sex never defaults; required before accessioning
   // Real, per direct guidance's own prior requirement ("The User may
   // need to see the LMP and other clinical history dictionaries
   // entries") plus its own direct follow-up: LMP and the three
@@ -578,9 +588,18 @@ const AccessionPage: React.FC = () => {
   // that can only ever be a real, manual, collection-time observation
   // — see CytologyScreeningRecord.persistentContactBleedingAtCollection's
   // own doc comment (types/case/Specimen.ts).
-  const [persistentContactBleedingAtCollection, setPersistentContactBleedingAtCollection] = useState(false);
+  // Batch 452: Yes / No / Not recorded, so an explicit "no" is kept.
+  const [contactBleedingChoice, setContactBleedingChoice] = useState<ContactBleedingChoice>('');
+  // Batch 608 (#47): prior cervical procedure, '' = not recorded.
+  const [priorProcedureChoice, setPriorProcedureChoice] = useState<PriorCervicalProcedureChoice>('');
   const [reasonForStudy, setReasonForStudy] = useState<'' | 'nhs_programme_invited' | 'private_or_opportunistic'>('');
   const [mrn, setMrn] = useState('');
+  // Batch 417: the patient's national identifiers (NHS number, BSN…), by system id; saved after the case exists.
+  const [nationalIds, setNationalIds] = useState<Record<string, string>>({});
+  // Batch 605: the NHS Number Status Indicator stored from an inbound ADT (green only for '01').
+  const [nhsStatusCode, setNhsStatusCode] = useState<string | undefined>(undefined);
+  // Batch 418: the patient's registry opt-outs; saved after the case exists.
+  const [registryConsent, setRegistryConsent] = useState({ screeningOptOut: false, cancerRegistryOptOut: false });
   const [encounterNumber, setEncounterNumber] = useState('');
   // Real feature, per direct, detailed specification: "Encounter
   // Selector & Auto-Fill." linkedEncounter is the real Encounter this
@@ -644,6 +663,7 @@ const AccessionPage: React.FC = () => {
   // for the full, field-by-field account of what each one means and
   // why it isn't just a duplicate of a Case & Patient tab field.
   const [outsidePatientData, setOutsidePatientData] = useState<OutsidePatientFinancialData>({});
+  const [originatingCase, setOriginatingCase] = useState<OriginatingCaseDraft>({ caseNumber: '' }); // Batch 759 (§2.1)
 
   // Real, per direct guidance: the two Financial Class dictionaries
   // (Step 1 of the Outside Client Support & International Financial
@@ -754,6 +774,9 @@ const AccessionPage: React.FC = () => {
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [allIcd10Codes, setAllIcd10Codes] = useState<Icd10Code[]>([]);
+  // Batch 614 (PS-762): the Code Systems setting decides whether the ICD-10 picker is offered and whether order messages carry diagnoses.
+  const codePolicy = useCodePolicy();
+  const icd10Allowed = systemAllowed('ICD10', codePolicy.policy, codePolicy.today);
   useEffect(() => {
     protocolService.getAll().then(res => { if (res.ok) setProtocols(res.data.filter(p => p.active)); });
     diagnosisCodesService.getAll().then(res => { if (res.ok) setAllIcd10Codes(res.data); });
@@ -789,6 +812,7 @@ const AccessionPage: React.FC = () => {
   }, [providerQuery, showProviderDropdown]);
 
   const [clientId, setClientId] = useState('');
+  const [technicalFacilityId, setTechnicalFacilityId] = useState(''); // Batch 618 (PS-336)
 
   useEffect(() => {
     // Real, per direct guidance (per-facility Specimen Deficiencies):
@@ -824,6 +848,7 @@ const AccessionPage: React.FC = () => {
   const [locationId, setLocationId] = useState('');
   const [locations, setLocations] = useState<LocationRecord[]>([]);
   const [clinicalIndication, setClinicalIndication] = useState('');
+  const [orderIndication, setOrderIndication] = useState<ImportedClinicalIndication | null>(null); // Batch 714: what the imported order put in the field
   const [icd10Codes, setIcd10Codes] = useState<Icd10Code[]>([]);
   // General accessioning note — distinct from Clinical Indication (the
   // clinical reason, feeds Grossing Route AI). This is a whole-case
@@ -901,7 +926,7 @@ const AccessionPage: React.FC = () => {
   const autopsyFormValidation = resolveAutopsyIntakeFormValidation(autopsyForm);
 
   const addSpecimen = () => {
-    setSpecimens(prev => [...prev, emptySpecimen(getSpecimenLabel(prev.length, selectedFacility?.specimenLabelStyle))]);
+    setSpecimens(prev => [...prev, emptySpecimen(getSpecimenLabel(prev.length, labelStyle))]);
     // Real fix (PS-297 — "adding a specimen doesn't auto-scroll... the
     // whole panel is [not] visible"): the new row is appended to the
     // BOTTOM of a list that's already taller than the viewport on any
@@ -918,7 +943,7 @@ const AccessionPage: React.FC = () => {
   };
   const removeSpecimen = (idx: number) => {
     setSpecimens(prev =>
-      prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, label: getSpecimenLabel(i, selectedFacility?.specimenLabelStyle) }))
+      prev.filter((_, i) => i !== idx).map((s, i) => ({ ...s, label: getSpecimenLabel(i, labelStyle) }))
     );
   };
   const updateSpecimen = (idx: number, description: string) => {
@@ -1245,9 +1270,7 @@ const AccessionPage: React.FC = () => {
 
   // True if the accessioner has already typed something meaningful into
   // the form — used to decide whether picking an order needs a warning
-  // first. Deliberately not gating on every field (e.g. priority/sex
-  // defaults don't count as "unsaved work").
-  //
+  // first. Priority's default does not count as "unsaved work"; a chosen sex does.
   // Real, direct fix, per direct follow-up ("take a look at the dirty
   // flag logic"): confirmed this list was never updated when the
   // Structured Clinical History Dictionary work added lmp,
@@ -1262,7 +1285,7 @@ const AccessionPage: React.FC = () => {
   // could feed this check automatically instead of relying on every
   // future page author remembering to update this array by hand.
   const hasUnsavedProgress = () =>
-    givenNames.trim() || familyNames.trim() || dob || mrn.trim() ||
+    givenNames.trim() || familyNames.trim() || dob || sex || mrn.trim() ||
     clinicalIndication.trim() || caseComments.length > 0 || specimens.some(s => s.description.trim() || s.clinicalHistory.length > 0) ||
     lmp || hormonalStatus || priorHpvResult || iudOrContraceptionUse.trim() || clinicalHistoryEntries.length > 0;
 
@@ -1317,7 +1340,7 @@ const AccessionPage: React.FC = () => {
       setPreferredName('');
       setNameSuffix('');
       setDob(order.patient.dateOfBirth ?? '');
-      setSex(order.patient.sex ?? 'U');
+      setSex(order.patient.sex ?? '');
       setMrn(order.patient.mrn ?? '');
       setEncounterNumber(order.encounterNumber ?? '');
       setPriority(order.priority ?? 'Routine');
@@ -1335,7 +1358,7 @@ const AccessionPage: React.FC = () => {
           if (res.ok) setSelectedProvider(res.data);
         }).catch(() => {});
       }
-      setClinicalIndication(order.clinicalIndication ?? '');
+      setClinicalIndication(order.clinicalIndication ?? ''); setOrderIndication(importedClinicalIndication(order));
       setIcd10Codes(order.icd10Codes ?? []);
       if (order.facilityId) setClientId(order.facilityId);
 
@@ -1375,7 +1398,6 @@ const AccessionPage: React.FC = () => {
       // same reasoning as this field's own doc comment above.
       const activeDictionary = dictionary.filter(e => e.active);
       let unresolvedCount = 0;
-      const importedFacilityStyle = facilities.find(c => c.id === order.facilityId)?.specimenLabelStyle;
 
       setSpecimens(order.specimens.map((sp, i) => {
         // Prefer the dictionaryEntryId resolveOrder() already resolved
@@ -1415,7 +1437,7 @@ const AccessionPage: React.FC = () => {
           ? classifyAutopsyOrganCodeFromSiteText(sp.description)
           : [];
         return {
-          ...emptySpecimen(getSpecimenLabel(i, importedFacilityStyle)),
+          ...emptySpecimen(getSpecimenLabel(i, labelStyle)),
           dictionaryEntryId: exactMatch?.id ?? '',
           description: exactMatch ? (exactMatch.normalizedLabel || exactMatch.name) : sp.description,
           laterality: inferredLaterality,
@@ -1458,6 +1480,10 @@ const AccessionPage: React.FC = () => {
     void doImportOrder(orderId);
   }
 
+  // Batch 659 (finding 6): "Open Accession" from the Lockbox folder arrives as /accession?order=<id> and imports that order.
+  const orderFromLink = useSearchParams()[0].get('order');
+  useEffect(() => { if (orderFromLink) void doImportOrder(orderFromLink); }, [orderFromLink]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function confirmImportOrder() {
     if (!pendingImportOrderId) return;
     const orderId = pendingImportOrderId;
@@ -1468,7 +1494,6 @@ const AccessionPage: React.FC = () => {
   // isEncounterActive extracted to src/utils/isEncounterActive.ts — see
   // that file's own header comment for the full safety reasoning
   // (real, unit-tested there rather than living untested here).
-
 
   // Real feature, per direct specification's own Auto-Fill Data
   // Mapping table — with one real, deliberate deviation: the table
@@ -1722,6 +1747,23 @@ const AccessionPage: React.FC = () => {
     return () => window.removeEventListener('PATHSCRIBE_SCAN', onScan);
   }, []);
 
+  // Batch 605: a typed MRN that matches a known patient shows the active-encounter badge or picker before submit.
+  const lastTypedMrnLookup = useRef('');
+  useEffect(() => {
+    const typed = mrn.trim();
+    if (typed.length < 3 || linkedEncounter || encounterCandidates.length > 0 || typed === lastTypedMrnLookup.current) return;
+    const timer = setTimeout(() => {
+      lastTypedMrnLookup.current = typed;
+      const orgId = user?.organisationId ?? originHospitalId;
+      void patientIndexService.searchPatients(orgId, typed).then(list => {
+        const hit = list.find(p => (p.mrn ?? '').trim().toLowerCase() === typed.toLowerCase());
+        if (hit) void lookupActiveEncountersForPatient(hit.id, `${hit.firstName} ${hit.lastName}`);
+      }).catch(() => { /* a failed lookup leaves the form as it was */ });
+    }, 500);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mrn, linkedEncounter, encounterCandidates.length]);
+
   // Real feature, per direct specification: the "Order Lookup & Patient
   // Verification" modal's second real path — an existing, already-known
   // patient found via the real Master Patient Index (searchPatients()),
@@ -1753,9 +1795,13 @@ const AccessionPage: React.FC = () => {
     setMrn(patient.mrn ?? '');
     toast.success(<PhiToastMessage>{t('accessionPage.toast.loadedFromIndex', { patient: `${patient.firstName} ${patient.lastName}` })}</PhiToastMessage>);
     void lookupActiveEncountersForPatient(patient.id, `${patient.firstName} ${patient.lastName}`);
+    // Batch 425: the patient's national identifiers and registry opt-outs, as the MPI holds them
+    // (recorded here before, or received from the hospital's system as JSON).
+    void prefillPatientRegistryDetails(patient.id, patientRegistryDetailsDeps).then(p => {
+      setNationalIds(p.nationalIds);
+      setRegistryConsent(p.consent);
+    });
   }
-
-
 
   // ── Validation ───────────────────────────────────────────────────────────
   // PS-359 (Batch 376): which fields are required comes from the
@@ -1766,16 +1812,27 @@ const AccessionPage: React.FC = () => {
   const [fieldRequirements, setFieldRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('accession'));
   useEffect(() => { void fieldRequirementService.forSession('accession').then(setFieldRequirements); }, [user?.id]);
   const missingFields = missingRequiredFields(fieldRequirements, {
-    givenNames, familyNames, dateOfBirth: dob, mrn, client: clientId, requestingProvider, location: locationId,
+    givenNames, familyNames, dateOfBirth: dob, sex, mrn, client: clientId, requestingProvider, location: locationId,
     assignedPathologist: assignedTo, clinicalIndication,
     specimenDescription: specimens.map(s => s.description), collectedAt: specimens.map(s => s.collectedAt), processedAt: specimens.map(s => s.processedAt),
   });
+  // Batch 528 (PS-359): the organisation's clinical-history requirements, for cytology and FNA cases only.
+  // Batch 530 (Pete, Oct 11: no hard blocks at intake): missing clinical history is
+  // flagged, never blocks accessioning; it can be added later (grossing, report, sign-out).
+  const [historyRequirements, setHistoryRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('clinicalHistory'));
+  useEffect(() => { void fieldRequirementService.forSession('clinicalHistory').then(setHistoryRequirements); }, [user?.id]);
+  const missingHistoryFields = missingClinicalHistory(historyRequirements, clinicalHistoryEntries, specimens.map(s => s.clinicalHistory), cytologyRelevant);
   const missingCaseFields = missingFields.filter(f => f.group !== 'specimens');
   const missingSpecimenFields = missingFields.filter(f => f.group === 'specimens');
-  const missingCaseLabel = formatList(missingCaseFields.map(f => t(`fieldRequirements.fields.accession.${f.id}`)), i18n.language);
-  const missingAllLabel = formatList(missingFields.map(f => t(`fieldRequirements.fields.accession.${f.id}`)), i18n.language);
+  const fieldName = (f: ResolvedFieldRequirement) => t(`fieldRequirements.fields.${f.group === 'clinicalHistoryEntries' ? 'clinicalHistory' : 'accession'}.${f.id}`);
+  const downtimeNames = missingDowntimeReasonFieldIds(isDowntimeAccession, downtimeReasonCode).map(id => t(`fieldRequirements.fields.accession.${id}`));
+  const missingCaseNames = [...missingCaseFields.map(fieldName), ...downtimeNames];
+  const missingAllNames = [...missingFields.map(fieldName), ...downtimeNames];
+  const missingCaseLabel = formatList(missingCaseNames, i18n.language);
+  const missingAllLabel = formatList(missingAllNames, i18n.language);
+  const missingHistoryLabel = formatList(missingHistoryFields.map(fieldName), i18n.language);
   const isFieldRequired = (id: string) => fieldRequirements.some(f => f.id === id && f.required);
-  const caseInfoValid = missingCaseFields.length === 0;
+  const caseInfoValid = missingCaseNames.length === 0;
   const specimensValid = specimens.length > 0 && missingSpecimenFields.length === 0
     && specimens.every(s => !s.needsDictionaryResolution);
   // Real, filled-in specimen count — for display only (the Specimens tab
@@ -1786,19 +1843,11 @@ const AccessionPage: React.FC = () => {
   // as if a real specimen were already recorded.
   const filledSpecimenCount = specimens.filter(s => s.description.trim().length > 0).length;
 
-  // Real departments (Surgical/Non-GYN Cytology/Consultation) each
-  // draw from their own accession series — see resolveCaseMaskScopeCandidates
-  // and caseMaskService. Per the CAP-adjacent labeling guideline and
-  // real specimen-handling policy this whole feature was researched
-  // against, specimens spanning genuinely different case types are
-  // standard practice to accession as SEPARATE cases, not combine under
-  // one number. Rather than building full automatic case-splitting (a
-  // much bigger feature — grouping specimens, creating N cases, routing
-  // blocks/grossing per case, a multi-case success screen), this blocks
-  // submission with a clear, actionable message instead of silently
-  // mislabeling specimens under the wrong prefix. Specimens with no
-  // dictionary match (no resolved department) don't count toward a
-  // conflict — only genuinely different resolved departments do.
+  // Departments (Surgical/Non-GYN Cytology/Consultation) each draw from their own accession
+  // series (resolveCaseMaskScopeCandidates, caseMaskService). Specimens of genuinely different
+  // case types are accessioned as SEPARATE cases, so submission is blocked with a clear message
+  // rather than mislabeling them under one prefix. Specimens with no dictionary match don't
+  // count toward a conflict.
   const resolvedDepartmentIds = useMemo(() => {
     const ids = new Set<string>();
     for (const s of specimens) {
@@ -1814,8 +1863,18 @@ const AccessionPage: React.FC = () => {
   }, [resolvedDepartmentIds, departmentsById]);
 
   const canSubmit = !!caseInfoValid && specimensValid && !submitting && !departmentConflictNames && (!autopsyRelevant || autopsyFormValidation.valid);
-
   const selectedFacility = useMemo(() => facilities.find(c => c.id === clientId), [facilities, clientId]);
+  const labelStyle = useAccessionLabelStyle(selectedFacility, facilities, setSpecimens); // Batch 715: letters/numbers style, kept on the case
+
+  // Batch 605: look up the NHS Number Status Indicator an inbound ADT stored for this number.
+  useEffect(() => {
+    if (selectedFacility?.jurisdiction !== 'GB_EW') { setNhsStatusCode(undefined); return; }
+    const number = (nationalIds.mrn_nhs || mrn || '').trim();
+    if (!number) { setNhsStatusCode(undefined); return; }
+    let cancelled = false;
+    patientIndexService.getNationalIdentifierStatusCode('mrn_nhs', number).then(code => { if (!cancelled) setNhsStatusCode(code ?? undefined); }).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [selectedFacility?.jurisdiction, nationalIds.mrn_nhs, mrn]);
 
   // Real, per direct guidance (dynamic-behavior rule 1: "Selecting an
   // Outside Client automatically sets default billing preferences...
@@ -1827,10 +1886,10 @@ const AccessionPage: React.FC = () => {
   useEffect(() => {
     if (intakeType !== 'outside') return;
     setOutsidePatientData(d => ({ ...d, accountBillingType: selectedFacility?.defaultAccountBillingType ?? d.accountBillingType }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real,
     // deliberate: only re-derive on an actual client identity change
     // (clientId) or mode change (intakeType), not on every
     // selectedFacility object identity change from unrelated re-renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-derive only on a real client or intake-mode change, not on every new selectedFacility object (see above)
   }, [clientId, intakeType]);
 
   // Patient ID field label/format follows the selected client's
@@ -1895,20 +1954,17 @@ const AccessionPage: React.FC = () => {
 
   // ── Submit ───────────────────────────────────────────────────────────────
   const [lastResult, setLastResult] = useState<{ assignments: GrossingTemplateAssignment[]; warnings: string[]; specimenBlocks: { specimenId: string; label: string; blocks: HistologyBlock[] }[] } | null>(null);
-  // Real feature, per direct follow-up on the label-printing
-  // architecture scope. Deliberately separate from lastResult, which
-  // is only set once the background Grossing Template refinement
-  // completes (several real seconds after submit, since it's a real
-  // AI call) — label printing needs none of that; the real Case,
-  // patient, and specimen data it prints from is already fully
-  // available the instant caseRouter.createCase() succeeds. Gating the
-  // print action on lastResult would make the user wait on an AI call
-  // that has nothing to do with what's printed.
+  // Real feature, per direct follow-up on the label-printing architecture scope. Deliberately separate from
+  // lastResult, which is only set once the background Grossing Template refinement completes (several real
+  // seconds after submit, since it's a real AI call) — label printing needs none of that; the real Case, patient,
+  // and specimen data it prints from is already fully available the instant the case is created. Gating the
+  // print action on lastResult would make the user wait on an AI call that has nothing to do with what's printed.
   const [justAccessionedCase, setJustAccessionedCase] = useState<{ caseData: Case; specimens: Specimen[] } | null>(null);
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    setSubmitting(true);
+    if (isDowntimeReasonMissing(isDowntimeAccession, downtimeReasonCode)) { toast.error(t('accessionPage.toast.downtimeReasonRequired')); return; }
+    setSubmitting(true); armAccessionLabelWindow();
     setLastResult(null);
 
     try {
@@ -1922,28 +1978,8 @@ const AccessionPage: React.FC = () => {
       }
       const nowIso = new Date().toISOString();
 
-      // Real fix, per direct follow-up: "will the User have to wait 6
-      // seconds? That seems wrong since everything should be 1 second
-      // or less." Confirmed directly, not guessed: the real delay
-      // wasn't the intraop lookup itself (a fast, in-memory/
-      // localStorage check) — it was evaluateGrossingTemplateAssignment
-      // below, which makes a real, genuine AI/LLM network call
-      // (services/aiIntegration/aiProviderService.ts's own callAi(),
-      // a real `fetch()`, not a mock or an artificial delay). That
-      // call is real, necessary latency for a real feature, not a bug
-      // to remove — but the intraop lookup was needlessly sequenced
-      // strictly AFTER it finished, when the two are genuinely
-      // independent: this lookup only needs form state already
-      // available right here (patientName/mrn/surgeon) plus the real
-      // caseId, already generated above — nothing it needs depends on
-      // what the AI call returns. Kicked off here, in parallel with
-      // the AI call and everything else below, rather than waiting for
-      // all of that to finish first. Resolved (not started fresh)
-      // after the real Case genuinely exists, further down — a match
-      // found here is never surfaced to the UI before
-      // caseRouter.createCase() has actually succeeded, so there's no
-      // real risk of offering to merge into a Case that doesn't exist
-      // yet.
+      // The intraop lookup needs only form state and the case id, so it starts now and runs alongside the AI template call below
+      // (evaluateGrossingTemplateAssignment); a match is shown only after caseRouter.createCase() has succeeded.
       const intraopMatchPromise = intraoperativeService.findMatchesForNewCase({
         patientName: `${familyNames.trim()}, ${givenNames.trim()}`,
         mrn: mrn.trim(),
@@ -2042,11 +2078,7 @@ const AccessionPage: React.FC = () => {
           // case - this only removes the step where the answer is
           // already fully known.
           coding: entry?.defaultBaseCptCode ? { cpt: [entry.defaultBaseCptCode] } : undefined,
-          // receivedAt defaults to "now" if the accessioner didn't touch
-          // the field; collectedAt/processedAt stay genuinely blank when
-          // not entered, rather than defaulting to "now" — see the
-          // design discussion this was built from (guessing a collection
-          // or fixation time would be actively wrong, not just imprecise).
+          // receivedAt defaults to now; collectedAt/processedAt stay blank when not entered (a guessed time would be wrong).
           receivedAt: s.receivedAt ? new Date(s.receivedAt).toISOString() : nowIso,
           collectedAt: s.collectedAt ? new Date(s.collectedAt).toISOString() : undefined,
           collection: s.collectedAt || s.anatomicSite || s.laterality ? {
@@ -2065,18 +2097,11 @@ const AccessionPage: React.FC = () => {
           externalId: s.externalId.trim() || undefined,
           externalIdSource: s.externalIdSource.trim() || undefined,
           specimenFlags: [],
-          // Real, per direct follow-up closing PS-211's own remaining
-          // gap: the one real half of
-          // CytologyHighRiskFactors.abnormalExamFindings that can
-          // only ever be a real, manual, collection-time observation.
-          // Applied per real, cytology/FNA-relevant specimen — the
-          // same real entry.type check cytologyRelevant above already
-          // uses — never attached to a non-cytology specimen in the
-          // same accession batch.
-          cytologyScreening: (entry?.type === 'Cytology' || entry?.type === 'FNA') && persistentContactBleedingAtCollection
-            ? { persistentContactBleedingAtCollection: true }
-            : undefined,
-          ...(await generateDefaultMaterial(entry, `${caseId}-SP-${s.label}`, selectedFacility?.specimenLabelStyle, stainTypes, protocols, fullAccession, s.label, priority)),
+          // The persistent contact bleeding observation, on each
+          // cytology/FNA specimen only (Batch 451, PS-212:
+          // services/accessioning/resolveAccessionSpecimenCytologyScreening.ts).
+          cytologyScreening: resolveAccessionSpecimenCytologyScreening(entry?.type, contactBleedingFromChoice(contactBleedingChoice), priorProcedureChoice),
+          ...(await generateDefaultMaterial(entry, `${caseId}-SP-${s.label}`, labelStyle, stainTypes, protocols, fullAccession, s.label, priority)),
           // kept alongside the record (not part of Specimen's own shape)
           // purely to feed evaluateGrossingTemplateAssignment below —
           // stripped before the record is cast into the Case
@@ -2167,7 +2192,7 @@ const AccessionPage: React.FC = () => {
         mrn: patientId.value,
         firstName: givenNames.trim(),
         lastName: familyNames.trim(),
-        dateOfBirth: new Date(dob).toISOString(),
+        dateOfBirth: plainCalendarDate(dob),
         sourceAccession: fullAccession,
       };
       const mpiResult = intakeType === 'outside'
@@ -2296,8 +2321,8 @@ const AccessionPage: React.FC = () => {
           // still read these directly; see Patient.ts's own doc comments.
           firstName: givenNames.trim(),
           lastName: familyNames.trim(),
-          dateOfBirth: new Date(dob).toISOString(),
-          sex,
+          dateOfBirth: plainCalendarDate(dob),
+          sex: sex as 'M' | 'F' | 'I' | 'U', // never blank here: Sex is a locked required field, so a blank form cannot reach this point
           // Real, per direct guidance's own prior requirement ("The
           // User may need to see the LMP and other clinical history
           // dictionaries entries") plus its own direct follow-up:
@@ -2305,7 +2330,7 @@ const AccessionPage: React.FC = () => {
           // the case actually includes a real cytology/FNA specimen
           // (cytologyRelevant) — never populated with empty strings
           // for a non-cytology case.
-          lastMenstrualPeriod: cytologyRelevant && lmp ? new Date(lmp).toISOString() : undefined,
+          lastMenstrualPeriod: cytologyRelevant && lmp ? plainCalendarDate(lmp) : undefined,
           hormonalStatus: cytologyRelevant && hormonalStatus ? hormonalStatus : undefined,
           // Real, per the uploaded "Structured Clinical History
           // Dictionary & Accessioning Integration" spec's own
@@ -2317,24 +2342,26 @@ const AccessionPage: React.FC = () => {
           priorHpvResult: cytologyRelevant && priorHpvResult ? priorHpvResult : undefined,
           iudOrContraceptionUse: cytologyRelevant && iudOrContraceptionUse.trim() ? iudOrContraceptionUse.trim() : undefined,
         } as any,
-        specimens: specimenRecords.map(({ _entry, ...sp }) => sp),
+        specimens: specimenRecords.map(({ _entry, ...sp }) => sp), labelStyle,
         order: {
           priority,
           requestingProvider: requestingProvider.trim(),
           facilityId: clientId,
+          technicalComponentFacilityId: technicalFacilityForOrder(technicalFacilityId, selectedFacility, facilities), // Batch 618 (PS-336)
           facilityName: selectedFacility?.name,
           locationId: locationId || undefined,
           locationDisplay: selectedLocation
             ? [selectedLocation.pointOfCare, selectedLocation.room, selectedLocation.bed].filter(Boolean).join(' / ')
             : undefined,
-          clinicalIndication: clinicalIndication.trim() || undefined,
+          clinicalIndication: clinicalIndication.trim() || undefined, ...clinicalIndicationCaseFields(clinicalIndication, orderIndication),
           icd10Codes: icd10Codes.length ? icd10Codes : undefined,
           caseComments: caseComments.length ? caseComments : undefined,
           receivedDate: nowIso,
           assignedTo: assignedTo || undefined,
           assignedParticipationTypeId: assignedTo ? 'primary' : undefined,
-          intakeType,
+          intakeType, externalOrderId: sourceOrderId ?? undefined, // Batch 762: the imported HIS order (an electronic request on record)
           outsidePatientData: intakeType === 'outside' ? outsidePatientData : undefined,
+          originatingCase: intakeType === 'outside' ? originatingCaseOf(originatingCase) : undefined, // Batch 759
           // Real, per direct guidance's own real OBR-31/reasonCode
           // work — captured here, at real accessioning, only for a
           // real cytology/FNA case.
@@ -2358,7 +2385,22 @@ const AccessionPage: React.FC = () => {
         updatedAt: nowIso,
       };
 
-      await caseRouter.createCase(newCase);
+      await createAccessionedCase(newCase); // Batch 649: checks case:accession:create (a refusal throws its reason; nothing is saved)
+
+      // Batch 417: national identifiers go through their own service (permission
+      // check, check digit, MPI mirror, audit), once the case exists.
+      for (const [system, value] of Object.entries(nationalIds)) {
+        if (!value.trim()) continue;
+        const r = await recordNationalPatientIdentifier({ caseId: newCase.id, system, value }, { id: user?.id ?? '', name: user?.name ?? '' }, recordNationalPatientIdentifierDeps);
+        if (r.outcome === 'notPermitted') toast.warning(t('nationalIdentifiers.notPermitted'));
+        else if (r.outcome === 'conflict') toast.warning(t('accessionPage.toast.caseChangedNotSaved'));
+      }
+      // Batch 418: the registry opt-outs, the same way.
+      if (registryConsent.screeningOptOut || registryConsent.cancerRegistryOptOut) {
+        const r = await recordPatientRegistryConsent({ caseId: newCase.id, ...registryConsent }, { id: user?.id ?? '', name: user?.name ?? '' }, recordPatientRegistryConsentDeps);
+        if (r.outcome === 'notPermitted') toast.warning(t('registryConsent.notPermitted'));
+        else if (r.outcome === 'conflict') toast.warning(t('accessionPage.toast.caseChangedNotSaved'));
+      }
 
       // Real, per the uploaded spec's own User Story 5, Acceptance
       // Criteria 2 and 3 — enqueues the real, appropriate outbound
@@ -2417,6 +2459,7 @@ const AccessionPage: React.FC = () => {
       // — set immediately, not gated on the background AI refinement
       // below; see this state's own declaration for why.
       setJustAccessionedCase({ caseData: newCase, specimens: newCase.specimens ?? [] });
+      void handOffAccessionLabels(newCase, newCase.specimens ?? []);
 
       // Real feature, per direct follow-up: "The AI call can happen in
       // the background... not necessarily going to serialize the
@@ -2442,7 +2485,23 @@ const AccessionPage: React.FC = () => {
       //    specimen with the default. A specimen already touched keeps
       //    whatever it has, even if the AI would have routed it
       //    differently.
-      async function refineGrossingTemplatesInBackground() {
+      // PS-71 (Batch 458): the follow-up writes below run after the case was
+      // created, some of them seconds later (the AI refinement) and in
+      // parallel with each other, by which time someone may have opened the
+      // case. Each is a versioned write built from the newest case
+      // (updateCaseWithRetry), so none of them overwrites the others or a
+      // grossing change made meanwhile.
+      const caseWriteDeps: CaseWriteDeps = {
+        getCase: id => caseRouter.getCase(id),
+        updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
+      };
+      const setOrderingPhysician = (physicianId: string) => updateCaseWithRetry(
+        newCase.id,
+        current => ({ order: { ...current.order, orderingPhysicianId: physicianId } }),
+        caseWriteDeps,
+      ).then(r => { if (r.ok === false && r.reason === 'conflict') console.error('[Accession] Ordering physician link not saved: the case kept changing.'); });
+
+      const refineGrossingTemplatesInBackground = async () => {
         try {
           const templateModule = await import('@/services/templates/templateService');
           const allTemplates = await templateModule.listTemplates('published');
@@ -2470,9 +2529,6 @@ const AccessionPage: React.FC = () => {
             routingOverrides,
           });
 
-          const latestCase = await caseRouter.getCase(caseId);
-          if (!latestCase) return; // genuinely gone — nothing real left to refine
-
           // Real feature, per direct follow-up: "Do we capture failed
           // template association? That might be a good quality
           // measure." Every specimen's real routing outcome — a
@@ -2483,13 +2539,20 @@ const AccessionPage: React.FC = () => {
           // header comment and Case.ts's own
           // GrossingReportInstance.templateAssignmentOutcome for the
           // full design.
-          const { reports: refinedReports, anyTemplateChanged, anyDataChanged } = applyGrossingRefinement(
-            latestCase.grossingReports ?? [],
-            evalResult.assignments,
-          );
-
-          if (anyDataChanged) {
-            await caseRouter.updateCase(caseId, { grossingReports: refinedReports });
+          // PS-71 (Batch 458): applied to the newest case and saved with its
+          // version (was: an unversioned updateCase of a copy read earlier).
+          // A specimen someone started grossing meanwhile stays untouched,
+          // because the refinement is recomputed from what is saved now.
+          let anyTemplateChanged = false;
+          const refined = await updateCaseWithRetry(caseId, current => {
+            const r = applyGrossingRefinement(current.grossingReports ?? [], evalResult.assignments);
+            anyTemplateChanged = r.anyTemplateChanged;
+            return r.anyDataChanged ? { grossingReports: r.reports } : null;
+          }, caseWriteDeps);
+          if (refined.ok === false && refined.reason === 'notFound') return; // genuinely gone — nothing real left to refine
+          if (refined.ok === false && refined.reason === 'conflict') {
+            console.error('[Accession] Grossing Template refinement not saved: the case kept changing.');
+            anyTemplateChanged = false;
           }
           if (anyTemplateChanged) {
             const lowConfidenceCount = evalResult.assignments.filter(a => a.belowThreshold).length;
@@ -2508,7 +2571,7 @@ const AccessionPage: React.FC = () => {
           // persisted to the real Case regardless).
           setLastResult({
             assignments: evalResult.assignments,
-            warnings: evalResult.warnings,
+            warnings: (evalResult.warnings.forEach(w => console.warn('[Accession] grossing template check:', w)), evalResult.warnings),
             specimenBlocks: specimenRecords.map(sp => ({ specimenId: sp.id, label: sp.label, blocks: sp.blocks })),
           });
         } catch (e) {
@@ -2520,14 +2583,11 @@ const AccessionPage: React.FC = () => {
           // a real evaluation was attempted and genuinely failed.
           console.error('Background Grossing Template refinement failed:', e);
           try {
-            const latestCase = await caseRouter.getCase(caseId);
-            if (latestCase?.grossingReports?.length) {
-              const failedReports = markGrossingRefinementFailed(
-                latestCase.grossingReports,
-                e instanceof Error ? e.message : String(e),
-              );
-              await caseRouter.updateCase(caseId, { grossingReports: failedReports });
-            }
+            // PS-71 (Batch 458): versioned, built from the newest case.
+            const reason = e instanceof Error ? e.message : String(e);
+            await updateCaseWithRetry(caseId, current => current.grossingReports?.length
+              ? { grossingReports: markGrossingRefinementFailed(current.grossingReports, reason) }
+              : null, caseWriteDeps);
           } catch (persistErr) {
             console.error('Also failed to persist the Grossing Template refinement failure itself:', persistErr);
           }
@@ -2550,8 +2610,12 @@ const AccessionPage: React.FC = () => {
       // why "delivered" only means "the mock recorded it," not "a real
       // downstream system received it" — there is no real backend yet.
       if (!sourceOrderId) {
-        const orderCreationPayload = buildOrderCreationPayload(newCase, mpiResult.outcome, nowIso);
-        interfaceEngineService.postOrderCreated(orderCreationPayload).catch(console.error);
+        const visitRes = newCase.encounterId ? await encounterService.getById(newCase.encounterId) : null;
+        const orderCreationPayload = buildOrderCreationPayload(newCase, mpiResult.outcome, nowIso, toOrderCreationEncounter(visitRes?.ok ? visitRes.data : null), codePolicy);
+        // Batch 605: a failed send is shown (non-blocking); the case is already saved.
+        interfaceEngineService.postOrderCreated(orderCreationPayload).then(r => {
+          if (!r.ok || !r.data.delivered) toast.warn(t('accessionPage.orderCreatedNotSent'));
+        }).catch(() => { toast.warn(t('accessionPage.orderCreatedNotSent')); });
       }
 
       // Real, per PS-81 (Jira) — completes the ROOT FIX above. That
@@ -2580,17 +2644,17 @@ const AccessionPage: React.FC = () => {
       // to resolve. Only falls back to string-based resolution when
       // the field holds free text the user typed without ever
       // selecting a real match (a genuinely new/outside physician).
+      //
+      // PS-71 (Batch 458): setOrderingPhysician spreads the NEWEST saved
+      // order (not the creation-time newCase.order) and saves with its
+      // version, so it can't undo the refinement write running alongside.
       if (selectedProvider) {
-        caseRouter.updateCase(newCase.id, {
-          order: { ...newCase.order, orderingPhysicianId: selectedProvider.id },
-        }).catch(console.error);
+        setOrderingPhysician(selectedProvider.id).catch(console.error);
       } else if (requestingProvider.trim()) {
         resolveProviderName(requestingProvider.trim(), 'requesting', clientId)
           .then(resolved => {
             if (resolved.ok && resolved.data) {
-              return caseRouter.updateCase(newCase.id, {
-                order: { ...newCase.order, orderingPhysicianId: resolved.data.physician.id },
-              });
+              return setOrderingPhysician(resolved.data.physician.id);
             }
           })
           .catch(console.error);
@@ -2660,6 +2724,7 @@ const AccessionPage: React.FC = () => {
 
       if (sourceOrderId) {
         await orderIntakeService.markOrderLinked(sourceOrderId, caseId);
+        await linkLockboxReceiptAtAccession({ caseId, orderId: sourceOrderId }); // Batch 652: a lockbox receipt for this order is linked and marked accessioned
         loadPendingOrders(); // remove it from the pending list now that it's linked
       }
 
@@ -2673,7 +2738,7 @@ const AccessionPage: React.FC = () => {
       // claiming a specific AI outcome that hasn't happened yet. A
       // separate, later toast reports the real refinement outcome once
       // it completes.
-      toast.success(<PhiToastMessage>{t('accessionPage.toast.accessioned', { caseId, count: specimens.length })}</PhiToastMessage>);
+      toast.success(<PhiToastMessage>{t('accessionPage.toast.accessioned', { caseId: fullAccession, count: specimens.length })}</PhiToastMessage>);
 
       // Closes the loop described in the original Intraop spec — "when
       // the formal order finally arrives from the LIS, PathScribe
@@ -2697,14 +2762,14 @@ const AccessionPage: React.FC = () => {
       console.error('[PathScribe] Accession submit failed:', e);
       toast.error(t('accessionPage.toast.accessionFailed', { message: (e as Error)?.message ?? 'unknown error' }));
     } finally {
-      setSubmitting(false);
+      setSubmitting(false); closeUnusedAccessionLabelWindow();
     }
   }
 
   function resetForm() {
     setNamePrefix(''); setGivenNames(''); setFamilyNames(''); setPreferredName(''); setNameSuffix('');
-    setDob(''); setSex('F'); setMrn('');
-    setPriority('Routine'); setRequestingProvider(''); setClientId(''); setClinicalIndication(''); setIcd10Codes([]); setCaseComments([]); setAssignedTo(''); setCaseManualDeficiencies([]);
+    setDob(''); setSex(''); setMrn('');
+    setPriority('Routine'); setRequestingProvider(''); setClientId(''); setTechnicalFacilityId(''); setClinicalIndication(''); setOrderIndication(null); setIcd10Codes([]); setCaseComments([]); setAssignedTo(''); setCaseManualDeficiencies([]);
     setSpecimens([emptySpecimen('A')]);
     setLastResult(null);
     setJustAccessionedCase(null);
@@ -2717,60 +2782,33 @@ const AccessionPage: React.FC = () => {
     // financial-class data into the next, genuinely unrelated
     // accession, unless the accessioner happened to manually switch
     // back to Standard first.
-    setIntakeType('standard'); setDowntimeReasonCode(''); setOutsidePatientData({});
+    setIntakeType('standard'); setDowntimeReasonCode(''); setOutsidePatientData({}); setOriginatingCase({ caseNumber: '' });
     setSamePersonLinkConfirmed(null);
     loadPendingOrders();
     setTab('case');
   }
 
-  // Real feature, per direct follow-up on the label-printing
-  // architecture scope. Real, user-triggered action, deliberately not
-  // automatic on every accession — printing consumes real physical
-  // label stock, and window.open() called from an async callback with
-  // no direct user gesture is commonly popup-blocked; a real click
-  // here is both the right UX and the thing that keeps the print
-  // window from being silently blocked.
+  // Batch 720: the Print Labels button (a reprint; labels also print on save, see printAccessionLabels.ts).
   async function handlePrintLabels() {
-    if (!justAccessionedCase) return;
-    const { caseData, specimens: printSpecimens } = justAccessionedCase;
-    const { printRequisitionLabel, printAllContainerLabels } = await import('@/utils/labels/printRequisitionAndContainerLabels');
-
-    // Real, honest limitation: two different physical label sizes in
-    // one browser print job would need two different @page rules,
-    // which isn't reliably controllable across browsers from a single
-    // print() call — printed as two separate jobs instead, each with
-    // its own correct, real @page size.
-    printRequisitionLabel(caseData);
-    await printAllContainerLabels(caseData, printSpecimens);
+    if (justAccessionedCase) await printAccessionLabels(justAccessionedCase.caseData, justAccessionedCase.specimens);
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="ps-accession-shell">
-      <div className="ps-accession-content">
+      <div className={`ps-accession-content${twoColumn ? ' ps-accession-content--two-col' : ''}`}>
 
         <div className="ps-accession-header">
           <h1 className="ps-accession-title">{t('accessionPage.page.title')}</h1>
-          <p className="ps-accession-subtitle">
-            {t('accessionPage.page.subtitle')}
-          </p>
+          <p className="ps-accession-subtitle">{t('accessionPage.page.subtitle')}</p>
+          <RequisitionInboxLink /><AccessionFromRequisition savedAccession={justAccessionedCase?.caseData.accession?.fullAccession} />
         </div>
 
-        <div className="ps-tab-bar ps-accession-tabs">
-          <button className={`ps-tab-btn ${tab === 'case' ? 'active' : ''}`} onClick={() => setTab('case')}>{t('accessionPage.tabs.casePatient')}</button>
-          <button className={`ps-tab-btn ${tab === 'specimens' ? 'active' : ''}`} onClick={() => setTab('specimens')}>
-            {t('accessionPage.tabs.specimens')} {filledSpecimenCount ? `(${filledSpecimenCount})` : ''}
-          </button>
-          {/* Real, per direct guidance: only shown for Outside/Contract
-              Case intake — dynamically activated, not always present. */}
-          {intakeType === 'outside' && (
-            <button className={`ps-tab-btn ps-accession-outside-tab-btn ${tab === 'outside_patient' ? 'active' : ''}`} onClick={() => setTab('outside_patient')}>
-              ℹ {t('accessionPage.tabs.outsidePatientData')}
-            </button>
-          )}
-        </div>
+        <AccessionTabBar tab={tab} twoColumn={twoColumn} showOutsideTab={intakeType === 'outside'}
+          filledSpecimenCount={filledSpecimenCount} onSelect={setTab} />
 
-        {tab === 'case' && (
+        <div className={twoColumn ? 'ps-accession-columns' : undefined}>
+        {panels.showCase && (
           <div className="ps-card-dark ps-accession-card">
             {/* Real fix, per direct report: "This assumes an order
                 exists, but it may not... we should update the onscreen
@@ -2799,7 +2837,7 @@ const AccessionPage: React.FC = () => {
                 </p>
                 <div className="ps-accession-order-picker">
                   <div className="ps-accession-order-picker-search-wrap">
-                    <input type="text" placeholder={t('accessionPage.importOrder.searchPlaceholder', { format: searchDobFormatHint })}
+                    <input aria-label={t('accessionPage.importOrder.label', { count: pendingOrders.length })} type="text" placeholder={t('accessionPage.importOrder.searchPlaceholder', { format: searchDobFormatHint })}
                       value={orderSearch} onChange={e => setOrderSearch(e.target.value)}
                       onKeyDown={handleOrderSearchKeyDown}
                       className="ps-accession-order-picker-search" disabled={importing} />
@@ -2830,13 +2868,13 @@ const AccessionPage: React.FC = () => {
                     ) : filteredOrders.map(o => (
                       <div key={o.id}
                         className={`ps-accession-order-picker-item ${sourceOrderId === o.id ? 'ps-accession-order-picker-item--selected' : ''} ${importing ? 'ps-accession-order-picker-item--disabled' : ''}`}
-                        onClick={() => !importing && handleImportOrder(o.id)}>
+                        {...pressable(() => !importing && handleImportOrder(o.id))}>
                         <div className="ps-accession-order-picker-main">
                           <strong>{o.externalOrderNumber}</strong>{' — '}
                           <span data-phi="name">{o.patient.firstName} {o.patient.lastName}</span>
-                          {o.patient.mrn && <span data-phi="mrn"> · MRN {o.patient.mrn}</span>}
+                          {o.patient.mrn && <span data-phi="mrn"> {t('common.patientIds.mrnAfterSeparator', { mrn: o.patient.mrn })}</span>}
                         </div>
-                        <div className="ps-accession-order-picker-meta">{o.externalAssigningAuthority} · {o.source.toUpperCase()} · {o.priority ?? 'Routine'}</div>
+                        <div className="ps-accession-order-picker-meta">{t('accessionPage.importOrder.orderMeta', { authority: o.externalAssigningAuthority, source: o.source.toUpperCase(), priority: o.priority === 'STAT' ? 'STAT' : t('accessionPage.importOrder.priorityRoutine') })}</div>
                       </div>
                     ))}
                   </div>
@@ -2922,31 +2960,31 @@ const AccessionPage: React.FC = () => {
             </div>
             <div className="ps-accession-grid">
               <div>
-                <label className="ps-label">{t('accessionPage.demographics.givenNames')}</label>
-                <input data-phi="name" className="ps-input-dark" value={givenNames} onChange={e => setGivenNames(e.target.value)}
+                <label className="ps-label">{t('accessionPage.demographics.givenNames')}<RequiredMark on={isFieldRequired('givenNames')} /></label>
+                <input aria-label={t('accessionPage.demographics.givenNames')} data-phi="name" className="ps-input-dark" value={givenNames} onChange={e => setGivenNames(e.target.value)}
                   placeholder={t('accessionPage.demographics.givenNamesPlaceholder')} />
               </div>
               <div>
-                <label className="ps-label">{t('accessionPage.demographics.familyNames')}</label>
-                <input data-phi="name" className="ps-input-dark" value={familyNames} onChange={e => setFamilyNames(e.target.value)}
+                <label className="ps-label">{t('accessionPage.demographics.familyNames')}<RequiredMark on={isFieldRequired('familyNames')} /></label>
+                <input aria-label={t('accessionPage.demographics.familyNames')} data-phi="name" className="ps-input-dark" value={familyNames} onChange={e => setFamilyNames(e.target.value)}
                   placeholder={t('accessionPage.demographics.familyNamesPlaceholder')} />
               </div>
               <div>
                 <label className="ps-label">{t('accessionPage.demographics.preferredName')}</label>
-                <input data-phi="name" className="ps-input-dark" value={preferredName} onChange={e => setPreferredName(e.target.value)}
+                <input aria-label={t('accessionPage.demographics.preferredName')} data-phi="name" className="ps-input-dark" value={preferredName} onChange={e => setPreferredName(e.target.value)}
                   placeholder={t('accessionPage.demographics.preferredNamePlaceholder')} />
               </div>
               <div>
                 <label className="ps-label" htmlFor="accession-prefix">{t('accessionPage.demographics.prefix')}</label>
                 <select id="accession-prefix" className="ps-input-dark" value={namePrefix} onChange={e => setNamePrefix(e.target.value)}>
                   <option value="">{t('accessionPage.demographics.prefixNone')}</option>
-                  <option value="Mr.">Mr.</option>
-                  <option value="Mrs.">Mrs.</option>
-                  <option value="Ms.">Ms.</option>
-                  <option value="Mx.">Mx.</option>
-                  <option value="Dr.">Dr.</option>
-                  <option value="Sir">Sir</option>
-                  <option value="Dame">Dame</option>
+                  <option value="Mr.">{t('common.honorifics.mr')}</option>
+                  <option value="Mrs.">{t('common.honorifics.mrs')}</option>
+                  <option value="Ms.">{t('common.honorifics.ms')}</option>
+                  <option value="Mx.">{t('common.honorifics.mx')}</option>
+                  <option value="Dr.">{t('common.honorifics.dr')}</option>
+                  <option value="Sir">{t('common.honorifics.sir')}</option>
+                  <option value="Dame">{t('common.honorifics.dame')}</option>
                 </select>
               </div>
               <div>
@@ -2954,18 +2992,20 @@ const AccessionPage: React.FC = () => {
                 <SuffixSelect value={nameSuffix} onChange={setNameSuffix} selectClassName="ps-input-dark" inputClassName="ps-input-dark" />
               </div>
               <div>
-                <label className="ps-label" htmlFor="accession-dob">{t('accessionPage.demographics.dob')}</label>
+                <label className="ps-label" htmlFor="accession-dob">{t('accessionPage.demographics.dob')}<RequiredMark on={isFieldRequired('dateOfBirth')} /></label>
                 <input id="accession-dob" data-phi="dob" className="ps-input-dark" type="date" value={dob} onChange={e => setDob(e.target.value)} />
               </div>
               <div>
-                <label className="ps-label" htmlFor="accession-sex">{t('accessionPage.demographics.sex')}</label>
-                <select id="accession-sex" className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as 'M' | 'F' | 'U')}>
+                <label className="ps-label" htmlFor="accession-sex">{t('accessionPage.demographics.sex')}<RequiredMark on={isFieldRequired('sex')} /></label>
+                <select id="accession-sex" className="ps-input-dark" value={sex} onChange={e => setSex(e.target.value as 'M' | 'F' | 'I' | 'U' | '')}>
+                  <option value="">{t('accessionPage.demographics.sexUnselected')}</option>
                   <option value="F">{t('accessionPage.demographics.sexFemale')}</option>
                   <option value="M">{t('accessionPage.demographics.sexMale')}</option>
+                  <option value="I">{t('accessionPage.demographics.sexIndeterminate')}</option>
                   <option value="U">{t('accessionPage.demographics.sexOther')}</option>
                 </select>
               </div>
-              {cytologyRelevant && (
+              {cytologyRelevant && (<AccessionColumnSlot host={twoColumn ? cytologyHost : null}>
                 <div className="ps-card-dark ps-accession-conditional-card">
                   <div className="ps-label ps-accession-section-heading">
                     {t('accessionPage.cytology.heading')}
@@ -3036,11 +3076,23 @@ const AccessionPage: React.FC = () => {
                           <input id="accession-iud" className="ps-input-dark" value={iudOrContraceptionUse} onChange={e => setIudOrContraceptionUse(e.target.value)} placeholder={t('accessionPage.cytology.iudPlaceholder')} />
                         </div>
                       </div>
-                      <label className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
-                        <input type="checkbox" checked={persistentContactBleedingAtCollection}
-                          onChange={e => setPersistentContactBleedingAtCollection(e.target.checked)} />
-                        {t('accessionPage.cytology.persistentBleeding')}
-                      </label>
+                      <div className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
+                        <label className="ps-label" htmlFor="accession-contact-bleeding">{t('accessionPage.cytology.persistentBleeding')}</label>
+                        <select id="accession-contact-bleeding" className="ps-input-dark" value={contactBleedingChoice}
+                          onChange={e => setContactBleedingChoice(e.target.value as ContactBleedingChoice)}>
+                          <option value="">{t('accessionPage.cytology.persistentBleedingNotRecorded')}</option>
+                          <option value="yes">{t('common.yes')}</option>
+                          <option value="no">{t('common.no')}</option>
+                        </select>
+                      </div>
+                      <div className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
+                        <label className="ps-label" htmlFor="accession-prior-procedure">{t('accessionPage.cytology.priorProcedure')}</label>
+                        <select id="accession-prior-procedure" className="ps-input-dark" value={priorProcedureChoice}
+                          onChange={e => setPriorProcedureChoice(e.target.value as PriorCervicalProcedureChoice)}>
+                          <option value="">{t('accessionPage.cytology.priorProcedureNotRecorded')}</option>
+                          {PRIOR_CERVICAL_PROCEDURE_CHOICES.map(c => <option key={c} value={c}>{t(`accessionPage.cytology.priorProcedureOptions.${c}`)}</option>)}
+                        </select>
+                      </div>
                     </>
                   )}
 
@@ -3068,7 +3120,7 @@ const AccessionPage: React.FC = () => {
                     />
                   )}
                 </div>
-              )}
+              </AccessionColumnSlot>)}
 
               {autopsyRelevant && (
                 <div className="ps-card-dark ps-accession-conditional-card">
@@ -3079,7 +3131,7 @@ const AccessionPage: React.FC = () => {
                   <div className="ps-accession-specimen-row-3col">
                     <div>
                       <label className="ps-label">{t('accessionPage.autopsy.jurisdiction')}</label>
-                      <select className="ps-conf-select" value={autopsyForm.jurisdiction} onChange={e => setAutopsyForm({ ...autopsyForm, jurisdiction: e.target.value as AutopsyJurisdiction })}>
+                      <select aria-label={t('accessionPage.autopsy.jurisdiction')} className="ps-conf-select" value={autopsyForm.jurisdiction} onChange={e => setAutopsyForm({ ...autopsyForm, jurisdiction: e.target.value as AutopsyJurisdiction })}>
                         <option value="">{t('accessionPage.common.selectEllipsisDots')}</option>
                         {(Object.keys(JURISDICTION_LABELS) as AutopsyJurisdiction[]).map(j => (
                           <option key={j} value={j}>{JURISDICTION_LABELS[j]}</option>
@@ -3088,27 +3140,27 @@ const AccessionPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="ps-label">{t('accessionPage.autopsy.caseAuthority')}</label>
-                      <select className="ps-conf-select" value={autopsyForm.caseAuthority} onChange={e => setAutopsyForm({ ...autopsyForm, caseAuthority: e.target.value as AutopsyCaseAuthority })}>
+                      <select aria-label={t('accessionPage.autopsy.caseAuthority')} className="ps-conf-select" value={autopsyForm.caseAuthority} onChange={e => setAutopsyForm({ ...autopsyForm, caseAuthority: e.target.value as AutopsyCaseAuthority })}>
                         <option value="">{t('accessionPage.common.selectEllipsisDots')}</option>
-                        <option value="medicolegal_forensic">{t('accessionPage.autopsy.authorityMedicolegal')}</option>
+                        <option value="statutory_judicial">{t('accessionPage.autopsy.authorityMedicolegal')}</option>
                         <option value="hospital_consented">{t('accessionPage.autopsy.authorityHospitalConsented')}</option>
                       </select>
                     </div>
                   </div>
 
-                  {autopsyForm.caseAuthority === 'medicolegal_forensic' && (
+                  {autopsyForm.caseAuthority === 'statutory_judicial' && (
                     <div className="ps-accession-specimen-row-3col ps-accession-specimen-row-3col--spaced-10">
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.authorityType')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.authorityType} placeholder={t('accessionPage.autopsy.authorityTypePlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, authorityType: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.authorityType')} className="ps-conf-input" value={autopsyForm.authorityType} placeholder={t('accessionPage.autopsy.authorityTypePlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, authorityType: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.verbalOrderAt')}</label>
-                        <input type="datetime-local" className="ps-conf-input" value={autopsyForm.verbalOrderReceivedAt} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedAt: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.verbalOrderAt')} type="datetime-local" className="ps-conf-input" value={autopsyForm.verbalOrderReceivedAt} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedAt: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.verbalOrderFrom')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.verbalOrderReceivedFrom} placeholder={t('accessionPage.autopsy.verbalOrderFromPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedFrom: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.verbalOrderFrom')} className="ps-conf-input" value={autopsyForm.verbalOrderReceivedFrom} placeholder={t('accessionPage.autopsy.verbalOrderFromPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, verbalOrderReceivedFrom: e.target.value })} />
                       </div>
                     </div>
                   )}
@@ -3117,11 +3169,11 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col ps-accession-specimen-row-3col--spaced-10">
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.consentingRelativeName')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.consentingRelativeName} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeName: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.consentingRelativeName')} className="ps-conf-input" value={autopsyForm.consentingRelativeName} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeName: e.target.value })} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.autopsy.relationship')}</label>
-                        <input className="ps-conf-input" value={autopsyForm.consentingRelativeRelationship} placeholder={t('accessionPage.autopsy.relationshipPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeRelationship: e.target.value })} />
+                        <input aria-label={t('accessionPage.autopsy.relationship')} className="ps-conf-input" value={autopsyForm.consentingRelativeRelationship} placeholder={t('accessionPage.autopsy.relationshipPlaceholder')} onChange={e => setAutopsyForm({ ...autopsyForm, consentingRelativeRelationship: e.target.value })} />
                         {/* Real, per direct follow-up: "it all needs
                             to be wired" — resolveConsentingRelativePriority.ts
                             had zero real UI callers; this is that
@@ -3146,7 +3198,7 @@ const AccessionPage: React.FC = () => {
               )}
               <div>
                 <label className="ps-label ps-label--with-badge">
-                  {t(isFieldRequired('mrn') ? 'accessionPage.patientId.labelRequired' : 'accessionPage.patientId.label')}
+                  {t(isFieldRequired('mrn') ? 'accessionPage.patientId.labelRequired' : 'accessionPage.patientId.label')}<RequiredMark on={isFieldRequired('mrn')} />
                   {/* Real feature, per direct specification: "UI Status
                       Indicator Component" — only shown once a real
                       facility is selected, since the jurisdiction (and
@@ -3163,7 +3215,7 @@ const AccessionPage: React.FC = () => {
                       patientIdStatus.ts's own comment on that exact,
                       honest distinction. */}
                   {selectedFacility && (
-                    <PatientIdStatusDot jurisdiction={selectedFacility.jurisdiction} rawId={mrn} />
+                    <PatientIdStatusDot jurisdiction={selectedFacility.jurisdiction} rawId={mrn} hl7StatusCode={nhsStatusCode} />
                   )}
                 </label>
                 <input data-phi="mrn" className="ps-input-dark" value={mrn} onChange={e => setMrn(e.target.value)}
@@ -3171,6 +3223,11 @@ const AccessionPage: React.FC = () => {
                     ? t('accessionPage.patientId.placeholderWithFacility', { standardLabel: t(patientIdStandard.labelKey), example: patientIdStandard.example })
                     : t('accessionPage.patientId.placeholderNoFacility')} />
               </div>
+              {/* Batch 417: the national identifier the registries key on, separate from the MRN. */}
+              <NationalIdentifierFields jurisdiction={selectedFacility?.jurisdiction} values={nationalIds}
+                onChange={(system, value) => setNationalIds(prev => ({ ...prev, [system]: value }))} />
+              {/* Batch 418: registry opt-outs. */}
+              <RegistryConsentFields screeningOptOut={registryConsent.screeningOptOut} cancerRegistryOptOut={registryConsent.cancerRegistryOptOut} onChange={setRegistryConsent} />
               <div>
                 <label className="ps-label" htmlFor="accession-priority">{t('accessionPage.priority.label')}</label>
                 <select id="accession-priority" className="ps-input-dark" value={priority} onChange={e => setPriority(e.target.value as CasePriority)}>
@@ -3240,19 +3297,21 @@ const AccessionPage: React.FC = () => {
               )}
 
               <div>
-                <label className="ps-label" htmlFor="accession-client">{t('accessionPage.facility.submittingFacility')}</label>
+                <label className="ps-label" htmlFor="accession-client">{t('accessionPage.facility.submittingFacility')}<RequiredMark on={isFieldRequired('client')} /></label>
                 <select id="accession-client" className="ps-input-dark" value={clientId} onChange={e => setClientId(e.target.value)}>
                   <option value="">{t('accessionPage.facility.selectFacility')}</option>
                   {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
+              <AccessionTechnicalFacilityField facilities={facilities} value={technicalFacilityId} onChange={setTechnicalFacilityId}
+                intakeType={intakeType} departmentName={[...resolvedDepartmentIds].map(id => departmentsById.get(id)?.name).join(' ')} />
               {/* Real feature, per direct confirmation: "add the
                   Client and Location as fields to be seen in the
                   accession page." Optional — not every specimen has a
                   known, specific inpatient location (e.g. outpatient/
                   clinic specimens genuinely have none). */}
               <div>
-                <label className="ps-label" htmlFor="accession-location">{t('accessionPage.facility.location')}</label>
+                <label className="ps-label" htmlFor="accession-location">{t('accessionPage.facility.location')}<RequiredMark on={isFieldRequired('location')} /></label>
                 <select
                   id="accession-location" className="ps-input-dark"
                   value={locationId} onChange={e => setLocationId(e.target.value)}
@@ -3282,8 +3341,8 @@ const AccessionPage: React.FC = () => {
                 </div>
               )}
               <div className="ps-conf-form-field ps-amendment-physician-picker">
-                <label className="ps-label">{t('accessionPage.provider.requestingProvider')}</label>
-                <input
+                <label className="ps-label">{t('accessionPage.provider.requestingProvider')}<RequiredMark on={isFieldRequired('requestingProvider')} /></label>
+                <input aria-label={t('accessionPage.provider.requestingProvider')}
                   className="ps-amendment-physician-search"
                   value={requestingProvider || providerQuery}
                   onChange={e => { setProviderQuery(e.target.value); setRequestingProvider(''); setSelectedProvider(undefined); setShowProviderDropdown(true); }}
@@ -3355,12 +3414,7 @@ const AccessionPage: React.FC = () => {
                   {pathologists.map(p => <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>)}
                 </select>
               </div>
-              <div className="ps-accession-field--full">
-                <label className="ps-label">{t('accessionPage.clinicalIndication.label')}</label>
-                <textarea className="ps-input-dark ps-accession-textarea"
-                  value={clinicalIndication} onChange={e => setClinicalIndication(e.target.value)}
-                  placeholder={t('accessionPage.clinicalIndication.placeholder')} />
-              </div>
+              <ClinicalIndicationField value={clinicalIndication} onChange={setClinicalIndication} imported={orderIndication} required={isFieldRequired('clinicalIndication')} />
               {/* Real, per direct guidance ("should the accession do
                   this as they go rather than the current process"),
                   generalized to every intake type per direct follow-up
@@ -3389,7 +3443,9 @@ const AccessionPage: React.FC = () => {
               </div>
               <div className="ps-accession-field--full">
                 <label className="ps-label">{t('accessionPage.icd10.label')}</label>
-                <Icd10Picker allCodes={allIcd10Codes} selected={icd10Codes} onChange={setIcd10Codes} />
+                {icd10Allowed
+                  ? <Icd10Picker allCodes={allIcd10Codes} selected={icd10Codes} onChange={setIcd10Codes} />
+                  : <CodeSystemOffNote systems={['ICD10']} />}
               </div>
               <div className="ps-accession-field--full">
                 <label className="ps-label">{t('accessionPage.caseComment.label')}</label>
@@ -3414,18 +3470,21 @@ const AccessionPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="ps-accession-actions">
+            {panels.showStepButtons && <div className="ps-accession-actions">
               <button className="ps-btn-primary" onClick={() => setTab('specimens')} disabled={!caseInfoValid}>
                 {t('accessionPage.actions.nextSpecimens')} →
               </button>
-            </div>
-            {missingCaseFields.length > 0 && (
+            </div>}
+            {missingCaseNames.length > 0 && (
               <p className="ps-accession-missing" role="status">{t('fieldRequirements.stillRequired', { fields: missingCaseLabel })}</p>
+            )}
+            {missingHistoryFields.length > 0 && (
+              <p className="ps-accession-history-flag" role="status">{t('accessionPage.clinicalHistory.flaggedNotBlocked', { fields: missingHistoryLabel })}</p>
             )}
           </div>
         )}
 
-        {tab === 'specimens' && (
+        {panels.showSpecimens && (
           <div>
             {lastResult ? null : <>
             {specimens.map((s, idx) => {
@@ -3458,8 +3517,8 @@ const AccessionPage: React.FC = () => {
                     </div>
 
                     <div className="ps-accession-specimen-field--wide">
-                      <label className="ps-label">{t('accessionPage.specimens.description')}</label>
-                      <input className="ps-input-dark" value={s.description}
+                      <label className="ps-label">{t('accessionPage.specimens.description')}<RequiredMark on={isFieldRequired('specimenDescription')} /></label>
+                      <input aria-label={t('accessionPage.specimens.description')} className="ps-input-dark" value={s.description}
                         onChange={e => updateSpecimen(idx, e.target.value)}
                         placeholder={t('accessionPage.specimens.descriptionPlaceholder')} />
                     </div>
@@ -3467,7 +3526,7 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-specimen-row-3col">
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.anatomicSite')}</label>
-                        <input className="ps-input-dark" value={s.anatomicSite}
+                        <input aria-label={t('accessionPage.specimens.anatomicSite')} className="ps-input-dark" value={s.anatomicSite}
                           onChange={e => updateSpecimenField(idx, 'anatomicSite', e.target.value)}
                           placeholder={t('accessionPage.specimens.anatomicSitePlaceholder')} />
                       </div>
@@ -3493,7 +3552,7 @@ const AccessionPage: React.FC = () => {
                             </span>
                           )}
                         </label>
-                        <select className="ps-input-dark" value={s.laterality}
+                        <select aria-label={t('a11y.fields.laterality')} className="ps-input-dark" value={s.laterality}
                           onChange={e => updateSpecimenField(idx, 'laterality', e.target.value)}>
                           <option value="">{t('accessionPage.specimens.lateralityNotSpecified')}</option>
                           <option value="Left">{t('accessionPage.specimens.lateralityLeft')}</option>
@@ -3505,7 +3564,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.containerType')}</label>
-                        <select className="ps-input-dark" value={s.containerType}
+                        <select aria-label={t('accessionPage.specimens.containerType')} className="ps-input-dark" value={s.containerType}
                           onChange={e => {
                             const selected = containerTypes.find(c => c.name === e.target.value);
                             updateSpecimenField(idx, 'containerType', e.target.value);
@@ -3535,7 +3594,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.fixativeVolume')}</label>
-                        <input type="number" className="ps-input-dark" value={s.fixativeVolumeMl}
+                        <input aria-label={t('accessionPage.specimens.fixativeVolume')} type="number" className="ps-input-dark" value={s.fixativeVolumeMl}
                           onChange={e => updateSpecimenField(idx, 'fixativeVolumeMl', e.target.value)}
                           placeholder={t('accessionPage.specimens.fixativeVolumePlaceholder')} />
                       </div>
@@ -3580,14 +3639,14 @@ const AccessionPage: React.FC = () => {
 
                     <div className="ps-accession-specimen-row-3col">
                       <div>
-                        <label className="ps-label">{t('accessionPage.specimens.collectedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.collectedAt}
+                        <label className="ps-label">{t('accessionPage.specimens.collectedAt')}<RequiredMark on={isFieldRequired('collectedAt')} /></label>
+                        <input aria-label={t('accessionPage.specimens.collectedAt')} className="ps-input-dark" type="datetime-local" value={s.collectedAt}
                           onChange={e => updateSpecimenField(idx, 'collectedAt', e.target.value)} />
                         <div className="ps-accession-field-hint">{t('accessionPage.specimens.collectedAtHint')}</div>
                       </div>
                       <div>
-                        <label className="ps-label">{t('accessionPage.specimens.processedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.processedAt}
+                        <label className="ps-label">{t('accessionPage.specimens.processedAt')}<RequiredMark on={isFieldRequired('processedAt')} /></label>
+                        <input aria-label={t('accessionPage.specimens.processedAt')} className="ps-input-dark" type="datetime-local" value={s.processedAt}
                           onChange={e => updateSpecimenField(idx, 'processedAt', e.target.value)} />
                         <label className="ps-accession-checkbox-row">
                           <input type="checkbox" checked={s.processedAtIsEstimated}
@@ -3597,7 +3656,7 @@ const AccessionPage: React.FC = () => {
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.receivedAt')}</label>
-                        <input className="ps-input-dark" type="datetime-local" value={s.receivedAt}
+                        <input aria-label={t('accessionPage.specimens.receivedAt')} className="ps-input-dark" type="datetime-local" value={s.receivedAt}
                           onChange={e => updateSpecimenField(idx, 'receivedAt', e.target.value)} />
                       </div>
                     </div>
@@ -3629,14 +3688,14 @@ const AccessionPage: React.FC = () => {
                             separate copy of these fields, so it needs
                             the same update to stay in sync. */}
                         <label className="ps-label">{t('accessionPage.specimens.referralClient')}</label>
-                        <input className="ps-input-dark" value={s.externalIdSource}
+                        <input aria-label={t('accessionPage.specimens.referralClient')} className="ps-input-dark" value={s.externalIdSource}
                           onChange={e => updateSpecimenField(idx, 'externalIdSource', e.target.value)}
                           onBlur={() => checkSpecimenForeignIdCollision(idx)}
                           placeholder={t('accessionPage.specimens.referralClientPlaceholder')} />
                       </div>
                       <div>
                         <label className="ps-label">{t('accessionPage.specimens.referralClientId')}</label>
-                        <input className="ps-input-dark" value={s.externalId}
+                        <input aria-label={t('accessionPage.specimens.referralClientId')} className="ps-input-dark" value={s.externalId}
                           onChange={e => updateSpecimenField(idx, 'externalId', e.target.value)}
                           onBlur={() => checkSpecimenForeignIdCollision(idx)}
                           placeholder={t('accessionPage.specimens.referralClientIdPlaceholder')} />
@@ -3744,10 +3803,11 @@ const AccessionPage: React.FC = () => {
               />
             )}
 
+            {twoColumn && <div ref={setCytologyHost} />}
             <div className="ps-card-dark ps-accession-card">
               <h3>{t('accessionPage.readyCard.heading')}</h3>
               <p className="ps-accession-summary-meta" data-phi="name">
-                {formatFullDisplayName({ namePrefix, givenNames, familyNames, preferredName, nameSuffix })}
+                {formatDisplayNameForLanguage({ namePrefix, givenNames, familyNames, preferredName, nameSuffix }, i18n.language)}
                 {preferredName.trim() && ` (${preferredName.trim()})`}
                 {/* Real fix (PS-300 — "Ready to accession count should
                     only count records where required fields have
@@ -3769,12 +3829,12 @@ const AccessionPage: React.FC = () => {
             )}
 
             <div className="ps-accession-actions ps-accession-actions--split">
-              <button className="ps-btn-secondary" onClick={() => setTab('case')}>← {t('accessionPage.actions.back')}</button>
-              <button className="ps-btn-primary" onClick={handleSubmit} disabled={!canSubmit}>
+              {panels.showStepButtons ? <button className="ps-btn-secondary" onClick={() => setTab('case')}>← {t('accessionPage.actions.back')}</button> : <span />}
+              <CapabilityButton capability="case:accession:create" className="ps-btn-primary" onClick={() => { void handleSubmit(); }} disabled={!canSubmit}>
                 {submitting ? t('accessionPage.actions.assigningTemplates') : t('accessionPage.actions.submitAccession')}
-              </button>
+              </CapabilityButton>
             </div>
-            {missingFields.length > 0 && (
+            {missingAllNames.length > 0 && (
               <p className="ps-accession-missing" role="status">{t('fieldRequirements.stillRequired', { fields: missingAllLabel })}</p>
             )}
             </>}
@@ -3785,7 +3845,7 @@ const AccessionPage: React.FC = () => {
                 <p className="ps-accession-print-hint">
                   {t('accessionPage.labelsCard.hint', { count: justAccessionedCase.specimens.length })} <strong data-phi="accession">{justAccessionedCase.caseData.accession.fullAccession}</strong>.
                 </p>
-                <button className="ps-btn-secondary" onClick={handlePrintLabels}>🖨️ Print Labels</button>
+                <button className="ps-btn-secondary" onClick={handlePrintLabels}>{t('accessionPage.labelsCard.printLabels')}</button>
               </div>
             )}
 
@@ -3797,18 +3857,14 @@ const AccessionPage: React.FC = () => {
                     <div className="ps-accession-assignment-head">
                       <strong className="ps-accession-assignment-name">{a.specimenId.split('-SP-')[1] ?? a.specimenId}</strong>
                       <span className={`ps-accession-assignment-meta ${a.belowThreshold ? 'ps-accession-assignment-meta--warn' : ''}`}>
-                        {a.templateName} {a.fromOverride ? t('accessionPage.grossing.override') : t('accessionPage.grossing.confidence', { value: a.confidence })}
+                        {a.templateName} {a.fromOverride ? t('accessionPage.grossing.override') : ''}
                       </span>
                     </div>
                     <div className="ps-accession-assignment-reason">{a.reason}</div>
                   </div>
                 ))}
                 {lastResult.warnings.length > 0 && (
-                  <div className="ps-accession-warnings">
-                    {lastResult.warnings.map((w, i) => (
-                      <div key={i} className="ps-accession-warning-item">{w}</div>
-                    ))}
-                  </div>
+                  <div className="ps-accession-warnings"><div className="ps-accession-warning-item">{t('accessionPage.grossing.defaultsKept')}</div></div>
                 )}
 
                 <h3 className="ps-accession-blocks-heading">{t('accessionPage.grossing.blocksHeading')}</h3>
@@ -3830,181 +3886,18 @@ const AccessionPage: React.FC = () => {
                 ))}
                 <div className="ps-accession-actions ps-accession-actions--split">
                   <button className="ps-btn-secondary" onClick={resetForm}>{t('accessionPage.actions.accessionAnother')}</button>
-                  <button className="ps-btn-primary" onClick={() => navigate('/worklist')}>{t('accessionPage.actions.goToWorklist')} →</button>
+                  <button className="ps-btn-primary" onClick={() => navigate(worklistPathForCase(justAccessionedCase?.caseData.id))}>{t('accessionPage.actions.goToWorklist')} →</button>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {tab === 'outside_patient' && (
-          <div className="ps-card-dark ps-accession-card">
-            <div className="ps-accession-outside-header">
-              <h3 className="ps-accession-outside-title">{t('accessionPage.outsidePatient.title')}</h3>
-              <p className="ps-accession-outside-subtitle">
-                {t('accessionPage.outsidePatient.subtitle')}
-              </p>
-            </div>
-
-            {/* SECTION 1: CLIENT & ORIGIN — real, per direct guidance:
-                Client Account and Ordering Provider reuse the existing
-                Case & Patient tab's own clientId/requestingProvider
-                selections directly rather than duplicating a second
-                picker — confirmed there's no separate outside-client
-                directory to build. Account Billing Type is the one
-                genuinely new field here. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.facilityOrigin')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.facilityAccount')}</label>
-                  <input className="ps-input-dark" disabled value={selectedFacility?.name ?? t('accessionPage.outsidePatient.facilityAccountPlaceholder')} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.orderingProvider')}</label>
-                  <input className="ps-input-dark" disabled value={requestingProvider || t('accessionPage.outsidePatient.orderingProviderPlaceholder')} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.billingType')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.accountBillingType ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, accountBillingType: e.target.value }))}
-                    placeholder={t('accessionPage.outsidePatient.billingTypePlaceholder')} />
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 2: PATIENT & JURISDICTION IDENTIFICATION — real,
-                per direct guidance dynamic-behavior rule 2: changing
-                Primary Jurisdiction updates the real Local ID Number
-                label. Options are the real, distinct country codes
-                actually present in the Jurisdiction Payment Mapping
-                dictionary (services/billing/), not a separate,
-                hardcoded country list that could drift from it. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.patientJurisdiction')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.primaryJurisdiction')}</label>
-                  <select className="ps-input-dark" value={outsidePatientData.primaryJurisdictionCountryCode ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionCountryCode: e.target.value, primaryJurisdictionMappingId: undefined }))}>
-                    <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                    {Array.from(new Set(jurisdictionMappings.map(m => m.countryCode))).sort().map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="ps-label">
-                    {(() => {
-                      // Real, per direct guidance: the real, dynamic
-                      // local-ID label now comes from the SPECIFIC
-                      // scheme actually selected below, not just "the
-                      // first scheme found in this jurisdiction" — a
-                      // real, deliberate correction made alongside the
-                      // precise-mapping-id fix, since the earlier,
-                      // approximate label had the same real ambiguity
-                      // risk this whole fix addresses.
-                      const selected = jurisdictionMappings.find(m => m.id === outsidePatientData.primaryJurisdictionMappingId);
-                      return selected ? t('accessionPage.outsidePatient.localIdNumberWithScheme', { scheme: selected.localSchemeCode }) : t('accessionPage.outsidePatient.localIdNumber');
-                    })()}
-                  </label>
-                  <input className="ps-input-dark" value={outsidePatientData.localIdNumber ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, localIdNumber: e.target.value }))}
-                    placeholder={outsidePatientData.primaryJurisdictionMappingId ? '' : t('accessionPage.outsidePatient.localIdPlaceholder')} />
-                </div>
-              </div>
-            </div>
-
-            {/* Real, per direct follow-up: the "Check for Existing
-                Patient" search that used to live here moved to the
-                Case & Patient tab, generalized to every intake type —
-                it's a same_person question, not something specific to
-                Outside/Contract Case. See that tab's own comment for
-                the full account. */}
-
-            {/* SECTION 3: FINANCIAL CLASS & COVERAGE ROUTING — real,
-                per direct guidance: the Payment Category picker now
-                selects the SPECIFIC JurisdictionPaymentMapping row, not
-                a deduplicated Master Payment Type — a real, confirmed
-                fix. A bare master category (e.g.
-                STATUTORY_SOCIAL_HEALTH) is genuinely ambiguous the
-                moment a country has more than one real local scheme
-                mapping to it; nothing in the dictionary schema
-                prevents that, even though today's 13 seed rows happen
-                not to have a case of it. A downstream financial engine
-                needs to know EXACTLY which real scheme applied to pick
-                the right outbound claims format — see
-                buildFinancialClassPayload.ts for the full account.
-                Primary Payer/Fund is deliberately free text —
-                confirmed directly no payer/fund registry exists in
-                this app; see OutsidePatientFinancialData.ts's own
-                header for why. */}
-            <div className="ps-accession-outside-section">
-              <div className="ps-accession-outside-section-title">{t('accessionPage.outsidePatient.financialClass')}</div>
-              <div className="ps-accession-grid">
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.paymentCategory')}</label>
-                  <select className="ps-input-dark" value={outsidePatientData.primaryJurisdictionMappingId ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryJurisdictionMappingId: e.target.value }))}
-                    disabled={!outsidePatientData.primaryJurisdictionCountryCode}>
-                    <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                    {jurisdictionMappings.filter(m => m.countryCode === outsidePatientData.primaryJurisdictionCountryCode).map(m => {
-                      const departmentName = masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.displayName ?? m.masterPaymentTypeId;
-                      return <option key={m.id} value={m.id}>{departmentName} — {m.localDisplayTerminology}</option>;
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.primaryPayer')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.primaryPayerName ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, primaryPayerName: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="ps-label">{t('accessionPage.outsidePatient.coveragePolicy')}</label>
-                  <input className="ps-input-dark" value={outsidePatientData.coveragePolicyNumber ?? ''}
-                    onChange={e => setOutsidePatientData(d => ({ ...d, coveragePolicyNumber: e.target.value }))} />
-                </div>
-              </div>
-
-              <label className="ps-accession-checkbox-row ps-accession-checkbox-row--spaced">
-                <input type="checkbox" checked={!!outsidePatientData.hasSecondaryCoverage}
-                  onChange={e => setOutsidePatientData(d => ({ ...d, hasSecondaryCoverage: e.target.checked }))} />
-                {t('accessionPage.outsidePatient.applySecondary')}
-              </label>
-
-              {outsidePatientData.hasSecondaryCoverage && (
-                <div className="ps-accession-outside-secondary-box">
-                  <div className="ps-accession-grid">
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.secondaryCategory')}</label>
-                      <select className="ps-input-dark" value={outsidePatientData.secondaryJurisdictionMappingId ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryJurisdictionMappingId: e.target.value }))}>
-                        <option value="">{t('accessionPage.outsidePatient.select')}</option>
-                        {jurisdictionMappings
-                          .filter(m => m.countryCode === outsidePatientData.primaryJurisdictionCountryCode)
-                          .filter(m => masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.supportsSplitBilling)
-                          .map(m => {
-                            const departmentName = masterPaymentTypes.find(mpt => mpt.id === m.masterPaymentTypeId)?.displayName ?? m.masterPaymentTypeId;
-                            return <option key={m.id} value={m.id}>{departmentName} — {m.localDisplayTerminology}</option>;
-                          })}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.secondaryPayer')}</label>
-                      <input className="ps-input-dark" value={outsidePatientData.secondaryPayerName ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryPayerName: e.target.value }))} />
-                    </div>
-                    <div>
-                      <label className="ps-label">{t('accessionPage.outsidePatient.memberCardId')}</label>
-                      <input className="ps-input-dark" value={outsidePatientData.secondaryMemberId ?? ''}
-                        onChange={e => setOutsidePatientData(d => ({ ...d, secondaryMemberId: e.target.value }))} />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        {panels.showOutside && (
+          <OutsideCaseCard outsidePatientData={outsidePatientData} setOutsidePatientData={setOutsidePatientData} jurisdictionMappings={jurisdictionMappings} masterPaymentTypes={masterPaymentTypes}
+            selectedFacilityName={selectedFacility?.name} requestingProvider={requestingProvider} originating={originatingCase} onOriginatingChange={setOriginatingCase} />
         )}
+        </div>
       </div>
 
       {caseCommentModalOpen && (

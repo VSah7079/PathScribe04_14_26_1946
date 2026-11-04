@@ -1,0 +1,11 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 666 — User Guide covers every screen with a route-coverage check, Administrator Guide catch-up in six languages, language review files",
+    "description": "Vitest, 2026-10-24. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {"testInfo": {"summary": "User Guide: every screen route has an article or a reasoned exemption", "type": "Generic", "projectKey": "PS"}, "start": "2026-10-24T09:00:00Z", "finish": "2026-10-24T09:30:00Z", "status": "PASSED", "comment": "PASSED: src/services/help/userGuide.guard.test.ts"},
+    {"testInfo": {"summary": "CytologyCategoriesSection: no auth provider error after load", "type": "Generic", "projectKey": "PS"}, "start": "2026-10-24T09:00:00Z", "finish": "2026-10-24T09:30:00Z", "status": "PASSED", "comment": "PASSED: src/components/Config/System/CytologyCategoriesSection.test.tsx"}
+  ]
+}

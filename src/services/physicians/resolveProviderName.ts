@@ -21,7 +21,7 @@
 // this function's real job is resolving that already-structured data
 // to a real, internal Physician record, not parsing anything itself.
 //
-// Reuses mockPhysicianService.findOrCreateByName (string fallback,
+// Reuses physicianService.findOrCreateByName (string fallback,
 // for a caller with genuinely nothing but free text, e.g. a human
 // typing into AccessionPage.tsx's own plain UI field) /
 // findOrCreateByStructuredName (the real, preferred path) directly.
@@ -47,7 +47,7 @@
 
 import type { ServiceResult } from '../types';
 import type { Physician } from './IPhysicianService';
-import { mockPhysicianService } from './mockPhysicianService';
+import { physicianService } from './physicianServiceInstance';
 
 /** Real, small, purpose-built type — what role the resolved physician
  *  played in the specific inbound message this resolution came from.
@@ -129,7 +129,7 @@ export interface StructuredProviderName {
   /** Real, optional — every real identifier this specific mention of
    *  the provider carried, per InboundProviderIdentifier's own header.
    *  Only the first real NPI-typed entry (if any) is used to populate
-   *  Physician.npi — see mockPhysicianService.findOrCreateByStructuredName's
+   *  Physician.npi — see physicianService.findOrCreateByStructuredName's
    *  own real matching logic. */
   identifiers?: InboundProviderIdentifier[];
 }
@@ -192,12 +192,12 @@ export async function resolveProviderName(
     ? await (async () => {
         const trimmed = input.trim();
         if (!trimmed) return null;
-        return mockPhysicianService.findOrCreateByName(trimmed, clientId);
+        return physicianService.findOrCreateByName(trimmed, clientId);
       })()
     : await (async () => {
         const familyNames = input.familyNames.trim();
         if (!familyNames) return null;
-        return mockPhysicianService.findOrCreateByStructuredName(
+        return physicianService.findOrCreateByStructuredName(
           {
             namePrefix: input.namePrefix?.trim(),
             givenNames: input.givenNames?.trim() ?? '',

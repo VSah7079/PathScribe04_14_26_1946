@@ -1,16 +1,22 @@
+import { useOpenCaseGuarded } from '@/hooks/useOpenCase';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { useNavigate } from 'react-router';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockOnDemandCaseFetchService } from '@/services/cases/mockOnDemandCaseFetchService';
+
 import { useEnabledIdentifierFormats } from '../../hooks/useEnabledIdentifierFormats';
 import { useAuditLog } from '../Audit/useAuditLog';
 import { useAuth } from '../../contexts/AuthContext';
-import { supportReferenceService } from '@/services';
+import { flagService, supportReferenceService, onDemandCaseFetchService } from '@/services';
+import { searchHitFlags } from '@/services/caseSearch/searchHitFlags';
+import type { Flag } from '@/services/flags/IFlagService';
 import { isSupportReference } from '@/services/supportReferences/supportReferenceRules';
+import { useManualEntryRecorder } from '@/hooks/useManualEntryRecorder';
+import { createEntryTracker } from '@/services/scanEntry/entryMethod';
+import { noteEntry } from '@/services/scanEntry/lastEntry';
 import type { IdentifierFormat } from '../../types/systemConfig';
 
 interface CaseSearchBarProps {
@@ -54,9 +60,11 @@ function getCaseIdentifierFields(kind: string, c: any): string[] {
     case 'mrn':
       return [
         c.patient?.mrn,
-        c.patient?.nhsNumber,   // NHS England/Wales
-        c.patient?.chiNumber,   // Scottish CHI
-        c.patient?.ihiNumber,   // Australian IHI
+        // Batch 417: the national identifiers (NHS number, CHI, IHI…) live in one list now.
+        ...((c.patient?.nationalIdentifiers ?? []).map((i: { value: string }) => i.value)),
+        c.patient?.nhsNumber,   // demo data from before Batch 417
+        c.patient?.chiNumber,
+        c.patient?.ihiNumber,
         c.patient?.ihi,
       ];
     case 'requisition':
@@ -100,6 +108,8 @@ async function lookupCases(
     // Access control is enforced server-side; the search bar is a
     // clinical lookup tool, not a worklist filter.
     const all: any[] = await caseRouter.listCasesForUser('all');
+    const flagDefs = await flagService.getAll().catch(() => null);
+    const flagDefById = new Map<string, Flag>(flagDefs && flagDefs.ok ? flagDefs.data.map(f => [f.id, f]) : []);
     const hits: CaseHit[] = [];
     const qNorm = q.toUpperCase().replace(/[\s-]/g, '');
 
@@ -116,6 +126,7 @@ async function lookupCases(
               cas.accession?.accessionNumber,
               cas.id,
               cas.patient?.mrn,
+              ...((cas.patient?.nationalIdentifiers ?? []).map((i: { value: string }) => i.value)),
               cas.patient?.nhsNumber,
               cas.patient?.chiNumber,
               cas.patient?.ihiNumber,
@@ -167,9 +178,8 @@ async function lookupCases(
       }
 
       matched = matchScore > 0;
-      // Store match metadata for highlighting
-      if (matched) (cas as any).__matchScore = matchScore;
-      if (matched) (cas as any).__matchedValue = matchedValue;
+      // Batch 756: the match details stay in this hit. They used to be written onto the case itself (the same object
+      // the case service holds), so the report page later found "__match Score" and "__matched Value" as unsaved changes.
 
       if (matched) {
         const dob = cas.patient?.dateOfBirth
@@ -186,11 +196,10 @@ async function lookupCases(
           facilityName:  cas.order?.facilityName ?? '—',
           specimenCount: (cas.specimens ?? []).length,
           assignedTo:    cas.order?.assignedTo ?? '—',
-          flags:         ((cas as any).flags ?? [])
-                           .filter((f: any) => f.tagClass === 'ADMINISTRATIVE' || f.tagClass === 'COMPUTATIONAL')
-                           .slice(0, 4),
-          matchScore:    (cas as any).__matchScore ?? 1,
-          matchedValue:  (cas as any).__matchedValue ?? '',
+          // Batch 436 (PS-101): from caseFlags (it read `flags`, which no case has).
+          flags:         searchHitFlags(cas as { caseFlags?: unknown[] }, flagDefById),
+          matchScore,
+          matchedValue,
         });
       }
     }
@@ -262,10 +271,22 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
   const [hits,       setHits]       = useState<CaseHit[]>([]);
   const [notFound,   setNotFound]   = useState(false);
   const inputRef    = useRef<HTMLInputElement>(null);
-  const navigate    = useNavigate();
+  // PS-128 (Batch 437): opening a case goes through the unsaved-changes guard.
+  const navigate    = useGuardedNavigate();
+  const openCasePage = useOpenCaseGuarded();
 
   const { log } = useAuditLog();
   const { user } = useAuth();
+  // Batch 759 (Patient Verification spec §2.2): a case opened from a typed search (not a scan) gets the Manual Entry
+  // flag, with no extra step.
+  const tracker = useRef(createEntryTracker());
+  const recordManualEntry = useManualEntryRecorder();
+  const noteOpened = useCallback((typed: string, caseAccession?: string) => {
+    const method = tracker.current.method();
+    tracker.current.reset();
+    noteEntry(caseAccession ?? typed, method);
+    if (method === 'manual') void recordManualEntry(typed, { via: 'search', caseAccession });
+  }, [recordManualEntry]);
   // Real, per direct guidance: replaces config.identifierFormats -
   // useEnabledIdentifierFormats() already returns a stable reference
   // (either the module-level IDENTIFIER_FORMAT_LIBRARY, or real React
@@ -292,7 +313,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       setSearching(false);
       if (!found.ok) { setNotFound(true); setTimeout(() => setNotFound(false), 3000); return; }
       setCaseNumber('');
-      navigate(found.data.kind === 'case' ? `/case/${found.data.recordId}/synoptic` : `/audit?supportRef=${found.data.ref}`);
+      if (found.data.kind === 'case') void openCasePage(found.data.recordId); else navigate(`/audit?supportRef=${found.data.ref}`);
       return;
     }
 
@@ -306,7 +327,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       // before ever telling the pathologist the case doesn't exist
       // at all.
       setFetchingFromLis(q);
-      const fetchResult = await mockOnDemandCaseFetchService.fetchCaseByAccession(q);
+      const fetchResult = await onDemandCaseFetchService.fetchCaseByAccession(q);
       setFetchingFromLis(null);
 
       if (fetchResult.ok && fetchResult.data.outcome === 'found') {
@@ -315,7 +336,8 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
         // during that session are instant."
         await caseRouter.createCase(fetchResult.data.caseData);
         log('case_fetched_on_demand_from_lis', { query: q, caseId: fetchResult.data.caseData.id });
-        navigate(`/case/${fetchResult.data.caseData.id}/synoptic`);
+        noteOpened(q, fetchResult.data.caseData.accession?.fullAccession);
+        void openCasePage(fetchResult.data.caseData.id, 'synoptic');
         setCaseNumber('');
         return;
       }
@@ -329,14 +351,15 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
 
     // Auto-navigate if: single result AND (caller says ok OR format is direct-nav e.g. slide barcode)
     if (results.length === 1 && (autoNavOnSingle || autoNav)) {
-      navigate(`/case/${results[0].id}/synoptic`);
+      noteOpened(q, results[0].accession);
+      void openCasePage(results[0].id, 'synoptic');
       setCaseNumber('');
       return;
     }
 
     // Multiple matches or non-direct format — show dropdown
     setHits(results);
-  }, [navigate, activeFormats, log, user]);
+  }, [navigate, openCasePage, activeFormats, log, user, noteOpened]);
 
   // ── Scanner events ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -380,6 +403,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
   useEffect(() => {
     if (isDictating && transcript) {
       setCaseNumber(transcript.toUpperCase().replace(/\s+/g, ''));
+      tracker.current.byHand();
     }
   }, [transcript, isDictating]);
 
@@ -388,6 +412,7 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       resolve(caseNumber.trim(), true);
     }
     if (e.key === 'Escape') {
+      tracker.current.reset();
       setHits([]);
       setNotFound(false);
       setCaseNumber('');
@@ -401,7 +426,8 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
       accession: hit.accession,
       matchedField: hit.matchedValue || undefined,
     });
-    navigate(`/case/${hit.id}/synoptic`);
+    noteOpened(caseNumber, hit.accession);
+    void openCasePage(hit.id, 'synoptic');
     setCaseNumber('');
     setHits([]);
   };
@@ -424,8 +450,9 @@ const CaseSearchBar: React.FC<CaseSearchBarProps> = ({ compact = false }) => {
         type="text"
         data-phi="accession"
         value={caseNumber}
-        onChange={e => { setCaseNumber(e.target.value.toUpperCase()); setHits([]); setNotFound(false); }}
-        onKeyDown={handleKeyDown}
+        onChange={e => { tracker.current.change(caseNumber, e.target.value.toUpperCase()); setCaseNumber(e.target.value.toUpperCase()); setHits([]); setNotFound(false); }}
+        onKeyDown={e => { tracker.current.key(e.key, e.timeStamp); handleKeyDown(e); }}
+        onPaste={() => tracker.current.paste()}
         placeholder={compact ? t('caseSearchBar.placeholderCompact') : t('caseSearchBar.placeholder')}
         aria-label={t('caseSearchBar.ariaLabel')}
         className={inputClass}

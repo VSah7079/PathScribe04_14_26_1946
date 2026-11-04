@@ -8,6 +8,7 @@
 // sign-out) - never a single, overwritable field on Case itself.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { VerbalReportRecipientRole } from '@/types/intraop/IntraoperativeEntry';
 import type { ServiceResult } from '../types';
 import type { CriticalResultNotification, CriticalNotificationTrigger, NotificationMethod } from '@/types/clinical/CriticalResultNotification';
 
@@ -49,5 +50,12 @@ export interface ICriticalResultNotificationService {
     note: string;
     notifiedAt: string;
     notifiedBy: { userId: string; userName: string };
+    /** Batch 399: who actually received it, when recorded (else the session's surgeon). */
+    receivedBy?: string;
+    recipientRole?: VerbalReportRecipientRole;
+    readBackConfirmed?: boolean;
+    /** The pathologist's critical-result decision at the bench. */
+    criticalResult?: boolean;
+    surgeonUnavailable?: { reasonId: string; reasonName: string; note?: string };
   }): Promise<ServiceResult<CriticalResultNotification>>;
 }

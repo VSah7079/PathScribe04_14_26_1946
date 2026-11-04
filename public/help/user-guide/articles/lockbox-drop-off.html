@@ -1,0 +1,409 @@
+<h1 id="top">Lockbox Drop-Off</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Lockbox Drop-Off records specimens that arrive in the laboratory lockbox outside staffed hours. Whoever collects the containers scans each barcode, and PathScribe writes a permanent "Received in Lockbox" receipt with the time and the name of the person who scanned. The morning team then works from the <strong>Overnight folder</strong>, which lists everything received but not yet accessioned.</p>
+<p><strong>Intended users.</strong> Accessioners, histotechnologists and laboratory managers. Scanning a container needs one permission and working the Overnight folder needs another, so your role decides which parts you see.</p>
+<p><strong>Where it fits.</strong> The lockbox sits before <a href="/help/accession">Accession</a>. A container scanned here is only <em>received</em>. Nothing is accessioned and no accession number is made until the morning team logs the case on the Accession screen.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>In this version the receipts, the pending orders that barcodes are matched against, and the "server time" all come from demonstration data held in your browser session. The time stamped on a receipt is your device's clock, and the name is the person signed in. A device-bound kiosk sign-in (a screen that stays signed in for the lockbox) is not built yet. Resetting the demonstration restores a fresh set of example receipts.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/lockbox-drop-off-overview.png" alt="The Lockbox Drop-Off screen on the Drop-Off tab"><figcaption>The Lockbox Drop-Off screen on the Drop-Off tab</figcaption></figure>
+
+<p>The screen is titled <strong>Lockbox Drop-Off</strong>, with the line "Scan each container that arrives in the lockbox. The morning team picks up from the Overnight folder." Below it are one or two tabs. <strong>Drop-Off</strong> is always shown. <strong>Overnight folder</strong> appears only if your role allows reviewing the folder.</p>
+<figure class="ps-ug-figure"><img src="img/lockbox-drop-off-overnight-folder.png" alt="The Overnight folder with the time to receipt summary"><figcaption>The Overnight folder with the time to receipt summary</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Drop-Off tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scan the container barcode</td>
+<td>The large entry box. It keeps the cursor, so you can scan one container after another. Spaces and scanner control characters are removed and letters are made capitals.</td>
+</tr>
+<tr>
+<td>Receive</td>
+<td>Records the scan. Pressing Enter after the scan does the same. It reads "Checking" while PathScribe looks the barcode up.</td>
+</tr>
+<tr>
+<td>Urgent</td>
+<td>A toggle you switch on <em>before</em> you scan, for a container that needs prompt attention. It applies to the next receipt only.</td>
+</tr>
+<tr>
+<td>Callback number (optional)</td>
+<td>Appears when Urgent is on. A telephone number the morning team can ring about this container. It may hold digits, spaces and the characters + ( ) - . # * x, and must be 3 to 24 characters.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Received in Lockbox card</strong> (shown after a scan)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending order found</td>
+<td>The barcode matched an order already waiting in PathScribe.</td>
+</tr>
+<tr>
+<td>Placeholder record kept. No accession number has been made.</td>
+<td>The barcode matched no waiting order, so a placeholder was kept instead.</td>
+</tr>
+<tr>
+<td>Accession number</td>
+<td>For a matched order, the order's accession number.</td>
+</tr>
+<tr>
+<td>Placeholder ID</td>
+<td>For a placeholder, the identifier PathScribe gave it. Note it on the container paperwork if your laboratory asks for that.</td>
+</tr>
+<tr>
+<td>Ordering facility</td>
+<td>The facility on the matched order, or the one you chose or typed for a placeholder. Shows "Not recorded" if none.</td>
+</tr>
+<tr>
+<td>Ordering physician</td>
+<td>Shown only when you chose one for a placeholder.</td>
+</tr>
+<tr>
+<td>Received</td>
+<td>The date and time of the receipt.</td>
+</tr>
+<tr>
+<td>Received by</td>
+<td>The name of the person who scanned.</td>
+</tr>
+<tr>
+<td>Callback number</td>
+<td>Shown only for an urgent drop where you entered one.</td>
+</tr>
+</tbody>
+</table>
+<p>No patient name, date of birth or medical record number is read, shown or stored at the lockbox.</p>
+<p><strong>No pending order for this barcode</strong> (the placeholder form). Every field is optional.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Barcode</td>
+<td>The code you just scanned, shown for checking.</td>
+</tr>
+<tr>
+<td>Ordering client</td>
+<td>Pick the facility from the list, or leave "Not listed or not known".</td>
+</tr>
+<tr>
+<td>Client not in the list (optional)</td>
+<td>Type the facility name when it is not on the list.</td>
+</tr>
+<tr>
+<td>Ordering physician</td>
+<td>Pick from the list, or leave "Not listed or not known".</td>
+</tr>
+<tr>
+<td>Time dropped</td>
+<td>Starts at the current time. Change it only if the container was dropped earlier. It cannot be more than a few minutes in the future or more than seven days ago.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Overnight folder tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Priority</td>
+<td>An <strong>Urgent</strong> badge on urgent drops.</td>
+</tr>
+<tr>
+<td>Accession number or placeholder</td>
+<td>The accession number of a matched order or linked placeholder, or the placeholder ID.</td>
+</tr>
+<tr>
+<td>State</td>
+<td>"Order matched", "Placeholder, not linked", or "Placeholder, linked to an order".</td>
+</tr>
+<tr>
+<td>Ordering facility</td>
+<td>Facility, as recorded at the lockbox.</td>
+</tr>
+<tr>
+<td>Waiting</td>
+<td>How long the container has been in the folder, for example "3 h 20 min" or "1 d 4 h".</td>
+</tr>
+<tr>
+<td>Received</td>
+<td>When the receipt was written.</td>
+</tr>
+<tr>
+<td>Received by</td>
+<td>Who scanned it.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The buttons for that row (see Toolbar).</td>
+</tr>
+</tbody>
+</table>
+<p>The folder lists urgent items first, then the oldest first. When nothing is waiting it says "Nothing is waiting. Every specimen received in the lockbox has been accessioned."</p>
+<p><strong>Time to receipt (QA).</strong> A panel above the table, described as "From the drop in the lockbox to accessioned."</p>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accessioned</td>
+<td>How many lockbox specimens have been accessioned.</td>
+</tr>
+<tr>
+<td>Median, Mean, Longest</td>
+<td>Typical, average and longest time from drop to accessioned.</td>
+</tr>
+<tr>
+<td>Urgent median</td>
+<td>The median for urgent drops only.</td>
+</tr>
+<tr>
+<td>Waiting now</td>
+<td>How many are still in the folder.</td>
+</tr>
+<tr>
+<td>Longest waiting</td>
+<td>The longest current wait.</td>
+</tr>
+</tbody>
+</table>
+<p>"No data yet" appears for a figure that cannot be worked out yet.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drop-Off (tab)</td>
+<td>Shows the scanning screen.</td>
+</tr>
+<tr>
+<td>Overnight folder (tab)</td>
+<td>Shows the morning follow-up list. Only shown if your role allows it.</td>
+</tr>
+<tr>
+<td>Receive</td>
+<td>Records the scanned barcode.</td>
+</tr>
+<tr>
+<td>Urgent</td>
+<td>Marks the next drop urgent.</td>
+</tr>
+<tr>
+<td>Record drop</td>
+<td>In the placeholder form, saves the placeholder receipt.</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>In the placeholder form, discards the scan without recording anything.</td>
+</tr>
+<tr>
+<td>Refresh</td>
+<td>In the Overnight folder, reloads the list and figures.</td>
+</tr>
+<tr>
+<td>Link to order</td>
+<td>On a "Placeholder, not linked" row, opens a small form to type the real order or accession number. Needs a permission of its own.</td>
+</tr>
+<tr>
+<td>Link</td>
+<td>In that form, saves the link. It stays greyed out until you type a number.</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>In that form, closes it without linking.</td>
+</tr>
+<tr>
+<td>Mark accessioned</td>
+<td>On a matched or linked row, closes the receipt as accessioned.</td>
+</tr>
+<tr>
+<td>Open Accession</td>
+<td>On a matched or linked row, opens the <a href="/help/accession">Accession</a> screen with the matched order already imported.</td>
+</tr>
+</tbody>
+</table>
+<p>If a button is greyed out, your role does not allow it; ask your laboratory manager.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Urgent button pressed in</td>
+<td>The next drop will be marked urgent.</td>
+</tr>
+<tr>
+<td>Urgent, high priority</td>
+<td>A badge on the receipt card for an urgent drop.</td>
+</tr>
+<tr>
+<td>Urgent badge and tinted row</td>
+<td>An urgent drop in the Overnight folder.</td>
+</tr>
+<tr>
+<td>Already received</td>
+<td>The barcode was scanned before. The earlier receipt is shown and no new one was made.</td>
+</tr>
+<tr>
+<td>Red message under the scan box</td>
+<td>A problem. See Error recovery.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>On the screen: <strong>Alt+S</strong> puts the cursor in the scan box, <strong>Alt+G</strong> marks the next drop urgent, <strong>Alt+D</strong> shows the Drop-Off tab and <strong>Alt+M</strong> shows the Overnight folder (if your role allows it). To open Lockbox Drop-Off from anywhere, press <strong>Alt+Shift+Z</strong>, or Alt+J and then Shift+Z. The Mark accessioned and Link to order buttons have no key on purpose; you click them.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Receiving a container (after hours)</strong></p>
+<ol>
+<li>Open Lockbox Drop-Off from the Home tile. The cursor is already in <strong>Scan the container barcode</strong>.</li>
+<li>If this container is urgent, select <strong>Urgent</strong> first. A <strong>Callback number (optional)</strong> box appears; enter a number if the sender gave one.</li>
+<li>Scan the container barcode, then press Enter (or select <strong>Receive</strong>). The button reads "Checking" for a moment.</li>
+<li>If the barcode belongs to an order that is already waiting, the <strong>Received in Lockbox</strong> card appears at once with "Pending order found", the accession number, facility, time and your name. Nothing else needs confirming.</li>
+<li>If the barcode matches no waiting order, <strong>No pending order for this barcode</strong> appears. Fill in what you know (all optional) and select <strong>Record drop</strong>. The card then shows "Placeholder record kept. No accession number has been made." with a Placeholder ID.</li>
+<li>The card ends with "Scan the next container." The cursor returns to the scan box. Urgent switches itself off after each receipt.</li>
+</ol>
+<p><strong>Morning follow-up</strong></p>
+<ol>
+<li>Open Lockbox Drop-Off and select the <strong>Overnight folder</strong> tab. The list and the Time to receipt panel load.</li>
+<li>Work from the top: urgent items first, then the longest waiting.</li>
+<li>For a row that says "Order matched", select <strong>Open Accession</strong> and log the case (see the Accession article). When you save a case that was imported from the same order, PathScribe finds the lockbox receipt and marks it accessioned for you.</li>
+<li>If the row was not closed that way, return and select <strong>Mark accessioned</strong>. The row leaves the list and the figures update.</li>
+<li>For a row that says "Placeholder, not linked", find the real order. Select <strong>Link to order</strong>, type the order or accession number under "Real order or accession number", and select <strong>Link</strong>. The row becomes "Placeholder, linked to an order" and the Mark accessioned button is available.</li>
+<li>Select <strong>Refresh</strong> whenever you want the latest list, for example after a colleague has worked on it.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Use the keyboard only: Alt+S to reach the scan box, Alt+G to mark urgent, Enter to receive, Alt+M to check the folder, Alt+D to go back to scanning.</li>
+<li>At the Accession screen you can scan the lockbox container's barcode itself. If it matches a waiting order, the order is imported, and saving the case closes the lockbox receipt automatically.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Barcode already received.</strong> The card is headed "Already received" and says "This barcode was received earlier. The earlier receipt is shown and no new one was made." Check the earlier time and person. Do not scan it again.</li>
+<li><strong>No pending order.</strong> This is normal for urgent or intraoperative containers sent before the order reaches PathScribe. Record a placeholder. It is never given an accession number at the lockbox.</li>
+<li><strong>Container dropped earlier than the scan.</strong> In the placeholder form, change <strong>Time dropped</strong> to the real time.</li>
+<li><strong>Scanned by mistake.</strong> There is no delete. Receipts are permanent. Tell your laboratory manager; do not try to scan it again.</li>
+<li><strong>A placeholder cannot be marked accessioned yet.</strong> Mark accessioned is not offered on an unlinked placeholder. Link it to its order first.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Check the barcode, callback number and time, then try again." The barcode was empty or too long, the callback number is not a valid telephone number, or the time dropped is in the future or more than seven days old. Correct it and try again.</li>
+<li>"You do not have permission to do this." Your role does not allow that action. Ask your laboratory manager.</li>
+<li>"This was already done. Refresh and look again." Someone else acted on the same item first. Select <strong>Refresh</strong>.</li>
+<li>"That receipt was not found. Refresh and try again." Select <strong>Refresh</strong>.</li>
+<li>"This specimen is already marked accessioned." Nothing more is needed.</li>
+<li>"Link this placeholder to its order first, then mark it accessioned." Use <strong>Link to order</strong>.</li>
+<li>"Only a placeholder can be linked to an order." That row already has an order.</li>
+<li>"Something went wrong. Nothing was lost; try again."</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Switching Urgent on <em>after</em> scanning. Urgent is read when the receipt is written, so switch it on first.</li>
+<li>Treating a receipt as an accession. A lockbox receipt only proves the container arrived and when. The case still has to be accessioned.</li>
+<li>Leaving the Time dropped alone for a container that was dropped hours ago, which makes the waiting time too short.</li>
+<li>Typing the wrong number into Link to order. A placeholder can be linked only once and the first link stands.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Keep the cursor in the scan box and scan container after container; the screen returns to it after every receipt.</li>
+<li>Use Alt+S to get back to the scan box after clicking elsewhere.</li>
+<li>The placeholder form needs no typing at all: Record drop with every field blank is accepted.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Begin each morning at the Overnight folder, urgent items first.</li>
+<li>Check the <strong>Time to receipt (QA)</strong> panel at the end of the shift or week; laboratory managers and quality staff can use the median and longest waiting figures to see how fast overnight specimens are picked up.</li>
+<li>Link placeholders as soon as the order arrives so the folder shows what is really outstanding.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/home">Home</a>: the Lockbox Drop-Off tile opens this screen.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: log the case for each container in the Overnight folder.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Overnight folder tab</td>
+<td>Your role may scan containers but not review the folder.</td>
+</tr>
+<tr>
+<td>Mark accessioned or Link to order is greyed out</td>
+<td>Your role does not allow that action.</td>
+</tr>
+<tr>
+<td>Every scan asks for placeholder details</td>
+<td>The order has not reached PathScribe yet, or the barcode is not the order's accession number or a container barcode on it.</td>
+</tr>
+<tr>
+<td>"Already received" on a container you have not scanned</td>
+<td>A colleague scanned it earlier. Read the time and name on the card.</td>
+</tr>
+<tr>
+<td>The row stays in the folder after the case was accessioned</td>
+<td>The case was typed in by hand rather than imported from the order, or your role cannot update the folder. Use Mark accessioned.</td>
+</tr>
+<tr>
+<td>Time looks wrong</td>
+<td>In this version the time comes from your device's clock.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Select <strong>Refresh</strong> on the Overnight folder.</li>
+<li>Check the barcode against the container label and scan it again.</li>
+<li>Confirm the order has reached PathScribe (the Accession screen's "Import from Order" box lists waiting orders).</li>
+<li>Ask your laboratory manager to check that your role allows the action.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a scan fails repeatedly with a valid barcode, when a receipt is missing from the folder, or when times look wrong on a live system. Have the barcode, the time and your name ready.</p>

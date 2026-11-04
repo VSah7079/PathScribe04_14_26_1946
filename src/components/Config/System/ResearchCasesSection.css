@@ -1,0 +1,17 @@
+/* Batch 728: Configuration → System → Research cases & batch purposes (ResearchCasesSection.tsx). Logical properties only. */
+.ps-research-section { display: flex; flex-direction: column; gap: 12px; }
+.ps-research-card { padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+.ps-research-card-title { margin: 0; font-size: 15px; font-weight: 700; }
+.ps-research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 16px; }
+.ps-research-applies-heading { margin: 0; font-size: 13px; font-weight: 600; }
+.ps-research-applies { margin: 0; padding-inline-start: 20px; font-size: 13px; color: var(--ps-text-dim); }
+.ps-research-actions { display: flex; gap: 8px; }
+.ps-research-status { margin: 0; font-size: 13px; color: #34d399; }
+.ps-research-status--error { color: #f87171; padding-inline-start: 18px; }
+.ps-research-purpose-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ps-research-purpose-row { display: flex; align-items: center; gap: 10px; }
+.ps-research-purpose-name { flex: 1; font-size: 14px; }
+.ps-research-purpose-input { flex: 1; }
+.ps-research-purpose-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(148, 163, 184, 0.16); color: var(--ps-text-dim); }
+.ps-research-purpose-active { margin: 0; }
+.ps-research-add-row { display: flex; gap: 8px; }

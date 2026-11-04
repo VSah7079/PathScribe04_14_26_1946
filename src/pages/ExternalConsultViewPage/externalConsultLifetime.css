@@ -1,0 +1,11 @@
+/* Batch 669 (access-11): External Consult, the small banner that says how long the link still works after a signed opinion.
+   Kept out of pathscribe.css, which may not grow. */
+.ps-extconsult-lifetime-banner {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}

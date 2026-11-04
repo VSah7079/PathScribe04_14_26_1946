@@ -1,0 +1,226 @@
+<h1 id="top">Patient Match and Management</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Two Quality Assurance screens look after patient identity. <strong>Patient Match Review</strong> is a queue of new patients whose MRN, name or date of birth only partly matched an existing patient. PathScribe never settles these by itself, because a wrong guess would show one person's history on another person's case. <strong>Patient Management</strong> lets you search for any patient and merge, link or move a case on purpose.</p>
+<p><strong>Intended users.</strong> Quality staff and laboratory managers who are allowed to correct patient identity.</p>
+<p><strong>Where it fits.</strong> Both are tiles on the <strong>Operations</strong> pillar of <strong>Quality Assurance</strong>. Records reach the review queue from <a href="/help/accession">Accession</a>. Every action is recorded in the <a href="/help/audit-log">Audit Log</a>. See also <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-patient-matching-review.png" alt="Patient Match Review with one record, its accession details and a possible match"><figcaption>Patient Match Review with one record, its accession details and a possible match</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Patient Match Review.</strong> Each waiting record is a card.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name, MRN, DOB, Flagged</td>
+<td>The new record and when it was flagged.</td>
+</tr>
+<tr>
+<td>Needs Review</td>
+<td>The status of the card.</td>
+</tr>
+<tr>
+<td>Reason line</td>
+<td>Why PathScribe could not decide.</td>
+</tr>
+<tr>
+<td>From this accession</td>
+<td>The case that created the record: accession number, specimen, "referred by" the requesting provider, "accessioned by" the person and the date. It helps you judge whether two records are one person.</td>
+</tr>
+<tr>
+<td>Possible existing matches</td>
+<td>The existing patients that partly match, each with MRN and date of birth.</td>
+</tr>
+<tr>
+<td>Organisation</td>
+<td>Only for people who may work across organisations. Choose one organisation, or All organisations. Until chosen the screen says to select an organisation, and the box reads "Select an organisation…".</td>
+</tr>
+</tbody>
+</table>
+<p>While the queue opens it says "Loading review queue…". When empty it says nothing is pending review for the organisation.</p>
+<p><strong>Patient Management.</strong> The search box reads "Search by name or MRN…" and finds patients once you have typed two characters. Choose <strong>Select</strong> beside a result. The patient card then shows name, MRN, date of birth, a list of <strong>Real Cases</strong>, and any links: "Same person:" followed by names, and "Family relation:" followed by names. The card also warns about the record's state:</p>
+<table>
+<thead>
+<tr>
+<th>Warning</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>This record was merged into another patient</td>
+<td>You are looking at a retired record; the surviving record is usually the right one.</td>
+</tr>
+<tr>
+<td>Flagged for review</td>
+<td>The record is waiting in the match review queue.</td>
+</tr>
+<tr>
+<td>Downtime/placeholder identity</td>
+<td>The record was created during a downtime and stands in for a real patient.</td>
+</tr>
+</tbody>
+</table>
+<p>If the patient has no cases the list says "No real cases under this identity."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Confirm as new patient</td>
+<td>On a review card. Says this person is genuinely new. The window offers <strong>Confirm as new</strong>.</td>
+</tr>
+<tr>
+<td>Link</td>
+<td>Beside a possible match. Records the two as the same person under a different identity, without merging their cases. The window is <strong>Link patient records</strong>.</td>
+</tr>
+<tr>
+<td>Merge</td>
+<td>Beside a possible match. Moves every case from the new record to the existing patient. The window is <strong>Merge patient records</strong>. It cannot be undone from this screen.</td>
+</tr>
+<tr>
+<td>Merge Into…</td>
+<td>In Patient Management. Merges the selected patient into another.</td>
+</tr>
+<tr>
+<td>Link To…</td>
+<td>In Patient Management. Links the selected patient to another; choose the relationship first.</td>
+</tr>
+<tr>
+<td>Move a Case…</td>
+<td>In Patient Management. Moves one case to another patient. Greyed out when the patient has no cases.</td>
+</tr>
+<tr>
+<td>New Search</td>
+<td>Returns to the search box.</td>
+</tr>
+<tr>
+<td>Continue</td>
+<td>After choosing the target patient. Opens <strong>Confirm Patient Management Action</strong>.</td>
+</tr>
+<tr>
+<td>Export</td>
+<td>On Patient Match Review. Saves the waiting records as a spreadsheet file. Your role must allow it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Amber dot, Needs Review</td>
+<td>Waiting for a decision.</td>
+</tr>
+<tr>
+<td>Green banner after a merge</td>
+<td>Says how many cases were moved to the confirmed patient.</td>
+</tr>
+<tr>
+<td>Relationship: the same real person</td>
+<td>The two records are one person with different names (for example a maiden and married name).</td>
+</tr>
+<tr>
+<td>Relationship: a family relation</td>
+<td>Distinct real people who are related, for example a newborn and mother.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Patient Match Review</strong>. If you may work in several organisations, choose one.</li>
+<li>Read the reason and the <strong>From this accession</strong> details. Compare the possible matches.</li>
+<li>If it is the same person as a listed match, select <strong>Merge</strong> (cases move to the match) or <strong>Link</strong> (both records stay, joined as one person). Read the window and confirm.</li>
+<li>If none is the same person, select <strong>Confirm as new patient</strong>, then <strong>Confirm as new</strong>. The card leaves the queue.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>In <strong>Patient Management</strong>, search by name or MRN and select the patient.</li>
+<li>Choose <strong>Merge Into…</strong>, <strong>Link To…</strong> or <strong>Move a Case…</strong>.</li>
+<li>For a link, choose the relationship. For a move, answer <strong>Which case?</strong>.</li>
+<li>Search for the target. The title asks <strong>Merge into which patient?</strong>, <strong>Link to which patient?</strong> or <strong>Move to which patient?</strong>. Select the person and choose <strong>Continue</strong>.</li>
+<li>The window <strong>Confirm Patient Management Action</strong> states what will happen. Choose <strong>Confirm</strong>.</li>
+<li>A green line reports the result. A merge says how many cases and encounters moved.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>When the target is in a different organisation the confirm window adds a warning, and the action is recorded in the audit log.</li>
+<li>A downtime or placeholder record is retired by the restricted Map Patient tool on the Audit screen, not here. See <a href="/help/audit-log">Audit Log</a>.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>A move that cannot be done shows "⚠ Move failed:" and the reason. Nothing moved. Correct the cause and try again.</li>
+<li>A merge cannot be undone from this screen. If you merged in error, contact support before doing anything else.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Merging two people who only look alike. Use Link, or Confirm as new patient, when unsure.</li>
+<li>Using Merge for a family relation. Relatives stay separate people.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Read the accession details first; they often settle the question.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Clear the queue each day so reports are never filed under a doubtful identity.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: where a partly matching patient is entered.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/audit-log">Audit Log</a>: the record of every merge, link and move.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search finds nobody</td>
+<td>Fewer than two characters, or the patient is in another organisation.</td>
+</tr>
+<tr>
+<td>Move a Case… is greyed out</td>
+<td>The patient has no real cases.</td>
+</tr>
+<tr>
+<td>The queue is empty</td>
+<td>Nothing is waiting in that organisation.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Search by MRN instead of name.</li>
+<li>Check the organisation chosen.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support after any wrong merge, or when a case shows under the wrong patient. Have both patients' MRNs ready.</p>

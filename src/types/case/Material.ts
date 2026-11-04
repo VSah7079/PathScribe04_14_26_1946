@@ -111,7 +111,21 @@ export interface MaterialLocation {
   performedByName?: string;
 }
 
-export type DecantType = 'residual_fluid' | 'cell_block';
+/** Batch 739 (Pete, fluid decision 6): 'aliquot' — a liquid portion set aside for a test (HPV, molecular, flow
+ *  cytometry, microbiology), never embedded; before this every protocol-made portion was stored as a cell block. */
+export type DecantType = 'residual_fluid' | 'cell_block' | 'aliquot';
+
+/** Batch 739: what an aliquot is for. */
+export const ALIQUOT_PURPOSES = ['hpv', 'molecular', 'flow_cytometry', 'microbiology', 'other'] as const;
+export type AliquotPurpose = typeof ALIQUOT_PURPOSES[number];
+
+/** Batch 741 (fluid decision 3): an aliquot's forward-only status, and where it goes. */
+export const ALIQUOT_STATUSES = ['not_sent', 'sent', 'received', 'result_back'] as const;
+export type AliquotStatus = typeof ALIQUOT_STATUSES[number];
+export interface AliquotDestination { kind: 'department' | 'reference_lab'; name: string; facilityId?: string }
+
+/** Batch 741 (fluid decision 2): a specimen divided into aliquots, with the volume accounted for. */
+export interface SpecimenDivision { startingVolumeMl: number; dividedAt: string; dividedByName: string; aliquotIds: string[]; splitMl: number; remainingMl: number }
 
 /** Real, single, shared source for this display mapping — found
  *  duplicated as an inline ternary in three separate places
@@ -122,6 +136,7 @@ export type DecantType = 'residual_fluid' | 'cell_block';
 export const DECANT_TYPE_LABEL: Record<DecantType, string> = {
   cell_block: 'Cell Block',
   residual_fluid: 'Residual Fluid',
+  aliquot: 'Aliquot',
 };
 
 /**
@@ -161,6 +176,27 @@ export interface Decant {
   /** e.g. "D1" — decant's own label sequence, parallel to a block's. */
   label: string;
   decantType: DecantType;
+  /** Batch 739: an aliquot's purpose (only on decantType 'aliquot'). */
+  aliquotPurpose?: AliquotPurpose;
+  /** Batch 740 (fluid decision 1): a cell block handed off from the Cytology Preparation bench to histology, after
+   *  its source and its cassette were both scanned (services/cytology/cellBlockHandoff.ts). The Microtome takes a
+   *  cell block only once this is set. */
+  handoff?: { at: string; byId: string; byName: string; sourceItemId: string; stationId?: string };
+  /** Batch 741 (fluid decisions 2 and 3): an aliquot's volume from a division, where it goes, its status and its
+   *  history, and (at Result back) the receiving department's accession number. */
+  volumeMl?: number;
+  destination?: AliquotDestination;
+  aliquotStatus?: AliquotStatus;
+  aliquotStatusHistory?: { status: AliquotStatus; at: string; byName: string }[];
+  receivingAccession?: string;
+  /** Batch 452: the decant this one was split from, when it wasn't taken
+   *  straight from the specimen (e.g. a cell block made from a residual
+   *  fluid decant). Undefined: taken from the specimen. */
+  parentDecantId?: string;
+  /** Batch 452: billing codes applied to or rejected for this decant's
+   *  stains, the same shape a HistologyBlock keeps (block.coding), so the
+   *  billing review panel can code a decant like a block. */
+  coding?: { cpt?: import('./Specimen').AppliedBlockCode[]; rejectedCpt?: import('./Specimen').AppliedBlockCode[] };
   /** Reuses StainOrder from Specimen.ts directly — a decant's slides
    *  need the exact same real lifecycle a block's slides already have,
    *  not a second, competing status enum. */
@@ -173,7 +209,7 @@ export interface Decant {
    *  lastKnownLocation cache. */
   locationHistory?: MaterialLocation[];
   /**
-   * Real, per PS-284 (Microtomy Workstation)'s own "Specimen Fluid/
+   * Real, per PS-284 (Microtome Workstation)'s own "Specimen Fluid/
    * Decant Panel: Total Volume (mL), Appearance (Clear/Bloody/
    * Turbid), Decant Yield/Pellet Size (Low/Moderate/High)." 100%
    * greenfield — confirmed directly before adding these that Decant

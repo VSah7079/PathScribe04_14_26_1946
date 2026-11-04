@@ -9,7 +9,10 @@
 
 export type ImageAssociationEmbedKind = 'raster_image' | 'pdf_page';
 
-export function resolveImageAssociationEmbedKind(imageUrl: string): ImageAssociationEmbedKind {
+// Batch 742: a file attached through the storage adapter is read through a fresh read link with no extension, so its
+// recorded type decides when it is given.
+export function resolveImageAssociationEmbedKind(imageUrl: string, mimeType?: string): ImageAssociationEmbedKind {
+  if (mimeType) return mimeType === 'application/pdf' ? 'pdf_page' : 'raster_image';
   const path = imageUrl.split('?')[0].split('#')[0].toLowerCase();
   return path.endsWith('.pdf') ? 'pdf_page' : 'raster_image';
 }

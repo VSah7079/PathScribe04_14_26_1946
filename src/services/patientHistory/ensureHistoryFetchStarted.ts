@@ -25,8 +25,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Case } from '@/types/case/Case';
-import { mockPatientHistoryCacheService } from './mockPatientHistoryCacheService';
-import { mockPatientHistoryLisService } from './mockPatientHistoryLisService';
+import { patientHistoryCacheService as mockPatientHistoryCacheService, patientHistoryLisService as mockPatientHistoryLisService } from './patientHistoryInstance';
 
 export async function ensureHistoryFetchStarted(caseData: Case): Promise<void> {
   // Real, per ReportingMode's own contract — Orchestrator-mode cases

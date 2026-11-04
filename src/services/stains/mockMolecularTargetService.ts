@@ -13,6 +13,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult, ID } from '../types';
 import type { IMolecularTargetService } from './IMolecularTargetService';
 import type { MolecularTarget } from '@/types/billing/MolecularBillingRule';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const KEY = 'molecular_targets_v1';
 
@@ -45,7 +46,7 @@ const delay = () => new Promise(r => setTimeout(r, 80));
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockMolecularTargetService: IMolecularTargetService = {
+const molecularTargetServiceUnchecked: IMolecularTargetService = {
   async getAll() {
     await delay();
     return ok(load());
@@ -74,3 +75,8 @@ export const mockMolecularTargetService: IMolecularTargetService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockMolecularTargetService: IMolecularTargetService = guardConfigWrites(molecularTargetServiceUnchecked, [
+  ['config:stain-dictionary:manage', ['add', 'update']],
+]);

@@ -56,8 +56,12 @@ export const DEFAULT_PRINT_PROTOCOL_PORT: Record<PrintProtocol, number> = {
  *  own direct-network default) points to. `port` defaults per
  *  protocol (see DEFAULT_PRINT_PROTOCOL_PORT above) when unset — a
  *  real site pointing at a printer's own factory-default port never
- *  needs to type it in explicitly. */
-export interface PrintDestination {
+ *  needs to type it in explicitly.
+ *
+ *  Batch 553: this is now one of two kinds of destination (see
+ *  PrintDestination below). It is sent from a server process inside
+ *  the hospital's network; from the cloud it can't be reached. */
+export interface NetworkPrintDestination {
   protocol: PrintProtocol;
   ipAddress: string;
   port?: number;
@@ -75,4 +79,31 @@ export interface PrintDestination {
    *  parsed or matched against, purely descriptive (same role as
    *  PrinterProfile.printerId elsewhere in this app). */
   displayName?: string;
+}
+
+/** Batch 553 (SITE_AGENT_API.md §3): a printer on a site agent's list, named
+ *  by the site (the performing-lab facility's id) and the printer's id there.
+ *  The agent holds its address and protocol; the API hands the job to the
+ *  site's agent. */
+export interface AgentPrinterRef {
+  siteId: string;
+  destinationId: string;
+}
+
+export interface AgentPrintDestination {
+  agentPrinter: AgentPrinterRef;
+  /** The printer's name when it was chosen, for lists and the audit trail. */
+  displayName?: string;
+}
+
+/** Where a report print job goes: a site agent's printer (the way that works
+ *  from the cloud), or a printer address sent to directly. */
+export type PrintDestination = NetworkPrintDestination | AgentPrintDestination;
+
+export function isAgentPrintDestination(d: PrintDestination | undefined): d is AgentPrintDestination {
+  return !!d && typeof (d as AgentPrintDestination).agentPrinter === 'object' && (d as AgentPrintDestination).agentPrinter !== null;
+}
+
+export function isNetworkPrintDestination(d: PrintDestination | undefined): d is NetworkPrintDestination {
+  return !!d && !isAgentPrintDestination(d);
 }

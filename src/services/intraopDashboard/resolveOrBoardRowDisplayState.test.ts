@@ -6,7 +6,7 @@ const baseReq = (over: Partial<ActiveIntraopRequest>): ActiveIntraopRequest => (
   sessionId: 's1', locationId: 'loc-1', patientName: 'Jane Roe', mrn: 'MRN-1', surgeon: 'Dr. Patel',
   orNumber: 'OR-1', specimenId: 'sp-1', specimenLabel: 'A', arrivalTimestamp: '2026-01-01T00:00:00.000Z',
   pathologistName: 'Dr. Kim', diagnosisRendered: false, currentWorkflowStep: 'grossing',
-  dismissed: false, tat: { status: 'normal', elapsedMinutes: 0, remainingMinutes: 20 } as any,
+  dismissed: false, urgency: 'STAT', tat: { status: 'normal', elapsedMinutes: 0, remainingMinutes: 20 },
   ...over,
 });
 
@@ -54,7 +54,7 @@ describe('resolveOrBoardRowDisplayState', () => {
   });
 
   it('a real overdue row\'s class reflects its real TAT status', () => {
-    const result = resolveOrBoardRowDisplayState(baseReq({ tat: { status: 'overdue', elapsedMinutes: 25, remainingMinutes: -5 } as any }), '2026-01-01T00:25:00.000Z', false, false);
+    const result = resolveOrBoardRowDisplayState(baseReq({ tat: { status: 'overdue', elapsedMinutes: 25, remainingMinutes: -5 } }), '2026-01-01T00:25:00.000Z', false, false);
     expect(result.rowClass).toContain('ps-orboard-row--overdue');
   });
 });

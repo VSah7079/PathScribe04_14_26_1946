@@ -40,6 +40,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BillingDictionaryEntry } from '@/services/billing/RvuTableVersion';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface AddedThisSession {
   code: string;
@@ -227,7 +228,7 @@ export const CodeSearchModal: React.FC<{
   const renderResult = (entry: BillingDictionaryEntry, deEmphasized: boolean) => (
     <div
       key={entry.code}
-      onClick={() => handlePick(entry.code, entry.description)}
+      {...pressable(() => handlePick(entry.code, entry.description))}
       className={`ps-codesearch-result${deEmphasized ? ' ps-codesearch-result--deemphasized' : ''}`}
     >
       <div className="ps-codesearch-result-code">{entry.code}</div>
@@ -307,7 +308,7 @@ export const CodeSearchModal: React.FC<{
             </>
           ) : value.trim() ? (
             <div
-              onClick={() => handlePick(value.trim(), value.trim())}
+              {...pressable(() => handlePick(value.trim(), value.trim()))}
               className="ps-codesearch-freetext-row"
             >
               {t('codeSearchModal.noVerifiedMatch', { value: value.trim() })}
@@ -330,7 +331,7 @@ export const CodeSearchModal: React.FC<{
               {addedThisSession.map((a, i) => (
                 <div
                   key={i}
-                  onClick={() => onHighlightStain?.(a.stainId)}
+                  {...pressable(() => onHighlightStain?.(a.stainId))}
                   className={`ps-codesearch-session-row${onHighlightStain ? ' ps-codesearch-session-row--clickable' : ''}`}
                 >
                   <span className="ps-codesearch-session-code">{a.code}</span>

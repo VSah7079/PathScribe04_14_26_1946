@@ -21,6 +21,7 @@ import { messageService } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMessaging } from '@/contexts/MessagingContext';
 import { PROTOCOL_REGISTRY } from '@/components/Config/Protocols/protocolShared';
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -263,14 +264,14 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
               <div className="trm-row-2col">
                 <div>
                   <label className="trm-label">{t('templateRequestModal.organLabel')}</label>
-                  <select value={organ} onChange={e => setOrgan(e.target.value)} className="trm-input">
+                  <select aria-label={t('templateRequestModal.organLabel')} value={organ} onChange={e => setOrgan(e.target.value)} className="trm-input">
                     <option value="">{t('templateRequestModal.selectOrganPlaceholder')}</option>
                     {ORGANS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="trm-label">{t('templateRequestModal.standardLabel')}</label>
-                  <select value={standard} onChange={e => setStandard(e.target.value)} className="trm-input">
+                  <select aria-label={t('templateRequestModal.standardLabel')} value={standard} onChange={e => setStandard(e.target.value)} className="trm-input">
                     {STANDARDS.map(s => <option key={s} value={s}>{standardLabel(s)}</option>)}
                   </select>
                 </div>
@@ -279,7 +280,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
               {/* Procedure */}
               <div>
                 <label className="trm-label">{t('templateRequestModal.procedureLabel')}</label>
-                <input
+                <input aria-label={t('templateRequestModal.procedureLabel')}
                   value={procedure}
                   onChange={e => setProcedure(e.target.value)}
                   placeholder={t('templateRequestModal.procedurePlaceholder')}
@@ -290,7 +291,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
               {/* Key fields */}
               <div>
                 <label className="trm-label">{t('templateRequestModal.keyFieldsLabel')}</label>
-                <textarea
+                <textarea aria-label={t('templateRequestModal.keyFieldsLabel')}
                   value={keyFields}
                   onChange={e => setKeyFields(e.target.value)}
                   placeholder={t('templateRequestModal.keyFieldsPlaceholder')}
@@ -308,7 +309,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
                   <span className="trm-optional-label">{t('templateRequestModal.baseTemplateOptional')}</span>
                 </label>
                 <div className="trm-base-wrap">
-                  <input
+                  <input aria-label={t('templateRequestModal.baseTemplateLabel')}
                     value={showBaseList ? baseSearch : (selectedBase?.name ?? '')}
                     onChange={e => { setBaseSearch(e.target.value); setShowBaseList(true); }}
                     onFocus={() => { setShowBaseList(true); setBaseSearch(''); }}
@@ -330,14 +331,13 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
                         return (
                           <div
                             key={p.id}
-                            onClick={() => { setBaseTemplate(p.id); setShowBaseList(false); setBaseSearch(''); }}
+                            {...pressable(() => { setBaseTemplate(p.id); setShowBaseList(false); setBaseSearch(''); })}
                             className={`trm-base-option${active ? ' trm-base-option--active' : ''}`}
-                            style={{ '--trm-option-bg': active ? 'rgba(8,145,178,0.08)' : 'transparent' } as React.CSSProperties}
                           >
                             <div className="trm-base-option-info">
                               <div className="trm-base-option-name" data-phi="name">{p.name}</div>
                               <div className="trm-base-option-meta">
-                                {p.source} · {p.fields} fields · v{p.version}
+                                {t('templateRequestModal.baseOptionMeta', { source: p.source, count: p.fields, version: p.version })}
                               </div>
                             </div>
                             {active && <span className="trm-base-option-check">✓</span>}
@@ -365,12 +365,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
                     return (
                       <label
                         key={u.value}
-                        className="trm-urgency-option"
-                        style={{
-                          '--trm-urgency-border': active ? '#0891b2' : '#334155',
-                          '--trm-urgency-bg':     active ? 'rgba(8,145,178,0.08)' : 'transparent',
-                          '--trm-urgency-color':  active ? '#0891b2' : '#f1f5f9',
-                        } as React.CSSProperties}
+                        className={`trm-urgency-option${active ? ' trm-urgency-option--active' : ''}`}
                       >
                         <input type="radio" value={u.value} checked={active}
                           onChange={() => setUrgency(u.value)} className="trm-urgency-radio" />
@@ -390,7 +385,7 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
                   {t('templateRequestModal.reasonLabel')}{' '}
                   <span className="trm-optional-label">{t('templateRequestModal.reasonOptional')}</span>
                 </label>
-                <input
+                <input aria-label={t('templateRequestModal.reasonLabel')}
                   value={reason}
                   onChange={e => setReason(e.target.value)}
                   placeholder={t('templateRequestModal.reasonPlaceholder')}
@@ -419,11 +414,6 @@ export const TemplateRequestModal: React.FC<TemplateRequestModalProps> = ({ onCl
                 onClick={handleSubmit}
                 disabled={!isValid || submitting}
                 className="trm-submit-btn"
-                style={{
-                  '--trm-submit-bg':     isValid && !submitting ? '#0891b2' : 'rgba(8,145,178,0.2)',
-                  '--trm-submit-color':  isValid && !submitting ? '#fff' : '#94a3b8',
-                  '--trm-submit-cursor': isValid && !submitting ? 'pointer' : 'not-allowed',
-                } as React.CSSProperties}
               >
                 {submitting ? t('templateRequestModal.sending') : t('templateRequestModal.submitRequest')}
               </button>

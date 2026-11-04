@@ -14,11 +14,14 @@ import type { TemplateNode } from '../../types/template';
 import { TemplatePalette }   from './TemplatePalette';
 import { TemplateCanvas, updateNode } from './TemplateCanvas';
 import { TemplateInspector } from './TemplateInspector';
-import { mockReportPartService } from '../../services/reportParts/mockReportPartService';
+
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
+import ConfigRefusalBanner from '../Config/ConfigRefusalBanner';
+import { reportPartService, reportTemplateService, finalTemplatesBrokenByPart } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const svc = mockReportPartService;
+const svc = reportPartService;
 
 // ── Type config ────────────────────────────────────────────────
 
@@ -54,6 +57,8 @@ const PartBuilderPage: React.FC = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
   const [labs, setLabs] = useState<Facility[]>([]);
+  // Batch 609 (#38): Final templates that would have more than one Final Diagnosis field because of this part.
+  const [brokenTemplates, setBrokenTemplates] = useState<{ id: string; name: string; count: number }[]>([]);
   useEffect(() => { getActivePerformingLabs().then(setLabs); }, []);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -92,6 +97,15 @@ const PartBuilderPage: React.FC = () => {
     }, 1000);
     return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
   }, [saveState, part, partId, navigate]);
+
+  // Checked once a change is saved: the Final templates using this part are looked at as stored.
+  useEffect(() => {
+    if (saveState !== 'saved' || !part?.id || partId === 'new') { return; }
+    let live = true;
+    void reportTemplateService.getAll().then(all => (all.ok ? finalTemplatesBrokenByPart(part.id, all.data) : []))
+      .then(list => { if (live) setBrokenTemplates(list); }).catch(() => { if (live) setBrokenTemplates([]); });
+    return () => { live = false; };
+  }, [saveState, part?.id, partId]);
 
   const markUnsaved = useCallback((updated: ReportPart) => {
     setPart(updated);
@@ -132,9 +146,7 @@ const PartBuilderPage: React.FC = () => {
   }
 
   if (loading) return (
-    <div className="ps-partb-loading">
-      {t('partBuilderPage.loadingPart')}
-    </div>
+    <LoadingState label={t('partBuilderPage.loadingPart')} />
   );
 
   if (!part) return (
@@ -147,6 +159,8 @@ const PartBuilderPage: React.FC = () => {
 
   return (
     <div className="ps-partb-root">
+      {/* Batch 428: a refused change names the missing permission. */}
+      <ConfigRefusalBanner />
       {/* ── Topbar ── */}
       <header className="ps-partb-topbar">
         <div className="ps-partb-top-left">
@@ -155,7 +169,7 @@ const PartBuilderPage: React.FC = () => {
             {tc.icon}
           </div>
           <div className="ps-partb-name-block">
-            <input
+            <input aria-label={t('a11y.fields.name')}
               value={part.name}
               onChange={e => markUnsaved({ ...part, name: e.target.value })}
               className="ps-partb-name-input"
@@ -195,6 +209,14 @@ const PartBuilderPage: React.FC = () => {
         </div>
       </header>
 
+      {brokenTemplates.length > 0 && (
+        <div className="ps-partb-warn-banner" role="alert">
+          {brokenTemplates.map(b => (
+            <div key={b.id}>{t('partBuilderPage.finalDiagnosisTooMany', { template: b.name, fields: b.count })}</div>
+          ))}
+        </div>
+      )}
+
       {/* ── Settings panel ── */}
       {metaOpen && (
         <div className="ps-partb-meta-panel">
@@ -210,19 +232,19 @@ const PartBuilderPage: React.FC = () => {
             ))}
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.specialtyLabel')}</div>
-              <input value={part.specialty} onChange={e => markUnsaved({ ...part, specialty: e.target.value })}
+              <input aria-label={t('partBuilderPage.specialtyLabel')} value={part.specialty} onChange={e => markUnsaved({ ...part, specialty: e.target.value })}
                 placeholder={t('partBuilderPage.specialtyPlaceholder')} className="ps-partb-meta-input" />
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.descriptionLabel')}</div>
-              <input value={part.description ?? ''} onChange={e => markUnsaved({ ...part, description: e.target.value })}
+              <input aria-label={t('partBuilderPage.descriptionLabel')} value={part.description ?? ''} onChange={e => markUnsaved({ ...part, description: e.target.value })}
                 placeholder={t('partBuilderPage.descriptionPlaceholder')} className="ps-partb-meta-input" />
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.standardLabel')}</div>
               {/* CAP/RCPath are fixed governing-body vocabulary, kept
                   literal per this app's established convention. */}
-              <select value={part.standard ?? ''} onChange={e => markUnsaved({ ...part, standard: e.target.value as ReportPart['standard'] })}
+              <select aria-label={t('partBuilderPage.standardLabel')} value={part.standard ?? ''} onChange={e => markUnsaved({ ...part, standard: e.target.value as ReportPart['standard'] })}
                 className="ps-partb-meta-select">
                 <option value="">{t('partBuilderPage.standardNone')}</option>
                 <option value="CAP">CAP</option>
@@ -232,7 +254,7 @@ const PartBuilderPage: React.FC = () => {
             </div>
             <div>
               <div className="ps-partb-meta-label">{t('partBuilderPage.performingLabLabel')}</div>
-              <select value={part.performingLabFacilityId ?? ''} onChange={e => markUnsaved({ ...part, performingLabFacilityId: e.target.value || undefined })}
+              <select aria-label={t('partBuilderPage.performingLabLabel')} value={part.performingLabFacilityId ?? ''} onChange={e => markUnsaved({ ...part, performingLabFacilityId: e.target.value || undefined })}
                 className="ps-partb-meta-select">
                 <option value="">{t('partBuilderPage.performingLabGlobalOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

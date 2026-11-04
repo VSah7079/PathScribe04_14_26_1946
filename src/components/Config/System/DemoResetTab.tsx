@@ -1,11 +1,11 @@
 // PathScribe — DemoResetTab
-// Two-level mock data reset for guest testing rounds.
+// Mock data reset for guest testing rounds: the Full Reset clears every
+// tester's demo data and restores the seed (the demo baseline, Batch 455).
+// Batch 455: the "My data only" reset was removed. It re-seeded every LIS
+// case for everyone (not just one hospital) and left the cases' related
+// records stale, so it couldn't be kept.
 //
-//   Full reset    — clears everything, restores seed data for all users
-//   My data only  — clears only data belonging to the current user's hospital,
-//                   preserving other testers' work
-//
-// Both paths require a confirmation step before executing. The reset logic
+// The reset needs a confirmation step before executing. The reset logic
 // lives in services/demoReset/demoReset.ts (Batch 370); the full reset needs
 // the capability config:demo-data:reset.
 
@@ -14,27 +14,22 @@ import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { IS_MOCK_BACKEND, authorizationService } from '@/services/index';
-import { HOSPITAL_MAP, executeUserReset, getCurrentUserId, resetAllDemoData } from '@/services/demoReset/demoReset';
+import { resetAllDemoData } from '@/services/demoReset/demoReset';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import DemoDisplayTokensCard from './DemoDisplayTokensCard';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-type Mode    = 'full' | 'user';
-type UIState = 'idle' | 'confirm-full' | 'confirm-user' | 'done';
+type UIState = 'idle' | 'confirm-full' | 'done';
 
-interface ResetResult { mode: Mode; cleared: string[]; }
+interface ResetResult { cleared: string[]; }
 
 const DemoResetTab: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [uiState,    setUiState]    = useState<UIState>('idle');
   const [result,     setResult]     = useState<ResetResult | null>(null);
-  const [userId,     setUserId]     = useState<string | null>(null);
   const [countdown,  setCountdown]  = useState(3);
-
-  useEffect(() => {
-    setUserId(getCurrentUserId());
-  }, []);
 
   // Countdown before redirect after reset
   useEffect(() => {
@@ -49,30 +44,8 @@ const DemoResetTab: React.FC = () => {
   const handleFullReset = async () => {
     const res = await resetAllDemoData({ authorization: authorizationService });
     if (res.ok === false) { setUiState('idle'); return; }
-    setResult({ mode: 'full', cleared: res.cleared });
+    setResult({ cleared: res.cleared });
     setUiState('done');
-  };
-
-  const handleUserReset = () => {
-    if (!userId) return;
-    const cleared = executeUserReset(userId);
-    setResult({ mode: 'user', cleared });
-    setUiState('done');
-    setCountdown(3);
-  };
-
-  const hospitalId = userId ? HOSPITAL_MAP[userId] : null;
-  // Real demo-account labels — actual names of the real people these
-  // demo hospital accounts belong to (Pete Nimmo, Paul Carter, Amber
-  // Fehrs-Battey, J. Mark Tuthill, Rossana Babakhani). Left in English
-  // as real reference data, same treatment as other real names/
-  // identifiers elsewhere in this sweep.
-  const hospitalLabel: Record<string, string> = {
-    'HOSP-001': 'PathScribe Demo (Pete Nimmo)',
-    'HOSP-MFT': 'Manchester Foundation Trust (Paul Carter)',
-    'HOSP-MPA': 'Midwest Pathology Associates (Amber Fehrs-Battey)',
-    'HOSP-HFHS': 'Henry Ford Health System (J. Mark Tuthill)',
-    'HOSP-RB':    'PathScribe Review (Rossana Babakhani)',
   };
 
   // ── Confirmation dialogs ──────────────────────────────────────────────────
@@ -130,7 +103,7 @@ const DemoResetTab: React.FC = () => {
       <div className="ps-demoreset__page">
         <div className="ps-reset-success">
           <div className="ps-reset-success__title">
-            ✓ {result.mode === 'full' ? t('demoResetTab.done.fullResetComplete') : t('demoResetTab.done.userResetComplete')}
+            ✓ {t('demoResetTab.done.fullResetComplete')}
           </div>
           <p className="ps-demoreset__result-desc">
             {t('demoResetTab.done.summary', { count: result.cleared.length, countdown })}
@@ -154,45 +127,7 @@ const DemoResetTab: React.FC = () => {
         </p>
       </div>
 
-      {/* ── Option 1: My data only ── */}
-      <div className="comp-reset-card comp-reset-card--user">
-        <div className="ps-demoreset__card-row">
-          <div>
-            <div className="comp-reset-card-title">
-              {t('demoResetTab.userCard.title')}
-            </div>
-            <div className="comp-reset-card-desc">
-              {t('demoResetTab.userCard.description')}
-            </div>
-            {hospitalId && (
-              <div className="comp-reset-hospital-label">
-                {t('demoResetTab.userCard.hospitalLabel', { hospital: hospitalLabel[hospitalId] ?? hospitalId })}
-              </div>
-            )}
-          </div>
-          <button
-            className="ps-conf-btn-secondary ps-demoreset__btn--nowrap"
-            disabled={!userId || uiState === 'confirm-full'}
-            onClick={() => { setUiState('confirm-user'); setCountdown(3); }}
-          >
-            {t('demoResetTab.userCard.resetBtn')}
-          </button>
-        </div>
-
-        {uiState === 'confirm-user' && (
-          <ConfirmDialog
-            title={t('demoResetTab.userCard.confirmTitle')}
-            description={t('demoResetTab.userCard.confirmDescription', { hospital: hospitalLabel[hospitalId ?? ''] ?? t('demoResetTab.userCard.yourHospitalFallback') })}
-            warning={t('demoResetTab.userCard.confirmWarning')}
-            confirmLabel={t('demoResetTab.userCard.confirmBtn')}
-            confirmColor="#0891B2"
-            onConfirm={handleUserReset}
-            onCancel={() => setUiState('idle')}
-          />
-        )}
-      </div>
-
-      {/* ── Option 2: Full reset ── */}
+      {/* ── Full reset ── */}
       <div className="comp-reset-card comp-reset-card--full">
         <div className="ps-demoreset__card-row">
           <div>
@@ -208,9 +143,8 @@ const DemoResetTab: React.FC = () => {
           </div>
           <CapabilityButton
             capability="config:demo-data:reset"
-            disabled={uiState === 'confirm-user'}
             onClick={() => setUiState('confirm-full')}
-            className={`ps-demoreset__btn-danger-outline${uiState === 'confirm-user' ? ' ps-demoreset__btn-danger-outline--disabled' : ''}`}
+            className="ps-demoreset__btn-danger-outline"
           >
             {t('demoResetTab.fullCard.resetBtn')}
           </CapabilityButton>
@@ -261,6 +195,8 @@ const DemoResetTab: React.FC = () => {
             </button>
           </div>
         </div>
+        {/* Batch 747 (S8): the wall display and OR Suite tokens for Video 6, issued after each reset and shown once. */}
+        <DemoDisplayTokensCard />
       </div>
 
     </div>

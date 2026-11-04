@@ -9,6 +9,13 @@
       "patientName": "Familienaam, Voornaam"
     }
   },
+  "capabilities": {
+    "items": {
+      "registryLiveRegisterApprove": {
+        "description": "Goedkeuren dat een register overgaat van het testsysteem naar het liveregister, met vermelding van uw hoedanigheid en opnieuw ingevoerde aanmeldgegevens. Live zodra de door het lab vereiste goedkeuringen er zijn. Permanent geauditeerd."
+      }
+    }
+  },
   "clientEditorModal": {
     "general": {
       "addressPlaceholder": "Straat en huisnummer, postcode, gemeente"
@@ -30,6 +37,9 @@
     "fields": {
       "accession": {
         "familyNames": "Familienaam/familienamen"
+      },
+      "staff": {
+        "lastName": "Familienaam"
       }
     }
   },
@@ -39,6 +49,14 @@
   "intraopQueue": {
     "demographicsStep": {
       "patientNameLabel": "Patiëntnaam (Familienaam, Voornaam)"
+    }
+  },
+  "login": {
+    "resetRequest": {
+      "back": "Terug naar aanmelden",
+      "emailLabel": "Uw e-mailadres voor aanmelden",
+      "intro": "Voer het e-mailadres in waarmee u zich aanmeldt. Uw beheerders krijgen direct bericht en kunnen in Personeel een nieuw wachtwoord voor u instellen.",
+      "invalidEmail": "Voer het e-mailadres in waarmee u zich aanmeldt."
     }
   },
   "logoutWarningModal": {
@@ -61,6 +79,25 @@
     },
     "requisitionPrinterProfile": {
       "description": "Dezelfde echte hardwarebridge-keuze als hierboven, voor het multizone aanvraagstickervel (trackingkop plus registratie-, specimen- en cassette-/objectglaasjes-afpelstickers). De positie van elke echte sticker wordt berekend uit echte millimetergeometrie, niet uit geraden coördinaten."
+    }
+  },
+  "registryGoLive": {
+    "approve": "Goedkeuren met mijn aanmeldgegevens",
+    "confirm": {
+      "message": "{{registry}} ontvangt liveresultaten zodra de vereiste goedkeuringen er zijn. Voer uw aanmeldgegevens opnieuw in om goed te keuren."
+    },
+    "outcomes": {
+      "stepUpRefused": "De bevestiging van uw aanmeldgegevens is geweigerd; probeer opnieuw"
+    }
+  },
+  "scopeReference": {
+    "entries": {
+      "mfaPolicy": {
+        "name": "Beleid voor tweefactoraanmelding"
+      },
+      "sessionTimeout": {
+        "name": "Tijd tot afmelden bij inactiviteit"
+      }
     }
   },
   "sessionExpiryWarningModal": {

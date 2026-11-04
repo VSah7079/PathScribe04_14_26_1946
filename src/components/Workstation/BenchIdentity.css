@@ -1,0 +1,6 @@
+/* Batch 759: the Foreign Identifier beside the accession number, and the check after a typed entry. */
+.ps-foreign-id { display: inline-flex; align-items: baseline; gap: 6px; padding: 2px 10px; border-radius: 8px; background: rgba(168, 85, 247, 0.16); border: 1px solid rgba(192, 132, 252, 0.7); color: #e9d5ff; }
+.ps-foreign-id-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #d8b4fe; }
+.ps-foreign-id-value { font-family: monospace; font-size: 14px; }
+.ps-foreign-id-source { font-size: 12px; color: #d8b4fe; }
+.ps-typed-entry-check { margin: 6px 0; padding: 6px 12px; border-radius: 8px; font-size: 13px; background: rgba(56, 189, 248, 0.1); border: 1px dashed rgba(56, 189, 248, 0.6); color: #bae6fd; }

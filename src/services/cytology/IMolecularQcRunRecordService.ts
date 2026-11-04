@@ -32,6 +32,9 @@ export interface MolecularQcRunRecord {
   id: string;
   runDate: string;
   instrumentId: string;
+  /** Batch 608 (#77): where the instrument sits, so the molecular QC reports can be scoped. Absent: lab-wide (enterprise scope only). */
+  organisationId?: string;
+  facilityId?: string;
   /** Real, human-readable commercial assay/platform name — the same
    *  real gap MOL-QA-01 (Phase 70) found no field for anywhere else in
    *  this app; captured here at the run level, where it genuinely

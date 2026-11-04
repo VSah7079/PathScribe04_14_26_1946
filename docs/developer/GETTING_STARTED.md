@@ -7,6 +7,8 @@ This doc is what the root README doesn't cover: conventions, testing
 discipline, and the gotchas that aren't obvious from reading the code
 cold.
 
+> **Handover (Oct 26, 2026):** for what is finished and what remains for the first release, read [`HANDOVER_FIRST_RELEASE.md`](HANDOVER_FIRST_RELEASE.md) first.
+
 ## Read this first
 
 Every folder in `src/` has its own `README.md`. Before touching a
@@ -52,16 +54,13 @@ the index into all of them.
 - **Real errors, not silent failures**. `ConcurrencyConflictError` and
   similar are meant to be thrown and handled visibly, not swallowed.
 
-## TypeScript — a real, deliberate setting worth knowing up front
+## TypeScript — strict mode is on
 
-`tsconfig.json` has `"strict": false`, and every individual strict
-sub-flag (`strictNullChecks`, `noImplicitAny`, `strictFunctionTypes`,
-`strictPropertyInitialization`) is explicitly disabled too, not just
-inherited as off. TypeScript is **not** catching null/undefined or
-implicit-`any` issues in this codebase — don't assume it is.
-`noUnusedLocals`/`noUnusedParameters` **are** enabled, and are real
-checks worth running (`npm run type-check`) — they catch a
-surprising amount on their own.
+Since Batch 511 (PS-478), `tsconfig.json` has `"strict": true`: `strictNullChecks`, `noImplicitAny`, `strictFunctionTypes` and the rest of the strict family are all enforced, and no file is excluded from the check. `noUnusedLocals` and `noUnusedParameters` are on too. Only `noImplicitReturns` stays off: it isn't part of `strict`, and it would flag the ordinary React effect that returns a cleanup in one branch only.
+
+`src/services/typeSafety/strictTsconfig.guard.test.ts` fails if a strict flag is switched back off or a file is excluded. Plain `.mjs` scripts imported by tests carry a sibling `.d.mts` declaration file (for example `scripts/remove-deleted-files.d.mts`).
+
+*Before Batch 511 this section said strict mode was off and TypeScript caught no null/undefined or implicit-`any` issues. That was true then and is no longer.*
 
 ## Testing
 
@@ -95,15 +94,20 @@ this project has established, working patterns for each.
 
 ## Real, known gaps worth knowing about before you hit them
 
-- **Concurrency control exists but isn't universal** — most save paths
-  correctly pass a version for conflict detection; a few don't. See
-  `docs/architecture/SYSTEM_ARCHITECTURE.md` and Jira PS-71.
-- **Two `ServiceResult` conventions coexist** — an older
-  `{success, data, error}` shape (the `aiIntegration/` subsystem only)
-  and a newer `{ok, data, meta, error}` shape (everything else).
-  Jira PS-67.
+The running release-scope list is `docs/product/KNOWN_GAPS.md` (Batch 593); this section is the developer's short version.
+
+- **Case saves carry their version** — since Batch 458 (PS-71) every
+  case save goes through `src/services/cases/caseWrite.ts` with the
+  version it was built from, and `caseWriteVersion.guard.test.ts` fails
+  on any case save without one. That guard covers cases only, not other
+  kinds of record. See `docs/architecture/CASE_API.md`.
+- **One `ServiceResult` shape** — `{ ok, data, meta? } | { ok: false, error }`
+  from `src/services/types.ts`. The older `{success, data, error}` shape
+  in `aiIntegration/` was retired in Batch 348 (PS-67).
 - **Bug/gap tracking lives in Jira**, project key `PS`
   (`formedrixai.atlassian.net`) — not in a markdown file in this repo.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): PS-71 versioned case saves (Batch 458) and the PS-67 single ServiceResult shape (Batch 348) are done, no longer gaps.*
 
 ## Where to go next
 

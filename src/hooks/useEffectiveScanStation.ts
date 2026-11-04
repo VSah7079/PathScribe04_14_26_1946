@@ -20,18 +20,22 @@
 
 import { useCurrentScanStation } from './useCurrentScanStation';
 import { useAuth } from '@/contexts/AuthContext';
+import { isStationUnavailable } from '@/services/scanStations/stationAvailability';
 
 export function useEffectiveScanStation() {
-  const { stationId: deviceStationId, setStationId, hasBeenPrompted, markPrompted } = useCurrentScanStation();
+  const { stationId: deviceStationId, unavailableStationId, setStationId, hasBeenPrompted, markPrompted } = useCurrentScanStation();
   const { user } = useAuth();
 
   // Real fallback chain: the device's own, explicitly-set station
   // always wins (Traditional/Fixed mode) — falls back to the logged-
   // in user's own profile default only when the device has never
   // been explicitly configured at all.
-  const effectiveStationId = deviceStationId ?? user?.defaultScanStationId ?? null;
+  // Batch 713: a user default in a facility the user may not use is skipped too
+  // (the device's own station is already masked by useCurrentScanStation).
+  const userDefault = user?.defaultScanStationId && !isStationUnavailable(user.defaultScanStationId) ? user.defaultScanStationId : null;
+  const effectiveStationId = deviceStationId ?? userDefault ?? null;
   const isDeviceLocked = !!deviceStationId;
-  const isUserDefault = !deviceStationId && !!user?.defaultScanStationId;
+  const isUserDefault = !deviceStationId && !!userDefault;
 
-  return { effectiveStationId, deviceStationId, isDeviceLocked, isUserDefault, setStationId, hasBeenPrompted, markPrompted };
+  return { effectiveStationId, deviceStationId, unavailableStationId, isDeviceLocked, isUserDefault, setStationId, hasBeenPrompted, markPrompted };
 }

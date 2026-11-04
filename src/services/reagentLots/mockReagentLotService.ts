@@ -2,6 +2,9 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReagentLot, IReagentLotService } from './IReagentLotService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
+import { withMissingSeedRecords } from '../mockSeedMerge';
 
 const STORAGE_KEY = 'reagent_lots';
 
@@ -13,11 +16,11 @@ const STORAGE_KEY = 'reagent_lots';
 // the seed and finds nothing gates it.
 const REAGENT_LOT_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_reagent_lots_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(VERSION_KEY) !== REAGENT_LOT_VERSION) {
-      localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-      localStorage.setItem(VERSION_KEY, REAGENT_LOT_VERSION);
+    if (dataStorage.getItem(VERSION_KEY) !== REAGENT_LOT_VERSION) {
+      dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+      dataStorage.setItem(VERSION_KEY, REAGENT_LOT_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }
@@ -27,6 +30,22 @@ if (typeof localStorage !== 'undefined') {
 // closed RoutineStainComponentType set for H&E line reagents that
 // have no orderable StainType of their own — see this module's own
 // IReagentLotService.ts header for the full reasoning on the split.
+
+const DAY_MS = 86_400_000;
+const dayFromNow = (d: number) => new Date(Date.now() + d * DAY_MS).toISOString().slice(0, 10);
+const dayAgoIso = (d: number) => new Date(Date.now() - d * DAY_MS).toISOString();
+function molecularDemoLots(): ReagentLot[] {
+  const lot = (id: string, stainTypeId: string, lotNumber: string, expiresInDays: number, vendor: string, qcStatus: ReagentLot['qcStatus'], status: ReagentLot['status'], receivedDaysAgo: number): ReagentLot =>
+    ({ id, stainTypeId, lotNumber, expirationDate: dayFromNow(expiresInDays), vendor, qcStatus, status, performingLabFacilityId: 'c-ent-dvmc', receivedDate: dayAgoIso(receivedDaysAgo).slice(0, 10), createdAt: dayAgoIso(receivedDaysAgo), createdBy: 'system' });
+  return [
+    { ...lot('lot-mol-hpv-9310', 'st-hpv-highrisk-screen', 'MM-2026-9310', 150, 'Hologic', 'Passed', 'Active', 21), performingLabFacilityId: 'c-fenwick-general' },
+    lot('lot-mol-egfr-26104', 'st-egfr-pcr', 'EGFR-MM-26104', 110, 'Thermo Fisher', 'Passed', 'Active', 14),
+    lot('lot-mol-egfr-26041', 'st-egfr-pcr', 'EGFR-MM-26041', -12, 'Thermo Fisher', 'Passed', 'Active', 160),
+    lot('lot-mol-kras-26102', 'st-kras-pcr', 'KRAS-MM-26102', 110, 'Thermo Fisher', 'Passed', 'Active', 10),
+    lot('lot-mol-kras-26087', 'st-kras-pcr', 'KRAS-MM-26087', 60, 'Thermo Fisher', 'Failed', 'Inactive', 30),
+  ];
+}
+
 const SEED_REAGENT_LOTS: ReagentLot[] = [
   // ── IHC antibody lots ──────────────────────────────────────────────
   { id: 'lot-ki67-2601', stainTypeId: 'st-ki67', lotNumber: 'KI67-24601A', expirationDate: '2027-03-31', vendor: 'Ventana', qcStatus: 'Passed', status: 'Active', receivedDate: '2026-08-01', createdAt: '2026-08-01T09:00:00.000Z', createdBy: 'system' },
@@ -42,12 +61,22 @@ const SEED_REAGENT_LOTS: ReagentLot[] = [
   { id: 'lot-he-hematoxylin-0326', routineComponentType: 'HEMATOXYLIN', lotNumber: 'HTX-0326', expirationDate: '2027-01-31', qcStatus: 'Passed', status: 'Active', receivedDate: '2026-08-01', createdAt: '2026-08-01T09:00:00.000Z', createdBy: 'system' },
   { id: 'lot-he-eosin-0412', routineComponentType: 'EOSIN', lotNumber: 'EOS-0412', expirationDate: '2027-01-31', qcStatus: 'Passed', status: 'Active', receivedDate: '2026-08-01', createdAt: '2026-08-01T09:00:00.000Z', createdBy: 'system' },
   { id: 'lot-he-bluing-0215', routineComponentType: 'BLUING_REAGENT', lotNumber: 'BLU-0215', expirationDate: '2026-12-31', qcStatus: 'Passed', status: 'Active', receivedDate: '2026-07-01', createdAt: '2026-07-01T09:00:00.000Z', createdBy: 'system' },
+  // ── Molecular kit lots (Batch 746, seed row S7) ─────────────────────
+  // Dates relative to today. The runs in services/molecular/molecularRunHistoryDemoSeed.ts record these lot numbers. The
+  // expired EGFR lot and the KRAS lot that failed QC (after the KRAS run whose no-template control amplified) are the two
+  // a plate must not use.
+  ...molecularDemoLots(),
 ];
 
-const load    = (): ReagentLot[] => storageGet<ReagentLot[]>(STORAGE_KEY, SEED_REAGENT_LOTS);
+// Batch 746: a seed lot missing from storage (the molecular lots) is added; lots are deactivated, never deleted.
+const load = (): ReagentLot[] => {
+  const { records, added } = withMissingSeedRecords(storageGet<ReagentLot[] | null>(STORAGE_KEY, null), SEED_REAGENT_LOTS);
+  if (added > 0) storageSet(STORAGE_KEY, records);
+  return records;
+};
 const persist = (data: ReagentLot[]) => storageSet(STORAGE_KEY, data);
 
-export const mockReagentLotService: IReagentLotService = {
+const reagentLotServiceUnchecked: IReagentLotService = {
   async getAll(): Promise<ServiceResult<ReagentLot[]>> {
     return { ok: true, data: load() };
   },
@@ -90,10 +119,15 @@ export const mockReagentLotService: IReagentLotService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<ReagentLot>> {
-    return mockReagentLotService.update(id, { status: 'Inactive' });
+    return reagentLotServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<ReagentLot>> {
-    return mockReagentLotService.update(id, { status: 'Active' });
+    return reagentLotServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReagentLotService: IReagentLotService = guardConfigWrites(reagentLotServiceUnchecked, [
+  ['config:reagent-lots:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

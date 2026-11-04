@@ -1,3 +1,4 @@
+import { caseAddresses } from '@/services';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
@@ -9,7 +10,17 @@ import { PoolClaimModal } from '@/components/Worklist/PoolClaimModal';
 import EMRSidecarDrawer from './EMRSidecarDrawer';
 import { useCompanionWindow } from '@/hooks/useCompanionWindow';
 import { resolveIsFinalStatus } from '@/services/reportTemplates/TemplateRoutingService';
-import { reportReleaseService } from '@/services';
+import { type FollowUpMarkOffer } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { bottomBarVisibility } from '@/services/reports/bottomBarActions';
+import { useBottomBarActionEvents } from '../hooks/useBottomBarActionEvents';
+import { useRevisionReleaseAvailability } from '../hooks/useRevisionReleaseAvailability';
+import { useCaseAttachmentCount } from '@/hooks/useCaseAttachments';
+import { revisionEntryDisabledTitle } from '@/services/reports/revisionReleaseCapability';
+import './BottomActionBar.css';
+import { formatDate } from '@/utils/formatDate';
 
 
 interface BottomActionBarProps {
@@ -20,6 +31,8 @@ interface BottomActionBarProps {
   onFinalize: () => void;
   onFinalizeAndNext: () => void;
   onSignOut: () => void;
+  /** Batch 664: Orchestration's Sign Out and Next (arms the move to the next case, then signs out as Sign Out Case does). */
+  onSignOutAndNext?: () => void;
   /** Real, per direct research and design recommendation ("Provide a
    *  Manual Trigger... 'Release as Preliminary' button... at any point
    *  before final verification") — the manual pathologist action
@@ -35,6 +48,11 @@ interface BottomActionBarProps {
    *  correction or addition on demand. Shown in the same slot Sign Out
    *  occupies before finalization — mutually exclusive with it. */
   onRequestAmendment?: () => void;
+  /** Batch 459: after sign-out, mark the case "follow-up specimen expected"
+   *  (case:follow-up:expect), or show the existing mark. The page loads the
+   *  offer from loadFollowUpMarkOffer; this bar only renders it. */
+  followUpOffer?: FollowUpMarkOffer;
+  onMarkFollowUp?: () => void;
   /** CoPilot-specific print action — Orchestration's print button lives
    *  inside the full report preview panel, which is Orchestration-only
    *  (relies on narrative sections that don't exist for CoPilot). This
@@ -48,10 +66,20 @@ interface BottomActionBarProps {
    *  only, inside MaterialTreePanel.tsx); now global and always
    *  available here, alongside Save Draft/Finalize. */
   onOpenReprints?: () => void;
+  /** Batch 609 (PS-44): opens the Attach images screen (images printed after the report's pages). */
+  onAttachImages?: () => void;
   
   onDelegate?: () => void;
   onHistory?: () => void;
   onFlags?: () => void;
+  /** Batch 492: the real, clickable entry point for "Flag for Tumor Board /
+   *  MDT" (case:tumor-board:flag) — until now, `showFlagForMdtModal` in
+   *  SynopticReportPage.tsx was only ever set by the 'delegation.tumorBoard'
+   *  voice/keyboard action, with no button anywhere that opened it. Gated
+   *  with CapabilityButton (not plain ActionButton, unlike Delegate/Flags/
+   *  Team/Codes) because this maps to exactly one capability, not a modal
+   *  offering several actions of its own. */
+  onFlagForMdt?: () => void;
   onCodes?: () => void;
   onTeam?: () => void;
   onNextCase: () => void;
@@ -118,15 +146,20 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onSaveAndNext,
   onFinalize,
   onFinalizeAndNext,
+  onSignOutAndNext,
   onSignOut,
   onReleasePreliminary,
   onRequestAmendment,
+  followUpOffer,
+  onMarkFollowUp,
   onPrint,
   onOpenReprints,
+  onAttachImages,
   
   onDelegate,
   onHistory,
   onFlags,
+  onFlagForMdt,
   onCodes,
   onTeam,
   onNextCase,
@@ -137,7 +170,10 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   onGrossComplete,
   synopticFitPending = false,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { availability: revisionAvailability } = useRevisionReleaseAvailability(caseData);
+  // Batch 742: the case's Attachments badge counts its photos, files and links.
+  const attachmentCount = useCaseAttachmentCount(caseData, caseData?.id, caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -194,34 +230,12 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   const isFinalized = status === 'finalized';
   const isPool = status === 'pool';
 
-  // Real feature, per direct specification: Post-Sign-Out Release
-  // Buffer, Phase 3 (spec §14 — hardcopy printing restricted by default
-  // during the buffer window; an operator can override, but the printed
-  // PDF still carries the watermark when they do — see
-  // LeftReportPanel.tsx's own real, on-screen watermark for the
-  // display-side half of this same requirement).
-  //
-  // Real, honest scope note: this gate covers the one print entry
-  // point in this file (CoPilot/'assist' mode's own Print button,
-  // below). Orchestration mode's separate print entry point (inside
-  // the full report preview panel — a genuinely different component,
-  // not duplicated here) is NOT yet gated — a known, real gap, not a
-  // silent omission.
+  // Batch 654: printing a report that is still in its release delay follows the Release Hold Print
+  // Policy (allow, warn, supervisor, block). The decision is made where the print happens
+  // (services/printing planReportPrint, in the report view and the Orchestration preview), so this
+  // button only opens the view; viewing is never restricted.
   const isPendingRelease = status === 'pending-release';
-  const [printRestricted, setPrintRestricted] = useState(false);
-  useEffect(() => {
-    if (!isPendingRelease) return;
-    reportReleaseService.getOrgDefault().then(res => {
-      if (res.ok) setPrintRestricted(res.data.restrictHardcopyPrinting);
-    });
-  }, [isPendingRelease]);
-  const handlePrintClick = () => {
-    if (isPendingRelease && printRestricted) {
-      const proceed = window.confirm(t('bottomActionBar.print.confirmRestricted'));
-      if (!proceed) return;
-    }
-    onPrint?.();
-  };
+  const handlePrintClick = () => { onPrint?.(); };
 
   // Safety requirement: never let a stale patient's EMR keep showing
   // after the case changes. If a real companion window is currently
@@ -230,16 +244,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   // otherwise just close the embedded drawer fallback, which is safe by
   // construction (see EMRSidecarDrawer.tsx's key={patientId}).
   useEffect(() => {
-    if (isEmrWindowOpen) {
-      const mrn = caseData?.patient?.mrn ?? '100004';
-      openCompanion(`${window.location.origin}/mock-emr?patientId=${mrn}`);
+    if (isEmrWindowOpen && caseData?.id) {
+      // Batch 446: addressed by the case reference, never the MRN.
+      void caseAddresses.addressOf(caseData.id, 'emr').then(address => { if (address) openCompanion(`${window.location.origin}${address}`); });
     }
     setEmrOpen(false);
   }, [caseData?.id, caseData?.patient?.mrn, isEmrWindowOpen, openCompanion]);
 
   const handleLaunchEMR = async () => {
-    const mrn = caseData?.patient?.mrn ?? '100004';
-    const targetUrl = `${window.location.origin}/mock-emr?patientId=${mrn}`;
+    const address = caseData?.id ? await caseAddresses.addressOf(caseData.id, 'emr') : null;
+    if (!address) { setEmrOpen(true); return; }
+    const targetUrl = `${window.location.origin}${address}`;
     // Dev-only testing shortcut: append ?forceEmrFallback=1 to the URL
     // to skip straight to the embedded drawer without even attempting
     // openCompanion(). Useful for quickly iterating on the drawer's UI
@@ -271,6 +286,16 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   // for a case still sitting at the PA bench.
   const hasUnfinishedGrossing = (caseData?.grossingReports ?? []).some((g: any) => g.status === 'draft');
   const showGrossComplete = !isPool && !isFinalized && hasUnfinishedGrossing;
+  // Batch 650: one decision draws these buttons and answers their voice / keyboard commands (services/reports/bottomBarActions.ts).
+  const vis = bottomBarVisibility({ status, reportingMode: caseData?.reportingMode, allFinalized, hasUnfinishedGrossing });
+  const { decide } = useCapabilities();
+  useBottomBarActionEvents({
+    state: { status, reportingMode: caseData?.reportingMode, allFinalized, hasUnfinishedGrossing },
+    synopticFitPending,
+    signOutAllowed: !!decide('surgical:report:sign-out', { caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null })?.allowed,
+    revisionAny: revisionAvailability.any,
+    handlers: { signOutCase: onSignOut, signOutAndNext: onSignOutAndNext, finalize: onFinalize, finalizeAndNext: onFinalizeAndNext, requestAmendment: onRequestAmendment, history: onHistory, codes: onCodes },
+  });
   // Dynamic label/icon: "Update Gross" if any of the draft instances about
   // to be finalized were previously finalized before (i.e. this is a
   // correction, not a first pass) — previouslyFinalized survives the
@@ -311,6 +336,17 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <ActionButton onClick={() => setConsultOpen(true)} variant="outline" color="#f87171" title={t('bottomActionBar.actions.consultTitle')}>🌐 {t('bottomActionBar.actions.consultLabel')}</ActionButton>
             <ActionButton onClick={() => onHistory?.()} variant="outline" color="#0891B2">📋 {t('bottomActionBar.actions.historyLabel')}</ActionButton>
             <ActionButton onClick={() => onFlags?.()} variant="outline" color="#f59e0b">🚩 {t('bottomActionBar.actions.flagsLabel')}</ActionButton>
+            {onFlagForMdt && (
+              <CapabilityButton
+                capability="case:tumor-board:flag"
+                context={{ caseId: caseData?.id ?? null }}
+                className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--flag-mdt"
+                title={t('bottomActionBar.actions.flagForMdtTitle')}
+                onClick={onFlagForMdt}
+              >
+                ⚕️ {t('bottomActionBar.actions.flagForMdtLabel')}
+              </CapabilityButton>
+            )}
             <ActionButton onClick={() => onCodes?.()} variant="outline" color={codesColor}># {t('bottomActionBar.actions.codesLabel')}</ActionButton>
           </>}
         </div>
@@ -348,11 +384,25 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
             <Divider />
           </>
         )}
+        {/* Batch 609 (PS-44): attach images to the report; greyed without report:case-images:attach.
+            Batch 742: the case's Attachments badge, "Attachments (n)" or "Add Attachments", opens the Attachments window. */}
+        {onAttachImages && !isPool && (
+          <CapabilityButton
+            capability="report:case-images:attach"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline"
+            title={t('bottomActionBar.attachments.title')}
+            onClick={onAttachImages}
+          >
+            📎 {attachmentCount > 0 ? t('bottomActionBar.attachments.label', { number: attachmentCount }) : t('bottomActionBar.attachments.add')}
+          </CapabilityButton>
+        )}
         {/* Pool case — show Claim button only */}
         {isPool && (
-          <ActionButton onClick={() => setClaimOpen(true)} variant="solid" color="#6366f1" hoverColor="#4f46e5">
+          // Batch 649: greyed without case:pool:claim (acceptPoolCase checks it again).
+          <CapabilityButton capability="case:pool:claim" context={{ caseId: caseData?.id ?? null }} className="ps-bab-action-btn ps-bab-action-btn--solid ps-bab-action-btn--claim" onClick={() => setClaimOpen(true)}>
             ✋ {t('bottomActionBar.pool.claimLabel')}
-          </ActionButton>
+          </CapabilityButton>
         )}
 
         {/* Stage 1 — grossing still in progress: Gross Complete plus a real
@@ -415,31 +465,32 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
                 Finalize has no remaining real purpose there. Stays real
                 and active for Assist Mode's own distinct handoff to the
                 external LIS, unaffected by any of this. */}
-            {caseData?.reportingMode === 'assist' && (
+            {vis.finalize && (
               <>
                 <Divider />
-                <ActionButton
+                {/* Batch 649: greyed without surgical:report:sign-out (authorizeSurgicalSignOut checks it again). */}
+                <CapabilityButton
+                  capability="surgical:report:sign-out"
+                  context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+                  className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--finalize"
                   onClick={onFinalize}
-                  variant="outline"
-                  color="#34d399"
                   disabled={synopticFitPending}
-                  title={synopticFitPending
-                    ? t('bottomActionBar.common.synopticPendingTitle')
-                    : t('bottomActionBar.report.finalizeTitle')}
+                  disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+                  title={t('bottomActionBar.report.finalizeTitle')}
                 >
                   🔒 {t('bottomActionBar.report.finalizeLabel')}
-                </ActionButton>
-                <ActionButton
+                </CapabilityButton>
+                <CapabilityButton
+                  capability="surgical:report:sign-out"
+                  context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+                  className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--finalize"
                   onClick={onFinalizeAndNext}
-                  variant="outline"
-                  color="#34d399"
                   disabled={synopticFitPending}
-                  title={synopticFitPending
-                    ? t('bottomActionBar.common.synopticPendingTitle')
-                    : t('bottomActionBar.report.finalizeNextTitle')}
+                  disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+                  title={t('bottomActionBar.report.finalizeNextTitle')}
                 >
                   🔒 {t('bottomActionBar.report.finalizeNextLabel')}
-                </ActionButton>
+                </CapabilityButton>
               </>
             )}
           </>
@@ -453,16 +504,18 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           // bone marrow case, the transplant kidney showing acute
           // rejection) — requiring the case to already be complete
           // first would defeat it entirely.
-          <ActionButton
+          // Batch 649: greyed without surgical:preliminary:release (releasePreliminaryReport checks it again).
+          <CapabilityButton
+            capability="surgical:preliminary:release"
+            context={{ caseId: caseData?.id ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--prelim"
             onClick={onReleasePreliminary}
-            variant="outline"
-            color="#c026d3"
             title={t('bottomActionBar.release.preliminaryTitle')}
           >
             📤 {t('bottomActionBar.release.preliminaryLabel')}
-          </ActionButton>
+          </CapabilityButton>
         )}
-        {!isPool && caseData?.reportingMode !== 'assist' && (allFinalized || isFinalized) && status !== 'finalized' &&
+        {vis.signOutCase &&
           // Real, critical fix, per direct specification: Post-Sign-Out
           // Release Buffer. A real, serious bug found during a
           // post-delivery gap review: this button calls onSignOut →
@@ -478,17 +531,32 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           // a real, externally-dispatchable report version while
           // completely bypassing the very buffer the pathologist might
           // still be relying on to recall and correct their report.
-          status !== 'pending-release' && (
-          <ActionButton
+          (
+          // Batch 649: greyed without surgical:report:sign-out (authorizeSurgicalSignOut checks it again).
+          <CapabilityButton
+            capability="surgical:report:sign-out"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--solid ps-bab-action-btn--sign-out"
             onClick={onSignOut}
-            variant="solid"
-            color="#047857"
-            hoverColor="#065f46"
             disabled={synopticFitPending}
-            title={synopticFitPending ? t('bottomActionBar.common.synopticPendingTitle') : undefined}
+            disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
           >
             ✍️ {t('bottomActionBar.signOut.label')}
-          </ActionButton>
+          </CapabilityButton>
+        )}
+        {vis.signOutAndNext && onSignOutAndNext && (
+          // Batch 664 (Pete): the same sign-out (checks, signature window), then the next case in the queue.
+          <CapabilityButton
+            capability="surgical:report:sign-out"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--sign-out"
+            onClick={onSignOutAndNext}
+            disabled={synopticFitPending}
+            disabledTitle={t('bottomActionBar.common.synopticPendingTitle')}
+            title={t('bottomActionBar.signOut.nextTitle')}
+          >
+            ✍️ {t('bottomActionBar.signOut.nextLabel')} →
+          </CapabilityButton>
         )}
         {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized) && (
           <span className="ps-bab-assist-complete" title={t('bottomActionBar.assistComplete.title')}>
@@ -496,19 +564,44 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
           </span>
         )}
         {!isPool && caseData?.reportingMode === 'assist' && (allFinalized || isFinalized || isPendingRelease) && onPrint && (
-          <ActionButton onClick={handlePrintClick} variant="outline" color="#0891B2" title={isPendingRelease ? t('bottomActionBar.print.restrictedTitle') : t('bottomActionBar.print.normalTitle')}>
+          // Batch 495 (PS-283 §4.2.4): greyed without report:case-report:print;
+          // the print itself is checked in services/printing/reportPrintGate.ts.
+          <CapabilityButton
+            capability="report:case-report:print"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--print"
+            title={isPendingRelease ? t('bottomActionBar.print.restrictedTitle') : t('bottomActionBar.print.normalTitle')}
+            onClick={handlePrintClick}
+          >
             🖨 {t('bottomActionBar.print.label')}
-          </ActionButton>
+          </CapabilityButton>
         )}
-        {status === 'finalized' && onRequestAmendment && (
+        {vis.requestAmendment && onRequestAmendment && (
           <ActionButton
             onClick={onRequestAmendment}
             variant="outline"
             color="#d97706"
-            title={t('bottomActionBar.amendment.title')}
+            disabled={!revisionAvailability.any}
+            title={revisionEntryDisabledTitle(revisionAvailability) ?? t('bottomActionBar.amendment.title')}
           >
             ✏️ {t('bottomActionBar.amendment.label')}
           </ActionButton>
+        )}
+        {followUpOffer?.kind === 'offer' && onMarkFollowUp && (
+          <CapabilityButton
+            capability="case:follow-up:expect"
+            context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }}
+            className="ps-bab-action-btn ps-bab-action-btn--outline ps-bab-action-btn--follow-up"
+            title={t('bottomActionBar.followUp.markTitle')}
+            onClick={onMarkFollowUp}
+          >
+            🔁 {t('bottomActionBar.followUp.markLabel')}
+          </CapabilityButton>
+        )}
+        {followUpOffer?.kind === 'marked' && (
+          <span className="ps-bab-follow-up-marked" title={t('bottomActionBar.followUp.markedTitle', { name: followUpOffer.expectation.markedByName })}>
+            🔁 {t('bottomActionBar.followUp.marked', { date: formatDate(followUpOffer.expectation.window.endsAt, i18n.language) })}
+          </span>
         )}
       </div>
     </div>
@@ -538,6 +631,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       currentUserId={user?.id ?? 'u1'}
       currentUserName={user?.name ?? 'Unknown'}
       continueToReport={true}
+      restoreVoiceContext={VOICE_CONTEXT.SYNOPTIC}
       onAccepted={() => setClaimOpen(false)}
       onPassed={() => {
         setClaimOpen(false);

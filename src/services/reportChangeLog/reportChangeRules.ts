@@ -193,3 +193,29 @@ export function labelSynopticChanges(
     return { ...c, path: [c.path[0], c.path[1], field.label, ...c.path.slice(4)], before: label(c.before), after: label(c.after) };
   });
 }
+
+// ─── Change history screen (Batch 451, PS-353) ────────────────────────────────
+
+/** The areas the Change history screen filters by, in button order. */
+export const CHANGE_HISTORY_AREAS: readonly ReportChangeArea[] = ['synoptic', 'narrative', 'codes', 'specimens', 'case'];
+
+export interface ChangeHistoryView {
+  /** Entries newest first, each holding only the changes in the chosen area; entries with none left are dropped. */
+  entries: ReportChangeEntry[];
+  /** Changed fields per area across every entry (the filter buttons' counts; an area with 0 is greyed out). */
+  counts: Record<ReportChangeArea, number>;
+}
+
+/**
+ * What the Change history screen shows for an area filter. `entries` come
+ * from the log oldest first (IReportChangeLogService.listForCase), so the
+ * newest save is the last one and is shown first.
+ */
+export function changeHistoryView(entries: readonly ReportChangeEntry[], area: ReportChangeArea | 'all'): ChangeHistoryView {
+  const counts = Object.fromEntries(CHANGE_HISTORY_AREAS.map(a => [a, 0])) as Record<ReportChangeArea, number>;
+  entries.forEach(e => e.changes.forEach(ch => { counts[ch.area] += 1; }));
+  const shown = [...entries].reverse()
+    .map(e => ({ ...e, changes: area === 'all' ? e.changes : e.changes.filter(c => c.area === area) }))
+    .filter(e => e.changes.length > 0);
+  return { entries: shown, counts };
+}

@@ -23,7 +23,7 @@ import '../../pathscribe.css';
 import type { Case } from '@/types/case/Case';
 import type { WsiScanSlide } from '@/services/digitalPathology/IWsiScanBatchService';
 import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
-import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
+import { resolveDigitalReadinessBadge, resolveDpTriageBadge, dpLabelText } from '@/services/digitalPathology/resolveWorklistDpBadges';
 
 interface SlideDetailDrawerProps {
   caseData: Case;
@@ -66,12 +66,12 @@ export const SlideDetailDrawer: React.FC<SlideDetailDrawerProps> = ({
           <div className="ps-slide-drawer-section-title">{t('slideDetailDrawer.caseReadinessSummary')}</div>
           {readiness && (
             <div className={`wl-dp-badge wl-dp-badge--${readiness.level} sdd-readiness-badge`}>
-              {t('slideDetailDrawer.statusPrefix')} {readiness.summaryText}
+              {t('slideDetailDrawer.statusPrefix')} {dpLabelText(readiness.summaryLabel, readiness.summaryText, t)}
             </div>
           )}
           {triage && (
             <div className={`wl-dp-badge wl-dp-badge--${triage.level} sdd-triage-badge`}>
-              {t('slideDetailDrawer.aiTriagePrefix')} {triage.primaryText}
+              {t('slideDetailDrawer.aiTriagePrefix')} {dpLabelText(triage.primaryLabel, triage.primaryText, t)}
               {triage.biomarkerSummary && <div className="wl-dp-badge-sub">{triage.biomarkerSummary}</div>}
             </div>
           )}

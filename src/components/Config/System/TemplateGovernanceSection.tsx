@@ -9,12 +9,15 @@
 // Rules: services/templates/templatePublishingRules.ts. Storage and the
 // audit entry: services/templates/templateGovernanceSettings.ts. Uses the
 // shared ps-rbuf-* setting-row styles (see ReleaseBufferSection.tsx).
+// Batch 425: the controls are greyed out without config:template-governance:manage;
+// the save itself checks it (templateGovernanceSettings.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { auditService } from '../../../services';
+import { auditService, authorizationService } from '../../../services';
+import { useCapabilities } from '@/hooks/useCapabilities';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
   getTemplateGovernanceSettings, saveTemplateGovernanceWithAudit,
@@ -34,10 +37,18 @@ const TemplateGovernanceSection: React.FC = () => {
   const { user } = useAuth();
   const [settings, setSettings] = useState<TemplateGovernanceSettings>(() => getTemplateGovernanceSettings());
   const [saved, setSaved] = useState(false);
+  const [refused, setRefused] = useState(false);
+  const capabilities = useCapabilities();
+  const canManage = capabilities.has('config:template-governance:manage');
 
   const persist = async (next: Partial<TemplateGovernanceSettings>) => {
-    const result = await saveTemplateGovernanceWithAudit(next, { auditService, userName: user?.name ?? 'Unknown User' });
-    setSettings(result);
+    const result = await saveTemplateGovernanceWithAudit(next, {
+      auditService, userName: user?.name ?? 'Unknown User',
+      enforce: c => authorizationService.enforce(c as never),
+    });
+    setSettings(result.settings);
+    setRefused(!result.ok);
+    if (!result.ok) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -58,6 +69,7 @@ const TemplateGovernanceSection: React.FC = () => {
           <button
             role="switch"
             aria-checked={settings.allowSelfApproval}
+            disabled={!canManage}
             aria-label={t('templateGovernanceSection.selfApproval.label')}
             onClick={() => persist({ allowSelfApproval: !settings.allowSelfApproval })}
             className={`ps-rbuf-toggle ${settings.allowSelfApproval ? 'ps-rbuf-toggle--on' : 'ps-rbuf-toggle--off'}`}
@@ -76,6 +88,7 @@ const TemplateGovernanceSection: React.FC = () => {
           <select
             aria-label={t('templateGovernanceSection.requiredReviewers.label')}
             value={settings.requiredReviewers}
+            disabled={!canManage}
             onChange={e => persist({ requiredReviewers: Number(e.target.value) })}
             className="ps-rbuf-input ps-rbuf-input--enabled"
           >
@@ -87,6 +100,8 @@ const TemplateGovernanceSection: React.FC = () => {
       </div>
 
       <p className="ps-tgov-roles-note">{t('templateGovernanceSection.rolesNote')}</p>
+      {!canManage && !capabilities.loading && <p className="ps-fieldreq-note">{t('templateGovernanceSection.readOnly')}</p>}
+      {refused && <p className="ps-fieldreq-note">{t('templateGovernanceSection.notPermitted')}</p>}
 
       {saved && <div className="ps-rbuf-saved">{t('templateGovernanceSection.saved')}</div>}
     </div>

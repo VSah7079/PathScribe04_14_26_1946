@@ -35,14 +35,28 @@ export interface UpsertEngraverStatusInput {
   timestamp: string;
 }
 
-export type UpsertEngraverStatusOutcome = 'applied' | 'stale-ignored';
+export type UpsertEngraverStatusOutcome = 'applied' | 'stale-ignored' | 'already-processed';
 
-export async function upsertEngraverStatus(input: UpsertEngraverStatusInput): Promise<UpsertEngraverStatusOutcome> {
+/** The same collection idempotency.ts claims in (Batch 549, F10). */
+const PROCESSED_MESSAGES = 'processed_messages';
+
+/**
+ * Batch 549 (F10): with `claim`, the engine's messageId is claimed in the same
+ * transaction as the status, so a crash can't leave a claim with no status.
+ * A messageId already claimed changes nothing ('already-processed').
+ */
+export async function upsertEngraverStatus(
+  input: UpsertEngraverStatusInput,
+  claim?: { messageId: string; eventType: string },
+): Promise<UpsertEngraverStatusOutcome> {
   const db = getAdminFirestore();
   const ref = db.collection(COLLECTION_NAME).doc(input.deviceId);
+  const claimRef = claim ? db.collection(PROCESSED_MESSAGES).doc(claim.messageId) : null;
 
   return db.runTransaction(async (tx): Promise<UpsertEngraverStatusOutcome> => {
+    if (claimRef && (await tx.get(claimRef)).exists) return 'already-processed';
     const snap = await tx.get(ref);
+    if (claimRef && claim) tx.create(claimRef, { eventType: claim.eventType, claimedAt: new Date().toISOString() });
     const currentTimestamp: string | undefined = snap.exists ? snap.data()?.lastReportedAt : undefined;
 
     // Real, deliberate staleness guard — an older, real event arriving

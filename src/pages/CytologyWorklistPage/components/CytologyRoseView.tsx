@@ -64,7 +64,7 @@ const CytologyRoseView: React.FC<CytologyRoseViewProps> = ({ roseEvaluations, on
       </div>
 
       <label className="ps-cytosynform-label">{t('cytologyScreening.roseDrawer.locationLabel')}</label>
-      <select className="ps-conf-select ps-roseview-location-select" value={location} onChange={e => setLocation(e.target.value as CytologyRoseLocation)}>
+      <select aria-label={t('cytologyScreening.roseDrawer.locationLabel')} className="ps-conf-select ps-roseview-location-select" value={location} onChange={e => setLocation(e.target.value as CytologyRoseLocation)}>
         <option value="radiology">{t('cytologyScreening.roseDrawer.location.radiology')}</option>
         <option value="clinic">{t('cytologyScreening.roseDrawer.location.clinic')}</option>
         <option value="operating_room">{t('cytologyScreening.roseDrawer.location.operating_room')}</option>
@@ -74,7 +74,7 @@ const CytologyRoseView: React.FC<CytologyRoseViewProps> = ({ roseEvaluations, on
       {passes.map((pass, i) => (
         <div key={i} className="ps-roseview-pass-card">
           <div className="ps-roseview-pass-title">{t('cytologyScreening.roseDrawer.passLabel', { n: i + 1 })}</div>
-          <select className="ps-conf-select ps-roseview-pass-select" value={pass.adequacyAssessment} onChange={e => updatePass(i, { adequacyAssessment: e.target.value as CytologyRoseAdequacyAssessment })}>
+          <select aria-label={t('cytologyScreening.roseDrawer.passLabel', { n: i + 1 })} className="ps-conf-select ps-roseview-pass-select" value={pass.adequacyAssessment} onChange={e => updatePass(i, { adequacyAssessment: e.target.value as CytologyRoseAdequacyAssessment })}>
             <option value="adequate">{t('cytologyScreening.roseDrawer.adequacy.adequate')}</option>
             <option value="inadequate">{t('cytologyScreening.roseDrawer.adequacy.inadequate')}</option>
             <option value="indeterminate">{t('cytologyScreening.roseDrawer.adequacy.indeterminate')}</option>

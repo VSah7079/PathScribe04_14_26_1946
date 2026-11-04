@@ -1,8 +1,12 @@
+**Batch 736:** `NavBar.tsx` runs `hooks/useVisibleHeightVar.ts` (`--ps-visible-height`), so the header search's results stay above the on-screen keyboard (`touchChrome.css`).
+
+**Batch 735 (touch spec §5, T5):** the station menu (`NavBarScanStation.tsx`) has **Touch layout on this computer** (Auto, Always on, Always off; `hooks/useTouchLayout.ts`). `NavBar.tsx` imports `../Touch/touchChrome.css`: 44 px header buttons, 16 px header search, compact header below 1280 px.
+
 # components/NavBar/
 
 ## Files
 
-- **`NavBar.tsx`** (360 lines) — Top nav bar: search, voice controls,
+- **`NavBar.tsx`** (~500 lines) — Top nav bar: search, voice controls,
   enhancement request button, external reference links (CAP/WHO/
   PathologyOutlines), messaging. Real, correctly wired to
   `AuthContext`/`MessagingContext`. No issues.
@@ -30,6 +34,32 @@
 
 `LanguageSwitcher.tsx` offers Belgian French: the menu reads "Français (France)" and "Français (Belgique)", and the button shows FR-BE.
 
+## Batch 425
+
+A registry exceptions button with the live count (`useRegistryExceptionCount`). It sits next to Messages, appears only for people who can open the worklist and only when something needs attention, and opens Registry Exceptions.
+
+## Batch 431
+
+The language choice is saved to the signed-in person (`hooks/usePersonalLanguage.ts`).
+
+## Batch 437 (PS-128)
+
+The nav bar's own buttons (Intraop Queue, Registry Exceptions, the scan-station bench) go through the unsaved-changes guard (`hooks/useGuardedNavigate.ts`), like the logo.
+
+## Batch 438
+
+The support report's "Generated:" line says UTC. Open, not changed here: `NavBar.tsx` calls the AI provider straight from the browser with `VITE_AI_API_KEY`, which puts the key in the browser bundle; it belongs behind the API server. **Fixed in Batch 444** (below).
+
+## Batch 444
+
+System Info's AI status now comes from `checkAiProxyStatus()` (`@/services`), which asks the proxy routes; the browser sends no key. "API mode" always reads Proxy. The Gemini row shows Checking… until the answer arrives.
+
+Found while doing this: nothing in the app currently opens System Info (`setSysInfoOpen(true)` is never called), so the old vendor call never actually ran. The exposure was the `VITE_AI_API_KEY` reference itself, which compiled the key into the bundle whenever it was set.
+
+## Batch 447
+
+The QA feedback button shows when `feedbackSettingsService.qaButtonShown()` says so: Configuration → System → Feedback, by default shown on a validation instance.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 
@@ -37,3 +67,25 @@
 
 - The quick case search shows only to people who may open Search (`screen:search:open`).
 - The credentials under the user's name are theirs, from their staff record. It said "MD, FCAP" for everyone.
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- A **My exports** button (download icon) with a badge counting exports ready to download, shown only with the API server (`hooks/useMyExports.ts`, `useReadyExportCount`).
+
+**Batch 713:** `NavBarScanStation.tsx` lists only the stations the signed-in user may use (`hooks/useSelectableScanStations.ts`). If the station stored on this computer belongs to a facility the user may not use, the button reads "No station", the menu says why and offers "Clear this terminal's fixed station", and scans are not recorded against it. `ScanStationPrompt.tsx` (in `components/`) has the same list and asks again, with a note, in that case.
+
+## Batch 750
+
+`NavBarScanStation.tsx`: the workstation menu gains **Slide image window → Set position…**, which opens the slide image window at `/window-position` to save where it opens on this workstation.

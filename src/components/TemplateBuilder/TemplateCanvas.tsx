@@ -21,6 +21,7 @@ import {
   PALETTE_ITEMS,
   createDefaultNode,
 } from '../../types/template';
+import { clickableContainer } from '@/utils/a11y/pressable';
 
 // ── Grid context ───────────────────────────────────────────────
 const GridContext = createContext<boolean>(false);
@@ -166,7 +167,8 @@ interface NodeCardProps {
   onDelete: (id: string) => void;
 }
 
-const NodeCard: React.FC<NodeCardProps> = ({
+/** Exported for its tests (Batch 570). */
+export const NodeCard: React.FC<NodeCardProps> = ({
   node,
   depth,
   selectedId,
@@ -178,6 +180,8 @@ const NodeCard: React.FC<NodeCardProps> = ({
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(true);
   const [hovered, setHovered] = useState(false);
+  // Batch 568: keyboard focus inside the row (shows Remove, as hover does).
+  const [focusInside, setFocusInside] = useState(false);
   const isSelected = selectedId === node.id;
   const isContainer = isContainerType(node.type);
   const children = getChildren(node);
@@ -283,7 +287,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        onClick={() => onSelect(node.id)}
+        // Batch 568 (axe nested-interactive): the row holds buttons (expand, remove), so it isn't a button itself;
+        // clicking it still selects the field, and its name is the button. Focus inside shows Remove, as hover does.
+        {...clickableContainer(() => onSelect(node.id))}
+        // Keyboard focus only: a mouse click that focuses the name shouldn't leave Remove showing.
+        onFocus={e => setFocusInside((e.target as HTMLElement).matches(':focus-visible'))}
+        onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusInside(false); }}
         style={{ '--node-color': color } as React.CSSProperties}
         className={[
           'ps-tc-node-row',
@@ -299,8 +308,12 @@ const NodeCard: React.FC<NodeCardProps> = ({
         {/* Expand toggle for containers */}
         {isContainer && (
           <button
+            type="button"
             onClick={e => { e.stopPropagation(); setExpanded(x => !x); }}
             className="ps-tc-node-expand-btn"
+            aria-expanded={expanded}
+            aria-label={t('templateCanvas.childrenToggle')}
+            title={expanded ? undefined : t('templateCanvas.childrenToggle')}
           >
             {expanded ? '▾' : '▸'}
           </button>
@@ -314,9 +327,11 @@ const NodeCard: React.FC<NodeCardProps> = ({
 
         {/* Label + property chips */}
         <div className="ps-tc-node-label-col">
-          <span className={`ps-tc-node-label${isSelected ? ' ps-tc-node-label--selected' : ''}`}>
+          <button type="button" className={`ps-row-open-btn ps-tc-node-label${isSelected ? ' ps-tc-node-label--selected' : ''}`}
+            aria-current={isSelected ? 'true' : undefined}
+            onClick={e => { e.stopPropagation(); onSelect(node.id); }}>
             {node.label}
-          </span>
+          </button>
           {propertyChips.length > 0 && (
             <div className="ps-tc-node-chips">
               {propertyChips.map(chip => (
@@ -343,11 +358,13 @@ const NodeCard: React.FC<NodeCardProps> = ({
         )}
 
         {/* Delete button */}
-        {hovered && (
+        {(hovered || focusInside) && (
           <button
+            type="button"
             onClick={e => { e.stopPropagation(); onDelete(node.id); }}
             className="ps-tc-node-delete-btn"
             title={t('templateCanvas.removeTooltip')}
+            aria-label={t('templateCanvas.removeNamed', { label: node.label })}
           >
             ✕
           </button>

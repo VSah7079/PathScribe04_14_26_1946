@@ -46,7 +46,7 @@ export const mockCriticalResultNotificationService: ICriticalResultNotificationS
       specimenId: input.specimenId,
       trigger: 'intraoperative_frozen',
       findingSummary: input.note.trim(),
-      clinicianName: input.surgeon,
+      clinicianName: input.receivedBy?.trim() || input.surgeon,
       // Real, per direct guidance - the one real, established way an
       // intraoperative frozen callback is actually made
       // (IntraoperativeEntry.verbalReportLog's own name and doc
@@ -54,6 +54,10 @@ export const mockCriticalResultNotificationService: ICriticalResultNotificationS
       method: 'verbal_phone',
       notifiedAt: input.notifiedAt,
       notifiedBy: input.notifiedBy,
+      ...(input.recipientRole ? { recipientRole: input.recipientRole } : {}),
+      ...(input.readBackConfirmed !== undefined ? { readBackConfirmed: input.readBackConfirmed } : {}),
+      ...(input.surgeonUnavailable ? { surgeonUnavailable: input.surgeonUnavailable } : {}),
+      ...(input.criticalResult !== undefined ? { criticalResult: input.criticalResult } : {}),
     };
     persist([...load(), record]);
     return ok(record);

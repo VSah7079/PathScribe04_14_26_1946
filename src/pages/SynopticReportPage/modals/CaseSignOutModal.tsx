@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
+import '../aiGovernance.css';
 import { stainTypeService } from '@/services';
 import type { StainType } from '@/services/stains/IStainService';
 import { computeCaseCodingSummary } from '@/services/billing/codeMapTable';
 import type { AppliedBlockCode } from '@/types/case/Specimen';
 import { SpellCheckedTextarea } from '@/components/SpellCheck/SpellCheckedTextarea';
 import { SignerConfirmationFields } from '@/components/Signing/SignerConfirmationFields';
+import { RelatedCasesSignOutPanel } from '@/components/RelatedCases/RelatedCasesSignOutPanel';
 import { useSignerConfirmation } from '@/hooks/useSignerConfirmation';
 import type { SignatureConfirmation } from '@/services/auth/signerConfirmation';
 
 interface CaseSignOutModalProps {
+  /** Batch 613: lets the signer attach the patient's other released cases. Omitted where there is no patient. */
+  relatedCases?: { caseId: string; patientId: string | undefined; facilityId?: string | null; user: string };
   show: boolean;
   accession: string;
+  /** Batch 642: the case's ordering facility; its performing facility's sign-out policy applies. */
+  orderingFacilityId?: string | null;
   onClose: () => void;
   /** Batch 344: runs only after the signer has been confirmed
    *  (services/auth/signerConfirmation.ts). Before, the username and
@@ -48,13 +54,22 @@ interface CaseSignOutModalProps {
    *  own "+Code" button already uses (Piece 1), reused here rather than
    *  duplicated. */
   onAssignBaseCode?: (specimenId: string, specimenIndex: number) => void;
+  /** Batch 454: "a follow-up specimen is expected". Shown only when the
+   *  page passes onFollowUpExpectedChange: the report page (surgical
+   *  sign-out; cytology signs out in the Cytology Workspace) does so when
+   *  the signer holds case:follow-up:expect. */
+  followUpExpected?: boolean;
+  onFollowUpExpectedChange?: (value: boolean) => void;
+  /** Batch 681: optional fields still holding an AI value nobody confirmed; shown as a plain line, never a block. */
+  unreviewedAiFields?: number;
 }
 
 const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
-  show, accession,
+  show, accession, orderingFacilityId,
   onClose, onConfirm, onReject,
   isCountersign, residentName, countersignFeedback, onCountersignFeedbackChange,
   specimens, matrixBlocks = [], onAssignBaseCode,
+  followUpExpected, onFollowUpExpectedChange, relatedCases, unreviewedAiFields,
 }) => {
   const { t } = useTranslation();
   // Real fix, Piece 3: same self-contained data-fetch pattern this
@@ -68,7 +83,7 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
   }, [show]);
 
   // Batch 344: who is signing is confirmed here before onConfirm runs.
-  const signer = useSignerConfirmation(isCountersign ? 'countersign' : 'case-sign-out', accession || null);
+  const signer = useSignerConfirmation(isCountersign ? 'countersign' : 'case-sign-out', accession || null, orderingFacilityId);
   const { reset: resetSigner } = signer;
   useEffect(() => { if (!show) resetSigner(); }, [show, resetSigner]);
   // Straight from the click: for SSO this opens the provider's popup.
@@ -187,6 +202,19 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
           </div>
         )}
 
+        {!!unreviewedAiFields && <p className="ps-modal-dark-hint ps-signout-ai-unreviewed" role="note">{t('caseSignOutModal.unreviewedAiFields', { count: unreviewedAiFields })}</p>}
+
+        {onFollowUpExpectedChange && (
+          <div className="ps-conf-form-field ps-signout-followup-field">
+            <label className="ps-modal-dark-label ps-signout-followup-label">
+              <input type="checkbox" checked={!!followUpExpected} onChange={e => onFollowUpExpectedChange(e.target.checked)} />
+              {t('caseSignOutModal.followUpExpectedLabel')}
+            </label>
+            <p className="ps-modal-dark-hint">{t('caseSignOutModal.followUpExpectedHint')}</p>
+          </div>
+        )}
+
+        {relatedCases && <RelatedCasesSignOutPanel {...relatedCases} />}
         <SignerConfirmationFields signer={signer} onSubmit={confirmAndSign} />
 
         <div className="ps-modal-dark-footer ps-modal-dark-footer--stretch">
@@ -205,8 +233,9 @@ const CaseSignOutModal: React.FC<CaseSignOutModalProps> = ({
             onClick={confirmAndSign}
             disabled={signer.busy || signer.method === 'unavailable'}
             className="ps-btn-green ps-modal-dark-footer__flex-btn"
+            title={signer.buttonTitle}
           >
-            ✍️ {signer.busy ? t('signerConfirmation.confirming') : t('caseSignOutModal.signOutCaseLabel')}
+            ✍️ {signer.busy ? t('signerConfirmation.confirming') : signer.buttonLabel(t('caseSignOutModal.signOutCaseLabel'))}
           </button>
         </div>
 

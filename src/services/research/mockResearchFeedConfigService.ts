@@ -25,6 +25,8 @@ import type {
   ResearchFeedConfig,
   ResearchFeedHealth,
 } from './IResearchFeedConfigService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const CONFIG_KEY = 'pathscribe_research_feed_config';
 const HEALTH_KEY = 'pathscribe_research_feed_health';
@@ -106,10 +108,10 @@ const EMPTY_HEALTH: ResearchFeedHealth = {
 
 /* ---------------------------------------------------------------- service */
 
-export const mockResearchFeedConfigService: IResearchFeedConfigService = {
+const researchFeedConfigServiceUnchecked: IResearchFeedConfigService = {
   async getConfig(): Promise<ResearchFeedConfig> {
     try {
-      const raw = localStorage.getItem(CONFIG_KEY);
+      const raw = dataStorage.getItem(CONFIG_KEY);
       return sanitise(raw ? (JSON.parse(raw) as Partial<ResearchFeedConfig>) : null);
     } catch {
       return { ...DEFAULTS };
@@ -119,7 +121,7 @@ export const mockResearchFeedConfigService: IResearchFeedConfigService = {
   async saveConfig(config: ResearchFeedConfig): Promise<ResearchFeedConfig> {
     const clean = sanitise(config);
     try {
-      localStorage.setItem(CONFIG_KEY, JSON.stringify(clean));
+      dataStorage.setItem(CONFIG_KEY, JSON.stringify(clean));
     } catch {
       /* storage unavailable — the caller still gets the sanitised value back */
     }
@@ -132,7 +134,7 @@ export const mockResearchFeedConfigService: IResearchFeedConfigService = {
 
   getHealth(): ResearchFeedHealth {
     try {
-      const raw = localStorage.getItem(HEALTH_KEY);
+      const raw = dataStorage.getItem(HEALTH_KEY);
       if (!raw) return { ...EMPTY_HEALTH };
       return { ...EMPTY_HEALTH, ...(JSON.parse(raw) as Partial<ResearchFeedHealth>) };
     } catch {
@@ -149,11 +151,17 @@ export const mockResearchFeedConfigService: IResearchFeedConfigService = {
         lastSuccessAt: outcome === 'success' ? now : current.lastSuccessAt,
         lastOutcome: outcome,
       };
-      localStorage.setItem(HEALTH_KEY, JSON.stringify(next));
+      dataStorage.setItem(HEALTH_KEY, JSON.stringify(next));
     } catch {
       /* observability is best-effort; never let it break the feed */
     }
   },
 };
+
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockResearchFeedConfigService: IResearchFeedConfigService = guardConfigWrites(researchFeedConfigServiceUnchecked, [
+  ['config:research-feed:manage', ['saveConfig']],
+], { refuse: 'throw' });
 
 export default mockResearchFeedConfigService;

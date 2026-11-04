@@ -1,0 +1,307 @@
+{
+  "id": "neck_dissection",
+  "name": "PathScribe — Neck Dissection",
+  "source": "PathScribe",
+  "version": "1.0.0",
+  "category": "HEAD_NECK",
+  "sections": [
+    {
+      "id": "nd_specimen",
+      "title": "Specimen",
+      "fields": [
+        {
+          "id": "nd_laterality",
+          "label": "Side",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "nd_lat_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nd_lat_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nd_lat_bilateral",
+              "label": "Bilateral",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "nd_type",
+          "label": "Type of dissection",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "nd_type_selective",
+              "label": "Selective",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nd_type_modifiedRadical",
+              "label": "Modified radical",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nd_type_radical",
+              "label": "Radical",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "nd_type_extended",
+              "label": "Extended",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "nd_structures",
+          "label": "Non-lymphatic structures included",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "E.g. sternocleidomastoid, internal jugular vein, submandibular gland."
+        }
+      ]
+    },
+    {
+      "id": "psmap_neck_dissection",
+      "title": "Lymph nodes and anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_nd_levels",
+          "label": "Nodes by level",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "One row per level and side. Leave a level’s row empty when it wasn’t dissected or isn’t reported. Drives the neck map.",
+          "rows": {
+            "kind": "fixed",
+            "heading": "Level",
+            "rows": [
+              {
+                "id": "R_Ia",
+                "label": "Right level Ia"
+              },
+              {
+                "id": "R_Ib",
+                "label": "Right level Ib"
+              },
+              {
+                "id": "R_IIa",
+                "label": "Right level IIa"
+              },
+              {
+                "id": "R_IIb",
+                "label": "Right level IIb"
+              },
+              {
+                "id": "R_III",
+                "label": "Right level III"
+              },
+              {
+                "id": "R_IV",
+                "label": "Right level IV"
+              },
+              {
+                "id": "R_Va",
+                "label": "Right level Va"
+              },
+              {
+                "id": "R_Vb",
+                "label": "Right level Vb"
+              },
+              {
+                "id": "R_VI",
+                "label": "Right level VI"
+              },
+              {
+                "id": "R_VII",
+                "label": "Right level VII"
+              },
+              {
+                "id": "L_Ia",
+                "label": "Left level Ia"
+              },
+              {
+                "id": "L_Ib",
+                "label": "Left level Ib"
+              },
+              {
+                "id": "L_IIa",
+                "label": "Left level IIa"
+              },
+              {
+                "id": "L_IIb",
+                "label": "Left level IIb"
+              },
+              {
+                "id": "L_III",
+                "label": "Left level III"
+              },
+              {
+                "id": "L_IV",
+                "label": "Left level IV"
+              },
+              {
+                "id": "L_Va",
+                "label": "Left level Va"
+              },
+              {
+                "id": "L_Vb",
+                "label": "Left level Vb"
+              },
+              {
+                "id": "L_VI",
+                "label": "Left level VI"
+              },
+              {
+                "id": "L_VII",
+                "label": "Left level VII"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "id": "positive",
+              "label": "Nodes positive",
+              "type": "numeric",
+              "notMoreThan": "examined",
+              "wholeNumber": true
+            },
+            {
+              "id": "examined",
+              "label": "Nodes examined",
+              "type": "numeric",
+              "wholeNumber": true
+            },
+            {
+              "id": "largest",
+              "label": "Largest deposit",
+              "type": "numeric",
+              "unit": "mm"
+            },
+            {
+              "id": "ene",
+              "label": "Extranodal extension",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_nd_ene_absent",
+                  "label": "Not identified"
+                },
+                {
+                  "id": "psmap_nd_ene_minor",
+                  "label": "ENEmi (≤ 2 mm)"
+                },
+                {
+                  "id": "psmap_nd_ene_major",
+                  "label": "ENEma (> 2 mm)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nd_summary",
+      "title": "Summary",
+      "fields": [
+        {
+          "id": "nd_total_positive",
+          "label": "Total nodes positive",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "sumOf": {
+            "fieldId": "psmap_nd_levels",
+            "columnId": "positive"
+          },
+          "hint": "Calculated from the nodes by level.",
+          "wholeNumber": true,
+          "notMoreThan": "nd_total_examined"
+        },
+        {
+          "id": "nd_total_examined",
+          "label": "Total nodes examined",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "sumOf": {
+            "fieldId": "psmap_nd_levels",
+            "columnId": "examined"
+          },
+          "hint": "Calculated from the nodes by level.",
+          "wholeNumber": true
+        },
+        {
+          "id": "nd_pn",
+          "label": "pN category",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "reportingRole": "pN"
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "nd_comments",
+          "label": "Comment(s)",
+          "type": "longtext",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

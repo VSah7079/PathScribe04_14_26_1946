@@ -26,9 +26,9 @@
 // for those two. Reusing the same label keys fixes that inconsistency
 // rather than just translating the old mismatched text.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { auditService } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
@@ -37,6 +37,8 @@ import { caseMatchesScope, exportQaReportRows, scopeLabel, QaScope, qaScopeConte
 import type { AuditLog } from '@/services/auditlog/IAuditService';
 import { DRIFT_EVENTS, resolveUnresolvedDriftCorrections } from '@/services/auditlog/resolveUnresolvedDriftCorrections';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDateTime, parseStoredUtc } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const EVENT_LABEL_KEY: Record<typeof DRIFT_EVENTS[number], string> = {
   'Post-Finalization Drift Detected':            'auditLog.statusLabels.driftDetected',
@@ -46,8 +48,8 @@ const EVENT_LABEL_KEY: Record<typeof DRIFT_EVENTS[number], string> = {
 };
 
 export const DriftCorrectionTab: React.FC = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [caseScopeFieldsById, setCaseScopeFieldsById] = useState<Record<string, { clientId?: string; originHospitalId?: string }>>({});
@@ -128,12 +130,12 @@ export const DriftCorrectionTab: React.FC = () => {
       'Case': l.caseId ?? '',
       'Event': l.event,
       'Detail': l.detail,
-      'Timestamp': l.timestamp,
+      'Timestamp (UTC)': l.timestamp,
     }));
-    void exportQaReportRows('qa:drift-correction:export', rows, `drift-correction-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:drift-correction:export', rows, `drift-correction-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('driftCorrectionTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('driftCorrectionTab.loading')} />;
 
   return (
     <div>
@@ -185,11 +187,11 @@ export const DriftCorrectionTab: React.FC = () => {
                     </div>
                   </td>
                   <td>{l.detail}</td>
-                  <td>{new Date(l.timestamp).toLocaleString()}</td>
+                  <td>{formatDateTime(parseStoredUtc(l.timestamp).toISOString(), i18n.language)}</td>
                   <td>
                     <button
                       className="ps-conf-btn-secondary"
-                      onClick={() => l.caseId && navigate(`/case/${l.caseId}`)}
+                      onClick={() => l.caseId && void openCasePage(l.caseId, 'synoptic')}
                     >
                       {t('addOnOrder.search.open')}
                     </button>
@@ -223,7 +225,7 @@ export const DriftCorrectionTab: React.FC = () => {
                   <td data-phi="accession">{l.caseId}</td>
                   <td>{EVENT_LABEL_KEY[l.event as typeof DRIFT_EVENTS[number]] ? t(EVENT_LABEL_KEY[l.event as typeof DRIFT_EVENTS[number]]) : l.event.replace('Post-Finalization Drift ', '')}</td>
                   <td>{l.detail}</td>
-                  <td>{new Date(l.timestamp).toLocaleString()}</td>
+                  <td>{formatDateTime(parseStoredUtc(l.timestamp).toISOString(), i18n.language)}</td>
                 </tr>
               ))}
             </tbody>

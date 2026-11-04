@@ -1,3 +1,5 @@
+**Batch 755a:** `DemoWordingTag.tsx` (new): the grey "Demo wording" tag beside a demonstration checklist's name (case checklist header and sidebar, the checklist picker, the Synoptic Library lists), with a tooltip; decided by `services/templates/demoChecklists.showsDemoWordingTag()`. Reuses `.ps-demo-data-badge`.
+
 # components/Synoptic/
 
 **Renamed this pass** (was `components/synoptic/` — lowercase, the only
@@ -14,7 +16,7 @@ purely for consistency, name was otherwise accurate).
 
 ## Notes
 
-- This is a 25-line wrapper used by exactly one page. Worth considering
+- This is a ~20-line wrapper used by exactly one page. Worth considering
   whether it belongs in `pages/SynopticReportPage/components/` instead of
   top-level `components/` at all, given it has no reuse beyond its one
   consumer — same category of question as `Common/InlineCommentThread.tsx`

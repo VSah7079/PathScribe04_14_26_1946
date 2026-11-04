@@ -22,16 +22,17 @@ export type AmendmentGroupKey = 'amendment_correction' | 'addendum' | 'notice';
 
 export type AmendmentDividerRow = {
   __divider: true;
-  label: string;
+  /** i18n key for the divider text (Batch 513, PS-269). */
+  labelKey: string;
   count: number;
   isAmendmentGroup: true;
   groupKey: AmendmentGroupKey;
 };
 
-const GROUP_ORDER: { key: AmendmentGroupKey; label: string }[] = [
-  { key: 'amendment_correction', label: 'Amendment & Correction' },
-  { key: 'addendum', label: 'Addenda' },
-  { key: 'notice', label: 'LIS Notices — Pending Review' },
+const GROUP_ORDER: { key: AmendmentGroupKey; labelKey: string }[] = [
+  { key: 'amendment_correction', labelKey: 'worklistTable.amendmentGroup.amendmentCorrection' },
+  { key: 'addendum', labelKey: 'worklistTable.amendmentGroup.addendum' },
+  { key: 'notice', labelKey: 'worklistTable.amendmentGroup.notice' },
 ];
 
 function groupKeyFor(type: AmendmentType | 'notice'): AmendmentGroupKey {
@@ -63,10 +64,10 @@ export function buildAmendmentGroupRows(
   }
 
   const rows: (Case | AmendmentDividerRow)[] = [];
-  for (const { key, label } of GROUP_ORDER) {
+  for (const { key, labelKey } of GROUP_ORDER) {
     const casesInGroup = groups.get(key);
     if (!casesInGroup || casesInGroup.length === 0) continue;
-    rows.push({ __divider: true, label, count: casesInGroup.length, isAmendmentGroup: true, groupKey: key });
+    rows.push({ __divider: true, labelKey, count: casesInGroup.length, isAmendmentGroup: true, groupKey: key });
     rows.push(...casesInGroup);
   }
   return rows;

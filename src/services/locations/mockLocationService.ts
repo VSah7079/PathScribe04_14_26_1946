@@ -10,6 +10,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { Location, ILocationService } from './ILocationService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_LOCATIONS: Location[] = [
   {
@@ -53,7 +54,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockLocationService: ILocationService = {
+const locationServiceUnchecked: ILocationService = {
   async getAll() { await delay(); return ok([...load()]); },
 
   async listForFacility(facilityId) {
@@ -86,9 +87,9 @@ export const mockLocationService: ILocationService = {
     return ok({ ...locations[idx] });
   },
 
-  async deactivate(id) { return mockLocationService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockLocationService.update(id, { status: 'Active' }); },
-  async verify(id) { return mockLocationService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return locationServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return locationServiceUnchecked.update(id, { status: 'Active' }); },
+  async verify(id) { return locationServiceUnchecked.update(id, { status: 'Active' }); },
 
   async findOrCreateByPV1(input) {
     await delay();
@@ -129,3 +130,8 @@ export const mockLocationService: ILocationService = {
     return ok({ location: { ...newLoc }, outcome: 'created' as const });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockLocationService: ILocationService = guardConfigWrites(locationServiceUnchecked, [
+  ['config:facilities:manage', ['create', 'update', 'deactivate', 'reactivate', 'verify']],
+]);

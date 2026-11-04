@@ -1,6 +1,11 @@
 // src/services/validationStudies/mockValidationStudyService.ts
 import type { IValidationStudyService, ValidationStudy, CommitteeSubmission, CommitteeApproval } from './IValidationStudyService';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { getSessionUser } from '../auth/caseAccessControl';
+import { resolveAuditActor } from '../participationTypes/saveParticipationType';
+
+const signedInName = (): string | undefined => { const u = getSessionUser(); return u ? resolveAuditActor(u).userName : undefined; };
 
 const KEY = 'pathscribe_validation_studies_v1';
 
@@ -114,7 +119,7 @@ function genId(): string { return `vs-${Date.now()}-${Math.random().toString(36)
 function ok<T>(d: T) { return { ok: true, data: d } as any; }
 function err(m: string) { return { ok: false, error: m } as any; }
 
-export const mockValidationStudyService: IValidationStudyService = {
+const validationStudyServiceUnchecked: IValidationStudyService = {
   async getAll()         { return ok(load()); },
   async getActive()      { return ok(load().filter(s => s.status === 'active')); },
   async getById(id)      {
@@ -137,15 +142,16 @@ export const mockValidationStudyService: IValidationStudyService = {
     return ok(updated);
   },
   async submitForReview(id, submission: CommitteeSubmission) {
-    return mockValidationStudyService.update(id, {
+    return validationStudyServiceUnchecked.update(id, {
       status: 'pending_approval',
       committeeSubmission: submission,
     });
   },
   async recordApproval(id, approval: CommitteeApproval) {
-    return mockValidationStudyService.update(id, {
+    // Batch 428: who recorded it is the signed-in person, whatever the form says.
+    return validationStudyServiceUnchecked.update(id, {
       status: 'approved',
-      committeeApproval: approval,
+      committeeApproval: { ...approval, recordedBy: signedInName() ?? approval.recordedBy },
     });
   },
   async activate(id, activatedBy: string) {
@@ -153,9 +159,10 @@ export const mockValidationStudyService: IValidationStudyService = {
     if (!study?.committeeApproval?.irbReference) {
       return err('Cannot activate study without recorded committee approval and IRB reference');
     }
-    return mockValidationStudyService.update(id, { status: 'active', activatedBy, activatedAt: new Date().toISOString() });
+    // Batch 428: recorded under the signed-in person (the screen passed the fixed text 'admin').
+    return validationStudyServiceUnchecked.update(id, { status: 'active', activatedBy: signedInName() ?? activatedBy, activatedAt: new Date().toISOString() });
   },
-  async close(id)        { return mockValidationStudyService.update(id, { status: 'closed', endDate: new Date().toISOString() }); },
+  async close(id)        { return validationStudyServiceUnchecked.update(id, { status: 'closed', endDate: new Date().toISOString() }); },
   async remove(id)       { save(load().filter(s => s.id !== id)); return ok(undefined as void); },
   async getStudyForCase(clientId, pathologistId, subspecialtyId) {
     const active = load().filter(s => s.status === 'active');
@@ -168,3 +175,9 @@ export const mockValidationStudyService: IValidationStudyService = {
     return ok(match ?? null);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockValidationStudyService: IValidationStudyService = guardConfigWrites(validationStudyServiceUnchecked, [
+  ['config:validation-studies:manage', ['create', 'update', 'submitForReview', 'activate', 'close', 'remove']],
+  ['validation:approval:record', ['recordApproval']],
+]);

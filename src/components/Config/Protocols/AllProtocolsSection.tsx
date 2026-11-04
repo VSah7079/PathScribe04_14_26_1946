@@ -48,6 +48,9 @@ import {
   EmptyState,
 } from './ProtocolCardParts';
 import { matchesStatusFilter } from '@/services/templates/protocolLifecycle';
+import { DemoChecklistRemovalCard } from './DemoChecklistRemovalCard';
+import { pressable } from '@/utils/a11y/pressable';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 type StatusFilter = 'all' | LifecycleState;
 
@@ -75,12 +78,12 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
   return (
     <div className="ps-activeprotocols-card">
       <div
-        onClick={() => setOpen(o => !o)}
+        {...pressable(() => setOpen(o => !o))}
         className={`ps-activeprotocols-row${open ? ' ps-activeprotocols-row--open' : ''}`}
       >
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />
         <div className="ps-activeprotocols-info">
-          <div className="ps-activeprotocols-name" data-phi="name">{p.name}</div>
+          <div className="ps-activeprotocols-name"><span data-phi="name">{p.name}</span><DemoWordingTag templateId={p.id} /></div>
           <div className="ps-activeprotocols-meta">
             <span className="ps-activeprotocols-version">{p.version}</span>
             <span className="ps-activeprotocols-dot">&bull;</span>
@@ -174,6 +177,8 @@ const AllProtocolsSection: React.FC = () => {
         </div>
       </div>
 
+      <DemoChecklistRemovalCard />
+
       {/* Status filter pills — each pill's colour is its lifecycle state's
           CSS hue class (.ps-lc-hue--*); the active pill is tinted from it. */}
       <div className="ps-activeprotocols-filter-row">
@@ -181,7 +186,7 @@ const AllProtocolsSection: React.FC = () => {
           const active = statusFilter === f;
           const count  = allProtocols.filter(p => matchesStatusFilter(p, f)).length;
           return (
-            <button
+            <button data-config-nav
               key={f}
               onClick={() => setStatusFilter(f)}
               className={`ps-activeprotocols-status-filter-btn ${lifecycleHueClass(f)}${active ? ' ps-activeprotocols-status-filter-btn--active' : ''}`}

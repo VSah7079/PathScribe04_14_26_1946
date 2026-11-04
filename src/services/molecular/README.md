@@ -1,3 +1,7 @@
+**Batch 746:** `molecularRunHistoryDemoSeed.ts` (new, seed row S7): twelve in-house orders waiting for a plate (EGFR and KRAS) and three resulted; completed runs `mb-demo-746-hpv-done`, `mb-demo-746-egfr-done`, `mb-demo-746-kras-repeat`, and `mb-demo-746-kras-fail` (no-template control amplified: BLOCKED, superseded by the repeat). `mockMolecularAssayControlRuleService.ts`: KRAS rule `rule-746-kras`; later seed rules each have their own once-only flag; `MOLECULAR_CONTROL_RULE_SEED` exported for tests. Test: `molecularRunHistoryDemoSeed.test.ts`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/molecular/ — Full Molecular Testing Execution Module
 
 Real feature, per a direct, detailed specification document ("PathScribe Full Molecular Testing Execution Module") — extends this app's existing sample-tracking/batching framework (`services/batches/`) to support Molecular Diagnostics workflows (HPV, CT/NG, Respiratory PCR panels, targeted NGS).
@@ -21,7 +25,7 @@ Built directly from the given specification's own §2–§3:
 
 Direct follow-up: "Continue with the plate/well layout UI." Two new pages, matching this app's own established worklist/detail split (`CytologyWorklistPage.tsx`/`CytologyScreeningPage.tsx`) rather than one combined file:
 
-- **`MolecularBatchWorklistPage.tsx`** — lists existing batches with status, links into the builder for a new or existing batch. Registered at `/molecular-batch`, with a new "Molecular Testing" tile on the app's own home page.
+- **`MolecularBatchWorklistPage.tsx`** — lists existing batches with status, links into the builder for a new or existing batch. Registered at `/molecular-batch`, with a new "Molecular Testing" tile on the app's own home page. *(Since removed: the page was deleted in Phase 21; `MolecularWorkcenterPage.tsx` at `/molecular` replaced it — checked in the Batch 496 README audit.)*
 - **`MolecularPlateBuilderPage.tsx`** (`/molecular-batch/:batchId`) — batch creation (assay info, reagent lots) plus the interactive plate/well grid from the given specification's own §3.1/§3.2: click a well to assign its sample type (the five real types from Phase 1), enter control lot info for a control well, or scan/enter a specimen's own container barcode for a patient well. Auto-fill (row-major or column-major) marks the next empty wells as patient specimens, ready for scan-in — matching the real, physical lab workflow of deciding the layout first, then scanning specimens in one at a time, rather than fabricating specimen data that was never actually scanned. The live reagent-lot gating check (Phase 1) blocks "Create Batch" and shows the specific real failure reasons, exactly as the given specification's own §3.3 requires.
 
 **Real, deliberate reuse, not a second scan mechanism**: scan-to-well listens to the same real, global `PATHSCRIBE_SCAN` event this app's own `ScannerProvider` already dispatches — confirmed directly by reading that provider before writing this page, not assumed.
@@ -163,7 +167,7 @@ The second visual check (the corrected sample from Phase 11) found the `^BX` lin
 
 **Why the earlier mathematical verification (Phase 7) didn't catch this**: those tests checked every `^FO` field-origin coordinate against the sheet's own bounds — the barcode's own `^FO` origin (dot 559) genuinely was within bounds. What wasn't checked was the barcode's own *rendered extent* — a Code128 symbol's real width depends on how many characters it encodes, which the origin-only check had no way to know. A real, honest gap in the earlier verification, closed now.
 
-**Fixed with a real, computed Code128 width formula** (`resolveCode128WidthDots.ts`, exported for direct testing) — the real, standard Code128 Auto (Code B) module count: 11-module start pattern + 11 modules per real data character + 11-module checksum + 13-module stop pattern, all real Code128 constants, not this app's own invention. The header barcode is now right-aligned from this real, computed width rather than a fixed fraction, and tries the widest (most scannable) bar setting first, falling back to a narrower one only when the real, specific accession number's own computed width wouldn't otherwise fit — never assuming one fixed bar width works for every real accession length.
+**Fixed with a real, computed Code128 width formula** (`resolveCode128WidthDots`, exported for direct testing — a function in `utils/labels/buildRequisitionStickerSheetZpl.ts`, not its own file; noted in the Batch 496 README audit) — the real, standard Code128 Auto (Code B) module count: 11-module start pattern + 11 modules per real data character + 11-module checksum + 13-module stop pattern, all real Code128 constants, not this app's own invention. The header barcode is now right-aligned from this real, computed width rather than a fixed fraction, and tries the widest (most scannable) bar setting first, falling back to a narrower one only when the real, specific accession number's own computed width wouldn't otherwise fit — never assuming one fixed bar width works for every real accession length.
 
 5 new tests, including one that directly reproduces the exact failure mode a real visual check caught (the header barcode's own computed right edge, not just its origin, checked against the real sheet bounds) and one confirming a much longer accession number correctly triggers the narrower bar-width fallback rather than overflowing. Full suite clean: 296/299 files, 2849/2858 tests, 0 failures.
 
@@ -317,7 +321,7 @@ No new tests beyond the 6 corrected — this is real UI/data-reference wiring ag
 
 **Fix, per direct report** ("if the scan doesn't work, they need a way to input the specimen manually"): confirmed directly — `MolecularRackLoadingPage.tsx` and `MolecularPlateBuilderPage.tsx` both had exactly one way to assign a specimen to a rack position or well: a real, physical barcode scan via the `PATHSCRIBE_SCAN` event, with no fallback at all. A damaged label, an illegible barcode, or a malfunctioning scanner left a tech with no way to proceed. Both real scan handlers' own core logic (movement-record resolution, rack-lookup, well/position assignment) were extracted into a shared function, and a real "Scan not working? Enter specimen ID manually" text-entry option was added right next to each page's own scan button — calling the exact same shared function, so a manually-typed specimen ID produces an identical, real outcome to a successful scan (same movement record, same auto-advance to the next empty position). The one real, honest difference: a manually-typed barcode has no `matchedAccession` auto-resolution the way a real scan's own `ScannerProvider` pipeline provides — left `undefined`, the same as any other real, unmatched scan.
 
-**Bug filed, per direct request** ("are the target instruments also [tied] to the station?"): confirmed directly — `targetInstrumentId` is a plain, free-typed string with no real dictionary entity and no station/facility link anywhere in this app, the exact same class of gap Phase 22 above already fixed once for the sibling `assayCode` field. See `BUG_INSTRUMENT_STATION_LINKAGE.md` for the full account. Filed, not fixed, per the request's own scope.
+**Bug filed, per direct request** ("are the target instruments also [tied] to the station?"): confirmed directly — `targetInstrumentId` is a plain, free-typed string with no real dictionary entity and no station/facility link anywhere in this app, the exact same class of gap Phase 22 above already fixed once for the sibling `assayCode` field. See `BUG_INSTRUMENT_STATION_LINKAGE.md` for the full account. Filed, not fixed, per the request's own scope. *(Since closed: Batch 356/358 — see below; checked in the Batch 496 README audit.)*
 
 ## Batch 356 (PS-326): target instruments come from a list
 
@@ -331,3 +335,93 @@ No new tests beyond the 6 corrected — this is real UI/data-reference wiring ag
 ## Batch 358
 
 Target instruments come from the equipment register (`services/equipment/`): active equipment of kind `analyser`. `checkBatchInstrument` also refuses a non-analyser code. Dispatch uses `checkEquipmentStation`.
+
+## Batch 405
+
+`mockMolecularBatchService.ts`:
+- `create` refuses a patient well that names no specimen (`MOLECULAR_BATCH_WELL_SPECIMEN_MISSING`; Pete, locked).
+- `cloneAndSupersede` needs `molecular:batch:supersede` (`MOLECULAR_BATCH_NOT_PERMITTED`).
+
+The control-rule and extraction-rack services are now exported from `services/index.ts`.
+
+## Batch 406: deck slots and rack placement (Pete)
+
+How PathScribe knows and checks a rack's deck slot:
+
+1. **Instrument profile.**
+   - `Equipment.deckSlots` (in `services/equipment/`) records each analyser's slots and the rack types each slot takes.
+   - Demo Panther 1 and 2: SLOT_A1–A4 take sample racks, A4 also takes the plate, and SLOT_R1 is the reagent bay.
+   - Demo Panther 3 has one slot.
+2. **Assay mapping.**
+   - `MolecularAssayControlRule.allowedSampleRackSlotIds` lists the slots an assay's sample rack may use. The HPV seed rule allows SLOT_A1 or SLOT_A2.
+   - Changing a rule now needs `config:molecular-control-rules:manage`.
+   - The rule service returns error codes instead of English text: `notPermitted`, `duplicateAssay`, `notFound`.
+3. **Rack Loading.**
+   - `deckSlots.ts` provides `slotsForRack`, `deckSlotRequired`, `checkDeckSlot`, `parseDeckLocationBarcode` and `resolveDeckScan`.
+   - Scanning a deck position's `LOC-INST-<code>-<slot>` barcode fills the slot, or explains why it can't: `notDeckBarcode`, `unknownInstrument`, `otherInstrument`, `unknownSlot`, `wrongRackType` or `notForAssay`.
+   - An instrument interface reporting where a rack was placed would go through the same check.
+
+**`mockMolecularExtractionRackService.ts`:**
+- `create` takes the physical rack's barcode, stored upper case. It must be unique and 3–40 letters, digits, `-` or `_`. Left blank, the next unused `RACK-MOLE-` number is generated.
+- `setPositionAccession` gives a tube already on the rack its accession.
+- `placeOnDeck` records the instrument, assay, slot, who placed the rack and when, and whether the slot came from the pick-list or a deck scan. It refuses a placement that misses a locked Field Requirement (page `molecularRack`), names an inactive analyser, or puts the rack in a slot that doesn't fit.
+- Errors are codes (`MOLECULAR_RACK_ERRORS`).
+- Demo rack `RK-HPV-0417` (`rack-002`) has three named tubes and is ready to place.
+
+**`mockMolecularBatchService.ts`:**
+- A plate on an instrument with a deck layout must go in a slot that takes an extraction plate (`MOLECULAR_BATCH_DECK_SLOT_INVALID`).
+- The seeded run moved from SLOT_A1 to SLOT_A4.
+- Clone & Supersede drops a slot the deck no longer takes, rather than failing.
+
+**Moved out of the pages:**
+- `rackWorklist.ts`: the rack list's rows and status.
+- `molecularAssays.ts`: the assay list.
+- `controlRuleDraft.ts`: the Control Rules page's checks and slot choices.
+- `molecularActor` and `UNKNOWN_STATION_NAME` in `resolveMolecularMovementRecord.ts`.
+
+**Still open:** a browser that stored the batches before this change keeps `mb-001` in SLOT_A1, which no longer takes a plate. A supersede of it leaves the slot blank.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-235, PS-236)
+
+`plateWellScan.ts` (movement record with user and station when a specimen is scanned into a well) and `molecularDispatchPanel.ts` (Confirm Dispatch only after both scans; a mismatch blocks), moved out of the plate builder page and tested.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`plateBuilderWells.ts`: auto-fill, empty plates and `plateGridWells` (the grid by position; fixes column-major and view-only layouts).
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+Demo seeds (`molecularDemoSeed.ts`), HPV on Panther 2 for the baseline Paps:
+- `mb-demo-456-run`: S26-4650, worklist sent, running.
+- `mb-demo-456-fail`: S26-4651, positive control low, results blocked, repeat required (Clone & Supersede).
+- Extraction rack `rack-demo-456` (RACK-MOLE-00456): S26-4652, awaiting extraction.
+
+Merged into the batch and rack seeds with `withMissingSeedRecords`, so existing browsers get them without a reset. No breast or colon runs: the catalog's HER2 FISH, NGS and MSI tests are FISH or send-out, and the only in-house instruments run HPV. The Molecular Order Queue is still empty. The Panthers are registered at `c-fenwick-general`, not Metro General (unchanged).
+
+## Batch 467 — In-house molecular orders
+
+- `MolecularWell.orderId`: the in-house order a sample well holds (spec wellBindingContract).
+- `dispatchMolecularWorklist.ts` tells the molecular order engine the plate is running (orders → IN_RUN); `processInboundMolecularRunResults.ts` hands it the results (orders → RESULTED, synoptic filled).
+- Seeds: control rule `rule-467-egfr` (NTC A01, high positive A02) and the draft EGFR plate `mb-demo-467-egfr` on PCR_01. The rule reaches browsers that stored the rules earlier once only, so a deleted rule stays deleted.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- `resolveMolecularWorklistPayload` puts `order_id` on sample wells holding an order. Results may echo `order_id` (`MolecularWellResult`).
+- `plateBuilderWells.plateWellTitle`: a well's tooltip (sample, accession, order).
+
+- Batch 608: `resolveMolecularHistoricalTrace` finds a control or calibrator well by `wellPosition` and returns its `control` (ID, lot, expiry).
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the molecular batch, rack and control-rule services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/MOLECULAR_API.md`. The mocks are unchanged.
+
+## Batch 669 — molecular findings mol-6, mol-7, mol-9, mol-10, mol-14
+
+- **mol-6.** `dispatchMolecularWorklist` now sets `status: 'active'` with `worklistDispatchedAt` (a Draft batch only), so the Workcenter's Active tab is not seed-only.
+- **mol-7.** With no interface engine configured (the demo) the worklist goes through `dispatchInterfaceMessage` as the new `MOLECULAR_WORKLIST` transaction, which the simulated engine receiver answers (and lists on the Mock Interface Engine page); the plain `fetch` to `/api/v1/events/molecular-worklist` remains for a configured engine or API server and for the dev network mock. A send failure is a coded `failure` (`unreachable` / `rejected` with the HTTP status / `timeout`); `molecularDispatchPanel.dispatchFailureKey` picks the translated line. The English `reason` is for logs only. `MOLECULAR_WORKLIST` is listed in `docs/architecture/INTERFACE_TRANSACTIONS.md` and `functions/main.py`.
+- **mol-9.** `cloneWellsForSupersede.ts` keeps a patient well bound to an in-house order (order id, accession, specimen) when the old plate is an undispatched draft; `supersedeMolecularBatch.ts` (wired by `supersedeMolecularBatchLive.ts`, `supersedeMolecularBatchNow` in `@/services`) then calls the order engine's `onPlateSuperseded` so the waiting orders point at the new plate. Refusals are fixed codes (`reasonRequired`, `batchNotFound`, `alreadySuperseded`, `lotGatingFailed`, `controlsNotSatisfied`, plus the existing ones); `molecularBatchErrors.molecularBatchErrorKey` maps them (and the API server's `NOT_PERMITTED`, `NOT_FOUND`, `CONFLICT`) to `molecularPlateBuilderPage.batchErrors.*`. The API server must do the same two steps (clone keeps bound wells, orders move) behind `clone-and-supersede`.
+- **mol-10.** `controlWellInfo.ts`: the control id follows the lot number until set otherwise; the expected value defaults by type (NTC negative, PTC and calibrator positive) and is chosen on the panel; the expiry date box is bound to the stored date (UTC midnight; clearing it clears it).
+- **mol-14.** `IMolecularAssayControlRuleService` create / update / delete take a `reason` (refused when empty, written to the audit log); create and update refuse a rule with no controls (`controlsRequired`); update refuses moving a rule onto another rule's assay (`duplicateAssay`). `controlRuleDraftProblem` checks the same before the call. The HTTP service sends `reason` in the body.
+
+## Batch 669 (ctl) — Control Rules view
+`IMolecularAssayControlRuleService.listForReview()` is the Control Rules page's read and needs `config:molecular-control-rules:view` (or `:manage`), refusing with `notPermitted`; the HTTP route is `list-for-review`. `getAll` and `getByAssayCode` stay ungated on purpose: the plate builder, the rack screen and the order engine apply the rules to whoever works a plate, and refusing that read would silently drop a plate's required controls (a missing rule means no requirement).

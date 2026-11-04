@@ -8,13 +8,16 @@
 // per block. This is that editor.
 // ─────────────────────────────────────────────────────────────
 
+import { DeleteBlockControl } from './DeleteBlockControl';
+import { FlagBlockControl } from './FlagBlockControl';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import { stainTypeService, molecularTargetService, cassetteColorService, blockCancelMissing, restainMissing, chosenReason, type ResolvedFieldRequirement } from '@/services';
+import { stainTypeService, molecularTargetService, cassetteColorService, blockCancelMissing, restainMissing, chosenReason, blockGrossingFieldsMissing, isFieldRequired, type ResolvedFieldRequirement } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { GrossingFieldNote, RequiredMark } from '@/components/Grossing/GrossingFieldNote';
 import { formatDateTime } from '@/utils/formatDate';
-import { WsiViewerLaunchButton } from '../components/WsiViewerLaunchButton';
+import { SlideImagePreview } from '@/components/SlideImage/SlideImagePreview'; import type { SlideScanFields } from '@/services/digitalPathology/slideImages';
 import type { StainType } from '@/services/stains/IStainService';
 import type { MaterialComment } from '@/types/case/MaterialComment';
 import CameraCaptureControl from '@/components/GrossingHardware/CameraCaptureControl';
@@ -29,9 +32,10 @@ import { buildSecondaryLabelHtml } from '@/utils/labels/buildLabelHtml';
 import { printLabels } from '@/utils/labels/printLabels';
 import { getLabelSizePreset } from '@/types/labels/LabelSizePreset';
 import ForeignIdFields from './ForeignIdFields';
+import SendBlockOrderButton from '@/components/MockInterfaceEngine/SendBlockOrderButton';
 import CassetteColorControl from './CassetteColorControl';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
-import { DECANT_TYPE_LABEL } from '@/types/case/Material';
+import type { Decant } from '@/types/case/Material'; import { decantTypeText } from '@/utils/decantTypeText'; // Batch 739
 
 const BLOCK_STATUSES = ['Pending', 'Grossed', 'Embedded', 'Exhausted', 'Lost', 'Damaged'] as const;
 // Real, persisted enum values (block.status) stay as data — only the
@@ -99,8 +103,8 @@ const RESTAIN_REASONS = [
 // look-alike that could drift out of sync with this one over time.
 export const StainMultiSelect: React.FC<{
   stainTypes: StainType[];
-  stains: { id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string }[];
-  onChange: (stains: { id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string }[]) => void;
+  stains: ({ id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string } & SlideScanFields)[];
+  onChange: (stains: ({ id: string; stainName: string; status: string; lisRequestStatus?: 'pending' | 'confirmed' | 'rejected'; selectedTargets?: MolecularTarget[]; displayId?: string } & SlideScanFields)[]) => void;
   masterTargets: MolecularTarget[];
   /** Real feature, per direct feedback: "I was trying to Add a
    *  Unstained slide, but did not see it in the drop down list."
@@ -187,7 +191,7 @@ export const StainMultiSelect: React.FC<{
               {s.lisRequestStatus === 'rejected' && (
                 <span title={t('blockStainEditorModal.stainMultiSelect.lisRejectedTitle')} className="ps-blockstain-lis-icon ps-blockstain-lis-icon--rejected">⚠</span>
               )}
-              <WsiViewerLaunchButton status={s.status} displayId={s.displayId} />
+              <SlideImagePreview slideDisplayId={s.displayId} scan={s} />
               <button type="button" onClick={() => remove(s.id)} className="ps-protocol-stainselect-chip-remove">×</button>
             </span>
           ))}
@@ -301,7 +305,7 @@ interface DecantRow {
   specimenId: string;
   specimenLabel: string;
   specimenDescription: string;
-  decant: any;
+  decant: Decant;
 }
 
 interface Props {
@@ -329,6 +333,12 @@ interface Props {
    *  not withdrawal of an unfulfilled order. See CancelBlockControl's
    *  own doc comment for the full compliance rationale. */
   onCancelBlock: (specimenId: string, blockId: string, reason: string) => void;
+  /** Batch 588: delete a block in process (soft delete). Undefined once the case is signed out: no control is shown. */
+  onDeleteBlock?: (specimenId: string, blockId: string, reasonCode: string, note: string) => void;
+  /** Batch 610 (#11): which delete applies: 'signed_out' once the case is signed out (Invalidated). */
+  blockDeleteTier?: 'in_process' | 'signed_out';
+  /** Batch 610 (#11): tier 3, given only on an amended report: flag a block Invalidated or Superseded (no deletion). */
+  onFlagBlock?: (specimenId: string, blockId: string, kind: 'invalidated' | 'superseded', reasonCode: string, note: string) => void;
   /** Real feature, per direct confirmation: "Create Spare Slide —
    *  Generates a new slide ID, links to block, no stain assigned
    *  yet." No LIS side-effect — see handleCreateSpareSlide's own doc
@@ -643,14 +653,14 @@ const RestainControl: React.FC<{
       {isUnstained && (
         <>
           <label className="ps-conf-label ps-blockstain-small-label">{t('blockStainEditorModal.restainControl.stainFieldLabel')}</label>
-          <select className="ps-conf-select ps-blockstain-restain-select" value={stainName} onChange={e => setStainName(e.target.value)}>
+          <select aria-label={t('blockStainEditorModal.restainControl.stainFieldLabel')} className="ps-conf-select ps-blockstain-restain-select" value={stainName} onChange={e => setStainName(e.target.value)}>
             <option value="">{t('blockStainEditorModal.selectPlaceholder')}</option>
             {stainTypes.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
           </select>
         </>
       )}
       <label className="ps-conf-label ps-blockstain-small-label">{t('blockStainEditorModal.restainControl.reasonFieldLabel')}</label>
-      <select className="ps-conf-select" value={reasonChoice} onChange={e => setReasonChoice(e.target.value)}>
+      <select aria-label={t('blockStainEditorModal.restainControl.reasonFieldLabel')} className="ps-conf-select" value={reasonChoice} onChange={e => setReasonChoice(e.target.value)}>
         {RESTAIN_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
       </select>
       {reasonChoice === 'Other' && (
@@ -682,10 +692,15 @@ const RestainControl: React.FC<{
   );
 };
 
-export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePriority, fullAccession, onUpdateBlock, onUpdateDecant, onPrintDecantContainerLabel, onSendStainOrder, onCancelBlock, onCreateSpareSlide, onOrderRestain, currentUserId, currentUserName, onClose, initialFocusBlockId, initialFocusDecantId }) => {
+export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePriority, fullAccession, onUpdateBlock, onUpdateDecant, onPrintDecantContainerLabel, onSendStainOrder, onCancelBlock, onDeleteBlock, blockDeleteTier, onFlagBlock, onCreateSpareSlide, onOrderRestain, currentUserId, currentUserName, onClose, initialFocusBlockId, initialFocusDecantId }) => {
   const { t, i18n } = useTranslation();
   // Batch 381 (PS-359): the cancel-block and restain forms' requirements.
   const requirements = useFieldRequirements('report');
+  // Batch 397: the Grossing page's per-block rules (piece count and
+  // description), marked here where they're entered; checked at Complete grossing.
+  const grossingRequirements = useFieldRequirements('grossing');
+  const pieceCountRequired = isFieldRequired(grossingRequirements, 'pieceCount');
+  const pieceDescriptionRequired = isFieldRequired(grossingRequirements, 'pieceDescription');
   const [stainTypes, setStainTypes] = useState<StainType[]>([]);
   const [masterTargets, setMasterTargets] = useState<MolecularTarget[]>([]);
   // Real, per the RFP-APLIS-2026-GLOBAL Grossing Station Hardware
@@ -804,7 +819,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
     const preset = getLabelSizePreset('histology_secondary_overlay');
     if (!preset) return;
     const html = buildSecondaryLabelHtml(data, preset);
-    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`);
+    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`, { document: 'secondary-label', documentId: data.recordLabel, caseId: fullAccession });
   };
 
   // Real, parallel sibling to printSecondaryLabel above — per direct
@@ -824,7 +839,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
     const preset = getLabelSizePreset('histology_secondary_overlay');
     if (!preset) return;
     const html = buildSecondaryLabelHtml(data, preset);
-    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`);
+    printLabels([html], preset, `Secondary Label — ${data.recordLabel}`, { document: 'secondary-label', documentId: data.recordLabel, caseId: fullAccession });
   };
 
   // Real, parallel sibling to foreignIdCollisions/checkForeignIdCollision
@@ -961,13 +976,13 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                         is never hidden: both real counts (grossed vs.
                         observed) are stored and MaterialTreePanel.tsx
                         renders the real comparison directly. */}
-                    {embedCountPrompt?.blockId === block.id && (
+                    {embedCountPrompt && embedCountPrompt.blockId === block.id && (
                       <div className="ps-blockstain-embed-prompt">
                         <div className="ps-blockstain-embed-prompt-text">
                           {t('blockStainEditorModal.embedCountPrompt.question', { count: block.pieceCount })}
                         </div>
                         <div className="ps-blockstain-embed-prompt-row">
-                          <input
+                          <input aria-label={t('a11y.fields.observedCount')}
                             type="number" min={0} className="ps-conf-input ps-blockstain-embed-count-input"
                             value={embedCountPrompt.observedCount}
                             onChange={e => setEmbedCountPrompt({ blockId: block.id, observedCount: e.target.value })}
@@ -1032,7 +1047,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     handleUpdateBlock). */}
                 <div className="ps-conf-form-row">
                   <div className="ps-conf-form-field">
-                    <label className="ps-conf-label" htmlFor={`block-piece-count-${block.id}`}>{t('blockStainEditorModal.piecesGrossedLabel')}</label>
+                    <label className="ps-conf-label" htmlFor={`block-piece-count-${block.id}`}>{t('blockStainEditorModal.piecesGrossedLabel')}<RequiredMark required={pieceCountRequired} /></label>
                     <input
                       id={`block-piece-count-${block.id}`} type="number" min={0} className="ps-conf-input"
                       disabled={block.status === 'Cancelled'}
@@ -1043,6 +1058,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                         onUpdateBlock(specimenId, block.id, { pieceCount: n });
                       }}
                     />
+                    <GrossingFieldNote missing={block.status !== 'Cancelled' && blockGrossingFieldsMissing(block, grossingRequirements).includes('pieceCount')} />
                   </div>
                   <div className="ps-conf-form-field">
                     <label className="ps-blockstain-checkbox-label">
@@ -1058,7 +1074,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                   </div>
                 </div>
                 <div className="ps-conf-form-field ps-blockstain-field-spaced">
-                  <label className="ps-conf-label" htmlFor={`block-piece-desc-${block.id}`}>{t('blockStainEditorModal.pieceDescriptionLabel')}</label>
+                  <label className="ps-conf-label" htmlFor={`block-piece-desc-${block.id}`}>{t('blockStainEditorModal.pieceDescriptionLabel')}<RequiredMark required={pieceDescriptionRequired} /></label>
                   <input
                     id={`block-piece-desc-${block.id}`} type="text" className="ps-conf-input"
                     disabled={block.status === 'Cancelled'}
@@ -1066,6 +1082,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     placeholder={t('blockStainEditorModal.pieceDescriptionPlaceholder')}
                     onChange={e => onUpdateBlock(specimenId, block.id, { pieceDescription: e.target.value || undefined })}
                   />
+                  <GrossingFieldNote missing={block.status !== 'Cancelled' && blockGrossingFieldsMissing(block, grossingRequirements).includes('pieceDescription')} />
                 </div>
                 {/* Real, per direct follow-up: "add tissue
                     descriptions on cassettes as that would be good
@@ -1120,7 +1137,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                 )}
                 <div className="ps-conf-form-field ps-blockstain-field-spaced">
                   <label className="ps-conf-label">{t('blockStainEditorModal.blockCommentsLabel')}</label>
-                  {(block.comments ?? []).map(c => (
+                  {(block.comments ?? []).map((c: MaterialComment) => (
                     <div key={c.id} className="ps-blockstain-comment-row">
                       <Trans i18nKey="blockStainEditorModal.commentMeta" values={{ author: c.authorName, when: formatDateTime(c.createdAt, i18n.language) }} components={{ author: <strong className="ps-blockstain-comment-author" /> }} />
                       <div className="ps-blockstain-comment-text">{c.text}</div>
@@ -1205,8 +1222,8 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                             a Stain identifier for clarity"): s.displayId
                             is the real, already-generated slide
                             identifier (slideIdentifier(), the same real
-                            id WsiViewerLaunchButton routes a scan launch
-                            to) — it existed on this record already but
+                            id SlideImagePreview opens a slide image
+                            with) — it existed on this record already but
                             was never actually shown anywhere a person
                             reads, only used internally for that launch
                             URL. With more than one stain on a block
@@ -1246,6 +1263,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     >
                       {t('blockStainEditorModal.createSpareSlideButton')}
                     </button>
+                    <SendBlockOrderButton fullAccession={fullAccession} specimenId={specimenId} blockId={block.id} actor={currentUserName} />
                   </>
                 )}
                 {orderingBlockId === block.id && (
@@ -1267,6 +1285,12 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                   requirements={requirements}
                   onCancel={reason => onCancelBlock(specimenId, block.id, reason)}
                 />
+                {(onDeleteBlock || block.status === 'Deleted' || block.status === 'Invalidated') && (
+                  <DeleteBlockControl block={block} tier={blockDeleteTier} onDelete={(code, note) => onDeleteBlock?.(specimenId, block.id, code, note)} />
+                )}
+                {(onFlagBlock || block.amendmentFlag) && (
+                  <FlagBlockControl block={block} onFlag={(kind, code, note) => onFlagBlock?.(specimenId, block.id, kind, code, note)} />
+                )}
               </div>
             ))}
             {blocks.length === 0 && <div className="ps-cmnt-thread-empty">{t('blockStainEditorModal.noBlocksYet')}</div>}
@@ -1292,7 +1316,7 @@ export const BlockStainEditorModal: React.FC<Props> = ({ blocks, decants, casePr
                     <div className="ps-protocol-track-header">
                       <div className="ps-protocol-track-header-info">
                         <strong className="ps-protocol-track-name">
-                          {specimenLabel}{decant.label} — {DECANT_TYPE_LABEL[decant.decantType]}
+                          {t('cytologyScreening.materialDrawer.decantHeading', { label: `${specimenLabel}${decant.label}`, type: decantTypeText(t, decant) })}
                         </strong>
                         {specimenDescription && (
                           <div className="ps-protocol-track-meta">{specimenDescription}</div>

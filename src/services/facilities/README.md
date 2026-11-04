@@ -1,3 +1,7 @@
+**Batch 734:** `Facility.allowDirectDevicePrinting` and `setDirectDevicePrinting(id, allowed)` (capability `config:direct-device-printing:manage`, audit "Direct Device Printing Changed"; route `POST /api/facilities/facility/set-direct-device-printing`). Ordinary `add`/`update` never change it.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/facilities/
 
 The canonical `Facility` entity — replaces `services/clients/`
@@ -36,7 +40,7 @@ same change.
   `specimen_acquisition` | `reference_lab`),
   `FACILITY_ROLE_LABELS` (display strings), `FACILITY_ROLE_TOOLTIPS`
   (real, per-role hover text — further defines what each role actually
-  means/gates, shown in `ClientEditorModal.tsx` via a native `title`
+  means/gates, shown in `components/FacilityDictionary/FacilityEditorModal.tsx` via a native `title`
   attribute; grounded in each role's own real, verified behavior, not
   a restatement of the label — see that constant's own doc comment
   for which roles genuinely gate a field/tab vs. which are currently
@@ -75,7 +79,7 @@ same change.
   Gated to `performing_lab`. `placeOfServiceCodeId?: string` — real
   field, gated to `specimen_acquisition`. References a real, versioned
   `PlaceOfServiceCode` dictionary (`services/billing/`) via a real
-  picker in `ClientEditorModal.tsx`.
+  picker in `FacilityEditorModal.tsx`.
   **Real, new field (Outside Client Support & International Financial
   Class Architecture Specification, Step 2):**
   `defaultAccountBillingType?: string` — the source spec's own dynamic-
@@ -200,12 +204,13 @@ same change.
   at module load for the seeded performing labs above, which predate
   this field.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the role tooltips and Place of Service picker are in `FacilityEditorModal.tsx`; `ClientEditorModal.tsx` was deleted in Batch 179.*
+
 ## Consumers
 
-- `components/ClientDictionary/ClientEditorModal.tsx` — the unified
-  editor. See that folder's own README for the full tab-gating
-  breakdown (which tabs are gated to which roles, and two real bugs
-  found and fixed in that gating).
+- `components/FacilityDictionary/FacilityEditorModal.tsx` — the unified
+  editor (Configuration → Facilities). See that folder's own README for
+  its tab and role gating.
 - `components/Config/AI/orchestratorModeConfig.ts` /
   `resolveClientAiModel.ts`, `services/session/mockSessionTimeoutService.ts`,
   `services/reportRelease/mockReportReleaseService.ts` (**NEW, August
@@ -244,6 +249,8 @@ same change.
   about which country governs a case. See
   `services/participationTypes/README.md` for the model it feeds.
   Tested in `resolveCasePerformingLabScope.test.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the editor is `components/FacilityDictionary/FacilityEditorModal.tsx`, not the deleted `components/ClientDictionary/ClientEditorModal.tsx`.*
 
 ## Notes
 
@@ -302,7 +309,7 @@ dead code). Neither list is derived from the real `FacilityRole` type
 itself, so TypeScript has no way to catch a role added to one without
 the other — both were updated by hand for `reference_lab` here, but
 this is a real, standing risk for the next new role, not just a
-one-time miss.
+one-time miss. *(Since closed: `components/ClientDictionary/` and `ClientDictionaryPage.tsx` were deleted in Batch 179, so only `FacilityEditorModal.tsx` keeps a `FACILITY_ROLE_ORDER` list; it is still hand-maintained rather than derived from the type — checked in the Batch 496 README audit.)*
 
 - **Real, new consumer (PS-287, Sep 2026):** `getAll()`, filtered to `roles.includes('reference_lab') && status === 'Active'`, is now how `pages/AddOnOrderPage/`'s own Order Summary & Routing panel offers a real Reference/Send-Out Lab picker for a molecular/send-out add-on order — the first real place this app lets a user actively choose a `reference_lab` facility, as opposed to that role's prior, purely-descriptive existence on the Facility record. Read-only; nothing in this folder's own files changed. Real, honest scope note: no per-performing-lab "preferred reference lab" mapping exists — the ordering pathologist picks explicitly each time.
 
@@ -389,7 +396,7 @@ context with fallback to Department and Enterprise defaults").
 - **Still open:**
   - The three Manchester site labs (`c-site-mft-*`) have no cases, because searching by a Trust does not include its sites. *Fixed in Batch 354.*
   - `MPA26-1006-POOL` is a Midwest case, but its ordering facility, `c-hfhs-07`, is a Henry Ford client, so it is found under Henry Ford.
-  - The Desert Valley cases at Metro General, Riverside, Northside and Westview (`c1`–`c4`) have facility records but no lab link.
+  - The Desert Valley cases at Metro General, Riverside, Northside and Westview (`c1`–`c4`) have facility records but no lab link. *(Since closed: Batch 441 gave `c1`–`c5` Desert Valley Medical Center as their performing lab, `withDemoClientPerformingLab` in `mockFacilityService.ts` — checked in the Batch 496 README audit.)*
 
 ## Batch 354: a Trust includes what is under it
 
@@ -419,6 +426,91 @@ Pete: "Link Hospital ID to an Organization so all this can be demo'd appropriate
   - Each international lab owns its own cases.
 - **Side effect:** the ten labs now appear wherever organisations are listed: support access, Case Mask's organisation list, the enterprise roll-up, and the parent choice in the facility editor.
 
+## Batch 391
+
+`Facility.reportLanguage` (performing labs): the language the lab writes its reports in; undefined means the jurisdiction's default (`services/reports/reportLanguage.ts`). Set in the Facility Dictionary editor.
+
+## Batch 403
+
+`referenceLabSeeds.ts`: three fictional demo reference labs (Summit Molecular Reference Laboratory, Pacific Genomics Reference Lab, Great Lakes Cytogenetics), with the `reference_lab` role. `mockFacilityService.ts` adds them to a browser's stored facilities when they're missing (`withMissingSeedRecords`), without replacing anything an administrator changed.
+
+## Batch 414
+
+- `RegistryId` is every registry in `services/screeningRegistry/screeningRegistryDefinitions.ts`: twelve, up from six.
+- **Fixed:** the Cytology Registry settings screen saved to `cytologyRegistrySettings` and `facilityCytologyRegistryOverrides`, but sign-out read `registrySettings` and `facilityRegistryOverrides`. A registry chosen in Configuration therefore never reached sign-out. The screen now saves here. `mockRegistrySettingsService` adopts an old enterprise choice when its own store is empty, and `mockFacilityRegistryOverrideService` keeps old facility overrides for any facility that has none.
+
+## Batch 427
+
+`Facility.consolidateOutboundPdfs` (performing labs): the lab's LIS takes one PDF per accession, so synoptic results go with one combined case PDF instead of one per workup (`services/reports/`).
+
+**Disclosed, not fixed:** saving a facility checks no capability; anyone who can open Configuration can do it. A Configuration-wide permission scan is the next batch. *(Since closed: Batch 428 requires `config:facilities:manage`, see below — checked in the Batch 496 README audit.)*
+
+## Batch 428: Configuration permissions
+
+- `mockFacilityService`: `add`, `update`, `deactivate`, `reactivate`, `verify` need `config:facilities:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 431
+
+Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
+
+## Batch 433
+
+`Facility.requireBillingApproval` now has an editor (Configuration → Facilities → General, "Charges need billing approval"). An enterprise sets it on or off; a performing lab can follow its enterprise (unset) or override it. Resolved by `services/billing/chargeApproval.ts`.
+
+## Batch 434
+
+`resolveCasePerformingLab.ts`: a case's performing lab from its `originHospitalId`, whether a facility id or a legacy tenant id (through `Facility.legacyTenantIds`), and `enterpriseOf(lab)`. Used by charge approval. Test beside it.
+
+## Batch 441
+
+Desert Valley's US demo ordering clients (`c1` to `c5`) now name Desert Valley Medical Center (`c-ent-dvmc`) as their performing lab. Before, their cases had none, so the peer-review gate (and anything else keyed by performing lab) couldn't be set for them. A stored copy without one is filled on load (`withDemoClientPerformingLab`); one an administrator set is kept.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 517 — setPrintSettings (PS-337)
+
+- **New method.** `IFacilityService.setPrintSettings(id, { printDeliveryConfig?, printPresentationPreference? })` checks `config:print-settings:manage`. It refuses settings that have a problem (`services/printing/facilityReportPrinting.ts`). `undefined` clears a block.
+- **`add` and `update` now ignore the two printing fields.** This means a facility edit can't overwrite printing saved from the Printing tab, and someone with only `config:facilities:manage` can't change printing.
+- **Duplicating a facility doesn't copy its printing.** A new site sets up its own printers.
+- Test: `facilityPrintSettings.test.ts`.
+
+## Batch 528: Facility editor requirements (PS-359)
+
+`facilityFormChecks.ts` decides what the Facility editor needs before it saves, from the organisation's Field Requirements (page `facility`). It replaces the check hard-coded in `FacilityEditorModal.tsx`:
+- name and assigning authority stay locked, and the assigning authority stays unique ignoring case (PS-73);
+- email is required by default, and an organisation can switch that off;
+- phone, address and the contact person can be made required;
+- the interface engine endpoint and the LIS sending-facility ID are required only once that interface is set up.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `facilityFormChecks.ts`: the letterhead logo (`headerLogoUrl`), when given, must be an https link (`invalidLink`, `services/links/externalLink.ts`). Carried over from Batch 544.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: `setPrintSettings` checks a site agent default printer is on this facility's own site (`facilityPrintProblem(settings, id)`).
+
+## Batch 606
+
+- `resolveSplitReportBranding.ts` (+ test): the reporting lab's branding plus, when the case names a different technical-component facility (`order.technicalComponentFacilityId`), a second block with the director and CLIA/ISO number withheld. Sent as `technicalBranding` in the surgical report request.
+
+- Batch 608: `Facility.nationalRegistryId`.
+
+
+Batch 616: server version in `httpFacilityService.ts, httpRegistrySettingsService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `facilityServiceInstance.ts, registrySettingsServiceInstance.ts, facilityRegistryOverrideServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.
+
+## Batch 618 (PS-336)
+
+`technicalBrandingForRender` (in `resolveSplitReportBranding.ts`): the technical lab's block is sent to the renderer only once the case is signed out. `technicalFacilityAudit.ts` (+ test): the audit entry for setting, changing or clearing the field (ids only).
+
+## Batch 715
+
+`Facility.labelStyle` (specimen, block, slide: letters or numbers; unset = follow the enterprise) beside the old `specimenLabelStyle` preset, which is still read. Resolved only through `services/labeling/resolveLabelStyle.ts`. Saving still needs `config:facilities:manage`.
+
+## Batch 751
+
+`Facility.organMapDelivery` and `setOrganMapDelivery(id, settings)` (capability `config:organ-map-delivery:manage`, checked with `validateOrganMapDelivery`, audited "Organ Map Delivery Changed"); `add` and `update` never change it. Server route `POST /api/facilities/facility/set-organ-map-delivery`. The demo lab Desert Valley (`c-ent-dvmc`) sends text and a PNG file; `SEED_VERSION` 9.

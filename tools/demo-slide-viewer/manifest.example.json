@@ -1,0 +1,45 @@
+{
+  "about": "Demonstration images for PathScribe's seed row S10. Copy to manifest.json next to index.html once the images are converted. Every entry records its source and licence; the same text goes in previews/<slide>.licence.txt beside its preview. Fill in the exact file names and read each licence before use (docs/product/SLIDE_IMAGE_DEMO.md).",
+  "slides": {
+    "S26-5404-B1-L1": {
+      "title": "Sentinel lymph node, H&E (no metastasis)",
+      "dzi": "tiles/S26-5404-B1-L1.dzi",
+      "source": "CAMELYON16, a normal lymph node slide (record the file name), Radboud University Medical Center and University Medical Center Utrecht, via the AWS Open Data registry",
+      "licence": "CC0 1.0 (confirm on the dataset page)",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "note": "Openly licensed research image, shown for demonstration."
+    },
+    "S26-5404-C1-L1": {
+      "title": "Sentinel lymph node, H&E (metastatic carcinoma)",
+      "dzi": "tiles/S26-5404-C1-L1.dzi",
+      "source": "CAMELYON16, a tumour slide (record the file name), via the AWS Open Data registry",
+      "licence": "CC0 1.0 (confirm on the dataset page)",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "note": "Openly licensed research image, shown for demonstration."
+    },
+    "S26-5404-C1-L2": {
+      "title": "Sentinel lymph node, H&E recut (failed image quality)",
+      "dzi": "tiles/S26-5404-C1-L2.dzi",
+      "source": "A blurred copy of the S26-5404-C1-L1 image, made for the demonstration (Gaussian blur, recorded in SLIDE_IMAGE_DEMO.md)",
+      "licence": "CC0 1.0, as its source",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "note": "Deliberately blurred to show a slide that failed the image quality check."
+    },
+    "S26-5404-A1-L1": {
+      "title": "Breast, mastectomy, H&E",
+      "dzi": "tiles/S26-5404-A1-L1.dzi",
+      "source": "To choose: an OpenSlide test image or a TCIA collection, only after its licence has been read",
+      "licence": "To record once read",
+      "licenceUrl": "",
+      "note": "Leave this entry out until the licence is confirmed; PathScribe then shows the preview template's image only."
+    },
+    "S26-5402-A1-L1": {
+      "title": "Breast, wide local excision, whole-mount H&E",
+      "dzi": "tiles/S26-5402-A1-L1.dzi",
+      "source": "A further CAMELYON16 slide, or an immunostain from an openly licensed collection once its licence is read",
+      "licence": "CC0 1.0 for CAMELYON16 (confirm on the dataset page)",
+      "licenceUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "note": "Openly licensed research image, shown for demonstration."
+    }
+  }
+}

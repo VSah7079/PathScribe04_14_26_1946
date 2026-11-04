@@ -37,11 +37,18 @@ export function isValidInterval(value: number | undefined): boolean {
   return value === undefined || (Number.isInteger(value) && value >= 1 && value <= MAX_INTERVAL_DAYS);
 }
 
-export type EquipmentLogErrorKey = 'dateRequired' | 'dateInFuture' | 'performedByRequired' | 'typeRequired' | 'outcomeRequired' | 'notesRequired';
-export type EquipmentLogErrors = Partial<Record<'performedOn' | 'performedBy' | 'type' | 'outcome' | 'notes', EquipmentLogErrorKey>>;
+export type EquipmentLogErrorKey = 'dateRequired' | 'dateInFuture' | 'performedByRequired' | 'typeRequired' | 'outcomeRequired' | 'notesRequired' | 'temperatureRequired' | 'outcomeMismatch';
+export type EquipmentLogErrors = Partial<Record<'performedOn' | 'performedBy' | 'type' | 'outcome' | 'notes' | 'temperatureCelsius', EquipmentLogErrorKey>>;
+
+/** Batch 730: a temperature reading's outcome against a range: pass inside it, fail outside; null when there is no range. */
+export function temperatureOutcome(celsius: number, range: { minCelsius?: number; maxCelsius?: number }): 'pass' | 'fail' | null {
+  const { minCelsius: min, maxCelsius: max } = range;
+  if (min === undefined && max === undefined) return null;
+  return (min !== undefined && celsius < min) || (max !== undefined && celsius > max) ? 'fail' : 'pass';
+}
 
 export function validateEquipmentLogEntry(
-  draft: Pick<NewEquipmentLogEntry, 'type' | 'performedOn' | 'performedBy' | 'outcome' | 'notes'>, today: string,
+  draft: Pick<NewEquipmentLogEntry, 'type' | 'performedOn' | 'performedBy' | 'outcome' | 'notes' | 'temperatureCelsius' | 'minCelsius' | 'maxCelsius'>, today: string,
 ): EquipmentLogErrors {
   const errors: EquipmentLogErrors = {};
   if (!(EQUIPMENT_LOG_TYPES as readonly string[]).includes(draft.type)) errors.type = 'typeRequired';
@@ -51,6 +58,14 @@ export function validateEquipmentLogEntry(
   if (!(EQUIPMENT_LOG_OUTCOMES as readonly string[]).includes(draft.outcome)) errors.outcome = 'outcomeRequired';
   // A failure or a malfunction must say what happened.
   if ((draft.outcome === 'fail' || draft.type === 'malfunction') && !draft.notes?.trim()) errors.notes = 'notesRequired';
+  // Batch 730: a temperature check needs its reading; with a range on the device, the outcome must follow it.
+  if (draft.type === 'temperature_check') {
+    if (typeof draft.temperatureCelsius !== 'number' || !Number.isFinite(draft.temperatureCelsius)) errors.temperatureCelsius = 'temperatureRequired';
+    else {
+      const expected = temperatureOutcome(draft.temperatureCelsius, draft);
+      if (expected && draft.outcome !== expected) errors.outcome = 'outcomeMismatch';
+    }
+  }
   return errors;
 }
 

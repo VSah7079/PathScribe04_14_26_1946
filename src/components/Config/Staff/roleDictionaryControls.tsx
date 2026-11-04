@@ -3,6 +3,7 @@
 // RoleDictionary.tsx in Batch 369 so RoleCapabilitiesTab can use them).
 
 import React from 'react';
+import { pressable } from '@/utils/a11y/pressable';
 
 export type TriState = 'all' | 'some' | 'none';
 
@@ -11,9 +12,11 @@ export type TriState = 'all' | 'some' | 'none';
 // Box and glyph sizes come from the ps-rd-cb--size-* classes (no inline CSS).
 export type CheckboxSize = 16 | 18 | 20;
 
-export const TriCheckbox: React.FC<{ state: TriState; onClick: (e: React.MouseEvent) => void; size?: CheckboxSize }> = ({ state, onClick, size = 16 }) => (
+export const TriCheckbox: React.FC<{ state: TriState; onClick: (e: React.MouseEvent) => void; size?: CheckboxSize; label: string }> = ({ state, onClick, size = 16, label }) => (
   <div
-    onClick={onClick}
+    {...pressable(onClick, { role: 'checkbox' })}
+    aria-checked={state === 'all' ? true : state === 'some' ? 'mixed' : false}
+    aria-label={label}
     className={`ps-rd-cb ps-rd-cb--size-${size} ps-rd-tri-${state}`}
   >
     {state === 'all'  && <span className="ps-rd-tri-check">✓</span>}

@@ -18,7 +18,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { mockDraftCacheService } from '@/services/drafts/mockDraftCacheService';
+import { draftCacheService } from '@/services';
+import { draftAutosaveDecision, draftStateJson, type DraftBaseline } from '@/utils/draftCacheBaseline';
+
 
 const DEBOUNCE_MS = 1000; // matches the spec's Drafts:DebounceIntervalMs default
 
@@ -49,6 +51,7 @@ export function useDraftCache<T>(
   const [existingDraftPayload, setExistingDraftPayload] = useState<T | null>(null);
   const [existingDraftSavedAt, setExistingDraftSavedAt] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const baselineRef = useRef<DraftBaseline | null>(null);
 
   // ── Check for a pre-existing draft once per userId+entityId ────────────────
   // Real bug found and fixed here, per direct report: "timeout worked,
@@ -72,7 +75,7 @@ export function useDraftCache<T>(
     if (!enabled || !userId || !entityId) return;
 
     let cancelled = false;
-    mockDraftCacheService.getDraft<T>(userId, entityId).then(res => {
+    draftCacheService.getDraft<T>(userId, entityId).then(res => {
       if (cancelled || !res.ok || !res.data) return;
       setHasExistingDraft(true);
       setExistingDraftPayload(res.data.payload);
@@ -82,25 +85,31 @@ export function useDraftCache<T>(
   }, [enabled, userId, entityId]);
 
   // ── Debounced auto-save on every currentState change ────────────────────────
+  // Batch 756: only once the state differs from the page's first settled state (utils/draftCacheBaseline.ts), so
+  // opening a case and leaving it unchanged leaves no draft behind.
   useEffect(() => {
     if (!enabled || !userId || !entityId) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
-      mockDraftCacheService.saveDraft(userId, entityId, currentState);
+      const key = `${userId}|${entityId}`;
+      const json = draftStateJson(currentState);
+      const decision = draftAutosaveDecision(baselineRef.current, key, json);
+      if (decision === 'baseline') baselineRef.current = { key, json: json as string };
+      if (decision === 'save') draftCacheService.saveDraft(userId, entityId, currentState);
     }, DEBOUNCE_MS);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [enabled, userId, entityId, currentState]);
 
   const confirmRestore = useCallback(() => {
     if (!userId || !entityId) return;
-    mockDraftCacheService.clearDraft(userId, entityId);
+    draftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
     setExistingDraftPayload(null);
   }, [userId, entityId]);
 
   const discardDraft = useCallback(() => {
     if (!userId || !entityId) return;
-    mockDraftCacheService.clearDraft(userId, entityId);
+    draftCacheService.clearDraft(userId, entityId);
     setHasExistingDraft(false);
     setExistingDraftPayload(null);
   }, [userId, entityId]);

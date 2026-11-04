@@ -52,6 +52,11 @@ describe('toPatientHistoryCase — real fix: honest mapping from real Case field
     expect(result.ki67).toBe('15%');
   });
 
+  it('carries the performing facility, so facility settings (the AI history extraction) apply to the case', () => {
+    expect(toPatientHistoryCase({ id: 'S26-1', order: { facilityId: 'fac-a' } }).facilityId).toBe('fac-a');
+    expect(toPatientHistoryCase({ id: 'S26-1' }).facilityId).toBeUndefined();
+  });
+
   it('leaves genuinely unmapped fields as real, honest empty defaults rather than fabricated text', () => {
     const result = toPatientHistoryCase({ id: 'S26-1' });
     expect(result.comment).toBe('');

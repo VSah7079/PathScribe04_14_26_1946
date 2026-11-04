@@ -1,0 +1,14 @@
+/* src/pages/GrossingScreenPage/GrossingBlockTable.css
+   Batch 756: the block table's piece description had no rule of its own, so the browser drew it as a white box on
+   the dark screen. Same look as the piece count beside it (.ps-grossing-piece-count-input, pathscribe.css). */
+.ps-grossing-piece-description-input {
+  width: 100%;
+  min-width: 140px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.ps-grossing-piece-description-input:focus { outline: none; border-color: var(--ps-teal, #14b8a6); }

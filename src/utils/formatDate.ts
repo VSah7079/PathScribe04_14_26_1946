@@ -43,6 +43,8 @@ export function timeFormatForJurisdiction(j: Jurisdiction): '12h' | '24h' {
 
 // ── Date only ─────────────────────────────────────────────────────────────────
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
 export function formatDate(iso: string | undefined, locale?: string): string {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -51,6 +53,9 @@ export function formatDate(iso: string | undefined, locale?: string): string {
     day:   '2-digit',
     month: '2-digit',
     year:  'numeric',
+    // Batch 391: a date without a time (a date of birth, "1988-04-02") is
+    // midnight UTC; shown in a timezone west of UTC it became the day before.
+    ...(DATE_ONLY.test(iso) ? { timeZone: 'UTC' } : {}),
   });
 }
 
@@ -72,6 +77,18 @@ export function formatDateTime(iso: string | undefined, locale?: string): string
   });
 }
 
+// ── Time only (Batch 402) ─────────────────────────────────────────────────────
+// For same-shift lists (a bench's event history), where the date is today.
+
+export function formatTime(iso: string | undefined, locale?: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const j    = localeToJurisdiction(locale);
+  const is24 = j ? timeFormatForJurisdiction(j) === '24h' : false;
+  return d.toLocaleTimeString(locale ?? 'en-US', { hour: '2-digit', minute: '2-digit', hour12: !is24 });
+}
+
 // ── Long-form date (unambiguous — for reports and audit) ──────────────────────
 // Always spelled out: '4 June 2026' or 'June 4, 2026'
 // Use this on finalised reports to avoid any DD/MM vs MM/DD ambiguity.
@@ -89,9 +106,17 @@ export function formatDateLong(iso: string | undefined, locale?: string): string
 
 // ── UTC audit timestamp (always unambiguous) ──────────────────────────────────
 
+/** Batch 437: a stored timestamp without a zone ('2026-10-02 22:06:32', how
+ *  the audit log stores them) is UTC. The browser reads that shape as local
+ *  time, which moved every Audit Log time by the viewer's UTC offset. */
+export function parseStoredUtc(ts: string): Date {
+  const noZone = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(ts);
+  return new Date(noZone ? ts.replace(' ', 'T') + 'Z' : ts);
+}
+
 export function formatAuditTimestamp(iso: string | undefined): string {
   if (!iso) return '—';
-  const d = new Date(iso);
+  const d = parseStoredUtc(iso);
   if (isNaN(d.getTime())) return iso;
   return d.toISOString().replace('T', ' ').slice(0, 23) + ' UTC';
 }
@@ -154,4 +179,9 @@ function localeToJurisdiction(locale?: string): Jurisdiction | null {
   const entry = (Object.entries(JURISDICTION_LOCALE) as [Jurisdiction, { locale: string }][])
     .find(([, v]) => v.locale === locale);
   return entry?.[0] ?? null;
+}
+
+/** Batch 574: an hour of the day (0–23) as the user's locale writes a time ("6:00 AM", "06:00"); no time zone involved. */
+export function formatHourOfDay(hour: number, locale?: string): string {
+  return new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }).format(new Date(Date.UTC(2026, 0, 1, hour)));
 }

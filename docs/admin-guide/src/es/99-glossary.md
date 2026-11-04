@@ -1,0 +1,206 @@
+---
+chapter: 99
+id: ch99
+title: Apéndice: Glosario de términos y abreviaturas
+---
+
+# Glosario {#ch99}
+
+Cada término siguiente se enlaza la primera vez que se utiliza en una sección de la guía. Aquí se define como término cualquier estándar o proveedor que se nombre; si PathScribe lo admite o no se indica en el capítulo de la función correspondiente, nunca en el glosario.
+
+- **ACK**: En HL7, el mensaje de acuse de recibo que devuelve un sistema receptor para indicar que ha aceptado o rechazado un mensaje.
+- **registro**: El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.
+- **número de acceso**: El identificador permanente de un caso, construido a partir de la máscara de caso del centro. Se trata como identificador del paciente en pantalla: se muestra dentro de etiquetas de datos del paciente para que se puedan ocultar en las capturas de pantalla.
+- **grupo de acciones**: Un conjunto con nombre de comandos del Registro de acciones que un grupo de estaciones de trabajo puede permitir o cargar de forma predeterminada.
+- **Registro de acciones**: La lista de comandos de voz y de teclado que PathScribe conoce. Los comandos no son control de acceso; lo son las capacidades.
+- **ADT**: Admisión, alta y traslado (Admit, Discharge, Transfer). La familia de mensajes HL7 que transportan el registro y el movimiento de pacientes, como A01 (ingreso), A08 (actualización del paciente) y A40 (fusión de pacientes).
+- **política de proveedores de IA**: Una regla por jurisdicción que indica qué servicios de IA y qué regiones de alojamiento pueden utilizarse. Una llamada que la regla rechaza no se envía, y la función continúa sin IA.
+- **AMA**: American Medical Association, editora y propietaria del conjunto de códigos CPT.
+- **AP-LIS**: Sistema de información del laboratorio de anatomía patológica, el sistema que gestiona los casos de patología quirúrgica y citología desde el registro hasta la firma del informe.
+- **API**: Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.
+- **asignación APLIS**: El valor con el que se envía un tipo de recipiente en el campo de muestra de un mensaje HL7, para que otro sistema pueda reconocer el recipiente.
+- **solo de adición**: Un registro al que se puede añadir información, pero que la aplicación nunca puede editar ni eliminar. El registro de auditoría es de solo adición por diseño.
+- **ASP.NET Core**: El marco web de Microsoft sobre el que se construye el servidor de la API de PathScribe.
+- **modo de asistencia**: Una forma de ejecutar PathScribe junto a un LIS existente, en la que el LIS conserva la titularidad del caso y PathScribe lee sus actualizaciones y redacta informes para que los revise el patólogo.
+- **registro de auditoría**: El registro de lo que hicieron las personas, el sistema y la IA, que se lee en la pantalla Registros del sistema. Su texto de detalle está en inglés y no contiene nombres de pacientes ni valores clínicos.
+- **BAA**: Business Associate Agreement (acuerdo de socio comercial). Contrato que las normas de HIPAA exigen entre una organización sanitaria estadounidense y un proveedor que trata su información sanitaria protegida.
+- **Bethesda**: El sistema de notificación de los resultados de citología cervical y de la adecuación de la muestra, utilizado en Estados Unidos y ampliamente en otros países.
+- **flujo de BI**: El flujo de informes que suministra conjuntos de datos a una herramienta de inteligencia empresarial como Power BI. Puede estar desidentificado o identificado, y el uso identificado requiere una aprobación registrada.
+- **bloque**: Una pieza de tejido incluida en parafina dentro de un casete, de la que se cortan las preparaciones.
+- **acceso de emergencia (break-glass)**: Una acción restringida que anula una salvaguarda normal y exige siempre un motivo y una justificación escrita. La revinculación del paciente en Registros del sistema es un ejemplo.
+- **BSN**: Burgerservicenummer, el número nacional de servicio al ciudadano de los Países Bajos, utilizado como identificador del paciente.
+- **registro de cáncer**: Organismo que recopila los diagnósticos de cáncer de un país o región, como los registros NAACCR de Norteamérica o la recopilación COSD de Inglaterra.
+- **CAP**: El College of American Pathologists. Acredita laboratorios y publica los protocolos de cáncer (listas de verificación) que siguen los informes sinópticos de PathScribe.
+- **CAP eCC**: CAP electronic Cancer Checklists, la forma estructurada de los protocolos de cáncer del CAP, distribuida como XML SDC.
+- **CAPA**: Acción correctiva y preventiva. Una respuesta con seguimiento a un problema de calidad, con un responsable y un motivo para abrirla o descartarla.
+- **capacidad**: Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.
+- **catálogo de capacidades**: La lista completa de capacidades, con el nivel de riesgo de cada una y cualquier capacidad que requiera.
+- **caso**: Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.
+- **máscara de caso**: El patrón que sigue un número de acceso: un prefijo, un patrón como el año y un número de secuencia, y un contador que un cambio de patrón nunca reinicia.
+- **casete**: El soporte de plástico en el que un bloque de tejido se incluye y se etiqueta para el corte.
+- **captura de cargos**: Registrar el trabajo facturable realizado en un caso para poder enviarlo a facturación.
+- **número CHI**: Community Health Index, el identificador del paciente utilizado en Escocia.
+- **CLIA**: Clinical Laboratory Improvement Amendments, la normativa federal estadounidense para las pruebas de laboratorio. CLIA establece, entre otras cosas, límites a la carga de trabajo de citología.
+- **nivel de servicio del cliente**: El plazo acordado en el que deben notificarse los casos de un cliente, definido por centro cliente.
+- **CMS**: Los Centers for Medicare and Medicaid Services, la agencia estadounidense que establece las normas de facturación de Medicare, incluidas las ediciones NCCI.
+- **config.json**: El archivo del servidor web que da a una instalación su configuración, como la dirección del servidor de la API. Un valor erróneo impide que PathScribe se inicie.
+- **enlace de consulta**: Un enlace de solo lectura emitido a un consultor externo para un caso. Se puede revocar de inmediato y caduca por sí solo.
+- **COSD**: Cancer Outcomes and Services Dataset, el conjunto de datos nacional inglés para el registro del cáncer.
+- **cofirma**: Una segunda firma en un informe de otra persona cualificada, por ejemplo la de un patólogo sobre el trabajo de un citotécnico.
+- **CPT**: Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.
+- **CRM**: Margen de resección circunferencial, la distancia entre un tumor y el borde cortado de una resección, que se registra en los informes colorrectales.
+- **resultado crítico**: Un hallazgo que el laboratorio debe comunicar con rapidez al médico, dejando constancia de la comunicación.
+- **tabla de correspondencias**: Una tabla que traduce un código de un sistema a otro, como un código de petición externo a un tipo de muestra de PathScribe.
+- **CSV**: Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.
+- **citotécnico**: Un profesional de laboratorio que examina preparaciones de citología y deriva las anómalas a un patólogo.
+- **cola de mensajes fallidos**: Un mensaje o trabajo que ha agotado todos los reintentos automáticos y espera a que una persona lo reenvíe o lo descarte.
+- **delegación**: Pasar un caso a otro patólogo para una revisión por pares, una segunda opinión, una derivación a una subespecialidad o una sesión del comité de tumores.
+- **versión de demostración**: Una compilación de PathScribe que guarda sus datos en el navegador y lleva cuentas de demostración. Nunca se conecta a un servidor de API real.
+- **departamento**: La clase general de una muestra en la recepción, como tejido quirúrgico o citología de líquidos. Determina la plantilla de tallado, la máscara de caso y cualquier excepción de conservación.
+- **DFT**: Detailed Financial Transaction (transacción financiera detallada), el mensaje HL7 que transporta los cargos a un sistema de facturación.
+- **discordancia**: Una diferencia entre dos lecturas del mismo material, como un diagnóstico preliminar y uno final, o el de un primer y un segundo patólogo.
+- **perfil de pantalla**: Una disposición guardada de mosaicos del panel que muestra una pantalla mural.
+- **DLQ**: Cola de mensajes fallidos (dead-letter queue), la lista de mensajes que han agotado todos los reintentos. Registros del sistema tiene una para los mensajes salientes de la interfaz y otra para los cargos.
+- **FN**: Fecha de nacimiento.
+- **FDS**: Fecha de servicio, la fecha en que se realizó un servicio facturado.
+- **DPA**: Acuerdo de encargo de tratamiento de datos, el contrato exigido por el GDPR entre un responsable del tratamiento y un encargado.
+- **inclusión**: El paso en el que el tejido procesado se coloca en parafina en un casete para formar un bloque.
+- **HCE**: Historia clínica electrónica, el sistema del hospital que contiene la historia del paciente y envía las peticiones.
+- **empresa**: El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.
+- **ePath**: Notificación electrónica de patología, el envío de informes de patología a un registro de cáncer en un formato electrónico estándar.
+- **código de error**: Un código corto en mayúsculas, como `NOT_PERMITTED`, que indica a una pantalla o a un administrador por qué falló una llamada. Nunca se usa el texto del mensaje del servidor, porque podría nombrar a un paciente.
+- **UE**: Unión Europea.
+- **centro**: Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.
+- **FAD**: Diagnóstico anatómico final, el diagnóstico final de un informe de autopsia, el equivalente del PAD.
+- **FHIR**: Fast Healthcare Interoperability Resources, un estándar de HL7 para intercambiar datos sanitarios mediante interfaces web.
+- **requisitos de los campos**: La configuración que decide qué campos debe tener rellenos una página antes de poder completar un paso.
+- **marca**: Un indicador colocado en un caso o una muestra, por ejemplo para pedir una tinción adicional o para retener un caso.
+- **PAAF**: Punción-aspiración con aguja fina, una biopsia que extrae células mediante una aguja delgada.
+- **CV**: Campo de visión, una región de una preparación de citología que examina una herramienta de IA o un citotécnico.
+- **principio de los cuatro ojos**: Una regla por la que una persona prepara un cambio y otra distinta lo aprueba. La importación de códigos de facturación lo utiliza.
+- **FPPE**: Evaluación centrada de la práctica profesional (Focused professional practice evaluation), una revisión estructurada del trabajo de un clínico, utilizada para nuevos privilegios o ante una preocupación.
+- **biopsia intraoperatoria**: Una muestra de tejido congelada y cortada mientras el paciente está en cirugía para que un patólogo pueda dar una respuesta rápida.
+- **GDPR**: El Reglamento General de Protección de Datos de la UE. El Reino Unido tiene su propia versión, el UK GDPR.
+- **organismo regulador**: La autoridad cuyas normas sigue una jurisdicción, como el CAP o un colegio nacional, que establece los períodos mínimos de conservación y los requisitos.
+- **GS1**: La organización de estándares responsable de los formatos de código de barras y de la numeración GTIN que se usan en las etiquetas de casetes y preparaciones.
+- **GTIN**: Global Trade Item Number, el número que lleva un código de barras GS1. Configuración de impresión contiene el GTIN del centro.
+- **GIN**: Ginecológico, como en la citología GIN, el cribado de muestras cervicales.
+- **tallado**: El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.
+- **HCPCS**: Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.
+- **HIPAA**: La Health Insurance Portability and Accountability Act de Estados Unidos, que establece normas para proteger la información sanitaria de los pacientes.
+- **histotecnólogo**: Un profesional de laboratorio que incluye el tejido y corta y tiñe las preparaciones.
+- **HL7**: Health Level Seven, la familia de estándares para el intercambio de información sanitaria entre sistemas.
+- **HL7 v2**: El formato de mensaje HL7 de uso generalizado, formado por líneas de campos separados por barras verticales, en el que cada mensaje comienza con un segmento MSH.
+- **región de alojamiento**: La región geográfica donde un servicio de IA en la nube procesa los datos. La política de proveedores de IA puede permitir o rechazar regiones.
+- **VPH**: Virus del papiloma humano. Un resultado de VPH de alto riesgo (VPH-AR) se utiliza junto con la citología cervical.
+- **concentrador**: El servicio SignalR que envía actualizaciones en directo desde el servidor de la API a las pantallas abiertas.
+- **ICD-10**: La Clasificación Internacional de Enfermedades, décima revisión, un conjunto de códigos de diagnóstico.
+- **ICD-11**: La undécima revisión de la Clasificación Internacional de Enfermedades.
+- **ICD-O**: Clasificación Internacional de Enfermedades para Oncología, que codifica la localización y el tipo (morfología) del tumor. La tercera edición es ICD-O-3, con códigos como 8500/3.
+- **proveedor de identidad**: El servicio que inicia la sesión de las personas para el inicio de sesión único, como el directorio Microsoft Entra de un hospital.
+- **IHQ**: Inmunohistoquímica, una tinción que utiliza anticuerpos para mostrar proteínas específicas en el tejido.
+- **marcado con tinta**: Marcar la superficie de una muestra con tinta de color para poder reconocer los márgenes en la preparación.
+- **intraoperatorio**: Durante la cirugía. Las consultas intraoperatorias, como las biopsias intraoperatorias, se gestionan en la cola intraoperatoria.
+- **IPP**: Internet Printing Protocol, un protocolo de impresión en red. En los textos en francés, IPP es también el identificador del paciente que se usa en lugar del NHC.
+- **IPPS**: Internet Printing Protocol sobre TLS. Una impresora con IPPS confirma que un trabajo se imprimió, por lo que las impresoras de informes de un centro deberían usarlo siempre que puedan.
+- **ISO 15189**: La norma internacional sobre la calidad y la competencia de los laboratorios médicos.
+- **jurisdicción**: Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.
+- **JSON**: JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.
+- **CBL**: Citología en base líquida, una forma de preparar muestras cervicales y de otros tipos de citología en medio líquido.
+- **LIS**: Sistema de información del laboratorio, el software que gestiona las peticiones, las muestras y los resultados de un laboratorio.
+- **LOINC**: Logical Observation Identifiers Names and Codes, un conjunto de códigos para pruebas y observaciones de laboratorio.
+- **buzón de depósito**: Un punto de entrega donde se reciben muestras fuera del horario laboral. Cada depósito recibe un justificante, y un código de barras sin petición recibe un marcador provisional, nunca un número de acceso.
+- **LPR**: Line Printer Remote, un protocolo de impresión en red más antiguo (también escrito LPR/LPD). No puede confirmar que se imprimió una página.
+- **MACRA**: La Medicare Access and CHIP Reauthorization Act de Estados Unidos, que creó el Quality Payment Program, que incluye MIPS.
+- **macro**: Un fragmento de texto o un conjunto de ajustes guardado, como una frase de informe o una petición de tinción, que se puede insertar en un solo paso.
+- **MDT**: Reunión de equipo multidisciplinar, también llamada comité de tumores, en la que especialistas debaten la atención de un paciente.
+- **MFA**: Autenticación multifactor, iniciar sesión con una segunda prueba, como un código de una aplicación de autenticación, además de una contraseña.
+- **microtomía**: Cortar secciones finas de un bloque con un micrótomo para obtener preparaciones.
+- **MIPS**: El Merit-based Incentive Payment System, un programa estadounidense de Medicare que ajusta el pago según las medidas de calidad notificadas.
+- **Sistema Milán**: El sistema de notificación de la citología por punción-aspiración con aguja fina de glándulas salivales.
+- **modificador**: Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.
+- **Mohs**: Cirugía micrográfica de Mohs, en la que el cáncer de piel se extirpa en capas finas y cada capa se examina al microscopio antes de retirar la siguiente.
+- **MPI**: Índice maestro de pacientes, el registro que vincula los distintos identificadores que tiene un paciente.
+- **NHC**: Número de historia clínica, el identificador que un centro asigna a un paciente.
+- **MSH**: El primer segmento de un mensaje HL7 v2. Indica el emisor, el receptor, el tipo de mensaje y la versión.
+- **NAACCR**: La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.
+- **NATA**: La National Association of Testing Authorities, que acredita laboratorios en Australia.
+- **NCCI**: National Correct Coding Initiative, un conjunto de ediciones de Medicare de Estados Unidos que indican qué pares de códigos no se pueden facturar juntos.
+- **NCRAS**: El National Cancer Registration and Analysis Service, el organismo inglés del registro de cáncer que recibe los envíos COSD.
+- **NHI**: National Health Index, el identificador del paciente utilizado en Nueva Zelanda.
+- **número NHS**: El identificador del paciente de diez dígitos utilizado en el NHS de Inglaterra y Gales. El último dígito es un dígito de control.
+- **NLM**: La National Library of Medicine de Estados Unidos, fuente de consultas públicas de terminología como UMLS.
+- **no GIN**: Citología distinta del cribado cervical, como líquidos, orina y punciones-aspiraciones con aguja fina.
+- **NPI**: National Provider Identifier, el identificador de diez dígitos de un proveedor sanitario estadounidense, necesario en un cargo.
+- **OIDC**: OpenID Connect, el estándar de inicio de sesión que PathScribe utiliza para el inicio de sesión único.
+- **OML**: El tipo de mensaje HL7 de petición de laboratorio (OML^O21).
+- **OPCS-4**: La clasificación británica de operaciones y procedimientos quirúrgicos.
+- **ORM**: El tipo de mensaje HL7 de petición general (ORM^O01).
+- **ORU**: El tipo de mensaje HL7 de resultado de observación no solicitado. ORU^R01 transporta un resultado.
+- **cola de salida**: La lista de mensajes y cargos que PathScribe ha generado y que están pendientes de enviar, retenidos, enviados o fallidos.
+- **terminal de quirófano**: Una pantalla de un quirófano que sirve para ver los casos intraoperatorios y actuar sobre ellos.
+- **PAD**: Diagnóstico anatómico preliminar, el primer diagnóstico de un informe de autopsia. Un cuerpo puede entregarse una vez firmado un PAD y sin ninguna retención auxiliar activa.
+- **Sistema París**: El sistema de notificación de la citología del tracto urinario.
+- **tipo de participación**: Un papel que una persona desempeña en un caso, como patólogo principal o citotécnico de cribado, con su propia autoridad de firma.
+- **biblioteca de partes**: Las partes reutilizables, como un bloque de preguntas, con las que se montan las plantillas de informe.
+- **PDF**: Portable Document Format, el formato en el que se almacena e imprime un informe firmado.
+- **revisión por pares**: Una lectura independiente de un caso por un segundo patólogo, que puede exigirse antes de la firma en una primera neoplasia maligna.
+- **laboratorio ejecutor**: El centro que realiza las pruebas y emite el informe, a diferencia de un cliente que solo envía muestras.
+- **PHI**: Información sanitaria protegida, cualquier dato que identifique a un paciente junto con información de salud. Los identificadores de paciente en pantalla están etiquetados para poder ocultarlos en las capturas de pantalla.
+- **PHIN-MS**: El Public Health Information Network Messaging System, un medio de transporte estadounidense para enviar informes de salud pública.
+- **marcador provisional**: Un registro creado para un código de barras de buzón de depósito que aún no tiene petición. Contiene el justificante y se vincula a una petición más tarde; nunca recibe un número de acceso.
+- **número PPS**: El Personal Public Service number, utilizado como identificador del paciente en Irlanda.
+- **cola de impresión**: La lista de trabajos de impresión de informes y etiquetas con su estado, desde en cola hasta impreso o fallido.
+- **perfil de impresora**: La configuración guardada para un modelo de impresora, incluido su método de conexión (puente).
+- **barrera de producción**: Un interruptor que permanece cerrado hasta que un laboratorio aprueba el envío de datos reales a un motor de interfaces real.
+- **protocolo**: Un conjunto estructurado de preguntas para notificar un tipo de caso, como un protocolo de cáncer del CAP, a partir del cual se construye un informe sinóptico.
+- **GC**: Garantía de calidad, la revisión del trabajo para detectar y corregir problemas.
+- **CC**: Control de calidad, las comprobaciones que confirman que un proceso funciona según lo previsto, como una segunda revisión de las preparaciones examinadas.
+- **QZ Tray**: Un programa pequeño de un ordenador que permite a una página web imprimir en una impresora local, como una impresora de etiquetas, sin cuadro de diálogo de impresión.
+- **RBAC**: Control de acceso basado en roles. A las personas se les asignan roles, los roles contienen capacidades y una capacidad decide si se permite una acción.
+- **lote de reactivo**: Un lote con seguimiento de una tinción, solución o reactivo, con sus fechas y su uso.
+- **laboratorio de referencia**: Un laboratorio al que se envían pruebas. A un centro se le asigna el rol de Laboratorio de referencia.
+- **registro de enfermedad**: Organismo que recopila informes de una enfermedad o de un resultado de cribado para un país o programa, como un registro de cáncer o de cribado cervical.
+- **conservación**: Cuánto tiempo se guarda un tipo de dato o de material. Los períodos de conservación los fija la jurisdicción, con una excepción opcional.
+- **retención de conservación**: Una retención que impide la eliminación del material de un caso tras su finalización, por ejemplo por un litigio.
+- **rol**: Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.
+- **ROSE**: Evaluación rápida in situ (Rapid on-site evaluation), en la que la adecuación de una muestra se juzga en el momento de obtenerla.
+- **RVU**: Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.
+- **SAML**: Security Assertion Markup Language, un estándar de inicio de sesión único más antiguo. El inicio de sesión único de PathScribe utiliza OIDC.
+- **estación de escaneado**: Una configuración con nombre de un equipo de mesa de trabajo, con sus impresoras y su pantalla, que una persona selecciona para que las etiquetas y los escaneos vayan al lugar correcto.
+- **SCIM**: System for Cross-domain Identity Management, un estándar mediante el cual un proveedor de identidad crea y desactiva automáticamente cuentas del personal.
+- **SDC**: Structured Data Capture, el estándar de formulario XML utilizado para distribuir las listas de verificación electrónicas de cáncer del CAP.
+- **separación de funciones**: Una regla por la que dos poderes no deben recaer en una misma persona, como modificar las reglas de discordancia clínica y aprobar las instrucciones de la IA.
+- **versión de servidor**: Una compilación de PathScribe para una instalación real, sin cuentas de demostración, que inicia sesión a través del proveedor de identidad y se comunica con el servidor de la API.
+- **SFTP**: SSH File Transfer Protocol, una forma segura de copiar archivos a otro sistema.
+- **SHA-256**: Un hash criptográfico que convierte un archivo o un registro en una huella de tamaño fijo, utilizada para detectar un cambio.
+- **SignalR**: La tecnología de Microsoft que PathScribe utiliza para enviar actualizaciones en directo desde el servidor a las pantallas abiertas.
+- **autoridad de firma**: Los tipos de informe que una persona puede firmar, determinados por el tipo de participación y las normas del país.
+- **inicio de sesión único**: Iniciar sesión una sola vez con el proveedor de identidad de una organización en lugar de una contraseña de PathScribe. También se escribe SSO.
+- **agente del centro**: Un servicio de Windows pequeño instalado en un laboratorio que imprime informes y etiquetas y escribe archivos en recursos compartidos de la red del hospital, según las instrucciones del servidor de la API.
+- **SLA**: Acuerdo de nivel de servicio, un plazo acordado en el que se realiza el trabajo.
+- **SNOMED CT**: Systematized Nomenclature of Medicine, Clinical Terms, una amplia terminología clínica.
+- **muestra**: Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.
+- **SSO**: Inicio de sesión único. Véase inicio de sesión único.
+- **tinción**: Un colorante o anticuerpo aplicado a una preparación para poder ver una característica del tejido.
+- **URGENTE (STAT)**: Urgente, que debe hacerse de inmediato.
+- **subespecialidad**: Un área de la patología, como mama o digestivo, utilizada para encaminar casos. Una subespecialidad puede pasar a modo de reserva común.
+- **referencia de soporte**: Un código aleatorio y no identificativo con la forma `SR-XXXX-XXXX` que el personal indica al soporte en lugar de un número de caso.
+- **sinóptico**: Un informe construido a partir de un conjunto fijo de preguntas estructuradas, de modo que cada elemento obligatorio se responde con el mismo formato.
+- **TDR**: Tiempo de respuesta, el tiempo transcurrido de un paso a otro, por ejemplo desde la recepción hasta la firma.
+- **inquilino (tenant)**: El espacio separado de una organización cliente dentro de un servicio PathScribe compartido.
+- **CT**: Componente técnico, la parte de un servicio que cubre el trabajo del laboratorio, facturada aparte del componente profesional (código 26).
+- **TLS**: Transport Layer Security, el cifrado que protege una conexión web y que se muestra como https.
+- **comité de tumores**: Una reunión multidisciplinar para debatir casos de cáncer. También llamada MDT.
+- **UKAS**: El United Kingdom Accreditation Service, que acredita laboratorios en el Reino Unido.
+- **UMLS**: El Unified Medical Language System, una colección de vocabularios médicos de la National Library of Medicine de Estados Unidos.
+- **UTC**: Tiempo universal coordinado, el estándar horario en el que se almacenan y muestran las entradas de auditoría.
+- **VNA**: Archivo independiente del proveedor (Vendor-neutral archive), un almacén de imágenes que guarda las imágenes médicas en una forma neutra.
+- **WCAG**: Web Content Accessibility Guidelines, el estándar para que las personas con discapacidad puedan utilizar el contenido web.
+- **webhook**: Una dirección web a la que un sistema llama para enviar una actualización a otro, como un LIS que envía un cambio de estado en JSON.
+- **estación de trabajo**: Un ordenador registrado en un centro, con su disciplina, su área y sus impresoras asociadas.
+- **grupo de estaciones de trabajo**: Un conjunto de estaciones de escaneado agrupadas por disciplina y área, limitado a un centro y con grupos de acciones predeterminados.
+- **WSI**: Imagen de preparación completa (Whole slide imaging), el escaneado de una preparación de vidrio para obtener una imagen digital que se puede ver en pantalla.
+- **X12**: El estándar ANSI para transacciones electrónicas comerciales, incluidas las reclamaciones sanitarias en Estados Unidos.
+- **XML**: Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.
+- **ZPL**: Zebra Programming Language, el lenguaje de impresora que describe el diseño de una etiqueta para impresoras de etiquetas de tipo Zebra.

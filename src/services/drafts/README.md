@@ -1,8 +1,11 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/drafts/
 
 Local caching of in-progress, unsaved user work — Phase 2 of the
 Inactivity Timeout & Draft Recovery feature (full spec in
-`PRIORITY_FIXES.md` #13). Generic and reusable, keyed by an arbitrary
+`PRIORITY_FIXES.md` #13, since retired on Aug 19, 2026; its open items
+became Jira PS-57 to PS-71). Generic and reusable, keyed by an arbitrary
 entity id (a caseId, in the current real usage), not tied to any one
 page's data shape.
 
@@ -22,8 +25,9 @@ it.
   typed (`saveDraft<T>(...)`) rather than the interface itself being
   generic, keeping it simple to import/reference.
 - **`mockDraftCacheService.ts`** — localStorage-backed implementation
-  (`pathscribe_drafts` key — added to `DemoResetTab.tsx`'s `CASE_KEYS`,
-  see `PRIORITY_FIXES.md` #17). Drafts older than `RETENTION_DAYS` (7,
+  (`pathscribe_drafts` key — in `CASE_KEYS` in
+  `services/demoReset/demoReset.ts`, where the reset lists moved from
+  `DemoResetTab.tsx` in Batch 370). Drafts older than `RETENTION_DAYS` (7,
   matching the original spec's default) are silently dropped on next
   read. **Security note, stated in this file's own header:** callers are
   responsible for excluding sensitive fields from whatever payload they
@@ -70,6 +74,8 @@ it.
   (patient demographics are read-only LIS/EHR master data; restoring a
   stale cached copy over freshly-fetched current data would be a
   correctness bug, not just a privacy one).
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `PRIORITY_FIXES.md` is retired, and the reset key list now lives in `services/demoReset/demoReset.ts`.*
+
 - **Restore is local-only — no auto-persist to the server.** The
   consuming page marks itself dirty via its own existing mechanism on
   restore, so the user's normal Save Draft review is the real
@@ -102,3 +108,5 @@ reappeared in the editor. Zero console errors throughout.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part A, PS-505): `httpDraftCacheService.ts` and `draftCacheInstance.ts`. Drafts live on the server per user on a server build; no draft is `{ ok: true, data: null }`. Contract `ACCESSIONING_API.md` section 3.

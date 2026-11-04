@@ -1,11 +1,22 @@
 // @vitest-environment happy-dom
 //
 // src/services/access/mockAccessRequestService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 432: deny checks the permission that gives that access, and messages the requester.
+const allowed = new Set<string>();
+vi.mock('../authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async (c: string) => ({ allowed: allowed.has(c) }) },
+}));
+const sent: { recipientId: string; subject: string; body: string }[] = [];
+vi.mock('../index', () => ({ messageService: { send: async (m: { recipientId: string; subject: string; body: string }) => { sent.push(m); return { ok: true, data: m }; } } }));
+
 import { mockAccessRequestService as svc } from './mockAccessRequestService';
 
 beforeEach(() => {
   localStorage.clear();
+  allowed.clear(); allowed.add('config:staff:edit'); allowed.add('config:staff-access:assign');
+  sent.length = 0;
 });
 
 describe('mockAccessRequestService — real feature, per direct follow-up: "Do we Track the request to gain access? ... Do we generate a ticket system that has its own status"', () => {
@@ -54,9 +65,23 @@ describe('mockAccessRequestService — real feature, per direct follow-up: "Do w
   it('deny moves a real request from pending to denied', async () => {
     const created = await svc.create({ type: 'pediatric', requestingUserId: 'u1', requestingUserName: 'Dr. One', facilityId: 'client-1' });
     if (!created.ok) throw new Error('setup failed');
-    const denied = await svc.deny(created.data.id, 'admin-1', 'Admin Smith');
+    const denied = await svc.deny(created.data.id, 'admin-1', 'Admin Smith', 'Not on the pediatric rota');
     expect(denied.ok).toBe(true);
-    if (denied.ok) expect(denied.data.status).toBe('denied');
+    if (denied.ok) { expect(denied.data.status).toBe('denied'); expect(denied.data.denialReason).toBe('Not on the pediatric rota'); }
+    expect(sent).toHaveLength(1);
+    expect(sent[0].recipientId).toBe('u1');
+    expect(sent[0].body).toContain('Not on the pediatric rota');
+  });
+
+  it('Batch 432: deny needs a reason and the permission that gives that access', async () => {
+    const pool = await svc.create({ type: 'pool', requestingUserId: 'u1', requestingUserName: 'Dr. One', poolName: 'GI' });
+    if (!pool.ok) throw new Error('setup failed');
+    expect(await svc.deny(pool.data.id, 'admin-1', 'Admin Smith', '  ')).toMatchObject({ ok: false, error: 'REASON_REQUIRED' });
+    allowed.delete('config:staff:edit');
+    expect(await svc.deny(pool.data.id, 'admin-1', 'Admin Smith', 'No')).toMatchObject({ ok: false, error: 'NOT_PERMITTED' });
+    allowed.add('config:staff:edit');
+    expect((await svc.deny(pool.data.id, 'admin-1', 'Admin Smith', 'No')).ok).toBe(true);
+    expect(await svc.deny(pool.data.id, 'admin-1', 'Admin Smith', 'No')).toMatchObject({ ok: false, error: 'ALREADY_RESOLVED' });
   });
 
   it('a resolved request genuinely leaves the pending admin queue', async () => {

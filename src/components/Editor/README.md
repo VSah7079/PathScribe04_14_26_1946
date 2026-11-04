@@ -1,3 +1,7 @@
+## Batch 614 (part A): voice and hotkey commands
+
+`editorCommands.ts` (`runEditorCommand`, `sectionTarget`, `EDITOR_COMMAND_IDS`) and `editorFocus.ts` (which editor a command acts on: the one that last had the cursor; with none focused, the first mounted). `PathScribeEditor` subscribes to the action registry, registers itself, and passes the commands the screen state it owns (find panel on its Replace tab, table picker, formatting marks, ruler, signature line). `showRulerDefault` now works: a ruler with centimetre ticks above the text. "Section" means a heading (Heading 1 to 3). A read-only editor ignores the commands that change the text.
+
 # components/Editor/
 
 The rich text editor (Tiptap-based) used throughout PathScribe for
@@ -112,6 +116,22 @@ is pure logic (no React) bridging the editor to the AI orchestrator.
 
 `PathScribeEditor.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 391
+
+`PathScribeEditor`: Korean typed in any approved font is drawn in Pretendard (`'Pretendard Variable'` after the chosen font in the stack), since none of the approved fonts has Hangul. The same font prints Korean report PDFs. The approved-font list itself is unchanged.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`findingHighlightExtension.ts` (PS-323): detected critical findings are highlighted in the narrative editor using ProseMirror decorations, the same mechanism as the spell check. The highlight is never part of the document, so `getHTML()` and the saved report are unchanged. It is recomputed on every edit and disappears when its words are deleted. `PathScribeEditor` and `NarrativeEditor` take `highlightFindings`. Tests are in `__tests__/findingHighlightExtension.test.ts`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

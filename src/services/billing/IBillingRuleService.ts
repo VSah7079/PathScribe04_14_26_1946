@@ -51,15 +51,11 @@ export interface IBillingRuleService {
    *  direct guidance's own governance rule ("Changes require: Reason.
    *  Effective date. Approver.").
    *
-   *  Real, per direct guidance's own Four-Eyes Principle requirement:
-   *  defaults to status 'DRAFT' when the caller doesn't pass one
-   *  explicitly - a new rule change no longer goes live on save. An
-   *  explicit status is still accepted (the real, initial migration
-   *  seed passes 'ACTIVE' directly, since that data predates this
-   *  workflow and was never meant to require retroactive approval). */
-  createVersion(input: Omit<BillingRuleVersion, 'version' | 'createdAt' | 'status'> & {
-    status?: BillingRuleVersion['status'];
-  }): Promise<ServiceResult<BillingRuleVersion>>;
+   *  Four-Eyes Principle: a new version is always a DRAFT; it goes
+   *  live only through submit and approval. (Batch 428: callers could
+   *  pass a status and skip approval; that is gone. The seed's ACTIVE
+   *  rows don't come through here.) */
+  createVersion(input: Omit<BillingRuleVersion, 'version' | 'createdAt' | 'status'>): Promise<ServiceResult<BillingRuleVersion>>;
 
   /** Real, per direct guidance's own Four-Eyes Principle requirement:
    *  moves a real DRAFT to PENDING_APPROVAL, locking it from further

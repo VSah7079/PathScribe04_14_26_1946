@@ -47,9 +47,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
-import { mockAuditService } from '../auditlog/mockAuditService';
-import { mockAssetLocationDictionaryService } from '../assetLocation/mockAssetLocationDictionaryService';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
+import { auditService } from '../auditlog/auditServiceInstance';
+import { assetLocationDictionaryService } from '../assetLocation/assetLocationDictionaryServiceInstance';
 import { applyMaterialLocation } from './materialLocationMutation';
 import type { MaterialLocationEventPayload } from '@/types/events/MaterialLocationEventPayload';
 
@@ -96,36 +96,35 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
     return { messageId: payload.messageId, outcome: 'case-not-found', reason: `No case found for '${lookupId}'.` };
   }
 
-  const mutation = applyMaterialLocation(caseData.specimens ?? [], caseData.matrixBlocks ?? [], {
-    specimenLetter: payload.specimenLetter,
-    target: payload.target,
-    location: payload.location,
-    workflowStage: payload.workflowStage,
-    action: payload.action,
-    observedAt: payload.observedAt,
-    timestamp: payload.timestamp,
-    sourceSystem: payload.sourceSystem,
-    performedByName: payload.performedByName,
-  });
+  // PS-71 (Batch 458): the location change is rebuilt from the newest case
+  // on every try (updateCaseWithRetryOrThrow), so a concurrent edit to
+  // another specimen/block is kept. Replaces the old "force through" retry
+  // that re-saved the stale array without a version. If every try
+  // conflicts, the ConcurrencyConflictError propagates and the messageId is
+  // NOT marked processed, so the sender's redelivery applies it.
+  let mutation: ReturnType<typeof applyMaterialLocation> | undefined;
+  await updateCaseWithRetryOrThrow(caseData.id, current => {
+    mutation = applyMaterialLocation(current.specimens ?? [], current.matrixBlocks ?? [], {
+      specimenLetter: payload.specimenLetter,
+      target: payload.target,
+      location: payload.location,
+      workflowStage: payload.workflowStage,
+      action: payload.action,
+      observedAt: payload.observedAt,
+      timestamp: payload.timestamp,
+      sourceSystem: payload.sourceSystem,
+      performedByName: payload.performedByName,
+    });
+    if (mutation.outcome === 'target-not-found') return null;
+    const r = mutation.result;
+    return r.level === 'matrix' ? { matrixBlocks: r.matrixBlocks } : { specimens: r.specimens };
+  }, caseRouter);
 
-  if (mutation.outcome === 'target-not-found') {
-    return { messageId: payload.messageId, outcome: 'target-not-found', reason: `Case ${caseData.id}: ${mutation.reason}` };
+  if (!mutation || mutation.outcome === 'target-not-found') {
+    const why = mutation && mutation.outcome === 'target-not-found' ? mutation.reason : 'target not found';
+    return { messageId: payload.messageId, outcome: 'target-not-found', reason: `Case ${caseData.id}: ${why}` };
   }
-
   const { result } = mutation;
-  const updates = result.level === 'matrix' ? { matrixBlocks: result.matrixBlocks } : { specimens: result.specimens };
-
-  try {
-    await caseRouter.updateCase(caseData.id, updates);
-  } catch (e) {
-    // Real, deliberate "force through" posture — same reasoning as
-    // processBlockExceptionEvent.ts's own identical block.
-    if (e instanceof ConcurrencyConflictError) {
-      await caseRouter.updateCase(caseData.id, updates);
-    } else {
-      throw e;
-    }
-  }
 
   processedMessageIds.add(payload.messageId);
 
@@ -135,8 +134,8 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
   // case-wide audit trail write stays too, per the earlier direct
   // decision to also surface these as part of the existing, shared
   // Audit Log. Same real, single choke point every other audit trail
-  // in this app already funnels through (mockAuditService.logEvent()).
-  mockAuditService.logEvent({
+  // in this app already funnels through (auditService.logEvent()).
+  auditService.logEvent({
     type: 'system',
     event: 'Material Location Update',
     detail: `${result.targetDescription} now at "${payload.location}"${payload.action ? ` — ${payload.action}` : ''}${payload.workflowStage ? ` (${payload.workflowStage})` : ''}`,
@@ -149,7 +148,7 @@ export async function processMaterialLocationEvent(payload: MaterialLocationEven
   // fire-and-forget: a real Asset Location Dictionary lookup/auto-
   // create failing or being slow never blocks this event's own real
   // outcome, which has already been decided and returned below.
-  mockAssetLocationDictionaryService.findOrCreateByName(
+  assetLocationDictionaryService.findOrCreateByName(
     payload.location,
     `No exact match for location "${payload.location}" reported by source system ${payload.sourceSystem} on case ${caseData.id}.`,
   ).catch(() => {});

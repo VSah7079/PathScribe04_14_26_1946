@@ -7,6 +7,12 @@
  * Usage:
  *   1. Wrap your app in <MessagingProvider> (inside AuthProvider in App.tsx)
  *   2. Call useMessaging() in any component to get/set messaging state
+ *
+ * Batch 560: the inbox is kept current by the live-update hub (topic
+ * `messages`, hooks/useLiveData.ts). Because this provider is mounted for the
+ * whole app, every signed-in (SSO) user's window holds one hub connection while
+ * the hub is configured (one connection per window, LIVE_UPDATES_SIGNALR.md
+ * §14), and the connection banner reflects the hub's state for everyone.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -14,6 +20,10 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { messageService } from '../services';
 import { useAuth } from './AuthContext';
 import type { Message } from '../services';
+import { isUnreadFor } from '../services/messages/messageUnread';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
+import { playAlertTone } from '@/utils/alertTone';
+import { useLiveData } from '@/hooks/useLiveData';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,33 +49,40 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
 
   const [messages,    setMessages]    = useState<Message[]>([]);
   const [portalOpen,  setPortalOpenRaw] = useState(
-    () => sessionStorage.getItem('ps_drawer_open') === 'true'
+    () => getSessionFlag('ps_drawer_open') === 'true'
   );
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const unreadCount = messages.filter(m => !m.isRead && !m.isDeleted).length;
-  const hasUrgent   = messages.some(m => m.isUrgent && !m.isRead && !m.isDeleted);
+  // Batch 669f (everyday-1): a person's own sent message or reply is never unread for them.
+  const unreadCount = messages.filter(m => isUnreadFor(m, userId)).length;
+  const hasUrgent   = messages.some(m => m.isUrgent && isUnreadFor(m, userId));
 
   const setPortalOpen = (open: boolean) => {
-    sessionStorage.setItem('ps_drawer_open', String(open));
+    setSessionFlag('ps_drawer_open', String(open));
     setPortalOpenRaw(open);
   };
+
+  // Batch 396: the inbox belongs to whoever is signed in now. On sign-out
+  // (or a switch to another account) the previous person's messages are
+  // cleared at once, and a reply that arrives for an account no longer
+  // signed in is dropped. Before this, signing out left the last inbox in
+  // place, so the next person could briefly see it.
+  const currentUserRef = useRef(userId);
+  currentUserRef.current = userId;
+  useEffect(() => { setMessages([]); }, [userId]);
 
   const reloadInbox = useCallback(async () => {
     if (!userId) return;
     const result = await messageService.getInbox(userId);
+    if (currentUserRef.current !== userId) return;
     if (result.ok) setMessages(result.data);
   }, [userId]);
 
   // Load on mount and when user changes
   useEffect(() => { reloadInbox(); }, [reloadInbox]);
 
-  // Poll for new messages every 20 seconds — picks up messages sent by other users
-  useEffect(() => {
-    if (!userId) return;
-    const interval = setInterval(() => { reloadInbox(); }, 20000);
-    return () => clearInterval(interval);
-  }, [userId, reloadInbox]);
+  // New messages from other users. Batch 560: pushed by the live-update hub (topic `messages`, sent to
+  // the recipient only) with a minute's safety poll; without a live connection, every 20 seconds as before.
+  useLiveData(reloadInbox, { topic: 'messages', pollMs: 20_000, enabled: !!userId });
 
   // Also reload when the tab becomes visible again (user switches back to PathScribe)
   useEffect(() => {
@@ -74,14 +91,10 @@ export function MessagingProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [reloadInbox]);
 
-  // Urgent audio alert
+  // Urgent audio alert. Batch 503 (PS-474): made in the browser (utils/alertTone.ts),
+  // no longer downloaded from actions.google.com.
   useEffect(() => {
-    if (hasUrgent) {
-      if (!audioRef.current) {
-        audioRef.current = new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg');
-      }
-      audioRef.current.play().catch(() => {});
-    }
+    if (hasUrgent) playAlertTone();
   }, [hasUrgent]);
 
   return (

@@ -3,6 +3,7 @@ import type { IAiScreeningResultService, NewAiScreeningResult } from './IAiScree
 import type { AiScreeningResult, AiScreeningFinding } from '@/types/digitalPathology/AiScreeningResult';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { withMissingSeedRecords } from '../mockSeedMerge';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // Real, per direct follow-up ("Can you put some seed data in so that
@@ -13,10 +14,13 @@ import { storageGet, storageSet } from '../mockStorage';
 // findings (Gleason 7/Grade Group 2, perineural involvement) are the
 // real, honest basis for this AI result's own findings/triageLevel —
 // never contradicting what that case's own real report already says.
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
 const SEED_AI_RESULTS: AiScreeningResult[] = [
   {
     id: 'ai-result-seed-4404', caseId: 'S26-4404', specimenId: 'S26-4404-SP-1', vendorId: 'dp-vendor-paige-prostate',
     status: 'completed', orderedAt: '2026-09-13T08:00:00.000Z', completedAt: '2026-09-13T08:45:00.000Z',
+    humanConcordant: true,
     findings: [
       { id: 'find-4404-1', label: 'Tumor region identified \u2014 Gleason pattern 4+3, Grade Group 2', confidenceScore: 0.94 },
       { id: 'find-4404-2', label: 'Perineural invasion present', confidenceScore: 0.87 },
@@ -30,6 +34,7 @@ const SEED_AI_RESULTS: AiScreeningResult[] = [
   {
     id: 'ai-result-seed-4408', caseId: 'S26-4408', specimenId: 'S26-4408-SP-1', vendorId: 'dp-vendor-pathai-aisight-dx',
     status: 'completed', orderedAt: '2026-09-13T09:00:00.000Z', completedAt: '2026-09-13T09:40:00.000Z',
+    humanConcordant: false,
     findings: [
       { id: 'find-4408-1', label: 'Invasive carcinoma, grade 3, upper outer quadrant', confidenceScore: 0.91 },
     ],
@@ -41,6 +46,7 @@ const SEED_AI_RESULTS: AiScreeningResult[] = [
   {
     id: 'ai-result-seed-5002cyt', caseId: 'S26-5002-CYT-001', specimenId: 'S26-5002-SP-1', vendorId: 'dp-vendor-hologic-genius',
     status: 'completed', orderedAt: '2026-09-13T07:00:00.000Z', completedAt: '2026-09-13T07:25:00.000Z',
+    humanConcordant: true,
     findings: [
       { id: 'find-5002-1', label: 'Atypical squamous cells, cannot exclude HSIL', confidenceScore: 0.78 },
     ],
@@ -58,6 +64,7 @@ const SEED_AI_RESULTS: AiScreeningResult[] = [
   {
     id: 'ai-result-seed-o26-0001', caseId: 'O26-0001', specimenId: 'O26-0001-SP-A', vendorId: 'dp-vendor-proscia-concentriq',
     status: 'completed', orderedAt: '2026-09-18T08:00:00.000Z', completedAt: '2026-09-18T08:45:00.000Z',
+    humanConcordant: true,
     findings: [
       { id: 'find-o26-0001-1', label: 'Invasive adenocarcinoma identified, hepatic flexure — extends into but not through the muscularis propria', confidenceScore: 0.92 },
       { id: 'find-o26-0001-2', label: 'Tumor budding, low grade', confidenceScore: 0.81 },
@@ -82,6 +89,7 @@ const SEED_AI_RESULTS: AiScreeningResult[] = [
   {
     id: 'ai-result-seed-o26-0003', caseId: 'O26-0003', specimenId: 'O26-0003-SP-A', vendorId: 'dp-vendor-paige-prostate',
     status: 'completed', orderedAt: '2026-09-18T10:00:00.000Z', completedAt: '2026-09-18T10:45:00.000Z',
+    humanConcordant: true,
     findings: [
       { id: 'find-o26-0003-1', label: 'Tumor region identified — Gleason pattern 3+4, Grade Group 2, left mid-gland peripheral zone', confidenceScore: 0.90 },
       { id: 'find-o26-0003-2', label: 'Tumor within 1mm of inked margin — close margin flagged', confidenceScore: 0.85 },
@@ -89,11 +97,28 @@ const SEED_AI_RESULTS: AiScreeningResult[] = [
     biomarkers: [{ name: 'Gleason Score', value: '7 (3+4)' }],
     slideTriage: { reviewRecommended: true, triageLevel: 'equivocal_review', primaryFinding: 'Close Margin — Review Recommended' },
   },
+  // Batch 749 (seed row S5, "at least two with a completed AI result"): the gallery reads behind Priya Desai's Paps
+  // (cases/demoCytologyVolumeCases.ts). S26-5501's is the read the Video 3 concordance window asks about.
+  {
+    id: 'ai-result-seed-5501cyt', caseId: 'S26-5501-CYT-001', specimenId: 'S26-5501-SP-1', vendorId: 'dp-vendor-hologic-genius',
+    status: 'completed', orderedAt: minutesAgo(900), completedAt: minutesAgo(870),
+    findings: [{ id: 'find-5501-1', label: 'No atypical cells among the objects of interest', confidenceScore: 0.92 }],
+  },
+  {
+    id: 'ai-result-seed-5503cyt', caseId: 'S26-5503-CYT-001', specimenId: 'S26-5503-SP-1', vendorId: 'dp-vendor-hologic-genius',
+    status: 'completed', orderedAt: minutesAgo(1500), completedAt: minutesAgo(1460),
+    findings: [{ id: 'find-5503-1', label: 'Atypical squamous cells of undetermined significance', confidenceScore: 0.74 }],
+  },
 ];
 
 const STORAGE_KEY = 'aiScreeningResults';
 
-const load = (): AiScreeningResult[] => storageGet(STORAGE_KEY, SEED_AI_RESULTS);
+// Batch 749: a seed result missing from storage is added, never replacing one.
+const load = (): AiScreeningResult[] => {
+  const { records, added } = withMissingSeedRecords(storageGet<AiScreeningResult[] | null>(STORAGE_KEY, null), SEED_AI_RESULTS);
+  if (added > 0) storageSet(STORAGE_KEY, records);
+  return records;
+};
 const persist = (data: AiScreeningResult[]) => storageSet(STORAGE_KEY, data);
 let _cache: AiScreeningResult[] = load();
 

@@ -31,7 +31,7 @@ import { evaluateCapability } from '../authorization/evaluateCapability';
 import { resolveTenantFacility } from '../auth/resolveTenantFacility';
 import { toCsv } from '@/utils/csv';
 import {
-  SUPPORT_AUDIT_COLUMNS, SUPPORT_AUDIT_GENESIS, activeGrant, approvalExpiry, decisionProblem, expireRequests,
+  SUPPORT_AUDIT_COLUMNS, SUPPORT_AUDIT_GENESIS, activeGrant, approvalExpiry, decisionProblem, expireRequests, isLiveGrant,
   normaliseSupportSettings, requestProblem, supportAccessDecision, supportAuditHashInput, supportAuditRows,
   verifySupportAuditChain,
   type ChainCheck, type DecisionProblem, type RequestProblem, type SupportAccessDecision, type SupportAccessRequest,
@@ -50,13 +50,18 @@ export interface SupportAccessDeps {
   enterpriseFacilities: () => Promise<Facility[]>;
   staff: () => Promise<StaffUser[]>;
   roles: () => Promise<Role[]>;
-  notify: (msg: { recipientId: string; recipientName: string; senderId: string; senderName: string; tenantName: string; ticketId: string; reason: string }) => Promise<void>;
+  notify: (msg: { recipientEmail?: string; recipientId: string; recipientName: string; senderId: string; senderName: string; tenantName: string; ticketId: string; reason: string }) => Promise<void>;
   store: { get<T>(key: string, fallback: T): T; set<T>(key: string, value: T): void };
   now?: () => Date;
   sha256?: (text: string) => Promise<string>;
   newId?: () => string;
+  /** Batch 555: false with the API server, whose supportAccess.expire job marks run-out approvals (default true). */
+  runServerJobs?: () => boolean;
   /** Starting settings per organisation, used until the organisation saves its own (demo seed data). */
   seedSettings?: Readonly<Record<string, Partial<SupportAccessSettings>>>;
+  /** Batch 456: starting requests, used while none are stored (demo seed data;
+   *  a function so its dates are relative to the moment it is read). */
+  seedRequests?: () => SupportAccessRequest[];
 }
 
 export type Refusal<R extends string> = { ok: false; reason: R };
@@ -75,8 +80,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
   const readSettings = (): Record<string, Partial<SupportAccessSettings>> =>
     ({ ...(deps.seedSettings ?? {}), ...deps.store.get<Record<string, Partial<SupportAccessSettings>>>(SUPPORT_SETTINGS_KEY, {}) });
   const readRequests = () => {
-    const list = deps.store.get<SupportAccessRequest[]>(SUPPORT_REQUESTS_KEY, []);
-    return list;
+    // Batch 456: nothing stored yet (first run, or after a Full Reset) → the demo seed.
+    return deps.store.get<SupportAccessRequest[] | null>(SUPPORT_REQUESTS_KEY, null) ?? deps.seedRequests?.() ?? [];
   };
   const writeRequests = (list: SupportAccessRequest[]) => deps.store.set(SUPPORT_REQUESTS_KEY, list);
   const readAudit = () => deps.store.get<Record<string, SupportAuditEntry[]>>(SUPPORT_AUDIT_KEY, {});
@@ -109,6 +114,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
   /** Marks run-out approvals expired, recording each in its organisation's stream. */
   const expire = async () => {
     const list = readRequests();
+    // An approval past its time is still treated as over (activeRequest checks expiresAt); only the recording is the server's.
+    if (deps.runServerJobs && !deps.runServerJobs()) return list;
     const changed = expireRequests(list, now());
     if (changed.length) {
       writeRequests(list);
@@ -181,7 +188,7 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
         if (resolveTenantFacility(u.organisationId, facilities)?.id !== input.tenantId) continue;
         const d = evaluateCapability({ userId: u.id, userName: u.email, sessionRole: null, staffRoles: u.roles ?? [] }, 'config:support-access:approve', roles);
         if (!d.allowed) continue;
-        await deps.notify({ recipientId: u.id, recipientName: [u.firstName, u.lastName].filter(Boolean).join(' '), senderId: s.id, senderName: s.name, tenantName: name, ticketId: request.ticketId, reason: request.reason }).catch(() => {});
+        await deps.notify({ recipientEmail: u.email, recipientId: u.id, recipientName: [u.firstName, u.lastName].filter(Boolean).join(' '), senderId: s.id, senderName: s.name, tenantName: name, ticketId: request.ticketId, reason: request.reason }).catch(() => {});
       }
       return { ok: true, request };
     },
@@ -218,7 +225,8 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
       const s = deps.session();
       const list = await expire();
       const r = list.find(x => x.id === requestId);
-      if (!r || !s || r.agentId !== s.id || r.status !== 'approved') return { ok: false };
+      // Batch 555: only access still in force can be ended (an approval past its time is already over).
+      if (!r || !s || r.agentId !== s.id || !isLiveGrant(r, now())) return { ok: false };
       r.status = 'ended'; r.closedAt = now().toISOString();
       writeRequests(list);
       await record({ tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: r.ticketId, action: 'accessEnded', detail: 'Support ended its access.' });
@@ -228,7 +236,7 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
     /** The hospital ends an approval early. */
     async revoke(requestId: string): Promise<{ ok: true } | Refusal<'notFound' | 'notPermitted' | 'otherOrganisation'>> {
       const list = await expire();
-      const r = list.find(x => x.id === requestId && x.status === 'approved');
+      const r = list.find(x => x.id === requestId && isLiveGrant(x, now()));
       if (!r) return { ok: false, reason: 'notFound' };
       const gate = await hospitalGate(r.tenantId, () => deps.authorization.enforce('config:support-access:approve'));
       if (gate) return { ok: false, reason: gate };
@@ -284,6 +292,55 @@ export function createSupportAccessService(deps: SupportAccessDeps) {
     },
 
     tenantName,
+
+    /**
+     * Batch 604: the ticket was closed (SIMULATED: no ticketing system is connected, so the
+     * support agent presses the button the ticketing system would press). Ends every live
+     * approval for that ticket and records it in each organisation's stream.
+     */
+    async closeTicket(ticketId: string): Promise<{ ok: true; ended: number } | Refusal<'notSupport' | 'notFound'>> {
+      const s = deps.session();
+      if (!s || s.role !== 'superadmin') return { ok: false, reason: 'notSupport' };
+      const list = await expire();
+      const id = ticketId.trim();
+      const live = list.filter(r => r.ticketId === id && r.agentId === s.id && isLiveGrant(r, now()));
+      if (live.length === 0) return { ok: false, reason: 'notFound' };
+      for (const r of live) { r.status = 'ended'; r.closedAt = now().toISOString(); }
+      writeRequests(list);
+      for (const r of live) {
+        await record({ tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: id, action: 'ticketClosed', detail: `Ticket ${id} closed (SIMULATED: no ticketing system is connected). Support access ended with it.` });
+      }
+      return { ok: true, ended: live.length };
+    },
+
+    /**
+     * Batch 604: the support agent's own export or configuration change, recorded in the
+     * stream of every organisation they hold live access to. Does nothing for anyone else.
+     */
+    async recordSupportActivity(a: { kind: 'export' | 'configChange'; detail: string }): Promise<void> {
+      const s = deps.session();
+      if (!s || s.role !== 'superadmin') return;
+      for (const r of (await expire()).filter(x => x.agentId === s.id && isLiveGrant(x, now()))) {
+        await record({
+          tenantId: r.tenantId, actorId: s.id, actorName: s.name, ticketId: r.ticketId,
+          action: a.kind === 'export' ? 'supportExport' : 'supportConfigChange', detail: a.detail,
+        });
+      }
+    },
+
+    /** The compliance export as a PDF, itself recorded in the stream. */
+    async exportAuditPdf(tenantId: string):
+      Promise<{ ok: true; bytes: Uint8Array; filename: string } | Refusal<'notPermitted' | 'otherOrganisation'>> {
+      const gate = await hospitalGate(tenantId, () => deps.authorization.enforce('config:support-audit:view'));
+      if (gate) return { ok: false, reason: gate };
+      const entries = readAudit()[tenantId] ?? [];
+      const chain = await verifySupportAuditChain(entries, sha);
+      const s = deps.session()!;
+      const { buildSupportAuditPdf } = await import('./supportAuditPdf');
+      const bytes = await buildSupportAuditPdf({ organisationName: await tenantName(tenantId), exportedBy: s.name, exportedAt: now().toISOString(), chain, entries });
+      await record({ tenantId, actorId: s.id, actorName: s.name, ticketId: null, action: 'auditExported', detail: `Support audit exported as PDF: ${entries.length} entries; chain ${chain.intact === false ? `broken at entry ${chain.brokenAt}` : 'intact'}.` });
+      return { ok: true, bytes, filename: `support-audit-${tenantId}-${now().toISOString().slice(0, 10)}.pdf` };
+    },
   };
 }
 

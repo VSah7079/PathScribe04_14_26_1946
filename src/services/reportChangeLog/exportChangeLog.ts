@@ -10,6 +10,7 @@ import type { IAuthorizationService } from '../authorization/authorizationServic
 import { toCsv } from '@/utils/csv';
 import type { ReportChangeArea, ReportChangeEntry, ReportFieldChange } from './IReportChangeLogService';
 import { CHANGE_LOG_CSV_COLUMNS, changeLogRows } from './reportChangeRules';
+import { buildDocumentOutputAuditEntry, DESTINATION } from '../printing/documentOutputAudit';
 
 export interface ChangeLogExportLabels {
   columns: Record<(typeof CHANGE_LOG_CSV_COLUMNS)[number], string>;
@@ -33,11 +34,11 @@ export async function exportChangeLog(
   const rows = changeLogRows(entries, labels).map(r =>
     Object.fromEntries(CHANGE_LOG_CSV_COLUMNS.map(c => [labels.columns[c], r[c]])));
   const csv = toCsv(rows, CHANGE_LOG_CSV_COLUMNS.map(c => labels.columns[c]));
-  // Audit detail stays literal English (audit records are compliance artifacts, not UI).
-  await deps.auditService.logEvent({
-    type: 'user', event: 'Report change history exported',
-    detail: `${rows.length} field change(s) from ${entries.length} save(s) exported to CSV.`,
-    user: actor.name, caseId, confidence: null,
-  });
+  // PS-282 (Batch 437): recorded as a document export, the entry every
+  // print and export makes (literal English, no patient identifiers).
+  await deps.auditService.logEvent(buildDocumentOutputAuditEntry({
+    action: 'export', document: 'report-change-history', documentId: caseId, caseId,
+    destination: DESTINATION.download(`change-history-${caseId}.csv`), status: 'success', format: 'csv', rowCount: rows.length,
+  }, actor.name, new Date()));
   return { ok: true, csv, rowCount: rows.length };
 }

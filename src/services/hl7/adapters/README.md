@@ -1,3 +1,5 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/hl7/adapters/
 
 Vendor-specific HL7 message adapters — the whole point of the seam is that the standard core (`ormBuilder.ts`, `segmentBuilders.ts`, one level up in `services/hl7/`) can be built and tested against real HL7 semantics without needing to guess at any one vendor's real, specific deviations from the standard.

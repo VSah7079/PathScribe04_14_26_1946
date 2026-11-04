@@ -1,0 +1,72 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 650 — Voice engine and keyboard commands: Report Draft phrases, replace-once dictation, say-it-twice, voice audit, eligibility parity, screen handlers for registered commands",
+    "description": "Vitest, 2026-10-23: full suite 1767 files, 14,789 tests (14,777 passed; the one explicit-any guard failure found in that run has since been fixed). Type-check clean. Targeted run of the 16 test files listed here (changed in Batches 650 to 652): all passed."
+  },
+  "tests": [
+    {
+      "testKey": "PS-882",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Report Draft spoken phrases (20 commands, six languages) register in the action registry and Enter Gross / Micro / Diagnosis reach their section.\nPASSED: src/services/voice/reportDraftVoiceActions.test.ts (8)\nPASSED: src/services/voice/dictationSectionPicker.test.ts (5)\nPASSED: src/pages/SynopticReportPage/hooks/useReportDraftVoiceActions.test.tsx (8)\nNot tested or not built: Real microphone and speech recognition; Enter Addendum, Insert Macro, Next/Previous Field (no voice handler); Enter Gross/Diagnosis on the synoptic layout (no free-text box); the Mic button with a field in focus on Intraop / Verbal Report."
+    },
+    {
+      "testKey": "PS-883",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: AI refinement replaces the dictated text once (one final insert per segment, 2,000 ms budget); the writer does not insert both raw and refined text.\nPASSED: src/services/voice/dictationSegmentFlow.test.ts (11)\nNot tested or not built: A real TipTap editor in a browser; dictation into a plain text box (still shows nothing until final text)."
+    },
+    {
+      "testKey": "PS-884",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: A corrected dictated phrase is recorded on blur and reused in the Report Draft and Microscopic entry as well as Internal Notes.\nPASSED: src/services/voice/dictationCorrections.test.ts (3)\nNot tested or not built: Cross-session persistence on the server; native-speaker review of learned phrases."
+    },
+    {
+      "testKey": "PS-885",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Six hard-to-undo commands ask to be said twice; second hearing within the window runs it; another phrase or silence cancels; keys are unaffected.\nPASSED: src/services/voice/voiceCommandRunner.test.ts (14)\nNot tested or not built: Which commands belong on the list (a decision for Pete); Delete Row has no Worklist feature behind it."
+    },
+    {
+      "testKey": "PS-886",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: getEligibleActions and findActionByTrigger share commandEligibility: screen in focus, always-on, functional area and action group; a phrase for another screen is refused with 'Not available on this screen'.\nPASSED: src/services/actionRegistry/voiceStationEligibility.test.ts (7)\nNot tested or not built: Server-side eligibility; real station configuration screens."
+    },
+    {
+      "testKey": "PS-887",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Voice command executed / refused events carry action id, screen, person and refusal reason, never speech or a case.\nPASSED: src/services/voice/voiceCommandAudit.test.ts (3)\nNot tested or not built: Server-written audit entry (none exists); a Mohs stage answer by voice is not audited."
+    },
+    {
+      "testKey": "PS-888",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Registered commands now reach the screen: Sign Out Case (opens the window, never signs), History, Codes, Finalise, Add Amendment, Search execute/clear, eight TAT tiles; ignored when the button is greyed or a window is open (modalFocus).\nPASSED: src/services/reports/bottomBarActions.test.ts (18)\nPASSED: src/pages/SynopticReportPage/hooks/useBottomBarActionEvents.test.tsx (7)\nPASSED: src/services/quality/tatTileActions.test.ts (3)\nPASSED: src/services/actionRegistry/screenActionWiring.test.ts (6)\nPASSED: src/utils/modalFocus.test.ts (9)\nNot tested or not built: A real browser key press; the 29 commands still unwired (listed in KNOWN_GAPS.md); Sign Out and Next in Orchestration (no button)."
+    },
+    {
+      "testKey": "PS-889",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: A build test fails when a registered command has neither a listener nor an entry in unwiredActions.ts, and when a listed command has since been wired.\nPASSED: src/services/actionRegistry/actionListeners.guard.test.ts (5)\nNot tested or not built: Does not check that a listener does the right thing, only that one exists."
+    },
+    {
+      "testKey": "PS-890",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Accept (Alt+A) and Pass (Ctrl+Alt+P) reach the pool claim window over the Worklist and the report; nothing is accepted with the window closed.\nPASSED: src/services/cases/poolClaimWindow.test.ts (5)\nPASSED: src/components/Worklist/PoolClaimModal.voice.test.tsx (7)\nNot tested or not built: Accept from a highlighted row with the window closed (a decision for Pete); the 30-second claim hold has no server clock."
+    }
+  ]
+}

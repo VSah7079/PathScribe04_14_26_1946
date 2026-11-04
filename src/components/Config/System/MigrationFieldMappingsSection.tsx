@@ -20,9 +20,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockMigrationFieldMappingService } from '../../../services/migration/mockMigrationFieldMappingService';
+
 import { MIGRATION_FIELD_CATEGORIES, MIGRATION_TARGET_FIELDS_BY_CATEGORY, type MigrationFieldCategory } from '../../../types/migration/MigrationCaseDraft';
 import type { MigrationFieldMapping, NewMigrationFieldMapping } from '../../../services/migration/IMigrationFieldMappingService';
+import { migrationFieldMappingService } from '@/services';
 
 type Draft = NewMigrationFieldMapping;
 const emptyDraft = (): Draft => ({ sourceSystemName: '', sourceFieldName: '', targetField: '', category: 'demographics', active: true });
@@ -87,15 +88,15 @@ const MigrationFieldMappingsSection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: MigrationFieldMapping } | null>(null);
   const [sourceFilter, setSourceFilter] = useState('All');
 
-  const refresh = () => { mockMigrationFieldMappingService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { migrationFieldMappingService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const sourceSystems = Array.from(new Set(entries.map(e => e.sourceSystemName)));
   const visible = entries.filter(e => sourceFilter === 'All' || e.sourceSystemName === sourceFilter);
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockMigrationFieldMappingService.update(modal.entry.id, draft);
-    else await mockMigrationFieldMappingService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await migrationFieldMappingService.update(modal.entry.id, draft);
+    else await migrationFieldMappingService.add(draft);
     setModal(null);
     refresh();
   };
@@ -113,7 +114,7 @@ const MigrationFieldMappingsSection: React.FC = () => {
       </div>
 
       {sourceSystems.length > 0 && (
-        <select className="ps-conf-select ps-mfm__source-filter" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
+        <select aria-label={t('a11y.filters.source')} data-dirty-ignore data-config-nav className="ps-conf-select ps-mfm__source-filter" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
           <option value="All">{t('migrationFieldMappingsSection.allSourceSystems')}</option>
           {sourceSystems.map(s => <option key={s} value={s}>{s}</option>)}
         </select>

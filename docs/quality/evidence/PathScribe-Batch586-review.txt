@@ -1,0 +1,10 @@
+Batch 586: the review tests (e2e/review/) for PS-63, PS-277, PS-283 and PS-342, Playwright in Chromium against the demo, run 2026-10-16. 6 passed.
+
+PASSED: e2e/review/ps-63.template-workflow.spec.ts › Step 1: the Protocols README has the admin guide and names the approving roles
+PASSED: e2e/review/ps-63.template-workflow.spec.ts › Step 6: self-approval defaults to Disabled, reviewers to 1; switching it on is audited, then back off
+PASSED: e2e/review/ps-277.master-template-branding.spec.ts › Step 1: director, CLIA / ISO number, header logo and "addenda on their own page" save and reopen
+PASSED: e2e/review/ps-277.master-template-branding.spec.ts › Step 2: a department has the "Report Branding Override (optional)" fields
+PASSED: e2e/review/ps-283.restricted-printing-flag.spec.ts › Step 5: "Confidential — Restricted Printing" restricts printing; an ordinary flag does not
+PASSED: e2e/review/ps-342.medical-spell-check.spec.ts › Steps 1–5: UK English, codes accepted, suggestions and dictionaries, US English and back
+
+Not run: the independent review agent; Firefox; the full vitest and type-check runs (this batch changes only e2e/review specs and documentation).

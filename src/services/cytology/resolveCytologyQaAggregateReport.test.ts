@@ -118,4 +118,12 @@ describe('resolveCytologyQaAggregateReport — real, standard QA metrics', () =>
     const report = resolveCytologyQaAggregateReport(pairs, CATEGORIES);
     expect(report.comparisons[0].followUpInterpretationLabel).toBe('a-deleted-category-id');
   });
+
+  it('Batch 410: uses the agreement stored on the follow-up when it was assessed against this initial screen', () => {
+    const stored = { ...pair('nilm', 'nilm'), followUp: { ...review('f', 'nilm'), agreementWithInitial: { level: 'major_discrepancy', majorSubtype: 'false_negative', adequacyDiscrepancy: false, comparedWithReviewId: 'i' } } } as unknown as CytologyQaComparisonPair;
+    expect(resolveCytologyQaAggregateReport([stored], CATEGORIES).majorDiscrepancyCount).toBe(1);
+    const otherInitial = { ...stored, followUp: { ...stored.followUp, agreementWithInitial: { ...stored.followUp.agreementWithInitial!, comparedWithReviewId: 'someone-else' } } } as CytologyQaComparisonPair;
+    expect(resolveCytologyQaAggregateReport([otherInitial], CATEGORIES).exactCount).toBe(1);
+  });
 });
+

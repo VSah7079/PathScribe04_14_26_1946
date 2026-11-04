@@ -9,6 +9,11 @@
 //   Required Reviewers             default 1 independent reviewer
 //
 // Rules and validation are in templatePublishingRules.ts.
+//
+// Batch 425 (Pete and his developer: "Template Review settings save
+// authorization"): saving needs config:template-governance:manage, checked
+// here before anything is stored. The API server checks it again on its own
+// save endpoint (PS-345).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
@@ -48,15 +53,19 @@ export function governanceChangeDetail(previous: TemplateGovernanceSettings, sav
   return parts.length ? parts.join('; ') : null;
 }
 
+
 /** Saves the settings and records any change in the audit log. The audit
- *  service is passed in so this is testable without module mocks. */
+ *  service is passed in so this is testable without module mocks.
+ *  Batch 425: refused (nothing stored) without config:template-governance:manage. */
 export async function saveTemplateGovernanceWithAudit(
   next: Partial<TemplateGovernanceSettings>,
   deps: {
     auditService: { logEvent(entry: { type: 'user'; event: string; detail: string; user: string; caseId: null; confidence: null }): Promise<unknown> };
     userName: string;
+    enforce: (capability: string) => Promise<{ allowed: boolean }>;
   },
-): Promise<TemplateGovernanceSettings> {
+): Promise<{ ok: boolean; settings: TemplateGovernanceSettings }> {
+  if (!(await deps.enforce('config:template-governance:manage')).allowed) return { ok: false, settings: getTemplateGovernanceSettings() };
   const { previous, saved } = setTemplateGovernanceSettings(next);
   const detail = governanceChangeDetail(previous, saved);
   if (detail) {
@@ -69,5 +78,5 @@ export async function saveTemplateGovernanceWithAudit(
       confidence: null,
     });
   }
-  return saved;
+  return { ok: true, settings: saved };
 }

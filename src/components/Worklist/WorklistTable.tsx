@@ -1,23 +1,25 @@
+import { caseDisplayNumber } from '@/services/cases/caseDisplayNumber'; import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router";
 import { useTranslation, Trans } from 'react-i18next';
 import { buildPoolGroupRows, splitPoolRowsByUrgency, computeRestrictedPoolKeys, type PoolDividerRow, type SubspecialtyForRestrictionCheck } from './poolGrouping';
 import { buildAmendmentGroupRows, type AmendmentDividerRow } from './amendmentGrouping';
 import { buildAutopsyGroupRows, type AutopsyDividerRow } from './autopsyGrouping';
+import AutopsyWorklistBadges from './AutopsyWorklistBadges';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
-import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
-import { storageGet, storageSet } from '@/services/mockStorage';
+import { resolveDigitalReadinessBadge, resolveDpTriageBadge, dpLabelText } from '@/services/digitalPathology/resolveWorklistDpBadges';
+import { flagDisplayName } from '@/services/flags/shippedFlagNames';
+import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
 import { useAuth } from "@/contexts/AuthContext";
 import { useSystemConfig } from "@/contexts/SystemConfigContext";
 import { getFacilityDateParts } from '@/utils/facilityTime';
-import { facilityService, auditService, specimenDeficiencyService, subspecialtyService, accessRequestService } from "@/services";
-import { sendAccessRequestToAdmins } from "@/utils/accessRequests";
+import { facilityService, auditService, specimenDeficiencyService, subspecialtyService } from "@/services";
+import { sendAccessRequestToAdmins, pendingAccessRequestsFor } from "@/utils/accessRequests";
 import { resolvePediatricAccess, resolveOrchestrationAccess } from "@/services/auth/caseAccessControl";
 import { useMessaging } from "@/contexts/MessagingContext";
 import { getOrganisationByHospitalId, getOrganisationShortName } from '../../services/organisation/organisationService';
 import { formatDate as formatDateLocale, localeForJurisdiction, formatAge } from '@/utils/formatDate';
 import { getCaseStatusLabel, hasDisplayableRevision, REVISION_ACCENT } from '@/utils/caseRevisionDisplay';
-import { isUrgentCase } from '@/utils/caseUrgency';
+import { isUrgentCase } from '@/utils/caseUrgency'; import { sexAtBirthText } from '@/services/patients/patientSexAtBirth';
 import type { RevisionType } from '@/types/reports/AmendmentRecord';
 import type { Jurisdiction } from '@/types/systemConfig';
 import '../../pathscribe.css';
@@ -31,6 +33,9 @@ import { getParticipationTypeLookup } from '@/utils/participationTypeLookup';
 import type { ParticipationTypeRecord } from '@/services/participationTypes/IParticipationTypeService';
 import { openComposeTo } from '@/utils/openComposeTo';
 import { setCaseOpenedFrom } from '@/utils/search/searchSession';
+import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { codingTermText } from '@/services/abnormalDetection/codingTermText';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -49,9 +54,26 @@ type DividerRow =
 
 type DisplayRow = Case | DividerRow;
 
+/** Batch 610 (#164): the badge for an open case past its client's SLA target. */
+const SlaBadge: React.FC<{ kind: 'firstTouch' | 'total' }> = ({ kind }) => {
+  const { t } = useTranslation();
+  return (
+    <span className="ps-wl-sla-badge" data-testid="wl-sla-breach" title={t(`worklistTable.slaBreach.${kind}`)}>
+      {t('worklistTable.slaBreach.badge')}
+    </span>
+  );
+};
+
+function renderSlaBadge(breaches: ReadonlyMap<string, 'firstTouch' | 'total'> | undefined, c: Case): React.ReactNode {
+  const kind = breaches?.get(c.id);
+  return kind ? <SlaBadge kind={kind} /> : null;
+}
+
 interface WorklistTableProps {
   cases: Case[];
   activeFilter: string;
+  /** Batch 610 (#164): open cases past a client SLA target right now, by case id (which target is past). */
+  slaBreaches?: ReadonlyMap<string, 'firstTouch' | 'total'>;
   /** Real feature, per direct follow-up: "we could segment the filter
    *  results into those subgroups... Amendment and Correction at the
    *  top followed by Addenda." Only meaningful when activeFilter ===
@@ -80,6 +102,8 @@ interface WorklistTableProps {
   /** 'search' when inside SearchPage, 'worklist' otherwise */
   navSource?: 'search' | 'worklist';
   onPoolCaseClick?: (caseId: string, summary: string) => void;
+  /** Batch 440: a filter that opens its cases its own way (the Cytology Review tray). Returns true when it handled the click. */
+  interceptOpen?: (caseId: string) => boolean;
   selectedIndex?: number;
   selectedCaseId?: string | null;
   onRowSelect?: (index: number, id: string) => void;
@@ -226,7 +250,7 @@ const compareValues = (a: any, b: any, dir: 'asc' | 'desc'): number => {
 const getSortValue = (c: Case, key: string): any => {
   switch (key) {
     case 'id':
-      return c.id;
+      return caseDisplayNumber(c);
     case 'lastName':
       return c.patient?.lastName ?? '';
     case 'mrn':
@@ -330,12 +354,9 @@ const getStatusStyle = (status: string) => {
 const FlagChip: React.FC<{ flag: any; flagDefById: Map<string, Flag>; isSpecimen?: boolean }> = React.memo(({ flag, flagDefById, isSpecimen }) => {
   const { t } = useTranslation();
   const def = flagDefById.get(flag.flagDefinitionId);
-  // Real, honest gap: the real Flag/FlagDefinition catalog has no color
-  // field at all (confirmed directly) — getFlagPalette's own fallback
-  // below already handles this gracefully, not something to paper over
-  // with a field that was never real.
+  // The flag catalog has no color field, so getFlagPalette's fallback applies.
   const palette = getFlagPalette(undefined);
-  const label: string = def?.name ?? flag.label ?? flag.name ?? t('worklistTable.flagChip.fallbackLabel');
+  const label: string = flagDisplayName(def?.name ?? flag.label ?? flag.name, t) ?? t('worklistTable.flagChip.fallbackLabel');
   const scope = isSpecimen ? t('worklistTable.flagChip.scopeSpecimen') : t('worklistTable.flagChip.scopeCase');
   const title = def?.description
     ? t('worklistTable.flagChip.titleWithDescription', { scope, label, description: def.description })
@@ -463,7 +484,7 @@ const UrgentDot: React.FC = React.memo(() => {
  * suggestion — that only ever exists transiently during the sign-out
  * modal, never reaches here). One color per real severity level.
  */
-const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; syntheticCoding?: { code: string; display: string }[] }> = React.memo(({ severity, syntheticCoding }) => {
+const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; syntheticCoding?: { system: string; code: string; display: string }[] }> = React.memo(({ severity, syntheticCoding }) => {
   const { t } = useTranslation();
   // Real, per direct guidance: architecture-testing only — see
   // resolveSyntheticCoding.ts's own header for the full safety
@@ -472,9 +493,8 @@ const AbnormalDot: React.FC<{ severity: 'Abnormal' | 'Critical' | 'Malignant'; s
   // actually worked — never rendered as if it were a real code. Left
   // untranslated like the rest of this synthetic-coding suffix's own
   // codes/display terms — it's diagnostic/testing output, not UI copy.
-  const codingSuffix = syntheticCoding?.length
-    ? ` — ${syntheticCoding.map(c => `${c.code} (${c.display})`).join('; ')}`
-    : '';
+  const { demo, real } = codingTermText(syntheticCoding); // Batch 652: TEST- codes labelled "demonstration code"
+  const codingSuffix = (demo ? t('worklistTable.abnormalDot.codingSuffixDemo', { terms: demo }) : '') + (real ? t('worklistTable.abnormalDot.codingSuffix', { terms: real }) : '');
   const severityLabel = t(`worklistTable.abnormalDot.severity.${severity}`);
   return <span title={t('worklistTable.abnormalDot.title', { severity: severityLabel, codingSuffix })} className={`wl-abnormal-dot--${severity}`} />;
 });
@@ -486,6 +506,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   cases,
   activeFilter,
   amendmentTypeByCaseId,
+  slaBreaches,
   wsiSlidesByCaseId,
   dpResultByCaseId,
   onOpenDpDrawer,
@@ -495,6 +516,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   onBeforeNavigate,
   navSource = 'worklist',
   onPoolCaseClick,
+  interceptOpen,
   selectedIndex: _selectedIndex,
   selectedCaseId = null,
   onRowSelect,
@@ -509,7 +531,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   preserveOrder = false,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { user } = useAuth();
   const { config } = useSystemConfig();
   const { reloadInbox } = useMessaging();
@@ -543,26 +565,27 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // across re-renders, not the display label). Pools restricted for this
   // user start collapsed the first time they're seen; explicit user
   // toggles afterward are respected and not re-defaulted. Sticky: persisted
-  // per-user via storageGet/storageSet, the same pattern used elsewhere in
-  // this app for sticky UI preferences - a manually-expanded pool survives
+  // per-user as a display preference (utils/uiPreferences.ts; Batch 506 moved
+  // it there from the mock-storage helpers, so a remembered state from before
+  // that resets once) - a manually-expanded pool survives
   // a reload instead of silently re-collapsing back to the default.
   const collapseStorageKey = `worklist_pool_collapse_${user?.id ?? 'anon'}`;
   const [collapsedPoolKeys, setCollapsedPoolKeys] = useState<Set<string>>(
-    () => new Set(storageGet<string[]>(collapseStorageKey, []))
+    () => new Set(getUiPreference<string[]>(collapseStorageKey, []))
   );
   const seenRestrictedStorageKey = `worklist_pool_seen_restricted_${user?.id ?? 'anon'}`;
   const seenRestrictedKeysRef = useRef<Set<string>>(
-    new Set(storageGet<string[]>(seenRestrictedStorageKey, []))
+    new Set(getUiPreference<string[]>(seenRestrictedStorageKey, []))
   );
   useEffect(() => {
     const newlyRestricted = Array.from(restrictedPoolKeys).filter(k => !seenRestrictedKeysRef.current.has(k));
     if (newlyRestricted.length === 0) return;
     newlyRestricted.forEach(k => seenRestrictedKeysRef.current.add(k));
-    storageSet(seenRestrictedStorageKey, Array.from(seenRestrictedKeysRef.current));
+    setUiPreference(seenRestrictedStorageKey, Array.from(seenRestrictedKeysRef.current));
     setCollapsedPoolKeys(prev => {
       const next = new Set(prev);
       newlyRestricted.forEach(k => next.add(k));
-      storageSet(collapseStorageKey, Array.from(next));
+      setUiPreference(collapseStorageKey, Array.from(next));
       return next;
     });
   }, [restrictedPoolKeys, collapseStorageKey, seenRestrictedStorageKey]);
@@ -571,7 +594,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     setCollapsedPoolKeys(prev => {
       const next = new Set(prev);
       if (next.has(poolKey)) next.delete(poolKey); else next.add(poolKey);
-      storageSet(collapseStorageKey, Array.from(next));
+      setUiPreference(collapseStorageKey, Array.from(next));
       return next;
     });
   }, [collapseStorageKey]);
@@ -585,7 +608,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
   // Real feature, per direct follow-up: "Do we Track the request to
   // gain access?... Do we generate a ticket system that has its own
-  // status." Replaces the old, bare per-browser localStorage sets
+  // status." Replaces the old, bare per-browser storage sets
   // (pathscribe_ped_requested / pathscribe_orch_requested) — not real,
   // status-bearing records, and not genuinely user-specific across
   // sessions. Both derived from one real fetch against the tracked
@@ -596,24 +619,22 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
   // persistence shape — but kept as its own state rather than unified into
   // one generic "restricted access" type, since the two restrictions carry
   // genuinely different data (age/clientId vs. nothing) and different grant
-  // paths (per-client authorized-pathologist list vs. a Role flag). A
-  // separate, clearly-named localStorage key avoids any collision or
-  // migration risk with existing pediatric request state.
+  // paths (per-client authorized-pathologist list vs. a Role flag). Both
+  // badges come from the person's own pending access requests (Batch 431).
   const [orchBlockedCase, setOrchBlockedCase] = React.useState<{id:string}|null>(null);
 
   const [pedRequestedIds, setPedRequestedIds] = React.useState<Set<string>>(new Set());
   const [orchRequestedIds, setOrchRequestedIds] = React.useState<Set<string>>(new Set());
 
+  const accessRequestUserId = (user as any)?.id as string | undefined;
   const refreshAccessRequestState = React.useCallback(() => {
-    const userId = (user as any)?.id;
+    const userId = accessRequestUserId;
     if (!userId) return;
-    accessRequestService.getAllForUser(userId).then(res => {
-      if (!res.ok) return;
-      const pending = res.data.filter(r => r.status === 'pending');
+    pendingAccessRequestsFor(userId).then(pending => {
       setPedRequestedIds(new Set(pending.filter(r => r.type === 'pediatric' && r.caseId).map(r => r.caseId!)));
       setOrchRequestedIds(new Set(pending.filter(r => r.type === 'orchestration' && r.caseId).map(r => r.caseId!)));
     }).catch(() => {});
-  }, [(user as any)?.id]);
+  }, [accessRequestUserId]);
 
   React.useEffect(() => { refreshAccessRequestState(); }, [refreshAccessRequestState]);
 
@@ -740,10 +761,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
               className={`wl-staff-chip${isPrimary ? ' wl-staff-chip--primary' : ''}`}
               title={getStaffRoleLabel(p)}
             >
-              {/* "RES" itself is a compact domain abbreviation (like
-                  MRN/DOB elsewhere in this file), not translated — only
-                  its tooltip is real UI copy. */}
-              {isResident && <span className="wl-staff-chip__badge" title={t('worklistTable.staffChip.residentBadgeTitle')}>RES</span>}
+              {/* Batch 513 (PS-269): the resident badge is a language-
+                  specific abbreviation (RES / INT / AA / AIOS / 전공의). */}
+              {isResident && <span className="wl-staff-chip__badge" title={t('worklistTable.staffChip.residentBadgeTitle')}>{t('worklistTable.staffChip.residentBadge')}</span>}
               <span className="wl-staff-chip__name">{p.staffName}</span>
               <button
                 type="button"
@@ -882,29 +902,15 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
    * multi-sort stack: 
    * The first element is the primary sort, second is secondary, etc.
    */
+  // Batch 431: the sort order is the signed-in person's own setting (it was
+  // shared by everyone on the computer). PS-345 moves it to the server.
   const [sortStack, setSortStack] = useState<SortEntry[]>(() => {
-    try {
-      const raw = localStorage.getItem(SORT_KEY);
-      if (!raw) return [{ key: 'id', dir: 'asc' }];
-      
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed as SortEntry[];
-      }
-      return [{ key: 'id', dir: 'asc' }];
-    } catch (e) {
-      console.warn("Failed to parse sort state from localStorage", e);
-      return [{ key: 'id', dir: 'asc' }];
-    }
+    const saved = getPersonalSetting<SortEntry[] | null>(SORT_KEY, null);
+    return Array.isArray(saved) && saved.length > 0 ? saved : [{ key: 'id', dir: 'asc' }];
   });
 
-  // Persist sort preferences to local storage whenever they change
   useEffect(() => {
-    try {
-      localStorage.setItem(SORT_KEY, JSON.stringify(sortStack));
-    } catch (e) {
-      console.error("Failed to save sort state", e);
-    }
+    setPersonalSetting(SORT_KEY, sortStack);
   }, [sortStack]);
 // ─────────────────────────────────────────────────────────────────────────────
   // SORT INTERACTION HANDLERS
@@ -1033,7 +1039,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
 
       return true;
     });
-  }, [cases, activeFilter, isUrgentCase, delegatedCaseIds, config.facilityTimezone]);
+  }, [cases, activeFilter, delegatedCaseIds, config.facilityTimezone]);
 /**
    * sortGroup:
    * A helper that applies the current multi-level sortStack to a 
@@ -1080,7 +1086,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       ...sortGroup(normal),
       ...sortGroup(poolCases),
     ];
-  }, [filteredCases, isUrgentCase, sortGroup, preserveOrder]);
+  }, [filteredCases, sortGroup, preserveOrder]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // NAVIGATION & SELECTION
@@ -1108,19 +1114,19 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       setCaseOpenedFrom(navSource);
       onBeforeNavigate?.(id);
       if (activeFilter === 'informalreview') {
-        navigate(`/report/${id}`, {
+        void openCasePage(id, 'report', {
           state: { fromFilter: activeFilter, openInternalNotes: true },
         });
         return;
       }
-      navigate(`/case/${id}/synoptic`, {
+      void openCasePage(id, 'synoptic', {
         state: { 
           // Pass the IDs so the case view can implement "Next/Prev"
           worklistCaseIds: finalCases.map((c) => c.id) 
         },
       });
     },
-    [navigate, onBeforeNavigate, finalCases, navSource, activeFilter]
+    [openCasePage, onBeforeNavigate, finalCases, navSource, activeFilter]
   );
 
   /**
@@ -1164,13 +1170,15 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
         auditService.logEvent({
           type: 'system',
           event: 'Orchestration Access Denied',
-          detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: case belongs to Orchestration/Outreach. User lacks canViewOrchestration permission.`,
+          detail: `Case ${id} opened by ${(user as any)?.name ?? 'Unknown'} — blocked: case belongs to Orchestration. User lacks canViewOrchestration permission.`,
           user: (user as any)?.name ?? 'Unknown',
           caseId: id,
           confidence: null,
         }).catch(() => {});
         return;
       }
+
+      if (interceptOpen?.(id)) return;
 
       // Pool cases open the claim modal instead of navigating
       if ((c as any)?.status === 'pool' && onPoolCaseClick) {
@@ -1199,7 +1207,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
       prefetchTemplateData(templateId);
       openCase(id);
     },
-    [cases, openCase, onRowSelect, onPoolCaseClick, isOrchRestricted, isPedRestricted, user, clientThresholds]
+    [cases, openCase, onRowSelect, onPoolCaseClick, interceptOpen, isOrchRestricted, user, clientThresholds]
   );
 // ─────────────────────────────────────────────────────────────────────────────
   // DISPLAY ROW GENERATION (Dividers + Virtualization)
@@ -1274,7 +1282,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
     // t included so these two divider labels re-resolve on a language
     // switch, same "t in deps" convention this sweep already applies to
     // other memoized/effect-computed display strings elsewhere.
-  }, [finalCases, isUrgentCase, restrictedPoolKeys, activeFilter, amendmentTypeByCaseId, branchFilter, t, preserveOrder]);
+  }, [finalCases, restrictedPoolKeys, activeFilter, amendmentTypeByCaseId, branchFilter, t, preserveOrder]);
 
   /**
    * visibleRows:
@@ -1450,8 +1458,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // restricted-pool-membership concept applies here).
                   if ('isAmendmentGroup' in row) {
                     return (
-                      <div key={`div-${row.label}-${rowIndex}`} className="wl-card-divider">
-                        <span className="wl-card-divider__label">{row.label}</span>
+                      <div key={`div-${row.groupKey}-${rowIndex}`} className="wl-card-divider">
+                        <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                         <span className="wl-card-divider__count">{row.count}</span>
                         <div className="wl-card-divider__line" />
                       </div>
@@ -1464,8 +1472,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // "collapsible pool" concept applies here either.
                   if ('isAutopsyGroup' in row) {
                     return (
-                      <div key={`div-${row.label}-${rowIndex}`} className="wl-card-divider">
-                        <span className="wl-card-divider__label">{row.label}</span>
+                      <div key={`div-${row.groupKey}-${rowIndex}`} className="wl-card-divider">
+                        <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                         <span className="wl-card-divider__count">{row.count}</span>
                         <div className="wl-card-divider__line" />
                       </div>
@@ -1478,7 +1486,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     <div
                       key={`div-${row.label}-${rowIndex}`}
                       className={`wl-card-divider${isCollapsible ? ' wl-divider--clickable' : ''}`}
-                      onClick={isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined}
+                      {...pressable(isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined)}
                     >
                       {isCollapsible && (
                         <span className="wl-card-divider__chevron">{isCollapsed ? '▶' : '▼'}</span>
@@ -1528,7 +1536,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   <div
                     key={c.id}
                     className={cardClass}
-                    onClick={() => handleRowClick(c.id)}
+                    {...pressable(() => handleRowClick(c.id))}
                     onMouseEnter={() => setHoveredRow(c.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
@@ -1563,7 +1571,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                             className={`wl-case-id${isRush ? ' wl-case-id--rush' : isUrgent ? ' wl-case-id--urgent' : c.status === 'pool' ? ' wl-case-id--pool' : ''}`}
                             data-phi="accession"
                           >
-                            {c.id}
+                            {caseDisplayNumber(c)}
                           </span>
                         </div>
                       </div>
@@ -1613,12 +1621,12 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                           </div>
                         ) : (
                           <div className="wl-card__field-sub" data-phi="dob">
-                            {c.patient.sex?.charAt(0) ?? '—'}
+                            {sexAtBirthText(c.patient.sex, t)}
                             {' · '}
                             {formatDate(c.patient.dateOfBirth, c.order?.facilityId)}
                             {' '}
                             ({c.patient.dateOfBirth ? formatAge(c.patient.dateOfBirth) : '—'})
-                            <span className="wl-mrn-inline" data-phi="mrn">· MRN {c.patient.mrn ?? '—'}</span>
+                            <span className="wl-mrn-inline" data-phi="mrn">{t('common.patientIds.mrnAfterSeparator', { mrn: c.patient.mrn ?? '—' })}</span>
                           </div>
                         )}
                       </div>
@@ -1641,6 +1649,19 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                               <SpecimenChip key={s.id} label={s.label} description={s.description} />
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Batch 477 (PS-261 follow-up, Module 5) — same
+                          real autopsy badges as the table row's Status
+                          cell, shown here too so the card layout (used
+                          below 1024px) doesn't silently lack them.
+                          Renders nothing for a non-autopsy case. */}
+                      {!isRestricted(c) && (c as any).autopsy && (
+                        <div className="wl-card__body-full">
+                          <div className="wl-card__field-label">{t('worklistTable.autopsy.fieldLabel')}</div>
+                          <AutopsyWorklistBadges autopsy={c.autopsy} caseSource={c} />
+                          {renderSlaBadge(slaBreaches, c)}
                         </div>
                       )}
 
@@ -1799,10 +1820,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // treatment as the tablet/card view above.
                   if ('isAmendmentGroup' in row) {
                     return (
-                      <tr key={`div-${row.label}-${rowIndex}`}>
+                      <tr key={`div-${row.groupKey}-${rowIndex}`}>
                         <td colSpan={14} className="wl-td-divider--normal">
                           <div className="wl-card-divider wl-card-divider--flush">
-                            <span className="wl-card-divider__label">{row.label}</span>
+                            <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                             <span className="wl-card-divider__count">{row.count}</span>
                             <div className="wl-card-divider__line" />
                           </div>
@@ -1816,10 +1837,10 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   // above.
                   if ('isAutopsyGroup' in row) {
                     return (
-                      <tr key={`div-${row.label}-${rowIndex}`}>
+                      <tr key={`div-${row.groupKey}-${rowIndex}`}>
                         <td colSpan={14} className="wl-td-divider--normal">
                           <div className="wl-card-divider wl-card-divider--flush">
-                            <span className="wl-card-divider__label">{row.label}</span>
+                            <span className="wl-card-divider__label">{t(row.labelKey)}</span>
                             <span className="wl-card-divider__count">{row.count}</span>
                             <div className="wl-card-divider__line" />
                           </div>
@@ -1835,7 +1856,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       <td
                         colSpan={14}
                         className={`${row.isUrgent ? 'wl-td-divider--urgent' : 'wl-td-divider--normal'}${isCollapsible ? ' wl-divider--clickable' : ''}`}
-                        onClick={isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined}
+                        {...pressable(isCollapsible ? () => togglePoolCollapsed(row.poolKey) : undefined, { role: null })}
                       >
                         <div className="wl-card-divider wl-card-divider--flush">
                           {isCollapsible && (
@@ -1882,7 +1903,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                   <tr
                     key={c.id}
                     className={`wl-tr${rowStateClass}${rowBorderClass}`}
-                    onClick={() => handleRowClick(c.id)}
+                    {...pressable(() => handleRowClick(c.id), { role: null })}
                     onMouseEnter={() => setHoveredRow(c.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
@@ -1904,7 +1925,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         </div>
                       )}
                       <div className={`wl-case-id-inline${isRush ? ' wl-case-id-inline--rush' : isUrgent ? ' wl-case-id-inline--urgent' : isPool ? ' wl-case-id-inline--pool' : ''}`} data-phi="accession">
-                        {c.id}
+                        {caseDisplayNumber(c)}
                       </div>
                     </td>
 
@@ -1941,8 +1962,8 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       {isRestricted(c) ? '—' : (c.patient.mrn ?? '—')}
                     </td>
 
-                    {/* Sex */}
-                    <td className="wl-td-center">
+                    {/* Sex at birth: the narrow column keeps the letter; the word is the tooltip and the accessible name */}
+                    <td className="wl-td-center" title={isRestricted(c) ? undefined : sexAtBirthText(c.patient.sex, t)} aria-label={isRestricted(c) ? undefined : sexAtBirthText(c.patient.sex, t)}>
                       {isRestricted(c) ? '—' : (c.patient.sex?.charAt(0) ?? '—')}
                     </td>
 
@@ -2008,30 +2029,35 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         stopPropagation() fix this file's own
                         openComposeTo button (above) already uses for
                         an identical contained-click-inside-a-clickable-
-                        row situation. */}
-                    <td className="wl-td wl-td-dp" onClick={e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }}>
-                      {(() => {
-                        const badge = resolveDigitalReadinessBadge(wsiSlidesByCaseId?.get(c.id));
-                        if (!badge) return null;
-                        return (
-                          <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewSlideDetails')}>
-                            {badge.summaryText}
-                          </button>
-                        );
-                      })()}
-                    </td>
-                    <td className="wl-td wl-td-dp" onClick={e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }}>
-                      {(() => {
-                        const badge = resolveDpTriageBadge(dpResultByCaseId?.get(c.id));
-                        if (!badge) return null;
-                        return (
-                          <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewAiTriageDetails')}>
-                            <div>{badge.primaryText}</div>
-                            {badge.biomarkerSummary && <div className="wl-dp-badge-sub">{badge.biomarkerSummary}</div>}
-                          </button>
-                        );
-                      })()}
-                    </td>
+                        row situation. Batch 567: the cell is a mouse shortcut only (clickableContainer); the badge
+                        button inside is the one tab stop, and its click reaches this cell's handler. */}
+                    {(() => {
+                      // Batch 567: only a cell with a badge opens the drawer, so the badge (a real button) is always
+                      // there for keyboard users when a click would do something.
+                      const badge = resolveDigitalReadinessBadge(wsiSlidesByCaseId?.get(c.id));
+                      return (
+                        <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
+                          {badge && (
+                            <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewSlideDetails')}>
+                              {dpLabelText(badge.summaryLabel, badge.summaryText, t)}
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })()}
+                    {(() => {
+                      const badge = resolveDpTriageBadge(dpResultByCaseId?.get(c.id));
+                      return (
+                        <td className="wl-td wl-td-dp" {...clickableContainer(badge ? (e => { e.stopPropagation(); onOpenDpDrawer?.(c.id); }) : undefined)}>
+                          {badge && (
+                            <button type="button" className={`wl-dp-badge wl-dp-badge--${badge.level}`} title={t('worklistTable.dp.viewAiTriageDetails')}>
+                              <div>{dpLabelText(badge.primaryLabel, badge.primaryText, t)}</div>
+                              {badge.biomarkerSummary && <div className="wl-dp-badge-sub">{badge.biomarkerSummary}</div>}
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })()}
 
                     {/* Flags */}
                     <td className="wl-td">
@@ -2053,6 +2079,14 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                         lastRevisionType={c.lastRevisionType}
                         reportBreakdown={getReportBreakdown(c)}
                       />
+                      {/* Batch 477 (PS-261 follow-up, Module 5) — real
+                          autopsy state at a glance: case authority,
+                          an active ancillary hold, PAD/FAD signed,
+                          and the jurisdiction's TAT/SLA target as a
+                          tooltip. Renders nothing for a non-autopsy
+                          case. */}
+                      <AutopsyWorklistBadges autopsy={c.autopsy} caseSource={c} />
+                      {renderSlaBadge(slaBreaches, c)}
                     </td>
                   </tr>
                 );
@@ -2146,6 +2180,7 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                       pedBlockedCase.facilityId
                         ? `/configuration?tab=system&section=clients&client=${pedBlockedCase.facilityId}`
                         : '/configuration?tab=system&section=clients',
+                      { type: 'pediatric', caseId: pedBlockedCase.id, facilityId: pedBlockedCase.facilityId },
                     );
                     markPedRequested(pedBlockedCase.id);
                     reloadInbox();
@@ -2224,8 +2259,9 @@ const WorklistTable: React.FC<WorklistTableProps> = ({
                     await sendAccessRequestToAdmins(
                       { id: (user as any).id, name: (user as any).name, organisationId: (user as any).organisationId },
                       `Orchestration Access Request — ${(user as any).name}`,
-                      `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration/Outreach cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-facility list.)`,
+                      `${(user as any).name} needs Orchestration access for case ${orchBlockedCase.id}.\n\nTo grant access:\n1. Go to Configuration → Staff\n2. Open ${(user as any).name}'s staff record\n3. Enable the "canViewOrchestration" flag\n\nNote: this grants visibility into ALL Orchestration cases for this user, not just this one case — confirm that's the intended scope before granting. (Same flag location/pattern as Pediatric Access, on the staff record rather than a per-facility list.)`,
                       '/configuration?tab=system&section=staff',
+                      { type: 'orchestration', caseId: orchBlockedCase.id },
                     );
                     markOrchRequested(orchBlockedCase.id);
                     reloadInbox();

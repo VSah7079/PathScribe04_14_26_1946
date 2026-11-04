@@ -22,6 +22,8 @@ import type { LabelSizePreset } from '@/types/labels/LabelSizePreset';
 // Imports the already-initialized i18next instance directly and calls its
 // t() method, same resources/language as everywhere else in the app.
 import i18n from '@/i18n/config';
+import { auditLabelPrint, browserDialog, type LabelPrintAudit } from './labelPrintAudit';
+import { escapeHtml } from '@/services/security/sanitizeHtml';
 
 const LABEL_STYLES = `
   * { box-sizing: border-box; }
@@ -129,26 +131,66 @@ const LABEL_STYLES = `
  * blocked popup returns false instead of throwing, so the caller can
  * show its own real UI message rather than an unhandled exception.
  */
-export function printLabels(labelHtmlFragments: string[], preset: LabelSizePreset, documentTitle: string): boolean {
+// Batch 720 (Pete): a window opened after a save has finished is no longer "from the click", so a browser may block it.
+// reserveLabelWindow() is called straight from the click: it opens the blank window at once. printLabels() then writes each
+// label job into that window, one after the other (each waits for the one before), and releaseLabelWindow() closes it when
+// the jobs are done, or at once if the save failed. Without a reserved window printLabels() behaves exactly as before.
+let reservedWindow: Window | null = null;
+let reservedQueue: Promise<void> = Promise.resolve();
+
+/** Call synchronously from a click handler. A no-op if a reserved window is already open or the browser refuses. */
+export function reserveLabelWindow(): void {
+  if (reservedWindow && !reservedWindow.closed) return;
+  reservedWindow = window.open('', '_blank', 'width=900,height=1000');
+  if (reservedWindow) {
+    reservedWindow.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(i18n.t('printLabels.preparingTitle'))}</title></head><body><p>${escapeHtml(i18n.t('printLabels.preparing'))}</p></body></html>`);
+    reservedWindow.document.close();
+  }
+  reservedQueue = Promise.resolve();
+}
+
+/** Closes the reserved window once its queued print jobs are done (`failed`: at once, because there is nothing to print). */
+export function releaseLabelWindow(failed = false): void {
+  const win = reservedWindow;
+  reservedWindow = null;
+  if (!win) return;
+  const close = () => { try { win.close(); } catch { /* already closed */ } };
+  if (failed) close(); else void reservedQueue.then(close);
+}
+
+export function printLabels(labelHtmlFragments: string[], preset: LabelSizePreset, documentTitle: string, audit?: LabelPrintAudit): boolean {
   if (labelHtmlFragments.length === 0) return false;
 
-  const printWindow = window.open('', '_blank', 'width=900,height=1000');
+  const reserved = reservedWindow && !reservedWindow.closed ? reservedWindow : null;
+  const printWindow = reserved ?? window.open('', '_blank', 'width=900,height=1000');
   if (!printWindow) {
     alert(i18n.t('printLabels.popupBlockedAlert'));
     return false;
   }
+  // PS-282 (Batch 437): handed to the browser's print dialog.
+  auditLabelPrint(audit, browserDialog, 'pending', labelHtmlFragments.length);
 
-  printWindow.document.write(`<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html>
 <head>
-<title>${documentTitle}</title>
+<title>${escapeHtml(documentTitle)}</title>
 <style>
   ${LABEL_STYLES}
   @media print { @page { size: ${preset.widthMm}mm ${preset.heightMm}mm; margin: 0; } }
 </style>
 </head>
 <body>${labelHtmlFragments.join('')}</body>
-</html>`);
+</html>`;
+  if (reserved) {
+    // jobs share the one window and print one after the other (print() returns when its dialog closes)
+    reservedQueue = reservedQueue.then(() => new Promise<void>(resolve => {
+      if (printWindow.closed) { resolve(); return; }
+      printWindow.document.open(); printWindow.document.write(html); printWindow.document.close(); printWindow.focus();
+      setTimeout(() => { try { if (typeof printWindow.print === 'function') printWindow.print(); } finally { resolve(); } }, 250);
+    }));
+    return true;
+  }
+  printWindow.document.write(html);
   printWindow.document.close();
   printWindow.focus();
   // Same real, deliberate delay as CopilotReportViewModal.tsx's own

@@ -1,6 +1,7 @@
 // src/services/cytology/mockCytologyRegistryOutboundQueueService.ts
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { retryRegistrySubmissionHeader } from '../registrySubmission/registrySubmissionHeader';
 import type { ICytologyRegistryOutboundQueueService } from './ICytologyRegistryOutboundQueueService';
 import type { CytologyRegistryOutboundQueueEntry } from '@/types/case/CytologyRegistryOutboundQueueEntry';
 import { mockAuditService as auditService } from '@/services/auditlog/mockAuditService';
@@ -72,6 +73,9 @@ export const mockCytologyRegistryOutboundQueueService: ICytologyRegistryOutbound
     const updated: CytologyRegistryOutboundQueueEntry = {
       ...prior, status: 'QUEUED', errorCode: undefined, errorMessage: undefined,
       maxRetriesExceeded: false, retryCount: prior.retryCount + 1, lastAttemptAt: new Date().toISOString(),
+      // Batch 419 (SRS v2.1 FR-008.5): a resend of the same submission keeps its id and says it is a duplicate.
+      ...(prior.submission ? { submission: retryRegistrySubmissionHeader(prior.submission) } : {}),
+      registryStatus: undefined,
     };
     const next = [...all]; next[idx] = updated; persist(next);
     auditService.logEvent({
@@ -90,13 +94,37 @@ export const mockCytologyRegistryOutboundQueueService: ICytologyRegistryOutbound
     const prior = all[idx];
     const updated: CytologyRegistryOutboundQueueEntry = {
       ...prior, status: 'SENT', errorCode: undefined, errorMessage: undefined, lastAttemptAt: new Date().toISOString(),
+      // Batch 420: delivered to the interface engine; now waiting for the registry's acknowledgement.
+      registryStatus: 'awaitingAck', sentAt: new Date().toISOString(),
     };
     const next = [...all]; next[idx] = updated; persist(next);
     auditService.logEvent({
       type: 'system', event: 'Cytology registry report dispatched',
-      detail: `Cytology registry (${prior.registryId}) queue entry ${id} genuinely dispatched and accepted.`,
+      detail: `Cytology registry (${prior.registryId}) queue entry ${id} delivered to the interface engine; awaiting the registry's acknowledgement.`,
       user: 'system', caseId: prior.caseId, confidence: null,
     });
+    return ok(updated);
+  },
+  async setRegistryRevisions(id, registryRevisions) {
+    await delay();
+    const all = load();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return err(`Cytology registry outbound queue entry ${id} not found`);
+    const updated: CytologyRegistryOutboundQueueEntry = { ...all[idx], registryRevisions };
+    const next = [...all]; next[idx] = updated; persist(next);
+    return ok(updated);
+  },
+  async setRegistryStatus(id, registryStatus, acknowledgement) {
+    await delay();
+    const all = load();
+    const idx = all.findIndex(e => e.id === id);
+    if (idx === -1) return err(`Cytology registry outbound queue entry ${id} not found`);
+    const prior = all[idx];
+    const updated: CytologyRegistryOutboundQueueEntry = {
+      ...prior, registryStatus,
+      ...(acknowledgement ? { acknowledgements: [...(prior.acknowledgements ?? []), acknowledgement] } : {}),
+    };
+    const next = [...all]; next[idx] = updated; persist(next);
     return ok(updated);
   },
 };

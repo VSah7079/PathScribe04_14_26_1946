@@ -32,6 +32,7 @@ import type { CodeImportJob } from '@/types/billing/CodeImportJob';
 import { isImportJobLockedFor, pendingImportJobs, perRowPendingVersions } from '@/services/billing/codeEngine/pendingImportQueue';
 import { formatDate } from '@/utils/formatDate';
 import { siteLabel } from './BillingDictionarySection';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const PendingApprovalSection: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -240,7 +241,7 @@ const PendingApprovalSection: React.FC = () => {
     refresh();
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('pendingApprovalSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('pendingApprovalSection.loading')} />;
 
   const billingRuleHeaders = [
     t('pendingApprovalSection.billingRules.headers.billingCode'),

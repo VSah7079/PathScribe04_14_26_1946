@@ -1,5 +1,7 @@
 # components/Contribution/
 
+**Batch 650:** `QualityTab` chooses the TAT tile for the eight `TAT_SHOW_*` commands through `services/quality/tatTileActions.ts` (it listened for an event nothing sent).
+
 The "My Contribution" dashboard tabs — AI acceptance/override metrics,
 productivity (case/RVU tracking), and quality (discordance/amendment/TAT
 metrics).
@@ -9,7 +11,7 @@ charts (recharts) and date-range filtering.
 
 ## Files
 
-- **`AIContributionTab.tsx`** (505 lines) — AI acceptance/override
+- **`AIContributionTab.tsx`** (~470 lines) — AI acceptance/override
   breakdown by workflow (synoptic/narrative). Own comment documents a real
   near-miss worth knowing about generally: it was migrated off a dead
   service after confirming zero real callers — except a case-sensitive
@@ -17,12 +19,12 @@ charts (recharts) and date-range filtering.
   the migration broke it. Correctly imports `SpecimenEntry` from its new
   home (`services/specimenDictionary/specimenTypes.ts`, relocated earlier
   this session) — confirms that fix propagated cleanly. No issues.
-- **`ProductivityTab.tsx`** (369 lines) — Case/RVU tracking chart. **Real fix, from a direct product review flagged by Pete:** case counts were entirely hardcoded (`mockMonthly`) — every pathologist saw identical fake numbers regardless of their own actual work, with zero disclosure this was demo data. Case counts are now genuinely real, computed from actual finalized cases via the new `productivityCalculations.ts` (`computeMonthlyCaseCounts`, `wasFinalizedByUser` — the real signal is `Case.diagnostic.finalizedBy` matching the current user, not just "assigned to me," which includes in-progress work). RVU values and peer comparison (`demoPeerData`/`demoRvuTile`, renamed from `mockPeerData`/`mockRvuTile` for clarity) remain demo-only, unchanged, per a scoping decision: no real RVU data source exists anywhere in the app (no CPT-to-RVU mapping, no per-case RVU field), and peer comparison needs an admin-configurable visibility toggle plus a real aggregated-peer backend — both explicitly deferred as the next piece of work, not this one. **Peer visibility toggle now built** (same pass as this note's update): `canSeePeerComparison()` in `productivityCalculations.ts` gates the `PeerComparison` component on the new `SystemConfig.showPeerAveragesToPathologists` flag (admin UI: `Config/System/ContributionSettingsSection.tsx`) — admin/pathologist-admin/superadmin roles always see it, the plain `pathologist` role only sees it when the org has explicitly turned it on. `RvuTile` is not gated by this — it shows only the user's own total, not a comparison, so it stays visible (still carrying its own `DemoDataBadge` for the separate, still-open concern that the RVU number itself isn't real). Both now carry a visible `DemoDataBadge` so they stay honestly disclosed in the meantime rather than silently presented as real.
+- **`ProductivityTab.tsx`** (~530 lines) — Case/RVU tracking chart. **Real fix, from a direct product review flagged by Pete:** case counts were entirely hardcoded (`mockMonthly`) — every pathologist saw identical fake numbers regardless of their own actual work, with zero disclosure this was demo data. Case counts are now genuinely real, computed from actual finalized cases via the new `productivityCalculations.ts` (`computeMonthlyCaseCounts`, `wasFinalizedByUser` — the real signal is `Case.diagnostic.finalizedBy` matching the current user, not just "assigned to me," which includes in-progress work). RVU values and peer comparison (`demoPeerData`/`demoRvuTile`, renamed from `mockPeerData`/`mockRvuTile` for clarity) remain demo-only, unchanged, per a scoping decision: no real RVU data source exists anywhere in the app (no CPT-to-RVU mapping, no per-case RVU field), and peer comparison needs an admin-configurable visibility toggle plus a real aggregated-peer backend — both explicitly deferred as the next piece of work, not this one. **Peer visibility toggle now built** (same pass as this note's update): `canSeePeerComparison()` in `productivityCalculations.ts` gates the `PeerComparison` component on the new `SystemConfig.showPeerAveragesToPathologists` flag (admin UI: `Config/System/ContributionSettingsSection.tsx`) — every role except plain `pathologist` always sees it; `pathologist` only sees it when the org has explicitly turned it on. `RvuTile` is not gated by this — it shows only the user's own total, not a comparison, so it stays visible (still carrying its own `DemoDataBadge` for the separate, still-open concern that the RVU number itself isn't real). Both now carry a visible `DemoDataBadge` so they stay honestly disclosed in the meantime rather than silently presented as real. *(Since closed: RVU totals, the monthly RVU chart and peer comparison are now computed from real cases and the RVU Code Map (`computeRvuSummary`, `computeMonthlyRvu`, `computePeerRvuStats` in `productivityCalculations.ts`), and `ProductivityTab.tsx` no longer shows a demo badge — checked in the Batch 496 README audit.)*
 - **`productivityCalculations.ts`** — New. Pure, extracted, tested real-data logic for the fix above.
 - **`productivityCalculations.test.ts`** — New. 11 real tests: correct-user vs wrong-user finalization, missing/incomplete data handled without crashing, correct month bucketing, no future months, cross-year exclusion, multi-case accumulation, and the all-zero case for a user with no finalized work.
-- **`QualityTab.tsx`** (830+ lines, the largest here) — Discordance/
-  amendment/TAT metrics, wired to `mockActionRegistryService` for voice
-  context. **Real fix, from a direct product review:** discordant-case
+- **`QualityTab.tsx`** (~940 lines, the largest here) — Discordance/
+  amendment/TAT metrics. (It no longer imports `mockActionRegistryService`;
+  corrected in the Batch 496 README audit.) **Real fix, from a direct product review:** discordant-case
   and amended-case lists were entirely hardcoded (`mockDiscordant`,
   `mockAmended`) — detailed, realistic-looking fake clinical data shown
   to every pathologist identically, zero disclosure it was demo data.
@@ -261,6 +263,10 @@ charts (recharts) and date-range filtering.
   proving `resolveTatTargetHours` is a genuine thin wrapper over it
   (same context in, same entry's `targetHours` out), so the two can
   never disagree by construction.
+- **`MentorTab.tsx`** — the supervisor's view of their supervisees (see Batch 486).
+- **`aiContributionCalculations.ts`**, **`caseMixCalculations.ts`** — the pure, tested logic behind the AI and case-mix views (with `*.test.ts`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): files missing from this list added; line counts updated.*
 - **`FlagRow.tsx`** — **MOVED HERE this pass** (was
   `components/Dashboards/FlagRow.tsx` — a folder that existed only for
   this file and `CaseMixTile.tsx`, both exclusively serving
@@ -275,9 +281,10 @@ charts (recharts) and date-range filtering.
 ## Notes
 
 - `ProductivityTab.tsx`'s case counts are now real — resolved, see its entry
-  above. RVU/peer comparison remain deliberately demo-only, pending a
-  scoped, later piece of work (admin visibility toggle + real peer
-  aggregation backend).
+  above. RVU and peer comparison are now real too (see its entry), and
+  the admin visibility toggle exists (`ContributionSettingsSection.tsx`).
+  *(Corrected in the Batch 496 README audit: it said RVU/peer comparison
+  were demo-only.)*
 - **`QualityTab.tsx`'s discordant/amended data is now real — resolved,
   see its entry above.** Corrects an earlier undercount here too: the
   original review only surfaced six hardcoded mock arrays
@@ -291,12 +298,18 @@ charts (recharts) and date-range filtering.
   indication — real fix needs the TAT Configuration system's target
   resolution cross-referenced against real per-milestone case
   timestamps, genuinely more investigation than this pass covered.
+  *(Since closed: all eight TAT-outlier types are real and the badge is
+  gone — see `QualityTab.tsx`'s entry above. Checked in the Batch 496
+  README audit.)*
 - `AIContributionTab.tsx` is a genuinely mixed state, not fully real or
   fully fake as the earlier "no issues" note implied: per-user AI
   feedback and department breakdowns are real and live, but the
   AI-override examples, comparison numbers, and monthly trend shape are
   still hardcoded (`synopticDataset`/`narrativeDataset`). Not touched
-  this pass either.
+  this pass either. *(Since changed: `narrativeDataset` and the hardcoded
+  monthly shape were removed — the trend is built from real data
+  (`aiContributionCalculations.ts`); `synopticDataset` and a
+  `DemoDataBadge` remain. Checked in the Batch 496 README audit.)*
 - `FlagRow.tsx`/`CaseMixTile.tsx` were previously in their own
   `components/Dashboards/` folder — folded in here since both exclusively
   serve `ContributionDashboardPage.tsx`, same as everything else in this
@@ -326,6 +339,44 @@ charts (recharts) and date-range filtering.
 
 `AIContributionTab`, `MentorTab` and `ProductivityTab` take their service or constant from `@/services`, and are off the deployment baseline.
 
+## Batch 437
+
+Printing the productivity report is audited (PS-282).
+
+## Batch 486 — MentorTab's case-mix breakdown now covers cytology (PS-359 tracker follow-up)
+
+A Cytotech Competency Assessment supervisor's own supervisees were always showing an empty case-mix breakdown — `buildSubspecialtyBreakdown`'s input is `QaActivityRecord`, and cytology sign-out never creates one (confirmed directly: only `CountersignRecord` is created there, and only completes correctly as of Batch 485). `caseMixCalculations.ts` gains `buildCytologyCountersignBreakdown(records, subspecialties)`, built from `CountersignRecord` instead — cytology's real resident/CT-trainee sign-out record, already carrying a real `subspecialtyId` (derived from `Case.subspecialtyId` at release). `MentorTab.tsx` now branches on `assignment.activityTypeId === CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID` (newly exported from `services/index.ts`) to use it instead of the frozen-section breakdown, and shows a distinct caption/empty-state (`mentorTab.cleanCountersignRateLabel` / `noCytologyCountersignRecords`) rather than implying diagnostic concordance — "clean" here means the attending countersigned with no field changes, a different, honest signal from `buildSubspecialtyBreakdown`'s own concordant/discordant outcome. "Returned" records count as non-clean too; still-`pending` ones are excluded (no real outcome yet).
+
+**Considered and reverted in the same batch:** granting the four bench roles (Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist) screen access to My Contribution, so a Cytotechnologist could see their own trainee status. Pete decided the bench roles don't need this page at all — a dedicated bench-contribution page (real accessioning-rate and batch-throughput/queue-aging metrics; see `pages/README.md`) is the right next step instead of grafting bench content onto a page whose other four tabs (Overview/Productivity/Quality/AI) are built entirely around a signing pathologist's own diagnostic/RVU activity. The Mentor-tab fix above stands on its own — it's the supervisor's screen (already seeded to Pathologist/Fellow/Resident), not the trainee's.
+
+## Batch 504
+
+`ProductivityTab` recomputes its charts when the facility time zone setting changes (it kept the old one until the page reloaded).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+Chart tooltip and formatter callbacks use recharts' own types. `qualityCalculations.ts` passes `undefined` instead of `null` where the resolver treats them the same. No visible change.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 610 (part B)
+
+`PerformanceTargetsTile` (Productivity dashboard: this period against the monthly cases and RVU targets, plus how the last period ended) and `ClientSlaPanel` (per-client service-level results, on the Quality tab and the Productivity dashboard). Both only render rows built by the services.
+
+`DailyAccessioningChart` (Batch 660): one bar per day for Bench Contributions; bar heights come from `dailyAccessioningBars`.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI Contribution tab no longer has the 'Avg AI Confidence' tile; acceptance rates (a count of what pathologists accepted) remain.

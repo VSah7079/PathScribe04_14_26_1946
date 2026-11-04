@@ -9,21 +9,28 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { saveRole } from '@/services/roles/roleAdministration';
+import { roleMayListParticipationType } from '@/services/participationTypes/cytotechParticipationRules';
 import '../../../pathscribe.css';
 import {
   ACTION_GROUPS, DEFAULT_ROLE_PERMISSIONS,
   ActionId, PermissionSet,
 } from '../../../constants/systemActions';
 import type { ParticipationTypeRecord } from '../../../services/participationTypes/IParticipationTypeService';
-import { roleService, auditService, authorizationService, actionRegistryService, participationTypeService, ALL_CAPABILITY_KEYS } from '../../../services';
+import { roleService, userService, auditService, authorizationService, actionRegistryService, participationTypeService, ALL_CAPABILITY_KEYS, SUPERADMIN_CAPABILITY_KEYS } from '../../../services';
 import { isPlatformOnly } from '@/services/authorization/capabilityCatalog';
 import { useAuth } from '../../../contexts/AuthContext';
 import { duplicateRole } from '@/services/duplication/duplicateEntities';
 import { TriCheckbox, DivCheckbox, type TriState } from './roleDictionaryControls';
 import { RoleCapabilitiesTab } from './RoleCapabilitiesTab';
+import { BUILT_IN_ROLE_DESCRIPTIONS, builtInRoleDescriptionKey } from '@/services/roles/builtInRoleText';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { goToRouteOf, isGlobalCategory } from '@/services/actionRegistry/shortcutResolution';
 
 // i18n note (batch 118): DEFAULT_ROLES' own name/description strings
-// are persisted seed data (written to roleService on first load, same
+// are persisted seed data (Batch 513: a built-in role's description is shown
+// through a locale key while it still holds the seeded text — see
+// services/roles/builtInRoleText.ts) (written to roleService on first load, same
 // as protocolShared.tsx's PROTOCOL_REGISTRY), and ACTION_GROUPS'
 // title/label/description fields (and everything sourced from
 // actionRegistryService — action label/description/shortcut/
@@ -38,9 +45,12 @@ import { RoleCapabilitiesTab } from './RoleCapabilitiesTab';
 // English internal string for the cheat-sheet's own search matching,
 // same as protocolGroup()'s comparison-key precedent — translation
 // happens only at the display site via CHEAT_GROUP_LABEL_KEY below.
-const CHEAT_GROUP_LABEL_KEY: Record<'WORKLIST' | 'SYNOPTIC', string> = {
+const CHEAT_GROUP_LABEL_KEY: Record<'WORKLIST' | 'SYNOPTIC' | 'SYSTEM' | 'NAVIGATION', string> = {
   WORKLIST: 'roleDictionary.cheatsheet.groupWorklist',
   SYNOPTIC: 'roleDictionary.cheatsheet.groupSynoptic',
+  // Batch 614: the always-on commands are listed too, each with its Alt+J route.
+  SYSTEM: 'roleDictionary.cheatsheet.groupAlwaysOn',
+  NAVIGATION: 'roleDictionary.cheatsheet.groupAlwaysOn',
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -56,6 +66,7 @@ export interface Role {
   /** PS-355: catalog capabilities (services/authorization/). Enforced. */
   capabilities?: string[];
   seededCapabilities?: string[];
+  seededActions?: string[];
   /** false: can't be given to staff (Superadmin). */
   assignable?: boolean;
   builtIn: boolean;
@@ -70,10 +81,10 @@ const DEFAULT_PARTICIPATION: Record<string, string[]> = {
 };
 
 export const DEFAULT_ROLES: Role[] = [
-  { id: 'pathologist', name: 'Pathologist', description: 'Licensed pathologist with full clinical case access and sign-out authority.',   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['pathologist'] },
-  { id: 'resident',    name: 'Resident',    description: 'Pathology resident with case access and co-sign capability.',                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['resident']    },
-  { id: 'admin',       name: 'Admin',       description: 'System administrator with configuration access but no clinical case access.',    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'],        builtIn: true, participationTypeIds: []                                    },
-  { id: 'physician',   name: 'Physician',   description: 'External ordering physician. Directory only — no app access.',                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],    builtIn: true, participationTypeIds: []                                    },
+  { id: 'pathologist', name: 'Pathologist', description: BUILT_IN_ROLE_DESCRIPTIONS['pathologist'],   color: '#8AB4F8', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Pathologist'], builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['pathologist'] },
+  { id: 'resident',    name: 'Resident',    description: BUILT_IN_ROLE_DESCRIPTIONS['resident'],                    color: '#81C995', caseAccess: true,  configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Resident'],    builtIn: true, participationTypeIds: DEFAULT_PARTICIPATION['resident']    },
+  { id: 'admin',       name: 'Admin',       description: BUILT_IN_ROLE_DESCRIPTIONS['admin'],    color: '#FDD663', caseAccess: false, configAccess: true,  permissions: DEFAULT_ROLE_PERMISSIONS['Admin'],        builtIn: true, participationTypeIds: []                                    },
+  { id: 'physician',   name: 'Physician',   description: BUILT_IN_ROLE_DESCRIPTIONS['physician'],                   color: '#C084FC', caseAccess: false, configAccess: false, permissions: DEFAULT_ROLE_PERMISSIONS['Physician'],    builtIn: true, participationTypeIds: []                                    },
 ];
 
 
@@ -177,10 +188,10 @@ const RoleModal: React.FC<{
     }));
 
     const all = actionRegistryService.getActions()
-      .filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC')
+      .filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC' || isGlobalCategory(a.category))
       .map(a => ({
         ...a,
-        groupTitle: a.category === 'WORKLIST' ? 'Worklist' : 'Synoptic Report',
+        groupTitle: a.category === 'WORKLIST' ? 'Worklist' : a.category === 'SYNOPTIC' ? 'Synoptic Report' : 'Always on',
         permissionId: permissionIdByInternalKey[a.internalKey],
       }));
 
@@ -224,14 +235,14 @@ const RoleModal: React.FC<{
           <div>
             <div className="fm-eyebrow">{t('roleDictionary.modal.eyebrow')}</div>
             <div className="ps-rd-modal-name-row">
-              <input
+              <input aria-label={t('roleDictionary.modal.eyebrow')}
                 value={draft.name}
                 onChange={e => edit(d => ({ ...d, name: e.target.value }))}
                 placeholder={t('roleDictionary.modal.roleNamePlaceholder')}
                 className="ps-conf-input ps-rd-modal-name-input"
                 readOnly={readOnly}
               />
-              <input
+              <input aria-label={t('a11y.fields.colour')}
                 type="color"
                 value={draft.color}
                 onChange={e => edit(d => ({ ...d, color: e.target.value }))}
@@ -307,7 +318,7 @@ const RoleModal: React.FC<{
                   const isActive = g.id === selectedGroupId;
                   const ts      = groupTriState(gIds, draft.permissions);
                   return (
-                    <div key={g.id} onClick={() => setSelectedGroupId(g.id)}
+                    <div key={g.id} {...pressable(() => setSelectedGroupId(g.id))}
                       className={`ps-rd-cat-item ${isActive ? 'ps-rd-cat-item--active' : 'ps-rd-cat-item--inactive'}`}>
                       <span className={`ps-rd-cat-label ${isActive ? 'ps-rd-cat-label--active' : 'ps-rd-cat-label--inactive'}`}>
                         {g.title}
@@ -328,12 +339,12 @@ const RoleModal: React.FC<{
               <div className="ps-rd-action-panel">
                 <p className="ps-rd-cap-intro">{t('roleDictionary.permissions.commandsNote')}</p>
                 <div className="ps-rd-action-header">
-                  <TriCheckbox state={groupState} onClick={toggleGroupAll} size={18} />
+                  <TriCheckbox state={groupState} onClick={toggleGroupAll} size={18} label={selectedGroup.title} />
                   <span className="ps-rd-action-group-title">{selectedGroup.title}</span>
                   <span className="ps-rd-action-granted-count">
                     {t('roleDictionary.permissions.grantedCount', { granted: groupIds.filter(id => draft.permissions[id]).length, total: groupIds.length })}
                   </span>
-                  <input value={search} onChange={e => setSearch(e.target.value)}
+                  <input data-dirty-ignore data-config-nav value={search} onChange={e => setSearch(e.target.value)}
                     placeholder={t('roleDictionary.permissions.filterPlaceholder')}
                     className="ps-conf-input ps-rd-action-search" />
                 </div>
@@ -341,7 +352,7 @@ const RoleModal: React.FC<{
                   {filteredActions.map(action => {
                     const granted = !!draft.permissions[action.id];
                     return (
-                      <div key={action.id} onClick={() => toggleAction(action.id)}
+                      <div key={action.id} {...pressable(() => toggleAction(action.id))}
                         className={`ps-rd-action-item ${granted ? 'ps-rd-action-item--granted' : 'ps-rd-action-item--default'}`}>
                         <DivCheckbox checked={granted} size={18} />
                         <div className="ps-rd-flex-1-minw0">
@@ -394,6 +405,8 @@ const RoleModal: React.FC<{
                   <div className="ps-rd-part-list">
                     {allTypes.map(pt => {
                       const selected = selectedIds.includes(pt.id);
+                      // Batch 441: the Cytotechnologist role can't list a pathologist type.
+                      const locked = !roleMayListParticipationType(role?.id, pt) && !selected;
                       const attrs = [
                         { label: t('roleDictionary.participation.attr.canFinalize'),       value: pt.canFinalize,           onColor: '#22c55e' },
                         { label: t('roleDictionary.participation.attr.countersignReq'),     value: pt.requiresCountersign,   onColor: '#f59e0b' },
@@ -401,8 +414,9 @@ const RoleModal: React.FC<{
                         { label: t('roleDictionary.participation.attr.fullCaseView'),       value: pt.canViewWholeCase,      onColor: '#8AB4F8' },
                       ];
                       return (
-                        <div key={pt.id} onClick={() => toggle(pt.id)}
-                          className={`ps-rd-part-item ${selected ? 'ps-rd-part-item--on' : 'ps-rd-part-item--off'}`}>
+                        <div key={pt.id} {...pressable(() => { if (!locked) toggle(pt.id); }, { role: 'checkbox' })} aria-checked={selected} aria-disabled={locked || undefined}
+                          title={locked ? t('roleDictionary.participation.cytotechLocked') : undefined}
+                          className={`ps-rd-part-item ${selected ? 'ps-rd-part-item--on' : 'ps-rd-part-item--off'}${locked ? ' ps-rd-part-item--locked' : ''}`}>
                           <DivCheckbox checked={selected} size={18} />
                           <div className="ps-rd-part-abbr-pad">
                             <span className="ps-rd-role-badge ps-rd-part-abbr-badge" style={hueVar(pt.color)}>
@@ -436,11 +450,11 @@ const RoleModal: React.FC<{
           {activeTab === 'cheatsheet' && (
             <div className="ps-rd-cheat-tab">
               <div className="ps-rd-cheat-header">
-                <input autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
+                <input data-dirty-ignore data-config-nav autoFocus value={cheatSearch} onChange={e => setCheatSearch(e.target.value)}
                   placeholder={t('roleDictionary.cheatsheet.searchPlaceholder')}
                   className="ps-conf-input" />
                 <div className="ps-rd-cheat-count">
-                  {t('roleDictionary.cheatsheet.shownCount', { shown: cheatActions.length, total: actionRegistryService.getActions().filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC').length })}
+                  {t('roleDictionary.cheatsheet.shownCount', { shown: cheatActions.length, total: actionRegistryService.getActions().filter(a => a.category === 'WORKLIST' || a.category === 'SYNOPTIC' || isGlobalCategory(a.category)).length })}
                 </div>
               </div>
               <div className="ps-rd-cheat-list">
@@ -455,7 +469,7 @@ const RoleModal: React.FC<{
                   return (
                     <div key={action.id} className={`ps-rd-cheat-item ${granted ? 'ps-rd-cheat-item--granted' : 'ps-rd-cheat-item--default'}`}>
                       <div className="ps-rd-cheat-label-row">
-                        <span className="ps-rd-cheat-group-tag">{t(CHEAT_GROUP_LABEL_KEY[action.category as 'WORKLIST' | 'SYNOPTIC'])}</span>
+                        <span className="ps-rd-cheat-group-tag">{t(CHEAT_GROUP_LABEL_KEY[action.category as 'WORKLIST' | 'SYNOPTIC' | 'SYSTEM' | 'NAVIGATION'])}</span>
                         <span className={`ps-rd-cheat-label ${granted ? 'ps-rd-cheat-label--granted' : 'ps-rd-cheat-label--default'}`}>
                           {action.label}
                         </span>
@@ -480,6 +494,7 @@ const RoleModal: React.FC<{
                       </div>
                       <div className="ps-rd-cheat-shortcut-row">
                         <code className="ps-rd-cheat-shortcut-code">{action.shortcut || '—'}</code>
+                        {goToRouteOf(action) && <span className="ps-rd-cheat-goto-route" data-testid="cheat-goto-route">{t('goToPrefix.route', { key: goToRouteOf(action) })}</span>}
                         <div className="ps-rd-cheat-voice-wrap">
                           {action.voiceTriggers.map(vt => (
                             <span key={vt} className="ps-rd-cheat-voice-chip">{vt}</span>
@@ -520,6 +535,12 @@ const RoleModal: React.FC<{
 const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({ onRolesChange }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
+  /** A built-in role's seeded description in the user's language; anything an
+   *  admin has written is shown as stored. */
+  const roleDescription = (r: Role): string => {
+    const key = builtInRoleDescriptionKey(r);
+    return key ? t(key) : r.description;
+  };
   const [roles,   setRoles]   = useState<Role[]>(DEFAULT_ROLES);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState('');
@@ -536,12 +557,13 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
       } else { onRolesChange?.(DEFAULT_ROLES); }
       setLoading(false);
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loads the role list once when the dictionary opens; onRolesChange is the parent's callback, reported to, not a reason to reload
   }, []);
 
   const filtered = roles.filter(r =>
     !search ||
     r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.description.toLowerCase().includes(search.toLowerCase())
+    roleDescription(r).toLowerCase().includes(search.toLowerCase())
   );
 
   const totalActions = ACTION_GROUPS.reduce((n, g) => n + g.actions.length, 0);
@@ -551,7 +573,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
   // audited by services/authorization/roleAdministration.ts. Resolves with
   // a locale key when refused; the modal stays open to show it.
   const handleSave = async (draft: Omit<Role, 'id'>): Promise<string | null> => {
-    const deps = { roleService, authorization: authorizationService, auditService, actorName: user?.name ?? 'unknown' };
+    const deps = { roleService, userService, authorization: authorizationService, auditService, actorName: user?.name ?? 'unknown' };
     const res = modal?.mode === 'edit' && modal.role
       ? await saveRole({ mode: 'edit', id: modal.role.id, draft: draft as any }, deps)
       : await saveRole({ mode: 'add', draft: draft as any }, deps);
@@ -573,7 +595,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
     setModal({ mode: 'add', role: duplicateRole(role, name => t('common.copyOfName', { name })) });
   };
 
-  if (loading) return <div className="ps-rd-loading">{t('roleDictionary.list.loading')}</div>;
+  if (loading) return <LoadingState label={t('roleDictionary.list.loading')} />;
 
   const TABLE_HEADERS = [
     t('roleDictionary.list.headers.role'),
@@ -595,7 +617,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
         <CapabilityButton capability="config:roles:manage" className="ps-section-add-btn" onClick={() => setModal({ mode: 'add' })}>{t('roleDictionary.list.addRoleButton')}</CapabilityButton>
       </div>
 
-      <input type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
+      <input data-dirty-ignore data-config-nav type="text" placeholder={t('roleDictionary.list.searchPlaceholder')} value={search}
         onChange={e => setSearch(e.target.value)} className="ps-rd-search" />
 
       <div className="ps-rd-table-wrap">
@@ -621,7 +643,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
                     </div>
                   </td>
                   <td className="ps-rd-td ps-rd-td--desc">
-                    <span className="ps-rd-desc-clamp">{role.description}</span>
+                    <span className="ps-rd-desc-clamp">{roleDescription(role)}</span>
                   </td>
                   <td className="ps-rd-td">
                     <span className={`ps-rd-access ${role.caseAccess ? 'ps-rd-access--yes' : 'ps-rd-access--no'}`}>
@@ -634,7 +656,7 @@ const RoleDictionary: React.FC<{ onRolesChange?: (roles: Role[]) => void }> = ({
                     </span>
                   </td>
                   <td className="ps-rd-td">
-                    <span className="ps-rd-perm-count" data-capability-count={role.capabilities?.length ?? 0}>{role.capabilities?.length ?? 0}/{role.assignable === false ? ALL_CAPABILITY_KEYS.length : HOSPITAL_CAPABILITY_COUNT}</span>
+                    <span className="ps-rd-perm-count" data-capability-count={role.capabilities?.length ?? 0}>{role.capabilities?.length ?? 0}/{role.assignable === false ? SUPERADMIN_CAPABILITY_KEYS.length : HOSPITAL_CAPABILITY_COUNT}</span>
                   </td>
                   <td className="ps-rd-td">
                     <div className="ps-rd-perm-wrap">

@@ -78,3 +78,19 @@ describe('useDraftCache — real bug: draft found but never surfaced', () => {
     expect(result.current.existingDraftPayload).toBeNull();
   });
 });
+
+describe('useDraftCache: no draft for a page left unchanged (Batch 756)', () => {
+  beforeEach(() => { vi.clearAllMocks(); mockGetDraft.mockResolvedValue({ ok: true, data: null }); });
+
+  it('writes nothing while the state is the one the page settled on, and saves after a real change', async () => {
+    const { mockDraftCacheService } = await import('@/services/drafts/mockDraftCacheService');
+    const { rerender } = renderHook(({ s }) => useDraftCache('USER-1', 'CASE-1', s), { initialProps: { s: { a: 1 } } });
+    await new Promise(r => setTimeout(r, 1150));
+    rerender({ s: { a: 1 } }); // a new object with the same values (a reload of the case)
+    await new Promise(r => setTimeout(r, 1150));
+    expect(mockDraftCacheService.saveDraft).not.toHaveBeenCalled();
+    rerender({ s: { a: 2 } });
+    await new Promise(r => setTimeout(r, 1150));
+    expect(mockDraftCacheService.saveDraft).toHaveBeenCalledWith('USER-1', 'CASE-1', { a: 2 });
+  });
+});

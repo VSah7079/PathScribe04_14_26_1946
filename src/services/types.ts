@@ -13,6 +13,8 @@ export interface ServiceResultMeta {
   hasMore?: boolean;
   /** Opaque cursor - pass back as CaseFilterParams.cursor to fetch the next page. */
   nextCursor?: string;
+  /** Batch 556: only part of the list could be read (the rest's source didn't answer). */
+  partial?: boolean;
 }
 
 // Real, direct follow-up (PS-69): a discriminated-union narrowing failure

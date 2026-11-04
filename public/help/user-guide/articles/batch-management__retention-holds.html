@@ -1,0 +1,246 @@
+<h1 id="top">Retention Holds</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> A retention hold stops a case's material from ever being offered for disposal, whatever its retention period. The Retention Holds screen lists every active hold across the laboratory, with the case, the reason, who placed it and when, so that someone can see what is being held back and let it go when it is no longer needed.</p>
+<p><strong>Intended users.</strong> Laboratory managers and bench staff who manage stored material. Releasing a hold needs its own permission (Release a retention hold), checked for the case's facility. Exporting the list needs another. Placing a hold is done on the case itself, not here.</p>
+<p><strong>Where it fits.</strong> A hold is placed from the case, in the Specimens &amp; Reports section of the <a href="/help/report">report</a> screen ("Retention Hold: Blocks disposal until released"), for reasons such as a patient request, litigation or research. While a hold is active the case's material never appears in the <a href="/help/batch-management/disposal">Disposal Queue</a>, and a scan to dispose is refused with the hold's note. Releasing the hold here returns the material to normal retention rules.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-retention-holds-overview.png" alt="The Retention Holds list with search, count and Release buttons"><figcaption>The Retention Holds list with search, count and Release buttons</figcaption></figure>
+
+<p>The page title is <strong>Retention Holds</strong>. The subtitle reads: "Cases whose material is held back from disposal. Release a hold with a note when it is no longer needed." While the list is loading you see "Loading holds...".</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Column or control</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Search case, reason or person</td>
+<td>Filters the list as you type. It matches the accession number, the reason, the name of the person who placed the hold and the note.</td>
+</tr>
+<tr>
+<td>Count</td>
+<td>"(n) active hold(s)" for the rows currently shown.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case accession number.</td>
+</tr>
+<tr>
+<td>Reason</td>
+<td>Patient Requested Retention / Return, Litigation Hold, Research Hold or Other.</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>The explanation typed when the hold was placed, or a dash. It can name people, so treat it as sensitive.</td>
+</tr>
+<tr>
+<td>Placed by</td>
+<td>The name of the person who placed it.</td>
+</tr>
+<tr>
+<td>Placed</td>
+<td>The date and time, in your language's format. The list is ordered oldest first.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The <strong>Release</strong> button.</td>
+</tr>
+</tbody>
+</table>
+<p>Only active holds are listed. A released hold disappears. If there are none, the screen says "No active retention holds."</p>
+<p><strong>Release retention hold window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title line</td>
+<td>The case number and the reason of the hold you are releasing.</td>
+</tr>
+<tr>
+<td>Release note</td>
+<td>Required. Why the hold is no longer needed, for example "Patient confirmed no further need for specimen return."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export CSV</td>
+<td>Downloads the rows currently shown as a spreadsheet with Case, Reason, Placed by and Placed at. The note is left out on purpose because it can name people. Greyed out when there are no rows; dimmed with a tooltip if you lack the export permission.</td>
+</tr>
+<tr>
+<td>Release</td>
+<td>Opens the Release retention hold window for that row. Dimmed with a tooltip if you may not release holds for that case's facility.</td>
+</tr>
+<tr>
+<td>Release hold</td>
+<td>In the window. Confirms the release. Greyed out until a release note is typed.</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>Closes the window without releasing.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Hold released."</td>
+<td>The hold was released and the list refreshed.</td>
+</tr>
+<tr>
+<td>"Add a release note first."</td>
+<td>The note was empty.</td>
+</tr>
+<tr>
+<td>"This hold was already released."</td>
+<td>A colleague released it first.</td>
+</tr>
+<tr>
+<td>"This case could not be found."</td>
+<td>The case is no longer available.</td>
+</tr>
+<tr>
+<td>"You don't have permission to release this hold."</td>
+<td>Your role lacks the permission for that facility.</td>
+</tr>
+<tr>
+<td>"The hold could not be released. Try again."</td>
+<td>Any other failure.</td>
+</tr>
+<tr>
+<td>"You don't have permission to export this queue."</td>
+<td>The export was refused.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on this screen.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Review the holds</strong></p>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Retention Holds</strong> tile. The list loads.</li>
+<li>Read the count. Type in the search box to find a case, reason or person.</li>
+<li>Read each hold's reason and note to decide whether it is still needed.</li>
+</ol>
+<p><strong>Release a hold</strong></p>
+<ol>
+<li>Find the row and select <strong>Release</strong>. The Release retention hold window opens.</li>
+<li>Type the <strong>Release note</strong>.</li>
+<li>Select <strong>Release hold</strong>. The message "Hold released." appears, the window closes and the row leaves the list.</li>
+<li>The case's material may now appear in the Disposal Queue, once its retention period has ended.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Export for a review meeting.</strong> Search to narrow the list if you want, then select <strong>Export CSV</strong>.</li>
+<li><strong>Place a hold.</strong> Open the case in the report screen and use its Retention Hold control. This screen cannot create holds.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The Release button is dimmed.</strong> You do not have the release permission for that case's facility. Ask a manager.</li>
+<li><strong>A hold was released by mistake.</strong> Releasing cannot be reversed here. Place a new hold from the case, with a note explaining.</li>
+<li><strong>Someone else released it first.</strong> The message says it was already released. Reload the page.</li>
+<li><strong>The note is missing.</strong> Releasing requires a note; the button stays greyed out until you type one.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"This case could not be found." The case may be archived. Contact support.</li>
+<li>"The hold could not be released. Try again." Wait a moment and try again. If it keeps failing, note the case number and contact support.</li>
+<li>The list is out of date. Reload the page.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Release only with authority</p>
+<p>Releasing a hold re-opens the way to disposal of irreplaceable material. Check with the person or department that asked for the hold (the patient, legal counsel, the research team) before releasing it, and record that in the note.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Releasing a hold without checking with the requester.</li>
+<li>Writing a vague release note such as "done". Say who agreed and when.</li>
+<li>Looking for a way to place a hold here. Place it on the case.</li>
+<li>Emailing the exported file without thinking: it names cases and people who placed holds.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Search by reason to review all litigation holds together.</li>
+<li>Review the list on a schedule so old holds are not forgotten.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review holds before each disposal run.</li>
+<li>Put clear notes in when you place holds so a reviewer can decide later.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: where a hold is placed on a case.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/disposal">Disposal Queue</a>: where released material may become eligible.</li>
+<li><a href="/help/batch-management/disposal-report">Waste Tracking Report</a>: the record of disposal.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The list is empty</td>
+<td>There are no active holds.</td>
+</tr>
+<tr>
+<td>A case I held does not appear</td>
+<td>The hold was already released, or it was never saved. Open the case and check.</td>
+</tr>
+<tr>
+<td>Release is dimmed</td>
+<td>You lack the permission for that facility.</td>
+</tr>
+<tr>
+<td>Export CSV is dimmed</td>
+<td>You lack the export permission, or there are no rows.</td>
+</tr>
+<tr>
+<td>The note is missing from the export</td>
+<td>By design.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Reload the page.</li>
+<li>Search for the case number.</li>
+<li>Open the case in the report screen to see its hold history.</li>
+<li>Ask your laboratory manager about permissions.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a hold you placed is not listed, or a release fails repeatedly. Have the case number and the time ready.</p>

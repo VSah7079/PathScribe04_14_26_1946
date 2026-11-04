@@ -16,6 +16,7 @@ import type { AutopsyOrganCode } from "@/types/autopsy/AutopsyOrganCode";
 import type { CytologyCategorySelection } from "@/types/cytology/CytologyReviewRecord";
 import type { RecordedClinicalHistoryEntry } from "@/types/clinicalHistory/RecordedClinicalHistoryEntry";
 import type { CytologyRoseEvaluation } from "@/types/cytology/CytologyRoseEvaluation";
+import type { Margin } from "./Margin";
 
 export interface SpecimenCollection {
   collectedAt?: string;
@@ -111,10 +112,10 @@ export interface SpecimenContainer {
  * genuinely different real consequences for what a tech can still do
  * with the block, not two labels for the same thing.
  */
-export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled' | 'Lost' | 'Damaged';
+export type BlockStatus = 'Pending' | 'Grossed' | 'Embedded' | 'Exhausted' | 'Cancelled' | 'Lost' | 'Damaged' | 'Deleted' | 'Invalidated';
 export type StainOrderStatus =
   | 'Pending Cut' | 'Cut & Placed' | 'Staining' | 'Coverslipped'
-  | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled';
+  | 'Ready for Review' | 'Recut Requested' | 'QC Failed' | 'Cancelled' | 'QC Pending'; // Batch 763: stained, waiting for QC sign-off
 
 /**
  * Real feature, per direct confirmation: "we need a stain order called
@@ -308,7 +309,7 @@ export interface StainOrder {
    *  repeat requested due to a technical artifact), distinct from
    *  the block-level or specimen-level threads. */
   comments?: MaterialComment[];
-  /** Real, per PS-284 (Microtomy Workstation) — "toggle for whether a
+  /** Real, per PS-284 (Microtome Workstation) — "toggle for whether a
    *  comment prints on the human-readable label area or stays
    *  LIS-only." Governs the most recent entry in `comments` above;
    *  undefined/false means LIS-only (the safe default — a slide label
@@ -317,7 +318,7 @@ export interface StainOrder {
    *  disclosure on a specimen that leaves the bench). */
   commentPrintsOnLabel?: boolean;
 
-  // ── PS-284 Microtomy Workstation: real print-tracking fields ─────────
+  // ── PS-284 Microtome Workstation: real print-tracking fields ─────────
   // Deliberately additive, never a new StainOrderStatus value — same
   // "purely additive, safe" reasoning as disposedAt/disposedBy above.
   // A slide's clinical status (Pending Cut/Cut & Placed/etc.) and its
@@ -327,7 +328,7 @@ export interface StainOrder {
   /** Real, per PS-284's own "Per-slide status: Pending, Etching/
    *  Printing, Printed, Failed, Canceled." Undefined means never
    *  attempted — the common case for a slide that predates this
-   *  field, or was cut before ever reaching the Microtomy Workstation
+   *  field, or was cut before ever reaching the Microtome Workstation
    *  page. */
   printStatus?: 'Pending' | 'Printing' | 'Printed' | 'Failed' | 'Canceled';
   printedAt?: string;
@@ -370,7 +371,7 @@ export interface StainOrder {
    *  is deliberately a new, separate StainOrder) — see
    *  reprintCount below for the real, cumulative audit count this
    *  keeps instead. */
-  lastReprintReason?: 'Jam' | 'Scratched Glass' | 'Misprint' | 'Other';
+  lastReprintReason?: 'Jam' | 'Scratched Glass' | 'Misprint' | 'Damaged Section' | 'Other'; // Batch 758: 'Damaged Section' (a recut)
   lastReprintOrderedBy?: string;
   lastReprintOrderedAt?: string;
   /** Real, cumulative count of reprint actions against this exact
@@ -395,11 +396,16 @@ export interface StainOrder {
    *  routed through. Undefined until a distribution tech actually
    *  scans and routes this slide — never defaulted. */
   distributionDestination?: 'physical' | 'digital';
-  /** Real, per the spec's own "sets status to Checked Out/Assigned"
-   *  (physical) and "In Scanning Queue/Loaded on Scanner" (digital) —
-   *  one shared real status field covering both real destinations,
-   *  since a slide is only ever routed one way at a time. */
-  distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner';
+  /** Physical (Checked Out/Assigned) or digital (In Scanning Queue/Loaded on Scanner/Scanned): one status for both. */
+  distributionStatus?: 'Assigned' | 'Checked Out' | 'In Scanning Queue' | 'Loaded on Scanner' | 'Scanned';
+  /** Batch 750: the last scanner unload's finding (wsiScanQueue.stainUnloaded), for the slide image state (slideImages.ts). */
+  lastScanOutcome?: import('@/services/digitalPathology/slideImages').SlideScanOutcome;
+  /** Batch 434: the WSI scan batch this slide is loaded in
+   *  (services/digitalPathology/). Set when it is loaded from the scanning
+   *  queue; cleared when the batch is unloaded and the slide goes back to the
+   *  queue (not scanned, failed, or failed image QC). A slide scanned
+   *  successfully keeps it and becomes 'Scanned'. */
+  wsiScanBatchId?: string;
   /** Real FK to services/users/ IUserService's own StaffUser.id — the
    *  real attending pathologist this slide was routed to for physical
    *  checkout. assignedPathologistName is cached for display, same
@@ -534,7 +540,7 @@ export interface StainOrder {
    *  render, so the Order Tracking dashboard shows a stable value
    *  even if a stain's own dictionary category is edited later. See
    *  resolveAddOnRouting in utils/addOnOrderOperations.ts. */
-  routedQueueLabel?: 'Histology Cutting Queue' | 'Special Stains Bench Queue' | 'IHC/Special Histochemistry Queue' | 'Reference/Send-Out Lab Queue';
+  routedQueueLabel?: 'Histology Cutting Queue' | 'Special Stains Bench Queue' | 'IHC/Special Histochemistry Queue' | 'Reference/Send-Out Lab Queue' | 'Molecular In-House Queue';
   /** Real, per direct follow-up on this ticket's own Jira comment:
    *  "everything it creates should ultimately land in the same real
    *  vocabulary PS-284/285/286 are tying into" — SCAN_STATION_WORKFLOW_STAGES
@@ -599,12 +605,18 @@ export interface StainOrder {
    *  transition this order's own exception has gone through — see
    *  exception's own doc comment. */
   exceptionEvents?: AddOnOrderExceptionEvent[];
+  /** Batch 732 (spec §11.1, §11.3, §11.4): the slide's size (none: from its block's type, blockPieceRules.ts), how many
+   *  sections and how many levels it carries, and the pieces of a multi-piece block it was ordered for (none: whole block). */
+  slideSize?: import('./blockPieces').SlideSize;
+  sectionCount?: number;
+  levelCount?: number;
+  pieceIds?: string[];
 }
 
 /** See StainOrder.distributionEvents's own doc comment. */
 export interface SlideDistributionEvent {
   id: string;
-  action: 'assigned' | 'checked_out' | 'loaded_on_scanner' | 'exception_flagged' | 'exception_resolved' | 'label_reprint_requested';
+  action: 'assigned' | 'checked_out' | 'loaded_on_scanner' | 'unloaded_from_scanner' | 'exception_flagged' | 'exception_resolved' | 'label_reprint_requested';
   timestamp: string;
   techUserId: string;
   /** Real, human-readable summary of what this event recorded (target
@@ -615,33 +627,9 @@ export interface SlideDistributionEvent {
   detail: string;
 }
 
-/** See StainOrder.exception's own doc comment (PS-287). */
-export interface AddOnOrderException {
-  reason: 'Block exhausted' | 'Insufficient tissue for panel' | 'Requires re-grossing';
-  note?: string;
-  flaggedBy: string;
-  flaggedByName: string;
-  flaggedAt: string;
-  /** 'pending_pathologist_review' the moment a tech flags it — the
-   *  real trigger for the spec's own "Pathologist Notification Loop."
-   *  The other three are the loop's own real, closed set of responses
-   *  ("cancel/modify/approve-destructive-cutting options"). */
-  status: 'pending_pathologist_review' | 'approved_destructive_cut' | 'modified' | 'cancelled';
-  pathologistResponseBy?: string;
-  pathologistResponseByName?: string;
-  pathologistResponseAt?: string;
-  responseNote?: string;
-}
-
-/** See StainOrder.exceptionEvents's own doc comment (PS-287). */
-export interface AddOnOrderExceptionEvent {
-  id: string;
-  action: 'flagged' | 'approved_destructive_cut' | 'cancelled' | 'modified';
-  timestamp: string;
-  actorId: string;
-  actorName: string;
-  detail: string;
-}
+// Batch 732: AddOnOrderException and AddOnOrderExceptionEvent moved to addOnOrderException.ts (this file may not grow).
+export type { AddOnOrderException, AddOnOrderExceptionEvent } from './addOnOrderException';
+import type { AddOnOrderException, AddOnOrderExceptionEvent } from './addOnOrderException';
 
 /** Real, shared shape for a stain-attributed applied or rejected
  *  ancillary code - mirrors the shape already used by
@@ -668,6 +656,34 @@ export interface AppliedBlockCode {
    *  block-level entry rather than being forced into an attribution
    *  that doesn't apply. */
   stainOrderId?: string;
+}
+
+/** Batch 588: the record of a soft-deleted block. The reason code is from BLOCK_DELETION_REASON_CODES. */
+export interface BlockDeletion {
+  reasonCode: string;
+  note?: string;
+  deletedBy: string;
+  deletedByName: string;
+  deletedAt: string;
+  /** The tier of the delete policy: 'in_process' (before sign-out, status Deleted) or 'signed_out' (after sign-out, status Invalidated; Batch 610). */
+  tier: 'in_process' | 'signed_out';
+  /** Billing codes that were applied to the block and released by the delete. */
+  releasedCodes: string[];
+}
+
+/**
+ * Batch 610 (#11, tier 3): a pathologist or Quality Manager marks a block on an amended report
+ * Invalidated or Superseded. A flag only: the block is not deleted and its status does not change.
+ */
+export interface BlockAmendmentFlag {
+  kind: 'invalidated' | 'superseded';
+  reasonCode: string;
+  note?: string;
+  flaggedBy: string;
+  flaggedByName: string;
+  flaggedAt: string;
+  /** For 'superseded': the block that replaces it, when there is one. */
+  supersededByBlockId?: string;
 }
 
 export interface HistologyBlock {
@@ -880,6 +896,15 @@ export interface HistologyBlock {
   cancelReason?: string;
   cancelledBy?: string;
   cancelledAt?: string;
+  /**
+   * Batch 588 (Pete, Oct 16 2026): a block removed on purpose, as opposed to
+   * Cancelled (a wrong piece in a block). Status moves to 'Deleted'; the block
+   * and its id stay on the case (soft delete) with who, when and why. Set only
+   * by services/material/deleteBlockInProcess.ts.
+   */
+  deletion?: BlockDeletion;
+  /** Batch 610 (#11, tier 3): Invalidated / Superseded flag set on an amended report (no deletion). */
+  amendmentFlag?: BlockAmendmentFlag;
   /** Real feature, per direct follow-up: "As the user scans each
    *  specimen container it gets updated to disposed and comes off the
    *  list." Same real, additive, never-cleared field as
@@ -893,7 +918,7 @@ export interface HistologyBlock {
    *  and mapped to the cassette/matrix block record." Real, genuine
    *  QA value across the real pipeline: embedding checks this count
    *  against what's actually visible before processing continues,
-   *  microtomy checks it against the ribbon, sign-out checks it
+   *  microtome checks it against the ribbon, sign-out checks it
    *  against the slide — a real, load-bearing number, not a cosmetic
    *  one. Same real shape as MatrixBlock's own identical fields
    *  (types/case/MatrixBlock.ts) — intentionally identical so
@@ -902,6 +927,9 @@ export interface HistologyBlock {
    *  matter. */
   pieceCount?: number;
   pieceDescription?: string;
+  /** Batch 732 (spec §11.1, §11.2): the block's type (none: standard) and its piece map (types/case/blockPieces.ts). */
+  blockType?: import('./blockPieces').BlockType;
+  pieces?: import('./blockPieces').BlockPiece[];
   /** Real feature, per direct follow-up: "The embedding technician
    *  relies on the recorded piece count to verify that 100% of the
    *  grossed tissue made it through processing into the paraffin
@@ -940,7 +968,7 @@ export interface HistologyBlock {
    *  the common case — means every stain on this block still matches
    *  exactly what generateDefaultMaterial.ts originally generated. */
   userModified?: boolean;
-  /** Real, per PS-284 (Microtomy Workstation) — "high-contrast alert
+  /** Real, per PS-284 (Microtome Workstation) — "high-contrast alert
    *  badges for Tiny Tissue, Decal Required, Fragile." Decal Required
    *  already exists as requiresDecal above; these two are the real,
    *  genuinely missing pair — greenfield, additive booleans, same
@@ -1000,6 +1028,11 @@ export interface HistologyBlock {
   lastCassetteReprintOrderedBy?: string;
   lastCassetteReprintOrderedAt?: string;
   cassetteReprintCount?: number;
+  /** Batch 480 (Structured Inking, Module 1) — real margins examined on
+   *  THIS block, for a grossing protocol that inks per-cassette. See
+   *  types/case/Margin.ts's own header for why this also exists on
+   *  `Specimen` below, and why never both for the same margin. */
+  margins?: Margin[];
 }
 
 /** Real, per PS-285 (Embedding Station) — the ticket's own five named
@@ -1020,8 +1053,11 @@ export type EmbeddingDiscrepancyReason =
 export type CassetteReprintReason = 'Wax Buildup' | 'Faded Barcode' | 'Mechanical Jam' | 'Other';
 
 /**
- * LIS synchronisation status — only meaningful for LIS mode (S26-) cases.
+ * LIS sync state: whether PathScribe has changed this specimen since the LIS
+ * sent it. Not the LIS's own status for the case (that is the case's workflow
+ * status). Batch 512 renamed it from SpecimenLisStatus / `lisStatus`.
  *
+ * (unset)        — received from LIS, no local changes; same as lis_owned
  * lis_owned      — received from LIS, no local changes (no badge shown)
  * pending_sync   — added or edited in PathScribe, not yet transmitted to LIS
  * sync_sent      — transmitted to LIS, awaiting ACK
@@ -1029,7 +1065,7 @@ export type CassetteReprintReason = 'Wax Buildup' | 'Faded Barcode' | 'Mechanica
  * local_only     — Orchestration (O26-) case; specimen transmitted as part of
  *                  outbound result message at finalisation — no separate sync
  */
-export type SpecimenLisStatus =
+export type SpecimenLisSyncState =
   | 'lis_owned'
   | 'pending_sync'
   | 'sync_sent'
@@ -1090,7 +1126,7 @@ export interface SpecimenGrossingOverride {
   /** Real, closed set — a specific field name (not free text), so the
    *  audit panel can group/label overrides consistently rather than
    *  displaying whatever string a caller happened to pass. */
-  field: 'pieceCount' | 'stainAdded' | 'stainRemoved';
+  field: 'pieceCount' | 'pieceDescription' | 'stainAdded' | 'stainRemoved';
   /** Which real block this override happened on — e.g. "A1" — always
    *  present, since every real override this story defines happens at
    *  the block level, never the specimen level. */
@@ -1389,10 +1425,14 @@ export interface Specimen {
   /** Cytology material — residual fluid / cell block prep, with its own
    *  slides. A specimen populates either blocks (surgical) or decants
    *  (cytology), never both — see Material.ts's file header. */
-  decants?: import('./Material').Decant[];
+  decants?: import('./Material').Decant[]; division?: import('./Material').SpecimenDivision; // Batch 741: a Divide specimen record (fluid decision 2)
   /** A gross photo of this specimen/container itself, if one exists.
    *  See Material.ts's DigitalAsset — left empty everywhere for now. */
   digitalAssets?: import('./Material').DigitalAsset[];
+  /** Batch 606 (PS-13): gross weight in grams, typed or captured from the scale. */
+  grossWeightG?: number;
+  /** Where grossWeightG came from; 'simulated_scale' is a demonstration reading. */
+  grossWeightSource?: 'scale' | 'simulated_scale' | 'manual';
   /** Optional SNOMED specimen type code */
   snomedTypeCode?: string;
   /** Optional SNOMED anatomic site code */
@@ -1400,13 +1440,14 @@ export interface Specimen {
   /** Whether this specimen is active (not deleted/retired) */
   active?: boolean;
   /**
-   * LIS synchronisation status.
-   * Undefined or 'lis_owned' = normal LIS specimen, no badge.
-   * Set to 'pending_sync' when PathScribe adds or edits a specimen on an S26- case.
-   * Set to 'local_only' for O26- orchestration cases (no LIS sync required).
-   * Updated to 'sync_sent' / 'sync_rejected' by the LIS write-back service.
+   * LIS sync state (Batch 512: renamed from `lisStatus`, which read like the
+   * LIS's own status). Unset or 'lis_owned' = normal LIS specimen, no badge.
+   * 'pending_sync' once PathScribe adds or edits it on an S26- case
+   * (services/specimens/resolveSpecimenLisSyncState.ts); 'local_only' for O26-
+   * orchestration cases; 'sync_sent' / 'sync_rejected' from the LIS write-back,
+   * which the interface engine will provide (not built in the front end).
    */
-  lisStatus?: SpecimenLisStatus;
+  lisSyncState?: SpecimenLisSyncState;
   /** Real feature, per direct follow-up: "does disposal queue include
    *  container id so specimens can be disposed?" Same real shape as
    *  HistologyBlock.disposedAt/disposedBy — a specimen's own wet
@@ -1449,6 +1490,12 @@ export interface Specimen {
    *  post-sign-out peer-review selection or biopsy-to-resection
    *  candidate detection — genuinely different from an empty object. */
   surgicalPeerReview?: SurgicalPeerReviewRecord;
+  /** Batch 480 (Structured Inking, Module 1) — real margins examined on
+   *  THIS specimen, for a grossing protocol that inks before blocking
+   *  (margins assessed on the intact specimen, not per-cassette). See
+   *  types/case/Margin.ts's own header, and HistologyBlock.margins
+   *  above — never both for the same margin. */
+  margins?: Margin[];
   /** Audit metadata */
   createdAt?: string;
   updatedAt?: string;
@@ -1472,6 +1519,8 @@ export interface CytologyScreeningRecord {
    * defaulted or inferred.
    */
   finalDiagnosis?: CytologyFinalDiagnosisSelection;
+  /** Batch 412: reviewers' notes on parts of each other's reviews before sign-out (services/cytology/cytologyReviewNotes.ts). */
+  reviewNotes?: import('@/types/cytology/CytologyReviewRecord').CytologyReviewNote[];
   /**
    * Real, per direct follow-up: a "QC" tile/pool needs somewhere real
    * to draw from. Real, honest scoping: the actual automatic
@@ -1499,7 +1548,7 @@ export interface CytologyScreeningRecord {
    *  records the real, current status a screener/pathologist can see
    *  and manually enter. */
   hpvCoTestOrdered?: boolean;
-  hpvResult?: 'Positive' | 'Negative' | 'Pending' | 'Not Performed';
+  hpvResult?: 'Positive' | 'Negative' | 'Invalid' | 'Pending' | 'Not Performed';
   /** Real, per direct guidance's own international workflow roadmap
    *  (Phase 1: US/CA — "Dual-result views that show cytological slide
    *  data and molecular HPV status side-by-side"): real, standard
@@ -1509,11 +1558,7 @@ export interface CytologyScreeningRecord {
    *  HPV 18/45") exactly, so this real, newly-captured data can
    *  finally feed that real, previously-input-less factor — see
    *  resolveHpvHighRiskFactors.ts (services/cytology/). */
-  hpvGenotypeDetail?: {
-    hpv16: boolean;
-    hpv18Or45: boolean;
-    otherHighRisk: boolean;
-  };
+  hpvGenotypeDetail?: import('./HpvGenotype').HpvGenotypeDetail;
   /** Real, per direct correction: the real molecular platform's own
    *  HL7 OBX-8 abnormal flag and OBX-7 reference range, persisted
    *  exactly as received — see HpvResultEventPayload
@@ -1532,6 +1577,13 @@ export interface CytologyScreeningRecord {
    *  (resolveCytologyTriageState.ts) does not depend on this field;
    *  it exists purely for real clinical accuracy and reporting. */
   hpvOrderReason?: 'co_test' | 'ascus_reflex' | 'post_treatment_surveillance';
+  /** Batch 608 (#51, #76): the HPV assay used (commercial name), for the HPV positivity monitor (MOL-QA-01). */
+  hpvAssayName?: string;
+  /** Batch 608 (#51, #76): what was done about a positive HPV result: the failsafe
+   *  trail UK-QA-01 counts. `referredAt` and `responseAt` are dates (YYYY-MM-DD). */
+  hpvFollowUp?: { action: 'colposcopy_referral' | 'repeat_hpv' | 'no_action'; referredAt?: string; responseAt?: string };
+  /** Batch 608 (#52): the liquid-based platform, for the EU compliance matrix (EU-QA-01). */
+  liquidBasedPlatform?: 'ThinPrep' | 'SurePath' | 'other';
   /** Real, per direct guidance: "a separate Batch Management [for
    *  molecular testing]... it will need to associate QA to the
    *  specimens in their test run locations. Using the engine to
@@ -1565,6 +1617,11 @@ export interface CytologyScreeningRecord {
    *  false as if the question had genuinely been asked and answered
    *  "no." */
   persistentContactBleedingAtCollection?: boolean;
+  /** Batch 608 (#47): a prior cervical procedure, recorded at accessioning (the
+   *  procedure half of CytologyHighRiskFactors.priorCervicalProcedureOrBiopsy;
+   *  the diagnosis-history half comes from inbound ADT diagnosis codes). 'none'
+   *  is an explicit "no procedure"; absent means not asked. */
+  priorCervicalProcedure?: 'none' | 'leep' | 'cold_knife_conization' | 'cryotherapy' | 'other_excision_or_biopsy';
   /** Real, per CAP's own mandatory "5-Year Retrospective Lookback"
    *  requirement (CYT-QA-03, per direct guidance's own supplied QA
    *  report specification): whenever a patient is newly diagnosed
@@ -1621,6 +1678,16 @@ export interface CytologyScreeningRecord {
     flaggedBy: string;
     flaggedByName: string;
     flaggedAt: string;
+  };
+  /** Batch 452 (PS-156): the correlation window this abnormal cytology
+   *  specimen was given at sign-out (from collection by default; see
+   *  services/cytology/cytologyHistologyCorrelationWindow.ts), kept so a
+   *  biopsy that arrives after sign-out is still matched against the rule
+   *  that applied. Absent on a negative sign-out and on sign-outs before
+   *  Batch 452. */
+  histologyCorrelationWindow?: import('@/services/cytology/cytologyHistologyCorrelationWindow').CorrelationWindow & {
+    diagnosticRank: number;
+    reviewId: string;
   };
   /** Real, per direct guidance: CYT-QA-04 (Cyto-Histologic Correlation
    *  and Discrepancy Matrix). Real, honest scope, found by direct

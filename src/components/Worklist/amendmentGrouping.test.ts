@@ -16,8 +16,8 @@ describe('buildAmendmentGroupRows — real feature, per direct follow-up: "we co
     const cases = [makeCase('S26-1'), makeCase('S26-2')];
     const typeByCaseId = new Map([['S26-1', 'amendment' as const], ['S26-2', 'correction' as const]]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const labels = dividers(rows).map(d => d.label);
-    expect(labels).toEqual(['Amendment & Correction']);
+    const labels = dividers(rows).map(d => d.labelKey);
+    expect(labels).toEqual(['worklistTable.amendmentGroup.amendmentCorrection']);
     expect(dividers(rows)[0].count).toBe(2);
   });
 
@@ -25,16 +25,16 @@ describe('buildAmendmentGroupRows — real feature, per direct follow-up: "we co
     const cases = [makeCase('S26-1'), makeCase('S26-2')];
     const typeByCaseId = new Map([['S26-1', 'addendum' as const], ['S26-2', 'amendment' as const]]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const labels = dividers(rows).map(d => d.label);
-    expect(labels).toEqual(['Amendment & Correction', 'Addenda']);
+    const labels = dividers(rows).map(d => d.labelKey);
+    expect(labels).toEqual(['worklistTable.amendmentGroup.amendmentCorrection', 'worklistTable.amendmentGroup.addendum']);
   });
 
   it('a real, deliberate third group for unclassified LIS notices - never silently folded into Amendment or Addenda', () => {
     const cases = [makeCase('S26-1')];
     const typeByCaseId = new Map([['S26-1', 'notice' as const]]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const labels = dividers(rows).map(d => d.label);
-    expect(labels).toEqual(['LIS Notices — Pending Review']);
+    const labels = dividers(rows).map(d => d.labelKey);
+    expect(labels).toEqual(['worklistTable.amendmentGroup.notice']);
   });
 
   it('LIS Notices sorts last, after both real, classified groups', () => {
@@ -45,16 +45,16 @@ describe('buildAmendmentGroupRows — real feature, per direct follow-up: "we co
       ['S26-3', 'correction' as const],
     ]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const labels = dividers(rows).map(d => d.label);
-    expect(labels).toEqual(['Amendment & Correction', 'Addenda', 'LIS Notices — Pending Review']);
+    const labels = dividers(rows).map(d => d.labelKey);
+    expect(labels).toEqual(['worklistTable.amendmentGroup.amendmentCorrection', 'worklistTable.amendmentGroup.addendum', 'worklistTable.amendmentGroup.notice']);
   });
 
   it('a real, empty group is never shown as an empty divider', () => {
     const cases = [makeCase('S26-1')];
     const typeByCaseId = new Map([['S26-1', 'addendum' as const]]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const labels = dividers(rows).map(d => d.label);
-    expect(labels).toEqual(['Addenda']);
+    const labels = dividers(rows).map(d => d.labelKey);
+    expect(labels).toEqual(['worklistTable.amendmentGroup.addendum']);
   });
 
   it('a case with no entry in typeByCaseId is skipped, never guessed into a group', () => {
@@ -80,9 +80,9 @@ describe('buildAmendmentGroupRows — real feature, per direct follow-up: "we co
       ['S26-5', 'notice' as const],
     ]);
     const rows = buildAmendmentGroupRows(cases, typeByCaseId);
-    const byLabel = Object.fromEntries(dividers(rows).map(d => [d.label, d.count]));
-    expect(byLabel['Amendment & Correction']).toBe(3);
-    expect(byLabel['Addenda']).toBe(1);
-    expect(byLabel['LIS Notices — Pending Review']).toBe(1);
+    const byLabel = Object.fromEntries(dividers(rows).map(d => [d.labelKey, d.count]));
+    expect(byLabel['worklistTable.amendmentGroup.amendmentCorrection']).toBe(3);
+    expect(byLabel['worklistTable.amendmentGroup.addendum']).toBe(1);
+    expect(byLabel['worklistTable.amendmentGroup.notice']).toBe(1);
   });
 });

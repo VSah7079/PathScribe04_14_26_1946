@@ -8,6 +8,7 @@ import { flagService } from '../../../services';
 import { COMP_AUDIT } from '../../../constants/computationalActions';
 import { useAuditLog } from '../../Audit/useAuditLog';
 import AutoCreatedBanner from '../../Flags/AutoCreatedBanner';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -41,12 +42,12 @@ const ICON_KEY_OPTIONS: IconKey[] = [
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 
-const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => {
+const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => {
   const { t } = useTranslation();
   return (
     <div className="ps-flagcfg-toggle-row">
       <div
-        onClick={() => onChange(!value)}
+        {...switchable(value, () => onChange(!value), label ?? t('a11y.fields.active'))}
         className={`ps-flagcfg-toggle-track ${value ? 'ps-flagcfg-toggle-track--on' : 'ps-flagcfg-toggle-track--off'}`}
       >
         <div className={`ps-flagcfg-toggle-knob ${value ? 'ps-flagcfg-toggle-knob--on' : 'ps-flagcfg-toggle-knob--off'}`} />
@@ -78,6 +79,8 @@ const FlagConfigPage: React.FC = () => {
   const [lisCode,       setLisCode]       = useState('');
   const [active,        setActive]        = useState(true);
   const [severity,      setSeverity]      = useState<1|2|3|4|5>(1);
+  // Batch 516 (PS-283): only staff with the restricted-case print permission can print a case carrying this flag.
+  const [restrictsPrinting, setRestrictsPrinting] = useState(false);
 
   // Icon is now a universal field, not gated behind a Computational/
   // Administrative toggle — that distinction turned out to be
@@ -118,7 +121,7 @@ const FlagConfigPage: React.FC = () => {
 
   const resetForm = () => {
     setName(''); setDescription(''); setLevel('Case'); setLisCode('');
-    setActive(true); setSeverity(1);
+    setActive(true); setSeverity(1); setRestrictsPrinting(false);
     setIconKey('generic-lab'); setErrors({});
   };
 
@@ -136,6 +139,7 @@ const FlagConfigPage: React.FC = () => {
     setLisCode(flag.lisCode);
     setActive(flag.status === 'Active');
     setSeverity(flag.severity);
+    setRestrictsPrinting(!!flag.restrictsPrinting);
     setIconKey(flag.iconKey ?? 'generic-lab');
     setErrors({});
     setShowModal(true);
@@ -151,6 +155,7 @@ const FlagConfigPage: React.FC = () => {
 
   const buildPayload = (): Omit<Flag, 'id'> => ({
     name, description, level, lisCode, severity, iconKey,
+    restrictsPrinting: level === 'Case' && restrictsPrinting,
     status: (active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
     autoCreated: false,
   });
@@ -235,19 +240,19 @@ const FlagConfigPage: React.FC = () => {
       {/* ── Filters ── */}
       {!reviewingAutoCreated && (
         <div className="ps-flagcfg-filters-row">
-          <input
+          <input data-dirty-ignore data-config-nav
             type="text"
             placeholder={t('flagConfigPage.searchPlaceholder')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="ps-conf-search ps-flagcfg-search--flex"
           />
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
             <option value="All">{t('flagConfigPage.statusFilter.all')}</option>
             <option value="Active">{t('common.active')}</option>
             <option value="Inactive">{t('common.inactive')}</option>
           </select>
-          <select value={levelFilter} onChange={e => setLevelFilter(e.target.value as any)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.level')} data-dirty-ignore data-config-nav value={levelFilter} onChange={e => setLevelFilter(e.target.value as any)} className="ps-conf-select">
             <option value="All">{t('flagConfigPage.levelFilter.all')}</option>
             <option value="Case">{t(LEVEL_LABEL_KEY.Case)}</option>
             <option value="Specimen">{t(LEVEL_LABEL_KEY.Specimen)}</option>
@@ -328,12 +333,12 @@ const FlagConfigPage: React.FC = () => {
                   Every flag is just a flag now — one form, one set of
                   fields, attachable to a case, a specimen, or both. */}
               <label className="ps-conf-label">{t('flagConfigPage.modal.nameLabel')} <span className="ps-flagcfg-required-mark">*</span></label>
-              <input value={name} onChange={e => { setName(e.target.value); setErrors(prev => ({ ...prev, name: '' })); }}
+              <input aria-label={t('flagConfigPage.modal.nameLabel')} value={name} onChange={e => { setName(e.target.value); setErrors(prev => ({ ...prev, name: '' })); }}
                 className={`ps-conf-input ps-flagcfg-name-input ${errors.name ? 'ps-flagcfg-name-input--error' : ''}`} placeholder={t('flagConfigPage.modal.namePlaceholder')} />
               {errors.name && <div className="ps-flagcfg-error-text">{errors.name}</div>}
 
               <label className="ps-conf-label">{t('flagConfigPage.modal.descriptionLabel')}</label>
-              <textarea value={description} onChange={e => setDescription(e.target.value)}
+              <textarea aria-label={t('flagConfigPage.modal.descriptionLabel')} value={description} onChange={e => setDescription(e.target.value)}
                 className="ps-conf-input ps-flagcfg-description-textarea" placeholder={t('flagConfigPage.modal.descriptionPlaceholder')} />
 
               <div className="ps-flagcfg-field-row">
@@ -350,7 +355,7 @@ const FlagConfigPage: React.FC = () => {
                 </div>
                 <div className="ps-flagcfg-field-flex1">
                   <label className="ps-conf-label">{t('flagConfigPage.modal.severityLabel')}</label>
-                  <select value={severity} onChange={e => setSeverity(Number(e.target.value) as 1|2|3|4|5)} className="ps-conf-input ps-flagcfg-input--nomb">
+                  <select aria-label={t('flagConfigPage.modal.severityLabel')} value={severity} onChange={e => setSeverity(Number(e.target.value) as 1|2|3|4|5)} className="ps-conf-input ps-flagcfg-input--nomb">
                     {Object.entries(SEVERITY_LABEL_KEY).map(([v, key]) => <option key={v} value={v}>{v} — {t(key)}</option>)}
                   </select>
                 </div>
@@ -359,12 +364,12 @@ const FlagConfigPage: React.FC = () => {
               <div className="ps-flagcfg-field-row">
                 <div className="ps-flagcfg-field-flex1">
                   <label className="ps-conf-label">{t('flagConfigPage.modal.lisCodeLabel')}</label>
-                  <input value={lisCode} onChange={e => setLisCode(e.target.value)}
+                  <input aria-label={t('flagConfigPage.modal.lisCodeLabel')} value={lisCode} onChange={e => setLisCode(e.target.value)}
                     className="ps-conf-input ps-flagcfg-input--nomb" placeholder={t('flagConfigPage.modal.lisCodePlaceholder')} />
                 </div>
                 <div className="ps-flagcfg-icon-field">
                   <label className="ps-conf-label">{t('flagConfigPage.modal.iconLabel')}</label>
-                  <select className="ps-conf-input ps-flagcfg-input--nomb" value={iconKey} onChange={e => setIconKey(e.target.value as IconKey)}>
+                  <select aria-label={t('flagConfigPage.modal.iconLabel')} className="ps-conf-input ps-flagcfg-input--nomb" value={iconKey} onChange={e => setIconKey(e.target.value as IconKey)}>
                     {ICON_KEY_OPTIONS.map(k => <option key={k} value={k}>{k}</option>)}
                   </select>
                 </div>
@@ -372,6 +377,14 @@ const FlagConfigPage: React.FC = () => {
 
             <label className="ps-conf-label ps-flagcfg-status-label">{t('flagConfigPage.modal.statusLabel')}</label>
             <Toggle value={active} onChange={setActive} />
+
+            {level === 'Case' && (
+              <>
+                <label className="ps-conf-label ps-flagcfg-status-label">{t('flagConfigPage.modal.restrictsPrintingLabel')}</label>
+                <Toggle value={restrictsPrinting} onChange={setRestrictsPrinting} label={t('flagConfigPage.modal.restrictsPrintingLabel')} />
+                <p className="ps-conf-hint">{t('flagConfigPage.modal.restrictsPrintingHint')}</p>
+              </>
+            )}
 
             </div>{/* /body */}
             <div className="fm-footer">

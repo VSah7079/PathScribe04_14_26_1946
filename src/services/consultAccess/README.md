@@ -58,6 +58,67 @@ matching `AuditLog.detail`'s own doc comment.
   "external consultant" or "guest reviewer" concept anywhere else in this
   app's user/staff model to attach it to instead.
 
+## Batch 439 (PS-148): assessing outside opinions
+
+Opinions came back but were never shown to the pathologist. Now:
+- `outsideConsultRules.ts` (pure): the assessment (agrees / minor difference / major discordance; a difference needs a note; only a signed opinion; once), whether the report was released (`finalized` or `closed`), and the "Outside Consult Correlation" QA record.
+- `assessOpinion` on the service: checks `case:outside-consult:assess`, writes the QA record and keeps the assessment on the opinion; audited (`consult.opinion.assessed`). A major discordance on a released report recommends a CAPA (`post-signout-discordance`, type "Outside Consult Major Discordance"); before release it recommends nothing.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`consultDemoSeed.ts`: an active consult link on S26-4602, issued by Dr. Sarah Johnson to Dr. Miguel Ortega (Sonoran Dermatopathology Associates, fictional), 72 hours, viewed once. This service stores the token itself, so the seed makes a random one when first read; nothing is in source. The link address is shown only when a link is created, so the seeded one can't be opened; issue a new link to show the consultant's view.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 515 (PS-290): consult link permissions
+
+- `issue` needs `case:consult-link:issue`, and `revoke` needs `case:consult-link:revoke`. Both are checked with the case as context.
+- A refusal returns `CONSULT_LINK_NOT_PERMITTED` (in `IConsultTokenService.ts`) and changes nothing.
+- Before, anyone who could open a case could issue or revoke a link.
+- Seeded to every role with case access (keep today's users) until Pete decides who should hold it. Proposed: Pathologist and Admin.
+
+## Batch 522 (PS-290): real token handling, scoped view, oversight
+
+- **`consultTokenCrypto.ts` (new).** A token is 32 random bytes from `crypto.getRandomValues`, base64url, `ct_` prefix (256 bits; it was `Math.random()` text). Only its SHA-256 fingerprint is stored (`ConsultToken.tokenHash`). `issue()` returns the token once (`IssuedConsultLink`). Records stored before this batch keep only the fingerprint the next time they're read.
+- **`consultLinkRules.ts` (new, pure):**
+  - the link address carries the token after `#` (`consultLinkUrl`), out of server logs;
+  - `buildConsultCaseView`: the accession, the patient, and only the specimens and slides in scope;
+  - one signed opinion per link (`consultOpinionProblem`);
+  - expiry recorded once (`unrecordedExpiries`);
+  - the Audit Log list filter.
+- **Service changes:**
+  - `openConsult(token)` replaces resolve-then-read-the-case-then-recordAccess in the page: one call checks the token, builds the view and records one view;
+  - `submitOpinion(token, draft)` checks the token again and takes the case and consultant from it;
+  - `revoke(id)` takes the revoker from the session and refuses a link that isn't active;
+  - `listAll()` needs the new `audit:consult-links:view`;
+  - `consult.link.expired` is recorded once per link;
+  - refusals are codes (`CONSULT_LINK_INVALID`, `CONSULTANT_REQUIRED`, …) that the screens translate.
+- **Still a mock.** Links live in the issuing browser, so one opens only there. The API server contract is `docs/architecture/CONSULT_ACCESS_API.md` (CA-1 to CA-24), for the India team.
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: recording link expiries (`recordExpiries`) stops in the browser once the server runs `consult.expireLinks` (`serverJobs/browserStandIns.ts`). A link's status is still worked out on read.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`consultTokenService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CASE_WORKFLOWS_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 669
+
+`consultLinkRules.consultSubmitConfirmationKey(signedStatus)` picks the confirmation text after an opinion is sent: Signed is recorded and returned, Draft is saved but not returned.
+
+## Batch 669 (access-11): masked identity by default
+
+- **`consultIdentityMask.ts`** (+ `.test.ts`): `consultPatientView(patient, revealIdentity)` returns the masked projection (`maskedName` such as `J*** S****`, `birthYearMasked` such as `**-***-1980`) unless `revealIdentity === true`, then the full one. `buildConsultCaseView` uses it, so the data that reaches `/consult` is already masked; the masked object never contains the surname, the full first name or the full date.
+- **Opt-in:** `NewConsultToken.revealIdentity` / `ConsultToken.revealIdentity`, chosen at issue time only. `issue()` checks `case:consult-link:reveal-identity` when it is true and otherwise refuses with `CONSULT_REVEAL_NOT_PERMITTED` (no link). `consult.link.created` records "Identity opt-in used..." or "Patient identity masked (default)."; `consult.link.accessed` records which was served. No PHI in either. (The reviewer called the event CONSULT_LINK_ISSUED; it is `consult.link.created` here.)
+- **Expiry verified:** every open and every opinion re-checks the link's status, so an expired link opens nothing (tests added). Single-use is not built (decision, see `docs/architecture/CONSULT_ACCESS_API.md` after CA-27). Passcode by e-mail: Planned (CA-26), not built.
+
+## Batch 669 (access-11, reviewer's rulings Oct 24, 2026)
+
+- **`consultLinkLifetime.ts`** (+ `.test.ts`): the ONE place for how long a link works. `consultLinkLifetime(link, now)` gives `state` (`open`, `expired`, `exhausted`), `remainingViews`, `hoursRemaining`, `endsAt`; constants `CONSULT_POST_SIGNATURE_MAX_VIEWS = 3` and `CONSULT_POST_SIGNATURE_HOURS = 48`. Before a signature the link's own expiry applies; a Draft starts no clock. A Signed opinion sets `ConsultToken.signedAt`; every `openConsult` after it adds to `viewsAfterSignature` (the signed submit does not) and is audited as `consult.link.accessed`. The link stops at the first of 3 views, 48 hours, or its own expiry (signing never lengthens a link). `resolveConsultTokenStatus` reads exhausted/ended as Expired. `consultLifetimeLine` feeds the issuer lists. Replaces "a Signed opinion closes the link". The server owns the count and the clock (CONSULT_ACCESS_API.md CA-28).
+- **View:** `ConsultCaseView.lifetime` is `{ remainingViews, hoursRemaining }` after a signature, else `null`; the page shows the banner.
+- **Refusals:** `consult.link.access_attempt_expired` or the new `consult.link.access_attempt_exhausted`; the consultant still gets the one uniform `CONSULT_LINK_INVALID`.
+- **Identity preview:** `IConsultTokenService.previewIdentity(linkId)` needs `case:consult-link:reveal-identity` (not issue), returns the full projection, audits `consult.link.identity_previewed` (English, no PHI). Used from Audit Log → Consult links, so a Lab Director who holds reveal but not issue is not at a dead end; the External Consult window's Issue button is disabled with "Requires permission to issue consult links." for that person.
+- **Fixed date-of-birth format:** `formatConsultDateOfBirth` writes `DD-MMM-YYYY` with an English capital month (`24-OCT-1980`) in every language and locale; masked is `**-***-1980`. This is the one deliberate exception to "format dates with the user's locale": laboratory dates must not be ambiguous (03/04/1980 is March in one country, April in another). Read from the stored calendar date, no time-zone conversion; a date not stored year-first is shown as stored.

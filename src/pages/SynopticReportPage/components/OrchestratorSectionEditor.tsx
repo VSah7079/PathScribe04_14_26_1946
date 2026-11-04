@@ -19,19 +19,27 @@
 // focused — same principle as the old version, just retargeted dynamically.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import NarrativeEditor from '@/components/Editor/NarrativeEditor';
 import { useVoice } from '@/contexts/VoiceProvider';
 import type { PathScribeEditorHandle } from '@/components/Editor/PathScribeEditorRef';
-import type { LabelConfig } from '@/types/template';
+import type { FontUnits, LabelConfig } from '@/types/template';
 import { labelStyleVars } from '@/utils/labelStyleVars';
 import type { Case } from '@/types/case/Case';
+import type { NarrativeProvenance } from '@/orchestrator/narrativeProvenance';
+import { NarrativeProvenanceNote } from './NarrativeProvenanceNote';
 import { facilityService, macroService, voiceMacroService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { SpellingLanguageControl } from '@/components/SpellCheck/SpellingLanguageControl';
+import { dictationWriterFor, dictationSessionFor } from '@/services/voice/tiptapDictationPort';
+import type { DictationSegmentMeta } from '@/services/voice/dictationSegmentFlow';
+import { pickDictationSection, type DictationSectionRequest } from '@/services/voice/dictationSectionPicker';
+import { regenerateSectionsSequentially } from '@/services/reportEditing/orchestratorSections';
+import { findingsForField, narrativeFieldForSection } from '@/services/clinical/findingHighlight';
+import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -45,6 +53,8 @@ export interface OrchestratorSection {
   userEdited:          boolean;
   isStreaming:         boolean;
   pendingDraft?:       string;
+  /** Batch 651: the AI's confidence (0 to 100) and source quote for this section's text, checked against the source text. */
+  provenance?:         NarrativeProvenance;
   required?:           boolean;
   hint?:               string;
   committed?:          boolean;
@@ -90,7 +100,7 @@ function getSectionStatus(s: OrchestratorSection): SectionStatus {
 // label-key indirection used for other computed display statuses in
 // this sweep, resolved with t() wherever STATUS_META is read.
 const STATUS_META: Record<SectionStatus, { color: string; titleKey: string; icon: string }> = {
-  'empty':           { color: '#475569', titleKey: 'orchestratorSectionEditor.status.empty',        icon: '○' },
+  'empty':           { color: '#8794a8', titleKey: 'orchestratorSectionEditor.status.empty',        icon: '○' },
   'ai-generated':    { color: '#0891b2', titleKey: 'orchestratorSectionEditor.status.aiGenerated',   icon: '◉' },
   // Matches RightSynopticPanel's field-level convention exactly: once
   // accepted, the badge still names the AI's involvement explicitly
@@ -197,6 +207,8 @@ interface Props {
    *  matches what the final report will actually look like, not a
    *  second, independently-derived style. */
   documentStyle?:       { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
+  /** Batch 612: the template's font size units, for a style with none of its own. */
+  fontUnits?:           FontUnits;
 
   // ── Shared active-section state — lifted to SynopticReportPage so the
   //    navigator, centre Full Report pane, and this editor all stay in sync.
@@ -207,6 +219,12 @@ interface Props {
   //    setting is shared/persisted across all section editors in this case.
   tabWidthChars?:       number;
   onTabWidthChange?:    (chars: number) => void;
+
+  /** Batch 452 (PS-323): the critical findings detected at the last
+   *  Finalize attempt. Each is highlighted in the section that feeds its
+   *  narrative field (services/clinical/findingHighlight.ts); the
+   *  highlight is drawn over the text and never saved into it. */
+  criticalFindings?:    readonly CriticalFindingFlag[];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -216,9 +234,17 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   onRegenerateSection, lastGeneratedAt, caseData,
   onAcceptAll, activeSectionId, onActiveSectionChange,
   tabWidthChars = 4, onTabWidthChange, onAcceptSection,
-  onGenerateReport, onStartManualEntry, documentStyle,
+  onGenerateReport, onStartManualEntry, documentStyle, fontUnits, criticalFindings,
 }) => {
   const { t } = useTranslation();
+  // PS-323: one stable list per section, so the editors only redraw when
+  // the findings actually change.
+  const findingsBySection = useMemo(() => {
+    const out: Record<string, CriticalFindingFlag[]> = {};
+    for (const s of sections) out[s.id] = findingsForField(criticalFindings, narrativeFieldForSection(s.id, s.sourcePartId));
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criticalFindings, sections.map(s => s.id).join('|')]);
   // ── Refs ─────────────────────────────────────────────────────────────────────
   const editorRefs    = useRef<Record<string, PathScribeEditorHandle | null>>({});
   const sectionRefs   = useRef<Record<string, HTMLDivElement | null>>({});
@@ -265,7 +291,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   }, [viewMode, setActiveId]);
 
   // ── Voice dictation ───────────────────────────────────────────────────────────
-  const { startDictation, phase, dictationTarget } = useVoice();
+  const { startDictation } = useVoice();
 
   // ── Insert Specimen (IS) ───────────────────────────────────────────────────────
   // Inserts one line per specimen on the case, in the exact format:
@@ -330,6 +356,8 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     const editorHandle = editorRefs.current[section.id];
     const editor = editorHandle?.getEditor?.();
     if (!editor) return;
+    // Batch 664 (Cancel): this session's dictated passages can be counted and removed.
+    const session = dictationSessionFor(editor);
     startDictation({
       fieldId: section.id,
       label:   section.label,
@@ -339,33 +367,21 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
       // VoiceProvider.tsx uses this to filter which real voice macros
       // (Enterprise/Facility/Personal) apply to this dictation session.
       performingLabFacilityId: casePerformingLabFacilityId,
-      onText: (text: string, isInterim?: boolean) => {
-        editor.chain().focus().insertContent(text + (isInterim ? '' : ' ')).run();
+      // Batch 650: the writer replaces the provisional text with the final text once (no repeat) and learns the
+      // person's corrections to it (services/voice/dictationEditorWriter.ts).
+      onText: (text: string, isInterim?: boolean, meta?: DictationSegmentMeta) => {
+        dictationWriterFor(editor).onText(text, isInterim, meta);
         onSectionChange(section.id, editor.getHTML());
       },
       onDone: () => { /* VoiceProvider handles phase reset */ },
+      uncommitted: session.uncommitted,
+      discard: () => { const r = session.discard(); onSectionChange(section.id, editor.getHTML()); return r; },
     });
   }, [startDictation, onSectionChange, casePerformingLabFacilityId]);
 
-  // ── Bind NavBar mic to the focused section ────────────────────────────────────
-  // The mic button lives outside this component (NavBar/VoiceToggleButton) and
-  // we deliberately don't import or modify it — everything here reacts to
-  // VoiceProvider's shared state instead, via useVoice().
-  //
-  // When the pathologist presses the mic with no specific target already set
-  // (dictationTarget === null) and a section in THIS editor currently has
-  // focus, we register that section as the dictation target — wiring the
-  // editor's onText handler into the stream that's already running.
-  //
-  // CRITICAL: this only runs when phase has ALREADY transitioned to 'dictate'
-  // — i.e. in response to the mic being pressed — never as a side effect of
-  // focusing a field. Focusing a field on its own does nothing here.
-  useEffect(() => {
-    if (phase !== 'dictate' || dictationTarget) return;
-    const section = sections.find(s => s.id === focusedSectionId);
-    if (!section || section.committed) return;
-    registerDictationTarget(section);
-  }, [phase, dictationTarget, focusedSectionId, sections, registerDictationTarget]);
+  // Batch 650: the effect that stood here claimed a dictation target "when the mic was pressed and phase was already
+  // 'dictate'". The phase only becomes 'dictate' inside startDictation, which also sets the target, so it could never
+  // run. Dictation now starts from the spoken commands below ("dictate gross", Enter Gross / Micro / Diagnosis).
 
   // ── Personal Quick Text — real, per direct guidance ─────────────────────────
   // "It would be easiest for them to select text they may have entered
@@ -392,7 +408,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
     if (!selectedText) return;
     setQuickTextTrigger('');
     setQuickTextDraft({ sectionId: section.id, selectedText });
-  }, []);
+  }, [t]);
 
   const handleConfirmSaveAsQuickText = useCallback(async () => {
     if (!quickTextDraft || !quickTextTrigger.trim()) return;
@@ -442,9 +458,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
   // time, matching what "Regen ALL" should mean.
   const regenerateAllSequentially = useCallback(async () => {
     if (!onRegenerateSection) return;
-    for (const s of sections) {
-      await onRegenerateSection(s.id);
-    }
+    await regenerateSectionsSequentially(sections.map(s => s.id), onRegenerateSection);
   }, [sections, onRegenerateSection]);
 
   // ── Voice / keyboard event listeners ─────────────────────────────────────────
@@ -468,19 +482,9 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
       void regenerateAllSequentially();
     };
     const onDictateSection = (e: Event) => {
-      const detail = (e as CustomEvent).detail as {
-        sectionId?: string;
-        sectionIndex?: number;
-        label?: string;
-      };
-      let section: OrchestratorSection | undefined;
-      if (detail.sectionId)    section = sections.find(s => s.id === detail.sectionId);
-      if (!section && detail.sectionIndex !== undefined) section = sections[detail.sectionIndex];
-      if (!section && detail.label) {
-        const q = detail.label.toLowerCase();
-        section = sections.find(s => s.label.toLowerCase().includes(q));
-      }
-      if (!section) return;
+      const detail = (e as CustomEvent).detail as DictationSectionRequest;
+      const section = pickDictationSection(sections, detail, activeId);
+      if (!section || section.committed) return;
       jumpToSection(section.id);
       registerDictationTarget(section);
     };
@@ -553,7 +557,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
           <div className="ps-ose-section-card-header">
             <span
               className={`ps-ose-section-card-title${section.specimenId ? ' ps-ose-section-card-title--specimen' : ''}`}
-              style={section.specimenId ? labelStyleVars(documentStyle?.body) : undefined}
+              style={section.specimenId ? labelStyleVars(documentStyle?.body, 'label', fontUnits) : undefined}
             >{section.label}</span>
             <span className={`ps-ose-section-card-status ps-ose-section-card-status--${status}`} title={t(meta.titleKey)}>
               {meta.icon} {t(meta.titleKey)}
@@ -629,8 +633,14 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
               {t('orchestratorSectionEditor.lockedOverlayNote')}
             </div>
           )}
+          {(findingsBySection[section.id]?.length ?? 0) > 0 && (
+            <div className="ps-finding-hl-note" role="note">
+              {t('findingHighlight.sectionNote', { count: findingsBySection[section.id].length })}
+            </div>
+          )}
           <NarrativeEditor
             ref={(h: any) => { editorRefs.current[section.id] = h; }}
+            highlightFindings={findingsBySection[section.id]}
             value={textToHtml(section.text)}
             onChange={html => onSectionChange(section.id, html)}
             readOnly={isGenerating || isLocked}
@@ -644,6 +654,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
             onTabWidthChange={onTabWidthChange}
           />
         </div>
+        {section.provenance && !section.userEdited && !section.isStreaming && <NarrativeProvenanceNote provenance={section.provenance} />}
         {section.pendingDraft && (
           <div className="ps-ose-pending-banner">
             <span>{t('orchestratorSectionEditor.pendingDraftAvailable')}</span>
@@ -814,7 +825,7 @@ const OrchestratorSectionEditor: React.FC<Props> = ({
               {getSessionUser()?.firstName ?? t('orchestratorSectionEditor.quickText.youFallback')} {getSessionUser()?.lastName ?? ''} · {casePerformingLabName ?? (casePerformingLabFacilityId ? casePerformingLabFacilityId : t('orchestratorSectionEditor.quickText.noFacilityResolved'))}
             </div>
             <label className="ps-conf-label">{t('orchestratorSectionEditor.quickText.voiceTriggerLabel')}</label>
-            <input
+            <input aria-label={t('orchestratorSectionEditor.quickText.voiceTriggerLabel')}
               autoFocus
               className="ps-conf-input"
               value={quickTextTrigger}

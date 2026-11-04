@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   assignPhysicalSlide, assignScannerSlide, flagSlideException, resolveSlideException,
-  recordLabelReprintRequest, resolveSplitDestinationWarning,
+  recordLabelReprintRequest, resolveSplitDestinationWarning, filterRoutingDirectory,
 } from './slideDistributionOperations';
 import type { Specimen } from '@/types/case/Specimen';
 
@@ -104,12 +104,17 @@ describe('flagSlideException / resolveSlideException', () => {
 });
 
 describe('recordLabelReprintRequest', () => {
-  it('records a real, auditable event', () => {
-    const result = recordLabelReprintRequest(specimen(), 'blk-1', 'st-1', actor);
+  it('records a real, auditable event with its reason', () => {
+    const result = recordLabelReprintRequest(specimen(), 'blk-1', 'st-1', actor, 'Smudged Print');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const stain = result.specimen.blocks!.find(b => b.id === 'blk-1')!.stains.find(s => s.id === 'st-1')!;
     expect(stain.distributionEvents![0].action).toBe('label_reprint_requested');
+    expect(stain.distributionEvents![0].detail).toContain('Smudged Print');
+  });
+  it('refuses a reprint without a reason (Batch 402)', () => {
+    expect(recordLabelReprintRequest(specimen(), 'blk-1', 'st-1', actor, '' as never).ok).toBe(false);
+    expect(recordLabelReprintRequest(specimen(), 'blk-1', 'st-1', actor, 'Coffee' as never).ok).toBe(false);
   });
 });
 
@@ -139,5 +144,24 @@ describe('resolveSplitDestinationWarning', () => {
     expect(r2.ok).toBe(true); if (!r2.ok) return; s = r2.specimen;
     const warning = resolveSplitDestinationWarning(s, 'blk-1')!;
     expect(warning.conflict).toBe(true);
+  });
+});
+
+describe('Batch 402 helpers', () => {
+  it('filterRoutingDirectory matches pathologists and pools by name, ignoring case', () => {
+    const people = [{ firstName: 'Ana', lastName: 'Chen' }, { firstName: 'Bo', lastName: 'Singh' }];
+    const pools = [{ name: 'Dermatopathology' }, { name: 'GI' }];
+    expect(filterRoutingDirectory(people, pools, '')).toEqual({ pathologists: people, subspecialties: pools });
+    expect(filterRoutingDirectory(people, pools, ' chen ').pathologists).toEqual([people[0]]);
+    expect(filterRoutingDirectory(people, pools, 'DERM').subspecialties).toEqual([pools[0]]);
+  });
+  it('the split warning says which case applies', () => {
+    let s = specimen();
+    const a = assignPhysicalSlide(s, 'blk-1', 'st-1', { pathologistId: 'u1', pathologistName: 'Chen' }, actor);
+    if (!a.ok) throw new Error('setup');
+    s = a.specimen;
+    const b = assignScannerSlide(s, 'blk-1', 'st-2', { scannerInstrumentId: 'GT450' }, actor);
+    if (!b.ok) throw new Error('setup');
+    expect(resolveSplitDestinationWarning(b.specimen, 'blk-1')?.kind).toBe('physicalAndDigital');
   });
 });

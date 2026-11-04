@@ -227,7 +227,7 @@ const CassetteLabelLayoutEditor: React.FC<CassetteLabelLayoutEditorProps> = ({ v
           {t('cassetteLabelLayoutEditor.testPrint.description')}
         </div>
         <div className="ps-cassette-layout-testprint-row">
-          <select
+          <select aria-label={t('cassetteLabelLayoutEditor.testPrint.title')} data-config-nav
             className="ps-input-dark"
             value={selectedPrinterId}
             onChange={e => setSelectedPrinterId(e.target.value)}

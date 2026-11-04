@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import type { mockOrderIntakeService as MockOrderIntakeServiceType } from './mockOrderIntakeService';
 import type { mockInterfaceExceptionService as MockInterfaceExceptionServiceType } from '../interfaceExceptions/mockInterfaceExceptionService';
 import type { mockFacilityService as MockFacilityServiceType } from '../facilities/mockFacilityService';
@@ -290,5 +295,21 @@ describe('resolveOrder — real requesting-physician resolution, completing PS-8
     // of physician-resolution outcome - the fail-open guarantee this
     // whole function is built around.
     expect(resolved.ok).toBe(true);
+  });
+});
+
+describe('findCrosswalkMatch: site-scoped entries (Batch 605)', async () => {
+  const { findCrosswalkMatch } = await import('./mockOrderIntakeService');
+  const base = { clientId: 'F1', externalCode: 'BX1', createdAt: '', createdBy: 'admin' };
+  const wide = { ...base, id: 'w', dictionaryEntryId: 'D-WIDE' };
+  const site = { ...base, id: 's', siteId: 'SITE-MRI', dictionaryEntryId: 'D-SITE' };
+  it('prefers the entry for the order site, then the organisation-wide entry', () => {
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined, 'SITE-MRI')?.id).toBe('s');
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined, 'SITE-OTHER')?.id).toBe('w');
+    expect(findCrosswalkMatch([wide, site], 'F1', 'BX1', undefined)?.id).toBe('w');
+  });
+  it('a site-only entry does not match another site or an order with no site', () => {
+    expect(findCrosswalkMatch([site], 'F1', 'BX1', undefined, 'SITE-OTHER')).toBeUndefined();
+    expect(findCrosswalkMatch([site], 'F1', 'BX1', undefined)).toBeUndefined();
   });
 });

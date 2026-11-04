@@ -49,6 +49,19 @@ export function mergeBuiltInRoles<T extends CatalogRole>(stored: T[], seeds: T[]
   return { roles: missing.length ? [...stored, ...missing] : stored, added: missing.map(r => r.id) };
 }
 
+/** Batch 441: the built-in Cytotechnologist role stored with no participation
+ *  types (the seed before this batch) gets 'cytotechnologist'. A list an
+ *  administrator filled in is left alone. */
+export function withCytotechParticipationType<T extends CatalogRole & { participationTypeIds?: string[] }>(roles: T[]): { roles: T[]; filled: boolean } {
+  let filled = false;
+  const out = roles.map(r => {
+    if (r.id !== SYSTEM_ROLE_IDS.CYTOTECHNOLOGIST || (r.participationTypeIds?.length ?? 0) > 0) return r;
+    filled = true;
+    return { ...r, participationTypeIds: ['cytotechnologist'] };
+  });
+  return { roles: filled ? out : roles, filled };
+}
+
 /** Role ids for a staff record's role names. Names are matched to the
  *  catalog without regard to case or surrounding spaces; a name that
  *  matches no role is ignored. */

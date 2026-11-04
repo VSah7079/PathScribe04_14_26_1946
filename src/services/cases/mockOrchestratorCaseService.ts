@@ -4,7 +4,7 @@
 //
 // Assigned users:
 //   PATH-001    — Pete Nimmo        (pete.nimmo@pathscribe.ai / demo@pathscribe.ai)
-//   PATH-UK-001 — Paul Carter       (paul.carter@mft.nhs.uk)
+//   PATH-UK-001 — Imogen Hartley       (imogen.hartley@demo.pathscribe.ai)
 //   PATH-US-001 — Amber Fehrs-Battey (amber.fehrs@demo.pathscribe.ai)
 // ─────────────────────────────────────────────────────────────
 
@@ -14,6 +14,7 @@ import type { Case } from '../../types/case/Case';
 import { storageGet, storageSet, storageClear } from '../mockStorage';
 import { applyCaseFilters, applyCasePagination } from './caseFilterUtils';
 import { recordCaseChange } from '../reportChangeLog/recordCaseChange';
+import { dataStorage } from '../browserData/dataStorage';
 
 // v3 key forces reset to pick up Stage 0 seed cases (O26-0018/0019/0020) —
 // see Stage 0 Requirements §5 (S0-MD-01). v2 was the reportingMode fix
@@ -96,7 +97,7 @@ const PETE_CASES: Case[] = [
         "Received separately, labeled \"appendix,\" is a vermiform appendix measuring 7.5 x 1.0 cm with an unremarkable serosal surface. The cut surface reveals a patent lumen throughout without a mass lesion. Representative sections submitted.",
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0001-SP-A_colon_${iid()}`, specimenId: 'O26-0001-SP-A', templateId: 'colon_resection', templateName: 'Generic Template — Colon Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0001-SP-A_colon_${iid()}`, specimenId: 'O26-0001-SP-A', templateId: 'colon_resection', templateName: 'Colon resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     // Previously missing entirely — for any specimen. Real
     // GrossingReportInstance per specimen, all 'finalized' since Gross
     // is meant to be complete for a case at this stage; answers use the
@@ -186,7 +187,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "station 7 subcarinal lymph nodes," is fibrofatty tissue measuring 3.5 x 2.0 x 1.5 cm containing three discrete lymph nodes ranging 0.5-1.4 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'Generic Template — Lung Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0002-SP-A_lung_${iid()}`, specimenId: 'O26-0002-SP-A', templateId: 'lung_resection', templateName: 'Lung resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0002-SP-A_grossing_${iid()}`, specimenId: 'O26-0002-SP-A',
@@ -256,7 +257,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "left pelvic lymph nodes," is fibrofatty tissue measuring 4.5 x 3.5 x 1.5 cm containing four grossly identified lymph nodes ranging 0.4-1.1 cm, entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0003-SP-A_prostate_${iid()}`, specimenId: 'O26-0003-SP-A', templateId: 'prostate_resection', templateName: 'Generic Template — Prostate Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
+    synopticReports: [{ instanceId: `O26-0003-SP-A_prostate_${iid()}`, specimenId: 'O26-0003-SP-A', templateId: 'prostate_resection', templateName: 'Prostate resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(1) }],
     grossingReports: [
       {
         instanceId: `O26-0003-SP-A_grossing_${iid()}`, specimenId: 'O26-0003-SP-A',
@@ -346,7 +347,7 @@ const PETE_CASES: Case[] = [
         'Received separately, labeled "left axillary sentinel lymph node, level I," is a single lymph node measuring 1.8 x 1.2 x 1.0 cm with a firm, tan-white cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0004-SP-A_breast_${iid()}`, specimenId: 'O26-0004-SP-A', templateId: 'breast_invasive', templateName: 'Breast, invasive carcinoma (resection)', status: 'draft', answers: {}, createdAt: isoDaysAgo(1), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0004-SP-A_grossing_${iid()}`, specimenId: 'O26-0004-SP-A',
@@ -451,7 +452,7 @@ const PETE_CASES: Case[] = [
   } as any,
 ];
 
-// ─── Paul Carter (PATH-UK-001) — 3 cases ─────────────────────
+// ─── Imogen Hartley (PATH-UK-001) — 3 cases ─────────────────────
 
 const PAUL_CASES: Case[] = [
 
@@ -479,7 +480,7 @@ const PAUL_CASES: Case[] = [
         'Received separately, labeled "renal hilar lymph node," is a single lymph node measuring 1.2 x 0.8 x 0.6 cm, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'Generic Template — Kidney Resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0006-SP-A_kidney_${iid()}`, specimenId: 'O26-0006-SP-A', templateId: 'kidney_resection', templateName: 'Kidney resection', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0006-SP-A_grossing_${iid()}`, specimenId: 'O26-0006-SP-A',
@@ -677,7 +678,7 @@ const AMBER_CASES: Case[] = [
         'Received separately, labeled "right axillary sentinel lymph node," is a single lymph node measuring 2.0 x 1.5 x 1.2 cm with a homogeneous tan cut surface, bisected and entirely submitted.',
       microscopicDescription: '', ancillaryStudies: '',
     },
-    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'skin_melanoma_bx', templateName: 'Generic Template — Skin Melanoma Bx', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
+    synopticReports: [{ instanceId: `O26-0009-SP-A_melanoma_${iid()}`, specimenId: 'O26-0009-SP-A', templateId: 'skin_melanoma_bx', templateName: 'Skin melanoma biopsy', status: 'draft', answers: {}, createdAt: isoDaysAgo(0), updatedAt: isoDaysAgo(0) }],
     grossingReports: [
       {
         instanceId: `O26-0009-SP-A_grossing_${iid()}`, specimenId: 'O26-0009-SP-A',
@@ -1429,7 +1430,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
     },
     synopticReports: [{
       instanceId: `O26-0024-SP-A_lung_${iid()}`, specimenId: 'O26-0024-SP-A',
-      templateId: 'lung_adeno', templateName: 'Generic Template — Lung Adeno',
+      templateId: 'lung_adeno', templateName: 'Lung adenocarcinoma',
       status: 'finalized',
       answers: {
         synchronous_tumors: 'synchronous_tumors_opt_1', procedure: ['procedure_opt_2'], specimen_laterality: 'specimen_laterality_opt_2',
@@ -1444,7 +1445,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
         nodal_sites_with_tumor: 'None', extranodal_extension: 'extranodal_extension_opt_1', ln_examined_count: '9',
         nodal_sites_examined: 'Stations 4R, 7, 10R', regional_ln_comment: 'All examined lymph nodes negative for malignancy.',
         distant_metastasis_sites: ['distant_metastasis_sites_opt_1'], tnm_descriptors: ['tnm_descriptors_opt_1'],
-        stage_category_a: 'stage_category_a_opt_3', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_1',
+        stage_category_a: 'stage_category_a_opt_5', stage_category_b: 'stage_category_b_opt_1', stage_category_c: 'stage_category_c_opt_4',
         additional_findings: ['additional_findings_opt_1'], special_studies_note: 'Molecular profiling performed per institutional reflex-testing protocol; see Biomarkers section.',
         comments: 'Findings consistent with primary pulmonary adenocarcinoma, stage pT2aN0.',
         pdl1_tps: 'pdl1_tps_1_49', egfr_status: 'egfr_not_detected', egfr_variant: 'Not applicable', alk_status: 'alk_non_rearranged', ros1_status: 'ros1_not_tested',
@@ -1519,7 +1520,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
     },
     synopticReports: [{
       instanceId: `O26-0025-SP-A_breast_${iid()}`, specimenId: 'O26-0025-SP-A',
-      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      templateId: 'breast_invasive', templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_1', specimen_laterality: 'specimen_laterality_opt_1', tumor_site: ['tumor_site_opt_2'],
@@ -1609,7 +1610,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
     },
     synopticReports: [{
       instanceId: `O26-0026-SP-A_breast_${iid()}`, specimenId: 'O26-0026-SP-A',
-      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      templateId: 'breast_invasive', templateName: 'Breast, invasive carcinoma (resection)',
       status: 'finalized',
       answers: {
         procedure: 'procedure_opt_2', specimen_laterality: 'specimen_laterality_opt_2', tumor_site: ['tumor_site_opt_3'],
@@ -1750,7 +1751,7 @@ const COMPLETED_DEMO_CASES: Case[] = [
       // finalized/lastRevisionType cases added earlier, which are already
       // past that point.
       instanceId: `O26-0028-SP-A_breast_${iid()}`, specimenId: 'O26-0028-SP-A',
-      templateId: 'breast_invasive', templateName: 'Generic Template — Breast Invasive',
+      templateId: 'breast_invasive', templateName: 'Breast, invasive carcinoma (resection)',
       status: 'draft',
       answers: {
         procedure: 'procedure_opt_2', specimen_laterality: 'specimen_laterality_opt_1', tumor_site: ['tumor_site_opt_2'],
@@ -1910,18 +1911,28 @@ const ORCH_CASES: Case[] = [...PETE_CASES, ...PAUL_CASES, ...AMBER_CASES, ...BRO
 // sync with STORAGE_KEY — the exact mismatch that caused this file's
 // data to look stale even after a Full Reset). Increment
 // ORCH_MOCK_VERSION whenever ORCH_CASES content changes.
-const ORCH_MOCK_VERSION = '7'; // bumped: added real, accurate specimen-level base CPT codes to 5 of the 6 demo cases with pending ancillary suggestions (O26-0001: 88309, O26-0004/0025/0026: 88307, O26-0024: 88309), so a sales/test demo of the full sign-out workflow doesn't hit an unrelated "no base code" warning. O26-0028 deliberately left without one, per direct decision, so the existing hasAncillaryButNoBaseCode safety warning stays demonstrable on at least one real case.
+const ORCH_MOCK_VERSION = '8'; // bumped (Batch 755a): plain checklist names. 7: added real, accurate specimen-level base CPT codes to 5 of the 6 demo cases with pending ancillary suggestions (O26-0001: 88309, O26-0004/0025/0026: 88307, O26-0024: 88309), so a sales/test demo of the full sign-out workflow doesn't hit an unrelated "no base code" warning. O26-0028 deliberately left without one, per direct decision, so the existing hasAncillaryButNoBaseCode safety warning stays demonstrable on at least one real case.
 const ORCH_VERSION_KEY = 'pathscribe_mock_orch_cases_version';
-const storedOrchVersion = localStorage.getItem(ORCH_VERSION_KEY);
+const storedOrchVersion = dataStorage.getItem(ORCH_VERSION_KEY);
 if (storedOrchVersion !== ORCH_MOCK_VERSION) {
   storageClear(STORAGE_KEY);
-  localStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
+  dataStorage.setItem(ORCH_VERSION_KEY, ORCH_MOCK_VERSION);
 }
 
 const CASES: Case[] = (() => {
   const stored = storageGet<Case[]>(STORAGE_KEY, []);
   return stored?.length ? stored : ORCH_CASES;
 })();
+
+// Batch 458 (PS-71): another tab of this browser saved Orchestration cases:
+// take its copy (same reason as mockCaseService.ts).
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', e => {
+    if (e.key === 'pathscribe_mock_' + STORAGE_KEY && e.newValue) {
+      try { const next = JSON.parse(e.newValue) as Case[]; CASES.splice(0, CASES.length, ...next); } catch { /* keep this tab's copy */ }
+    }
+  });
+}
 
 // ─── Service implementation ───────────────────────────────────
 

@@ -9,11 +9,14 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockCassetteColorService } from '../../../services/cassetteColors/mockCassetteColorService';
+
 import type { CassetteColorDefinition, CassetteColorFallbackBehavior } from '../../../services/cassetteColors/ICassetteColorService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { findDuplicate } from '../../../utils/validateUnique';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { cassetteColorService } from '@/services';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type Draft = Omit<CassetteColorDefinition, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -87,14 +90,14 @@ const ColorModal: React.FC<ColorModalProps> = ({ mode, color, allColors, labs, o
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cassetteColorsSection.modal.keyField')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.key ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('cassetteColorsSection.modal.keyField')} className={`ps-conf-input ${errors.key ? 'ps-conf-input--error' : ''}`}
               value={draft.key} onChange={e => set('key', e.target.value.toUpperCase().replace(/\s+/g, '_'))} placeholder={t('cassetteColorsSection.modal.keyPlaceholder')} />
             {errors.key ? <span className="ps-conf-error-text">{errors.key}</span> : <span className="ps-conf-field-hint">{t('cassetteColorsSection.modal.keyHint')}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cassetteColorsSection.modal.displayNameField')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.displayName ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('cassetteColorsSection.modal.displayNameField')} className={`ps-conf-input ${errors.displayName ? 'ps-conf-input--error' : ''}`}
               value={draft.displayName} onChange={e => set('displayName', e.target.value)} placeholder={t('cassetteColorsSection.modal.displayNamePlaceholder')} />
             {errors.displayName && <span className="ps-conf-error-text">{errors.displayName}</span>}
           </div>
@@ -102,7 +105,7 @@ const ColorModal: React.FC<ColorModalProps> = ({ mode, color, allColors, labs, o
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cassetteColorsSection.modal.hexCodeField')} <span className="ps-conf-required">*</span></label>
             <div className="ps-flex-row-gap-8">
-              <input type="color" value={/^#[0-9A-Fa-f]{6}$/.test(draft.hexCode) ? draft.hexCode : '#3B82F6'} onChange={e => set('hexCode', e.target.value)} className="ps-cassclr-color-input" />
+              <input aria-label={t('cassetteColorsSection.modal.hexCodeField')} type="color" value={/^#[0-9A-Fa-f]{6}$/.test(draft.hexCode) ? draft.hexCode : '#3B82F6'} onChange={e => set('hexCode', e.target.value)} className="ps-cassclr-color-input" />
               <input className={`ps-conf-input ps-conf-input--flex ${errors.hexCode ? 'ps-conf-input--error' : ''}`}
                 value={draft.hexCode} onChange={e => set('hexCode', e.target.value)} placeholder={t('cassetteColorsSection.modal.hexCodePlaceholder')} />
             </div>
@@ -148,7 +151,7 @@ const ColorModal: React.FC<ColorModalProps> = ({ mode, color, allColors, labs, o
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('cassetteColorsSection.modal.statusField')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('cassetteColorsSection.modal.statusField'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -174,7 +177,7 @@ const CassetteColorsSection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; color?: CassetteColorDefinition } | null>(null);
 
   useEffect(() => {
-    mockCassetteColorService.getAll().then(res => {
+    cassetteColorService.getAll().then(res => {
       if (res.ok) setColors(res.data);
       setLoading(false);
     });
@@ -190,21 +193,21 @@ const CassetteColorsSection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'add') {
-      const res = await mockCassetteColorService.create(draft);
+      const res = await cassetteColorService.create(draft);
       if (res.ok) setColors(prev => [...prev, res.data]);
     } else if (modal?.color) {
-      const res = await mockCassetteColorService.update(modal.color.id, draft);
+      const res = await cassetteColorService.update(modal.color.id, draft);
       if (res.ok) setColors(prev => prev.map(c => c.id === res.data.id ? res.data : c));
     }
     setModal(null);
   };
 
   const handleToggleStatus = async (color: CassetteColorDefinition) => {
-    const res = color.active ? await mockCassetteColorService.deactivate(color.id) : await mockCassetteColorService.reactivate(color.id);
+    const res = color.active ? await cassetteColorService.deactivate(color.id) : await cassetteColorService.reactivate(color.id);
     if (res.ok) setColors(prev => prev.map(c => c.id === color.id ? res.data : c));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('cassetteColorsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('cassetteColorsSection.loading')} />;
 
   const headers: Array<[string, string]> = [
     ['color', t('cassetteColorsSection.headers.color')],
@@ -228,7 +231,7 @@ const CassetteColorsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('cassetteColorsSection.allLabsLabel')}</option>
           <option value="Global">{t('cassetteColorsSection.labFilter.globalOnly')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}

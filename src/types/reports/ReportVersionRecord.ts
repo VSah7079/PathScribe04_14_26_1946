@@ -26,6 +26,10 @@
 //   - record a SHA-256 of the PDF's bytes when the version is created,
 //     and check it on retrieval, so a swapped file is detected (encryption
 //     keeps it private; the hash shows it is unchanged).
+//     Partly superseded (Batch 461): the mock now records pdfSha256 (and the
+//     organ-map images' hashes) at creation. Batch 558: the PDF's hash is
+//     checked on retrieval too (services/reports/reportVersionPdf.ts), and a
+//     version the API server holds is read through it.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { PatientEncounterSnapshot } from './PatientEncounterSnapshot';
@@ -53,7 +57,9 @@ export interface ReportVersionRecord {
    */
   createdFromStation?: string | null;
   /** Full case PDF (every synoptic instance rendered together), same
-   *  pipeline as the print button — not a second, separately-built artifact. */
+   *  pipeline as the print button — not a second, separately-built artifact.
+   *  Batch 558: absent on a version the API server lists (only its hash is
+   *  listed); read every version's PDF through services/reports/reportVersionPdf.ts. */
   pdfBase64?: string;
   generationError?: string;
   /** One instance's structured answers at this version — the instance
@@ -74,4 +80,14 @@ export interface ReportVersionRecord {
    *  encounter lookup failed at capture time (never blocks the real
    *  sign-out itself on this - see mockReportVersionService.ts). */
   patientEncounterSnapshot?: PatientEncounterSnapshot;
+
+  /** Batch 461: the organ-map images in the report when this version was
+   *  made, each with the SHA-256 of its SVG (and PNG), so the signed-out
+   *  image is locked and a changed one is detectable. Captured by
+   *  mockReportVersionService.create() from the case. */
+  organMapFigures?: import('@/services/organMapping/organMapFigures').OrganMapFigureVersion[];
+  /** Batch 461: SHA-256 of the PDF. Batch 558: of its bytes, as the API server
+   *  and report documents record it; versions saved before Batch 558 in this
+   *  browser hold the hash of the base64 text, which the reader still accepts. */
+  pdfSha256?: string;
 }

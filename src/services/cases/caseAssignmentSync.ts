@@ -82,13 +82,18 @@ export function syncPrimaryAssignee(
   newPrimaryStaffId: string,
   updatedBy: string,
   newPrimaryStaffName?: string,
+  /** Batch 441: a cytotech-only staff member. A demoted cytotech primary
+   *  (possible before Batch 441) becomes 'cytotechnologist', never the
+   *  'attending' (co-signer) fallback, which is a pathologist slot. */
+  isCytotech?: (staffId: string) => boolean,
 ): Partial<Case> {
   const existingParticipants: CaseParticipant[] = caseData.participants ?? [];
 
   const updatedParticipants = existingParticipants.map(p => {
     if (p.status === 'active' && p.participationTypeIds.includes('primary') && p.staffId !== newPrimaryStaffId) {
       const remainingTypes = p.participationTypeIds.filter(t => t !== 'primary');
-      return { ...p, participationTypeIds: remainingTypes.length > 0 ? remainingTypes : ['attending'] };
+      const fallback = isCytotech?.(p.staffId) ? 'cytotechnologist' : 'attending';
+      return { ...p, participationTypeIds: remainingTypes.length > 0 ? remainingTypes : [fallback] };
     }
     return p;
   });

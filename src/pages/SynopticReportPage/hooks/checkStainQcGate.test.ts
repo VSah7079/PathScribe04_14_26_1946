@@ -12,6 +12,7 @@ const store = new Map<string, string>();
 };
 store.set('pathscribe-user', JSON.stringify({ id: 'TEST-USER', role: 'superadmin' }));
 
+await import('@/services/batches/batchServiceInstance'); // load the instance first so the mock's import of @/services resolves
 const { mockBatchService } = await import('@/services/batches/mockBatchService');
 const { mockScanStationService } = await import('@/services/scanStations/mockScanStationService');
 const { mockWorkstationGroupService } = await import('@/services/workstationGroups/mockWorkstationGroupService');

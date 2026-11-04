@@ -1,0 +1,468 @@
+# PathScribe demo guide
+
+This guide covers who to sign in as, and which seeded case to open, to demo each workflow. It describes the demo baseline as of Batch 457.
+
+**Full Reset** returns everything to this baseline. Run it once after installing this batch, so every new seed loads (registry submissions, the critical alert, the support-access request, the consult link and the supervision records come back only through a reset; the cases, cytology reviews, molecular runs, staff and pools update on their own): Configuration → ⟳ Demo Reset (corrected in Batch 456; this said Configuration → System before). It needs `config:demo-data:reset`; Pete, Michelle and any Superadmin can run it.
+
+- It clears every tester's changes.
+- It restores the seeded cases, people, delegations and reviews.
+- It puts the seeded billing and modifier versions back to "pending approval", so the approval demo can be repeated. Versions someone created themselves are kept.
+- It puts the Lockbox Drop-Off demo back to its six starting receipts (Batch 648; see the Lockbox section below), so anything scanned, linked or accessioned on that screen is removed.
+- Passwords set on the Staff screen are cleared, but the built-in demo sign-ins below keep working.
+
+All demo sign-ins use the same password as `demo@pathscribe.ai`. The password is not written here; ask Pete.
+
+**Sign-in lockout (Batch 456):** 5 wrong passwords in a row for one email lock that email for 15 minutes. The fourth failure warns that one more will lock it. To unlock early, an administrator sets a new password for the person on the Staff screen (that also replaces the built-in demo password), or runs a Full Reset. Each failure and lock is in the Audit Log.
+
+**Password rules (Batch 456):** a password set on the Staff screen, or chosen at sign-in, must be at least 12 characters, and is refused if it is on a list of commonly used passwords, is a simple pattern (`abcabcabcabc`, `123456789012`), contains PathScribe, ForMedrixAI or the person's email, or appears in a known data breach (checked with Have I Been Pwned without sending the password).
+
+## Who to sign in as
+
+All are at Desert Valley (Metro General Hospital) unless noted.
+
+| Sign in as | Email | Role | Use for |
+|---|---|---|---|
+| Pete Nimmo | demo@pathscribe.ai | Superadmin (Pathologist, Admin) | Every capability except approving the AI instructions (`config:ai-prompt:approve`, separation of duties); the attending in two-person pairs |
+| Dr. Sarah Johnson | sarah.johnson@demo.pathscribe.ai | Pathologist | Second pathologist: her own cases, second opinions, informal reviews, surgical peer review |
+| Dr. James Okafor | james.okafor@demo.pathscribe.ai | Resident | Releasing a draft for countersign (S26-4610) |
+| Dr. Lucas Moreau | lucas.moreau@demo.pathscribe.ai | Fellow | Fellow drafting; claiming from subspecialty pools |
+| Dr. Rachel Okafor | rachel.okafor@demo.pathscribe.ai | Lab Director | Discordance patterns, registry go-live approval, configuration |
+| Priya Desai | priya.desai@demo.pathscribe.ai | Cytotechnologist | Primary screening; QC-rescreens Nadia's work (S26-4652) |
+| Nadia Rahman | nadia.rahman@demo.pathscribe.ai | Cytotechnologist | QC-rescreens Priya's work (S26-4650, S26-4651) |
+| Hannah Price | hannah.price@demo.pathscribe.ai | Template Author | Drafting a synoptic template and submitting it for review |
+| Dr. Samuel Osei | samuel.osei@demo.pathscribe.ai | Template Approver | Approving and publishing a template someone else wrote |
+| Grace Liu | grace.liu@demo.pathscribe.ai | QA Reviewer | Quality Assurance: exports, follow-up outcomes, the clinician email; viewing registry exceptions |
+| Helen Schollars | helen.schollars@demo.pathscribe.ai | Admin and Pathologist | Technical writer: opens every screen to capture it for the Admin and User Guides (not read-only; passwords reset from Staff) |
+| Shelly Krill | shelly.krill@demo.pathscribe.ai | Admin and Pathologist | Technical writer: same as Helen Schollars |
+| Maria Lopez | maria.lopez@demo.pathscribe.ai | Accessioner | Accessioning |
+| Kevin Brooks | kevin.brooks@demo.pathscribe.ai | Histotechnologist | Embedding, microtome, slide distribution, Batch Management (home bench Microtome — Bench 1, Batch 738) |
+| Daniel Kim | daniel.kim@demo.pathscribe.ai | Molecular Technologist | Molecular Workspace and Extraction Racks (HPV runs on the baseline Paps) |
+| Connor Whitlock | connor.whitlock@pathscribe.ai | Pathologists' Assistant | Grossing (home bench Grossing Station 1, Batch 738); PA on autopsy A26-4661 (open it through Search: it's on Pete's worklist, not his) |
+| Jordan Ellis | jordan.ellis@demo.pathscribe.ai | Admin (no clinical role) | Batch 738: the administrator in the demo videos (Configuration only) |
+| Michelle Nimmo | michelle.nimmo@ai.com | Pathologist and Admin | Configuration, Demo Reset |
+| Dr. Imogen Hartley (fictional; Batch 755b) / Dr. Oliver Pemberton | imogen.hartley@demo.pathscribe.ai (UK, Manchester) | Attending / resident | UK countersign (MFT26-8802) |
+
+## Demo videos: seed data (Batch 738)
+
+The seed rows for Pete's demo videos, their status and every id they use are in [`DEMO_SEED_DATA.md`](DEMO_SEED_DATA.md). In short:
+- **S26-4680** (Dr. Sarah Johnson): a sigmoid colectomy ready to sign out; every sign-out check passes. Full Reset brings it back unsigned.
+- **ord-038**: Video 1's colon resection order; importing it makes the colon protocol's twelve blocks, so Complete grossing can be reached. **ord-039**: outside slides for consultation (choose Intake Type "Outside").
+- Labels print on every histology bench: the result says "Simulated … Nothing was printed." The demo uses GS1 internal-use GTIN 0299990000101.
+- Accession's received time is the computer's local time.
+- **Batch 744 (S14), fluids:** S26-5101 to S26-5108 (pleural, peritoneal, CSF, urine, bronchial washing, an EBUS lymph node FNA, a ThinPrep and a SurePath Pap), open cytology batches CONT-CYP-DEMO-TP, CONT-CYP-DEMO-SP, CONT-CYS-DEMO and CONT-CYI-DEMO, and two instrument orders. Sign in as Priya Desai (cytotechnologist): her Non-GYN / FNA Queue shows S26-5005, S26-5101, S26-5103 and S26-5106, and the ROSE tile both ROSE evaluations.
+
+## Video 3 (cytology): the cases (Batch 749)
+
+Sign in as **Priya Desai**. After a Full Reset the GYN tiles read My Worklist 5, Pool 4, QC / Rescreen 3, HPV Triage 1, and in the compliance row Recall Needed 1 and Peer Review 1.
+
+- **Step 7:** open **S26-5501** (Maribel Underwood): a ThinPrep Pap, routine screening, nothing abnormal before. The HPV card reads **Pending** (step 8).
+- **Step 9:** it is meant to be read as negative (NILM); the AI gallery read found no atypical cells, so at step 11 the concordance window can be answered **Agree**.
+- **Step 15:** sign out S26-5501 only.
+- Other cases to point at: S26-5503 (HPV positive after ASC-US, AI read ASC-US), S26-5510 (Northside Clinic, primary HPV, positive: reflex cytology), S26-5508 in HPV Triage (HPV not back), S26-5509 in Recall (self-collected swab positive: a clinician-collected sample is needed), S26-5507 in Peer Review.
+- **Video 2:** the Non-GYN / FNA Queue has a breast FNA, **S26-5511**, ready to screen, with the thyroid FNA S26-5005 and the EBUS FNA S26-5106.
+
+## Video 7 (batching) and the block types: the data (Batch 748)
+
+- **Step 2:** every stage tile on Batch Management has open batches after a Full Reset, Checkout included (CONT-CHK-WALL-1, two H&E slides on a tray to the pathologist).
+- **Step 8:** Pending Load lists about 190 printed blocks and slides not in any batch.
+- **Steps 5 to 7 on a batch already there:** CONT-STN-DEMO-RECON is reconciling, with a matched slide, a missing one and an unexpected scan.
+- **Retention:** S26-4630 carries a patient-requested retention hold (Retention Holds list); the disposal list has the items past retention.
+- **Block types** (Dr. Sarah Johnson, Orchestration Cases): **S26-5401** prostate biopsies in two multi-piece cassettes, each with its inked piece map (A1: parts A to C; D1: parts D to F); **S26-5402** a megablock with two large-format H&E slides; **S26-5403** block A1 used up, with a Ki-67 add-on waiting for the block to be re-embedded. The matrix block S26-4404-M1 is accepted at Embedding.
+
+**Batch 755b (Pete, Nov 1, 2026): the Manchester demo pathologist is fictional.** PATH-UK-001 is now **Dr. Imogen Hartley** (sign in as imogen.hartley@demo.pathscribe.ai, shared demo password). Paul Carter, who advises on UK workflow and is not a physician, signs in with his own email to his own record (UK-ADV-001), with no clinical credentials.
+
+## Video 9 (synoptic reporting and the organ map): the data (Batches 751, 753 and 755a)
+
+Sign in as **Dr. Sarah Johnson**. After a Full Reset:
+
+- **Checklist names (Batch 755a):** the checklists read **Prostate needle biopsy**, **Radical prostatectomy** and **Colon resection**, each with a grey **Demo wording** tag; S26-4404's written report (gross description and ancillary studies) is in real words.
+
+- **Steps 1 to 4:** **S26-4404** (prostate needle biopsy). Press **Map**: cores A to C (right side) Grade Group 2, D to F benign, the others not sampled. The checklist reads in real words (Batch 753): six cores, three with carcinoma, highest Gleason score 3+4=7. The case opens with a demo amendment in progress (the score corrected from 3+3 to 3+4); it changes nothing in the steps. Step 3 changes an answer, so run Full Reset before the next take.
+- **Steps 5 to 8:** use **S26-5407** (radical prostatectomy at Desert Valley; MFT26-8804 opens only for the Manchester pathologist). Its map is **already in the report** ("In the report"), so step 6 starts by changing an answer: the panel then says "Report image is out of date — insert again"; step 7 is **Insert again**. Step 8: the preview shows the map after the report body. Its whole checklist is answered in real words (Grade Group 3, focal extraprostatic extension, positive posterolateral margin, pT3a pN0, 0 of 14 nodes).
+- **Step 9:** **S26-4463** (Mohs): "Part of the report: drawn into it automatically"; stage 1 residual tumour at 12 and 1 o’clock and the deep margin, stage 2 clear.
+- **Step 10:** **S26-5405** (Assist, rectal resection, finalised). Press **Map**: the map works, and where Insert would be the panel says "Your laboratory system writes this report." and "Map file sent to the laboratory system at (time)." The demo lab sends the map as text and a PNG file (Facility → Desert Valley Medical Center → LIS Integration → Organ map delivery).
+- **Administrator view (optional):** the outbound queue shows S26-5406’s organ map file as failed ("The destination folder did not answer (demonstration)."), with retry; a retry draws the file again from the final answers.
+- **Do not say:** that the map file reached a real laboratory system (the destination is a demonstration address), or that the map is a medical image.
+
+## Video 7 steps 17 and 18 (slide images): the data (Batch 750)
+
+Before recording, the demonstration images must be hosted and the two addresses set (docs/product/SLIDE_IMAGE_DEMO.md): Configuration → System → Lab Materials & Workflows → Vendor Integrations → WSI Viewers → **Slide images**, or the deployment's `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE`. Set the slide window's position once from the workstation menu (**Slide image window → Set position…**, then **Save position**) on the recording computer.
+
+- Sign in as **Dr. Sarah Johnson** and open **S26-5404** (Philippa Hawthorne). Select **Edit** in the block row: each slide shows its reference preview with "Reference preview. Not for diagnosis."
+- **Step 17:** select the preview of **S26-5404-C1-L1** (sentinel node 2): the demonstration page opens in its own window, labelled "Demonstration only. Not for diagnosis.", with the image's source and licence.
+- **Step 18:** point at **S26-5404-C1-L2**: "Failed image quality" (the blurred copy, back in the scanning queue). Other states to point at: S26-5403 (Queued, Scan failed), S26-5402 A1-L2 (Scanning), S26-5401 (No image yet).
+- Say: PathScribe shows a reference preview and opens the lab's own digital pathology application. Do not say: that PathScribe views, analyses or diagnoses from slide images.
+
+## Video 6 (wall monitors): the displays (Batch 747)
+
+After a Full Reset, sign in as **Jordan Ellis** (administrator) and open **Configuration → Demo Reset**. Under Testing & Demo Tools, **Demo display tokens → Issue tokens** shows a token for each display once; copy the ones you need onto the recording sheet (never into a document) and issue new ones after the next reset.
+
+- **Steps 1 to 3:** Configuration → System → Display Profiles lists **Desert Valley Lab — Main Wall (rotating)** (all five views, 20 seconds each), one profile per department view, a spare, **Desert Valley — Old Break Room Display**, and **Midwest Pathology — Histology Wall** at the second facility.
+- **Steps 4 and 5:** on Bind This Display choose **Desert Valley Lab — Main Wall (rotating)** and type its token.
+- **Steps 6 to 9:** each view has 8 to 17 rows. Grossing and Intake: decalcification vessels overdue, due within 30 minutes and on time, processor baskets, a STAT. Embedding and Microtome: baskets, microtome racks and the open add-on orders with their countdowns. Staining and IHC: racks on the stainers, one **Run Failed**. Send-Out and Reference Laboratory: referral batches, one with a cold-chain excursion. Diagnostic Sign-Out / Scanner: scanner runs, one slide that failed to scan, image QC failures.
+- **Showing a refusal:** bind **Desert Valley — Old Break Room Display** with its token: its token was revoked as it was issued, so the screen says the token has been revoked.
+- **Step 12:** on the OR Suite board choose **OR-Suite-Theatre2**, type its token, then select **Start demo**: four frozen sections appear (DEMO-1 to DEMO-4), at Grossing, Pathologist Review and with a flashing **PRELIMINARY** answer. **Stop demo** removes them.
+- The wall shows add-on orders (Embedding and Microtome view) since Batch 727; the script's "do not say" line about them is out of date.
+
+## Video 5 (molecular): the data (Batch 746)
+
+Sign in as **Daniel Kim** (Molecular Technologist) for steps 3 to 17; steps 1 and 2 are the pathologist's (Dr. Sarah Johnson). After a Full Reset:
+
+- **Step 1:** any case from S26-5201 to S26-5207 (lung) or S26-5211 to S26-5215 (colorectal) has a block with an H&E; S26-4680 (Video 1's case) works too.
+- **Step 4:** the workspace opens on **Active Runs & Batches** while a run is on Panther 2; select **Order Queue** to show the thirteen in-house orders waiting (EGFR mutation PCR and KRAS mutation PCR, at Desert Valley), the two send-out orders (HER2 FISH to Summit, MSI by PCR) and the three resulted ones.
+- **Steps 5 to 7:** the assays with a control rule are HPV High-Risk Screening (Panther 2, deck slot **SLOT_A4** for the plate), EGFR mutation PCR and KRAS mutation PCR (Real-time PCR 1, no deck layout). Both PCR rules want the no-template control in A01 and the positive control in A02.
+- **Step 8:** a valid lot is **EGFR-MM-26104** (Master Mix, QC Signed Off, any future expiry). To show the red message, add **EGFR-MM-26041** with an expiry in the past, or **KRAS-MM-26087** with QC status **Failed** (the builder takes what is typed; the registry, Configuration → System → Reagent Lots, lists the first with its past expiry date and the second as Failed).
+- **Step 16:** **History & Archive** has three completed runs: HPV (S26-5001 Negative, S26-5002 Positive), EGFR (S26-5208 Positive, S26-5209 Negative) and the KRAS repeat (S26-5216 Positive). The superseded KRAS run (BATCH-…-0748) shows the red **Blocked from auto-verification** banner: its no-template control in A01 came up positive. The superseded note names the reason and links the repeat.
+- **Step 17:** **Trace** on S26-5208's row (EGFR run, A03) shows the plate, the instrument, Daniel Kim, both reagent lots and the tube's moves.
+- **The report:** open **S26-5208** as Dr. Sarah Johnson: the Lung Adenocarcinoma synoptic reads **EGFR Mutation Status: Detected**, filled from the in-house test, and the ancillary studies line names the result.
+
+## Video 4 (autopsy): the cases (Batch 745)
+
+Batch 755a: A26-4665 and A26-4666 open on PathScribe's own **Autopsy Gross Examination — Whole Body / Multi-Cavity** checklist, so steps 6 to 11 no longer show the list of demonstration checklists.
+
+Sign in as **Dr. Sarah Johnson**. The autopsy entry for step 2 is **Autopsy, Complete (Body)**. Steps 6 to 9 use **A26-4665** (temporary accession; the Medical Examiner's order was given verbally by Deputy Medical Examiner L. Moreno, the written order is pending, so the banner reads "Autopsy: temporary accession, written authorization pending"). In step 6 the case is on the Worklist under **Orchestration Cases**, then the **Autopsy** tab (autopsies are Orchestration cases; the LIS Cases view shows none). Steps 10 and 11 use **A26-4666** (PAD signed, body in Mortuary Cooler 1, Tray B; the family excluded the brain and refused retention). A26-4667 is a closed case with both reports signed; A26-4662 has an ancillary hold; A26-4663 is a Medical Examiner case with its written order on file.
+
+## Video 8 (fluid workup): what to change in the script (Batch 744)
+
+The Video 8 script in "PathScribe Demo Video Production Requirements" was written before the Cytology Preparation bench (Batch 740), Divide specimen (Batch 741) and the S14 seed (Batch 744). Walked against the demo build; change it as follows. Sign in as **Priya Desai** for steps 1 to 10 and as **Kevin Brooks** (histotechnologist) for step 11.
+
+| Step | Change |
+|---|---|
+| Before you press record | The pleural fluid order is **ord-036** (MGH-ORD-71036). The barcodes: peritoneal fluid container **S26-5102-CYT-001-AD3** (1,200 mL, bloody, high yield already recorded), CSF container **S26-5103-CYT-001-AD3**, handed-off cell block **S26-5106-CYT-001-AD1** (EBUS FNA, H&E and TTF-1 to cut). |
+| 3 | Go to **Pathology Workspace**, then **Cytology Preparation** (not Microtome Workspace). Scan **S26-5102-CYT-001-AD3**. Say: "Fluids are prepared at the cytology preparation bench." The decant panel and the suggestion show. |
+| 4 | The volume, appearance and yield are already recorded. To show the rule, change **Total Volume (mL)** to 35: the suggestion stays the same (over 20 mL with a high yield). |
+| 5 | The suggestion reads "2× ThinPrep (Liquid-Based), 2× Cell Block, and 1× Direct Smear (Air-Dried)". Then **Accept suggestion**. |
+| 7 | Scan **S26-5103-CYT-001-AD3** (3 mL of CSF). The suggestion is two cytospins; they are already made (one coverslipped, one on the stainer). Say: "A small fluid, and spinal fluid always, is spun onto slides." |
+| 8 | The step is now named **Liquid-Based Cytology Processing**, and the batch asks for the **Processor** (from Equipment). Two open batches already exist: **CONT-CYP-DEMO-TP** (ThinPrep processor) and **CONT-CYP-DEMO-SP** (SurePath processor). |
+| 9 | The Molecular Order Queue already shows the two instrument orders (one Sent, one Queued), each naming its processor; a new batch adds another. |
+| 10 | An open **Cytology Staining** batch exists: **CONT-CYS-DEMO** (Diff-Quik, the CSF cytospin). |
+| 11 | A cell block reaches the Microtome only after its **hand-off** at the Cytology Preparation bench (two scans: its source, then its cassette). Use the handed-off **S26-5106-CYT-001-AD1**: the Microtome shows its H&E and the TTF-1 add-on, both pending. Scanning a cell block that hasn't been handed off is refused with a message to hand it off first. |
+| Do not say | Remove "that flow cytometry or culture aliquots are tracked (they are not built)" and "that fluids are decanted … on the microtome screen": both are built now (Divide specimen, the Cytology Preparation bench). Keep "that PathScribe sends the specimen to a Hologic or BD system" and "cytospin has its own batch step". |
+| Leaves out | Aliquots (Divide specimen, seen on **S26-5101-CYT-001-AD3**), SurePath processing and ROSE can now be shown, if Pete wants them in this video. |
+
+**Known gap (not changed):** the bench records volume, appearance and yield on a scanned decant, but a freshly accessioned fluid has only the two cell block cassettes its protocol planned; there is no step that adds the fluid container itself as a decant. That is why the video uses the seeded peritoneal container rather than the pleural fluid accessioned in step 1.
+
+## Two-person workflows
+
+| Workflow | First person | Second person | Case |
+|---|---|---|---|
+| Resident release → attending countersign | Dr. James Okafor releases | Pete Nimmo countersigns (it then shows on his Countersign tile) | S26-4610 |
+| Second opinion (delegation) | Sarah Johnson asked Pete | Pete answers | S26-4603 |
+| Second opinion, the other way | Pete asked Sarah | Sarah answers | S26-4604 |
+| Informal review | Sarah asked Pete; Pete asked Sarah | The other one publishes | S26-4601, S26-4602 |
+| Cytology QC rescreen | Priya Desai screened | Nadia Rahman rescreens | S26-4650, S26-4651 |
+| Cytology QC rescreen, the other way | Nadia Rahman screened | Priya Desai rescreens | S26-4652 |
+| Template author → approver | Hannah Price drafts and submits | Dr. Samuel Osei approves | Configuration → Synoptic Library |
+| Billing dictionary approval | (seeded as pending) | Michelle or Pete approves | Configuration → System → Pending Billing Rule Approvals |
+| Surgical post-sign-out peer review | Pete signed out | Sarah reviews | S26-4405, S26-4412, S26-4492 |
+| Pool claim | Any demo pathologist or the fellow | (none needed) | Pool tile on the worklist |
+| Support access | Amber Fehrs-Battey (ForMedrixAI support) asked for access to Desert Valley, ticket FMX-20417 | The hospital's administrator, Michelle Nimmo (or Pete), approves or rejects | Configuration → System → Support Access |
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): there is no Configuration → Billing or Templates tab for these; synoptic templates are under Synoptic Library and billing approvals under System → Pending Billing Rule Approvals (`ConfigurationPage.tsx`, `systemSections.ts`).*
+
+## Cases for specific screens
+
+| To show | Case(s) |
+|---|---|
+| Sarah Johnson's worklist | S26-4601, S26-4602, S26-4603 |
+| Finalizing / Pending Release / On Hold tiles | S26-4620 / S26-4621 / S26-4622 |
+| A closed case (no tile; All Cases or Search) | S26-4623 |
+| Biopsy-to-resection correlation | S26-4630 (core biopsy) → S26-4631 (mastectomy, same patient). Sign out S26-4631 to see the candidate. |
+| Cyto-histo correlation | S26-4641 (HSIL Pap) → S26-4642 (LEEP, same patient) |
+| Follow-up not received (QA → Operations) | S26-4632 overdue, S26-4633 due soon, S26-4640 overdue (cytology); S26-4630 and S26-4641 received. Metro General has "Email ordering clinician" turned on. |
+| Follow-up due tiles | Pete's worklist (S26-4632) and Sarah's worklist (S26-4633). On the cytology worklist, S26-4640 shows under Follow-up Due for anyone whose cytology worklist includes Sarah's signed-out Paps. |
+
+| Autopsy | Worklist → Autopsy tab. Pete: A26-4660 (accessioned, ready for the gross), A26-4661 (preliminary diagnosis drafted: sign the PAD, then release the body; consent excludes the brain, and the body's organ list includes it — Batch 468, see below) and A26-4663 (forensic, Medical Examiner order, one chain-of-custody transfer on record — Batch 468, see below). Sarah: A26-4662 (PAD signed, body released, brain fixing; final diagnosis to sign). |
+| Molecular Workspace (Daniel Kim) | Active Runs & Batches tab: an HPV run on Panther 2 for S26-4650, and a failed run for S26-4651 (positive control low, results blocked; Clone & Supersede repeats it). Extraction Racks: RACK-MOLE-00456 with S26-4652, awaiting extraction. |
+| Molecular Order Queue (Configuration → ⟳ Demo Reset → Testing & Demo Tools → Molecular Order Queue → Open; Pete or Michelle) | HPV orders sent for S26-5001, S26-5002 (and the reflex genotyping order its positive result triggered), S26-4650 and S26-4651; S26-4652's order failed (the Panther middleware didn't answer), which is why its rack is still waiting. The page's demo panel still queues an order and simulates a result for S26-5003. |
+| Registry Exceptions (Quality & Compliance) | S26-4405 rejected (laterality missing), S26-4490 acknowledgement overdue, S26-4633 revised by the registry after acceptance. Accepted submissions for S26-4412 (with a correction) and S26-4630 appear only in Download transmission audit (the screen lists exceptions, not history). See the limits below. |
+| Critical-finding alert | Sign in as Pete: Audit Log → Critical Alerts shows the outstanding secure-email alert to Dr. Jennifer Davis for S26-4621 (tumour at the deep margin). The physician's page is `/critical-alert/cat_demo4621margin`, with Acknowledge Reviewed. Full Reset makes it outstanding again. |
+| Decants (Cytology Workspace, material view) | S26-4650 and S26-4652: residual fluid decants (S26-4652 with a repeat ThinPrep). S26-4651: a decant with a p16/Ki-67 slide, on the Cell Block / Ancillary Pending tile. |
+| Cell block from a decant (Kevin Brooks, Microtome) | S26-5005 (thyroid FNA): scan `S26-5005-CYT-001-AD2`, the cell block, H&E pending cut. |
+| Matrix block | S26-4404 (prostate biopsies): block M1 holds cores D, E and F. Report page → Material tab → Biopsy Arrays. |
+| Consult link | Sign in as Sarah: S26-4602 → Consult shows an active link to Dr. Miguel Ortega (Sonoran Dermatopathology Associates, fictional). The seeded link itself can't be opened (the address is shown only when a link is made); issue a new one to show the consultant's view. |
+| Supervision (FPPE) | Configuration → Staff → Credentialing Review → FPPE Assignments: Pete supervises all three: Oliver Pemberton (active, GI), Dr. Imogen Hartley (completed by case count) and Michelle Nimmo (graduated early). |
+
+## Limits of the seeded data
+
+- **Registry Resend (Batch 457):** Metro General now reports to the US (NAACCR) cancer registry, and S26-4405 and S26-4490 carry their ICD-O code, diagnosis and date. Resend rebuilds the submission and then stops with "Not sent: this is a validation instance…": the demo runs as a validation instance, which by design never sends a real case to a registry (only the synthetic test suite, to the registry's test system). To show a successful send, use the registry's go-live steps: record the data-sharing agreement, then send the synthetic test suite.
+- **Molecular:** the in-house instruments run HPV and (Batch 467) EGFR mutation PCR on Real-time PCR 1, so there are no breast or colon molecular runs. (Before Batch 467 this said only HPV ran in-house.) The workcenter has no "review results" step: a run passes automatically or is blocked.
+- **Microtome and matrix blocks:** *superseded (Batch 460):* the Microtome workstation opens a matrix block (scan `S26-4404-M1`).
+- **Call-backs:** no call-back is seeded; a call is logged during sign-out when the detector flags a finding.
+
+## Demo: two people in the same case (PS-71, Batch 458)
+
+This build keeps its data in one browser, so the demo uses **two tabs of the same browser**, signed in as the same person; the second tab plays "someone else". (Two different people signing in at once needs the API server: in the demo, one browser holds one sign-in.) Reload both tabs before each step, so each starts from the saved case.
+
+1. **Set up.** Sign in as Pete Nimmo. Open **S26-4631** (Pete's open Assist case, with a draft Breast Invasive synoptic report) in a tab, and the same case in a second tab.
+2. **Different parts: the review box.**
+   - In tab 2, add a specimen comment. It saves at once.
+   - In tab 1, without reloading, answer a synoptic question and click **Save Draft**.
+   - The box "Someone else changed this case while you were working" says they changed *Specimens, blocks and slides* and you're saving *Synoptic reports*.
+   - Choose **Not yet: show me their changes**. Tab 1 now shows the comment from tab 2, and your answer is still there, unsaved. Click **Save Draft** again: it saves with no box, since you've now seen their change.
+   - To show **Save mine with theirs**, reload both tabs and repeat this step, choosing it the first time.
+3. **Same field: the Edit Conflict box.**
+   - Reload both tabs. In each, change the same synoptic answer to a different value.
+   - Save in tab 2, then in tab 1. Tab 1 shows the Edit Conflict box.
+   - Show **View changes** ("Replaced by yours" / "Kept as saved"), then **Save mine anyway**.
+   - Open the Audit Log and show "Concurrency conflict overridden".
+4. **Without the permission.** Sign out, sign in as Maria Lopez (Accessioner), find S26-4631 through Search, and repeat step 3 in two tabs. "Save mine anyway" is greyed out: she can keep working, view changes or reload.
+5. **Nothing is lost.** Type something in tab 1 without saving, wait a second, then close the tab. Reopen the case: PathScribe offers your unsaved changes back, fitted around anything saved since.
+
+The pool-claim race (two people accepting the same pool case at once) needs two people signed in, so it can't be shown in one browser. It is covered by the automated test `mockCaseServicePoolClaim.test.ts`.
+
+## Demo: billing at the bench, matrix blocks, Label Designer (Batch 460)
+
+**Billing in the Cytology Workspace (full review)**
+1. Open S26-4650 in the Cytology Workspace and click **$ Billing** (next to # Codes).
+2. Approve a pending code, then delete it.
+3. Open Quality & Compliance → Audit → Audit Log. It shows "Billing code charged", then "Billing code credited".
+4. Take "Review a case's billing codes" off a test role in the Role Dictionary and sign in as that role. Approving is refused with a message, and nothing changes.
+
+**Billing at the Microtome (read-only, with full review)**
+1. At the Microtome workstation, scan a block with special stains or IHC.
+2. The Billing box lists each slide's codes: applied, pending review or no billing code, plus any "waiting for billing approval".
+3. **$ Full billing review** opens the full panel. It's greyed out for a role without the permission.
+
+**A matrix block at the Microtome**
+1. Scan `S26-4404-M1`. The left panel lists cores D, E and F with their positions.
+2. Add a Ki-67. Billing warns that the pathologist hasn't confirmed which cores were evaluated yet.
+3. On the report page, tick the evaluated cores in the Array Mapper. Each specimen then gets its own code.
+
+**Slide order**
+1. Switch to Batch mode and drag a slide above another.
+2. Scan the printed label of the moved slide. It still opens that slide.
+3. Remove an unprinted slide and add a new one. The new slide gets a new level and never reuses the removed one.
+
+**Label Designer**
+1. Configuration → System → Label Designer. Click a field and drag a corner handle; it stops at the label's edge.
+2. Type a width larger than the label; it's capped.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Audit Log is a tile on Quality & Compliance, not inside Quality Assurance; Label Designer is under Configuration → System.*
+
+## Demo: the anatomical map beside the synoptic (Batch 461)
+
+The map's cancer data comes from the synoptic report: it is drawn from the synoptic answers.
+
+**Prostate needle biopsy (core map)**
+1. Sign in as a pathologist and open S26-4404. On the synoptic (Prostate Needle Biopsy), press **Map**.
+2. The core map shows cores A–C (right apex, mid, base) as Grade Group 2 and D–F (left) benign; the other sites are "not sampled". Hover core B: Grade Group 2, Gleason 3+4=7, 70 %.
+3. In the synoptic, open **Anatomical map (PathScribe) → Core results** and change core D to carcinoma, Grade Group 3. The map changes at once.
+4. Click a core on the map: the synoptic jumps to Core results.
+
+**Radical prostatectomy (sector map)**
+1. Open MFT26-8804 (signed in as its Manchester pathologist), or **S26-5407** as Dr. Sarah Johnson (Batch 751: the same map, already in its report), and press **Map**. The PI-RADS v2.1 sector map shows Grade Group 3 in the right peripheral zone, with extraprostatic extension and a positive margin outlined at the right posterolateral mid-gland.
+2. Press **Insert into report**, then change an answer (for example tick another tumour sector). The panel says "Report image is out of date — insert again".
+3. Print or preview the PDF: the map appears after the report body.
+
+**Colours by site**
+1. Configuration → System → Organ maps → Colours & patterns. Choose Facility, pick the case's facility, **Override here** on "Grade Group 3 or higher", change its colour and save.
+2. Reopen the map on the case: it uses the facility's colour; the Audit Log shows "Organ map colours changed".
+
+## Demo: the breast map (Batch 462)
+
+The map's cancer data comes from the synoptic report: it is drawn from the synoptic answers.
+
+1. Open S26-4401-BX-001 (left mastectomy) and the Breast Invasive synoptic; press **Map**.
+2. The clock face (viewed facing the patient) shows invasive carcinoma at 2 o'clock, labelled upper outer quadrant for a left breast, with focus 1 (invasive) and focus 2 (DCIS) marked. Hover a focus: type, position, size, distance from the nipple.
+3. The margin diagram shows six faces, each split invasive / DCIS. The deep (posterior) margin is 2.0 mm: clear at the 2 mm default.
+4. Configuration → System → Organ maps → Colours & patterns: choose the case's facility, **Override here** on "Breast: a margin is close below (mm)", set 2.5 and save. Reopen the map: the deep margin is now close (and an inserted report image says it is out of date).
+5. In the synoptic, change focus 2's clock position to 3 o'clock: the map moves it at once. Click a focus marker to go to Tumour foci.
+6. S26-4405 (right lumpectomy, signed out) shows DCIS with calcifications at 10 o'clock, upper outer quadrant for a right breast.
+
+## Demo: colorectal maps (Batch 464)
+
+The maps come from the synoptic answers; the margins are judged by the site's rules (Configuration → System → Organ maps → Colours & patterns: "Malignant polyp: margin involved at" and "Rectal CRM: involved at", each a distance and ≤, < or =; 1.0 mm and ≤ by default).
+
+**Malignant polyp**
+1. Open S26-4465 (sigmoid polyp, snare polypectomy) and the Colorectal Local Excision synoptic; press **Map**.
+2. The pedunculated polyp (Paris 0-Ip) shows carcinoma in the head and neck (Haggitt level 2) and the stalk margin at 0.8 mm: **involved** at ≤ 1 mm. The map prints the rule it used.
+3. In **Anatomical map (PathScribe)**, change the Paris type to 0-IIa: the drawing becomes a sessile lesion with the submucosa in thirds; set the depth to Kikuchi sm2 and adenoma at the lateral margin "Present" to see both.
+4. In Configuration, choose the facility (Metro General), **Override here** on the malignant-polyp rule, set "= (exactly)" and 0, and save. Reopen the map: 0.8 mm is now clear (only carcinoma on ink is involved), and an inserted image says it is out of date.
+5. Batch 466d — margins per component (CAP's two blocks), with the default rule and the Paris type back to 0-Ip (undo steps 3 and 4 first): under **Margins**, "Invasive carcinoma margins" reads "Invasive carcinoma present at margin" with "Deep (stalk / submucosal)" ticked, both locked (calculated from the map). Set adenoma at the lateral margin "Present": "Adenoma (non-invasive) margins" turns to "Adenoma present at mucosal margin" — the carcinoma's answers don't change. Change the deep distance to 2 mm: the carcinoma's margins turn negative while the adenoma's stay involved. Clear the deep distance and sign out (remove the map image inserted earlier first, or sign-out stops on the out-of-date image): PathScribe lists the carcinoma margins still blank and asks before going on; the generic template's unanswered required questions then stop it.
+
+**Rectal resection**
+1. Open S26-4464 (low anterior resection) and the Colorectal Resection B synoptic; press **Map**.
+2. The cross-section (viewed from below) shows tumour in the anterior and left walls, the CRM closest anteriorly at 1.5 mm: clear at ≤ 1 mm. The long view shows the tumour below the peritoneal reflection and the distal margin at 25 mm. The caption gives the mesorectal plane and the CRM rule.
+3. At a site whose CRM rule is ≤ 2 mm, the same answers show the anterior CRM involved.
+
+## Demo: head and neck maps (Batch 465)
+
+S26-4466 is a composite resection: two specimens, each with its own PathScribe synoptic, on one case.
+
+**Oral cavity**
+1. Open S26-4466 (Desmond Okafor-Hale; A: partial glossectomy, B: right neck dissection) and the **PathScribe — Oral Cavity Resection** synoptic on part A; press **Map**.
+2. The mouth (facing the patient) shows carcinoma on the right oral tongue and right floor of mouth. Beside it, the deep margin at 0.6 mm is **involved** (< 1 mm) and the peripheral mucosal margin at 3 mm is **close** (1–5 mm), outlined for high-grade dysplasia. The captions give the depth of invasion (7 mm) and both site rules.
+3. Change the peripheral margin to 6 mm: it turns clear. Press **Insert** to put the map in the report (optional, as for the other organs).
+4. Configuration → System → Organ maps → Colours & patterns: choose the facility (Metro General), **Override here** on "Oral cavity: margin close at", set 2.5 and save. Reopen the map: a 3 mm margin is now clear, and an inserted image says it is out of date. A close distance below the involved one is refused.
+
+**Neck dissection**
+1. On part B, open the **PathScribe — Neck Dissection** synoptic. **Nodes by level** has a row for each level and side.
+2. Press **Map**: level IIa shows metastasis (2/6) outlined heavily for ENEma; level III (1/5) outlined lightly for ENEmi; Ia, Ib, IIb and IV examined without tumour; right levels V–VII and the whole left neck not dissected. The caption totals 3 of 27 nodes positive with the worst ENE.
+3. Enter nodes on the "Left level IIa" row: the left neck fills in at once, and **Total nodes positive / examined** add them up (calculated, read-only).
+4. Enter 5 positive of 3 examined on that row: the row is flagged, **Save Draft** says the draft wasn't saved, and sign-out stops, until the count is corrected.
+5. Configuration (Batch 465b): at the enterprise, set "Oral cavity: margin involved at" to 4 mm while Metro General's close distance is 2.5 mm (step 4 of the oral cavity demo): the save warns that Metro General's rules conflict, the warning stays on the screen, and the map's close line reads "Close ≤ 5 mm (default: site rules conflict)" until Metro General's rules are reconciled.
+
+## Demo: renal resection map (Batch 466)
+
+1. Open S26-4467 (Marguerite Ellsworth, right radical nephrectomy) and the **Kidney Resection** synoptic; press **Map**.
+2. The right kidney (hilum toward the middle) shows carcinoma in the upper pole, lateral half, marked A (anterior aspect); perinephric fat and the renal vein show carcinoma. The renal vein margin is involved, the ureteral margin clear, and the soft tissue margin at 0 mm is involved by the site's rule (= 0.0 mm, on ink). The caption reads "Extent and size: pT3a (AJCC 8th)" — a guide; the stage stays the pathologist's answer.
+3. In **Anatomical map (PathScribe)**, change the soft tissue margin to 0.5 mm: it turns clear. Change the procedure to partial nephrectomy: the renal vein and ureteral margin questions disappear from the form (and from the report), and the map shows the parenchymal and perinephric / capsular soft tissue margins, each with its site rule. Batch 466c: the drawing drops the renal vein, vena cava and ureter too (a partial specimen doesn't hold them). Tick "Renal vein segment submitted" under **Add non-standard margin**: its question and box come back. Choose "Left" for the kidney: the drawing mirrors.
+4. Enter −1 (or 1.5) in **Number Positive** under Regional Nodes: the field is flagged, and Save Draft and sign-out stop until it's a whole number (Batch 466: node counts are whole numbers, 0 or more; the neck dissection's level counts and totals too).
+5. Configuration → System → Organ maps → Colours & patterns: "Kidney, radical nephrectomy: soft tissue margin involved at" (and the partial nephrectomy's parenchymal margin) — each a distance and an operator per site.
+6. Batch 466b — the generic margin questions follow the map: Configuration → System → Organ maps → Map bindings, choose Kidney Resection, and under **Generic margin questions (calculated from the map)** choose "Margin Status" (say which answer means involved and which not involved) and "Margin(s) Involved" (which answer is the renal vein, ureter, soft tissue). Save, reopen S26-4467: both questions are filled from the map and locked; change the soft tissue distance to 2 mm and the vein margin to not involved — they turn to "not involved" at once.
+7. Batch 466b — count settings in the Synoptic Editor: open a copy of Neck Dissection; a numeric question offers **Number type** (decimal / whole number), **Can't exceed** (another numeric question) and **Value** (entered by hand / total from a grid); the levels grid lists its number columns with the same rules.
+8. Batch 466c — the Synoptic Editor builds the new conditions: Configuration → Synoptic Library, open Kidney Resection in the editor and select "Renal vein margin". Its visibility reads **Shown unless…** the procedure is "Partial nephrectomy", **or also when** "Add non-standard margin" is "Renal vein segment submitted" — editable, no longer "Custom condition". On "Total nodes positive" in the Neck Dissection template, the **Value** list now offers "Entered by hand, checked against a grid's total".
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Organ maps is under Configuration → System; the editor is reached from the Synoptic Library tab (there is no "Protocols" tab).*
+
+## Demo: in-house molecular orders (Batch 467)
+
+1. Sign in as Daniel Kim (Molecular Technologist) and open the Molecular Workspace. The first tab, **Order Queue**, lists MO-2026-0467-01 (S26-4493 A1, EGFR mutation PCR, in-house, queued) and MO-2026-0403-01 (S26-4401-BX-001, HER2 FISH, send-out to Summit; it can only be cancelled).
+2. Tick the EGFR order, choose the plate "PLT-… (PCR_01) — 94 free wells" (the count leaves out A01 and A02, kept for the controls the EGFR rule fixes), and press **Assign to plate**: the order is "On a plate", PLT-… · A03.
+3. Press **Demo: run → positive**: the plate is dispatched (the order is "Running") and the run's results come back; the order is "Resulted", Positive, "Report answered from this result."
+4. As Pete, open S26-4493 (Angela Weiss) and the **Lung Adenocarcinoma** synoptic: EGFR Mutation Status reads "Detected", with the note "From in-house EGFR mutation PCR result (MO-2026-0467-01)."
+5. Change the answer to "Not Detected": the question shows the delta tag **Result differs** ("In-house EGFR mutation PCR (MO-2026-0467-01) reported “Detected”.") and **Use result**. Your answer is never overwritten; pressing Use result puts "Detected" back.
+6. Re-routing: in Configuration → System → Diagnostic Catalog (the stain dictionary), edit EGFR mutation PCR and untick Desert Valley under **Run in-house at**. A queued in-house EGFR order now reads "This lab no longer runs this test in-house: send it out or cancel it." and offers **Send out instead** (to Summit, the test's default lab) and Cancel; it can't go on a plate. Tick it again afterwards.
+7. Ordering: on the Add-On Order page for S26-4493, add EGFR mutation PCR: the line offers In-house (selected) or Send-out; the reference lab is asked for only for send-out. The placed order appears in the Order Queue.
+8. Configuration → Synoptic Library, open Lung Adenocarcinoma in the editor, select EGFR Mutation Status: **Filled from in-house molecular test** shows EGFR mutation PCR and what a positive and a negative result mean.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the stain dictionary is labelled Diagnostic Catalog; the synoptic editor is under Synoptic Library.*
+
+After sign-out, a late result doesn't change the report: the order reads "Arrived after sign-out: report unchanged, addendum draft opened." and the draft waits for the case's pathologist.
+
+**Batch 467b — send-out, the plate, sign-out and the instrument.**
+
+1. **Choosing a lab.** MO-2026-0467-02 (MFT26-8801-CR-RES, MSI by PCR, send-out) reads "Choose the reference lab before this order is sent." MSI by PCR has no approved lab, so the list offers every active reference lab. Choose one.
+2. **Reference lab result.** Press **Demo: reference lab → positive**. The order is sent in a referral batch of its own and its result comes straight back, so the row reads "Resulted" and names the referral batch. A real order reads "At the reference lab" while it waits.
+3. **The difference.** As Dr. Imogen Hartley (the case's pathologist, imogen.hartley@demo.pathscribe.ai), open MFT26-8801's **Colorectal Further Investigations** synoptic: "Microsatellite instability (MSI) status" still says "Microsatellite stable (MSS)", with **Result differs** and "MSI-high (MSI-H)" beside it.
+4. **Sign-out warning.** Try to sign out the case: it asks first ("…differs from the MSI by PCR result…"). You may go on, or press **Use result**.
+5. **HER2.** MO-2026-0403-01 (S26-4401-BX-001, HER2 FISH, Summit): **Demo: reference lab → negative** fills the breast synoptic's HER2 ISH Status with "Non-amplified".
+6. **The plate.** After assigning the EGFR order (steps 1–2 above), open the plate from the queue: well A03 has a corner mark, its tooltip names the order, and clicking it lists the accession and order.
+7. **Development builds only.** On the Mock Interface Engine page, choose the instrument's results (Positive or Negative; the default is No results). The Plate Builder's own **Dispatch worklist** is then answered by the simulated instrument a few seconds later, through the real results processing.
+
+## Demo: Mohs stage maps (Batch 463, updated 463b)
+
+The stage maps are drawn from the Mohs synoptic's answers and are always part of the report (Pete: "Always, for Mohs").
+
+1. Open S26-4463 (Walter Brennan, left nasal ala; parts A and B are stages 1 and 2) and the **PathScribe — Mohs Micrographic Surgery** synoptic.
+2. Under **Mohs stages**, stage 1 (09:15, 3 blocks) shows residual tumour at 12 and 1 o'clock (block A, nodular BCC) and at the deep margin (block C, infiltrative BCC, perineural invasion outlined). Stage 2 (10:30) is clear.
+3. Press **Add stage 3**: it is stamped with the time. Enter **Blocks cut** 2. Click 6 o'clock on its canvas, or tick 6 o'clock in the checklist beside it: the sector turns positive with the tumour type's histology (basal cell carcinoma, nodular) and its block **Unassigned**; the stage warns "choose the block for every sector with tumour". Try Sign out: it stops with the same reason. Choose block A on the row: the warning clears.
+4. With voice on, say "Stage 3, positive at 9 o'clock, block B" (or "Stufe 3 positiv bei 9 Uhr, Block B" with a German voice profile): 9 o'clock turns positive with block B. "Stage 3 positive at noon" marks 12 o'clock. "Stage 3 clear" clears the stage.
+5. Press **Map**: the companion shows every stage. The panel says the map is part of the report automatically; there is no Insert button.
+6. Preview or print the PDF: the stage maps appear after the report body, in the report's language.
+7. Configuration → System → Organ maps → Colours & patterns: the preview now includes a Mohs map, so the "Residual tumour" and "Perineural invasion" colours can be changed per site.
+
+## Demo: autopsy consent-scope enforcement, chain-of-custody (Batch 468)
+
+**Consent-scope enforcement (hospital-consented cases).**
+
+1. Sign in as Pete and open **A26-4661** (Eleanor Brooks). Its consent is narrowed to exclude the brain ("Complete autopsy, brain excluded"), but the body specimen's organ list already includes Brain and Heart. A banner reading **"Consent excludes an organ present on this case"** shows above the report, naming the excluded organ: "The consent on file excludes: Brain. Findings should not be recorded for these organs." This is a warning, not a hard block — the gross-exam template has no per-finding organ tag, so the pathologist is told and left to apply it to the right findings.
+2. Contrast with **A26-4660** and **A26-4662**: both consents are active/unrestricted (A26-4662's family specifically asked for brain retention), so neither shows the banner.
+3. The other half of consent-scope enforcement — a consent whose `retentionPermitted` is false hard-blocks the **Organ Retention Tier** control — has no seeded case to demo from the UI: that control only ever shows for an HTA-governed jurisdiction (UK England & Wales/Northern Ireland/Scotland, or New Zealand — `resolveHtaApplicability.ts`), and every seeded autopsy is US. It's covered by `resolveAutopsyConsentScopeViolation.test.ts` instead.
+
+**Forensic chain-of-custody.**
+
+1. Sign in as Pete and open **A26-4663** (Marcus Devereaux) from Worklist → Autopsy. It's a medicolegal/forensic case (County Medical Examiner order ME-2026-04663) — no next-of-kin consent section; instead there's a **Chain of Custody** panel.
+2. The log already shows one transfer: Pathology Department (PathScribe Mortuary) → Medical Examiner (County Medical Examiner Toxicology Lab), "Postmortem blood and vitreous fluid (toxicology specimens)", released by Pete Nimmo, received by Tech. R. Alvarez.
+3. Press **Record Custody Transfer**. Fill in Item ("Decedent's clothing"), Transferred To (Type) "Law Enforcement", Transferred To (Name) (e.g. "Metro PD Evidence Unit"), Released By, and press **Save Transfer**: the toast reads "Custody transfer recorded." and the new entry appears, continuing on from the Medical Examiner (the log's own last recipient), not from the mortuary — the current custodian is always wherever the chain last left it.
+4. This panel and its capability (`autopsy:custody:transfer`) only appear for a forensic case; open A26-4660/4661/4662 again to confirm it's absent there.
+
+**Limits of this seed:** toxicology and the fuller organ/tissue retention & release workflow are out of scope for this batch (still open per PS-261); *(Since closed: toxicology orders and results in Batch 469, specimen barcodes in Batch 475; retention recipient, location and disposal in Batches 469–472 — checked in the Batch 496 README audit.)* there's no screen yet to narrow or revoke an already-granted hospital consent (A26-4661's narrowed consent above is pre-set, not something you can do from the UI yet); *(Since closed: Narrow or Revoke Consent, Batch 469 — checked in the Batch 496 README audit.)* the retention-tier hard block has no UI-demoable case, as noted above; and body release (A26-4661/4662) is still a separate event from this custody log, not yet unified into one timeline. *(Since closed: Batch 469 `releaseAutopsyBody.ts` writes the final custody entry, and Batch 476 `AutopsyCaseTimeline.tsx` shows one timeline — checked in the Batch 496 README audit.)*
+
+## Demo: autopsy toxicology ordering/results, organ-retention disposal, consent narrowing (Batch 469)
+
+1. Open **A26-4663** (Marcus Devereaux): the Toxicology Log shows one order ("ordered" status). Press **Record Result** to see the result form; cancelling the order itself has no button yet (that's Batch 471, below).
+2. Open **A26-4664**, a `GB_EW` hospital-consented case with `organRetentionTier` set beyond "none": a **Record Disposal** form sits below the tier select, with nowhere yet to note who's actually holding the retained organs while retention is ongoing (that's also Batch 471).
+3. Open **A26-4661** (Eleanor Brooks) and press **Narrow or Revoke Consent**: the form seeds from the case's current narrowed state. There is no action to widen it back once narrowed or revoked.
+
+## Demo: autopsy toxicology cancellation, organ-retention detail, consent reinstatement (Batch 471)
+
+1. On **A26-4663**'s still-open toxicology order, press **Cancel Order**, give a reason, and save: the order's status and a cancellation reason/date appear in the log, and (if nothing else has claimed the case's ancillary hold since) the hold clears.
+2. On **A26-4664**, use the new **Organ Retention Detail** panel (above the existing disposal panel) to record a recipient name and location — overwrite it a second time to see it replace rather than append.
+3. On **A26-4661**, after narrowing consent per the Batch 469 demo above, a **Reinstate Consent** button now appears. Press it, enter a required note (e.g. "Family confirmed consent restored in writing"), and save: status returns to active and the exclusions/retention permission widen back to what the note's input specified. The button disappears again once status is active.
+
+## Demo: Lockbox Drop-Off, after-hours specimens (Batch 645; seeded cases and Demo Reset, Batch 648)
+
+**Sign in as** Maria Lopez (Accessioner): she can scan, see the Overnight folder, link a placeholder and mark a receipt accessioned. Michelle Nimmo (Admin) can open the Overnight folder and the time figures, but cannot scan. Open **Lockbox Drop-Off** from Home (or Alt+Shift+Z).
+
+**What is already there.** The demo starts with six receipts, timed back from the moment the demo data was loaded, so the folder always reads "last night and this morning". Open the **Overnight folder** tab:
+
+| Barcode | What it is | What to point out |
+|---|---|---|
+| `SCUH-ORD-22014` | Matched order, **Urgent**, callback number | First in the folder. The order's number and ordering facility only: no patient name. |
+| `LBXDEMO-0001` | Placeholder, **Urgent** (an intraoperative drop), client and physician picked from the lists | A temporary record that keeps the chain of custody. It has an id like `LBX-PH-…` and never an accession number. |
+| `LBXDEMO-0002` | Placeholder, routine, client typed in ("not in the client list") | The longest wait in the folder. |
+| `FGH-ORD-88301` | Matched order, routine | The ordinary case: the order was already in the system. |
+| `LBXDEMO-0003` | Placeholder **already linked** to its real order `FGH-ORD-88322` | State "Placeholder linked to an order": now it can be **Mark accessioned**. |
+| `WSSC-ORD-71042` | Matched order, **already accessioned** | Not in the folder; it is what the **Time to receipt** figures (median, mean, longest) are built from. |
+
+**Scan live.** On the **Drop-Off** tab, scan or type:
+- `WSSC-ORD-71058` or `WSSC-ORD-71075`: pending orders with no receipt yet. The receipt card shows the order's number and ordering facility and the kiosk is ready for the next container.
+- Any other barcode, for example `NEWDROP-1`: no order matches, so the placeholder form opens. Every field is optional; Enter records it, Escape cancels.
+- A barcode from the table above: the earlier receipt is shown and no second receipt is made (one receipt per barcode).
+- Turn on **Urgent** first (Alt+G) to see an urgent drop go to the top of the folder.
+
+**Link and accession.** In the folder, **Link to order** on `LBXDEMO-0001` and enter `FGH-ORD-88322` (or any number); then **Mark accessioned** is available. An unlinked placeholder cannot be accessioned.
+
+**Reset.** Sign in as Michelle Nimmo or Pete, Configuration → ⟳ **Demo Reset** → **Full Reset**. Everything scanned, linked or accessioned is removed and the six starting receipts are loaded again, with fresh times. The reset also clears the rest of the demo data, as it always does.
+
+**Limits.** The demo's "server time" is the browser's clock and the person who received a drop is the signed-in user; the API server (which stamps both) is not built. The seeded receipts name the kiosk and accessioner as "(demo)". No patient data is on any receipt.
+
+## Cytology demo data (Batch 716: Accession Part 2, cytology specimens)
+
+Pete, Oct 28, 2026: the next training video needs the demo data to actually reach the cytology controls. **Run a Full Reset once after installing this batch** (Configuration → ⟳ Demo Reset → Full Reset): the specimen dictionary, departments, accession series and protocols are stored in the browser the first time the app loads, so an existing browser keeps its old copy until it is reset. All patients, providers and numbers below are fictional.
+
+**Why it was empty.** The Accession cytology card ("Cytology — Clinical History & Accessioning Detail", tabs Patient Detail and Clinical History) is shown only when a specimen's dictionary entry has the category GYN Cytology or Non-GYN Cytology, and only three demo entries had one. No entry had a department, so every demo accession number was `O26-xxxx` and the "different case types are accessioned separately" rule never fired.
+
+**What is seeded** (Configuration → Specimen Dictionary, Departments, Case Masks, Processing Protocols):
+
+| Department (on screen) | Accession series | Holds |
+|---|---|---|
+| Surgical Tissue | `S26-0001` | every surgical biopsy, excision, resection and gross-only entry (all 66 now linked, including Kidney Biopsy, Native; they had no department) |
+| GYN Cytology (new) | `GYN26-0001` | the four Pap entries and the two HPV-only entries below |
+| Fluid / Cytology | `NG26-0001` | all Non-GYN and FNA entries below (the existing department; not renamed, because Processing Protocols and the technical-facility offer find it by name) |
+| Histology-Only / Consultation | `CS26-0001` | the Consult entry |
+
+**Which entry for which control** (pick it in Specimens → Select from dictionary; all are exact names):
+
+| To show | Entry | Series | Default material / order |
+|---|---|---|---|
+| Cytology card with every field (Last Menstrual Period, Hormonal Status, Reason for Study, Prior HPV Result, IUD / Contraception Use, persistent contact bleeding, Prior cervical procedure, and the Clinical History tab with Structured Clinical History) | any entry below, GYN or not | its own | |
+| Pap, ThinPrep vial | `Pap Test, Liquid-Based (ThinPrep)` | GYN | none (a slide is not a decant) |
+| Pap, SurePath vial | `Pap Test, Liquid-Based (SurePath)` | GYN | none |
+| Pap with HPV co-test | `Pap Test with HPV Co-test (ThinPrep)` | GYN | 1 decant (HPV aliquot) with the HPV High-Risk Screening with Reflex Genotyping stain, and an HPV order queued in the Molecular Order Queue |
+| HPV only, self-collected | `Self-Collected Vaginal Swab (HPV Only)` | GYN | 1 decant, HPV High-Risk Screening order queued |
+| Generic Pap (existing entry, older demo cases use it) | `Cervical/Vaginal Pap Smear` | GYN | none |
+| Fluids with a cell block | `Pleural Fluid Cytology`, `Peritoneal Fluid Cytology`, `Cerebrospinal Fluid Cytology` | NG | 2 cell block decants (D1, D2), H&E each |
+| Urine | `Urine Cytology` (default template: Urine Cytology) | NG | 2 cell block decants |
+| Respiratory | `Bronchial Washing/Brushing Cytology`, `Sputum Cytology` | NG | 2 cell block decants |
+| FNA | `Thyroid Fine Needle Aspiration` (default template: Thyroid FNA, Bethesda), `Lymph Node, Fine Needle Aspiration` (Lymph Node FNA), `Salivary Gland, Fine Needle Aspiration` (Salivary Gland FNA), `Breast, Fine Needle Aspiration` (no template ships) | NG | 1 cell block decant (D1), H&E |
+| The mix rule | pick `Pap Test with HPV Co-test (ThinPrep)` and `Thyroid Fine Needle Aspiration` in one case | | The warning "These specimens span different case types — GYN Cytology, Fluid / Cytology — …" appears and Submit Accession is greyed. Accession them separately. A surgical entry with a cytology entry does the same. |
+
+**Pending orders for Import from Order** (type the patient's family name in the search box; ordered by what the video shows):
+
+| Order shown | Patient | Specimen on the order | What it carries |
+|---|---|---|---|
+| `MGH-ORD-71030` | Priya Lindqvist | Pap Test with HPV Co-test (ThinPrep) | Indication "Routine cervical screening, age 38. HPV co-test requested." (the order has no structured HPV field, so the request is in the text; the HPV order itself is sent by the entry's protocol) |
+| `MGH-ORD-71031` | Rosalind Achterberg | Pap Test, Liquid-Based (ThinPrep) | Postcoital bleeding, combined oral contraceptive, LEEP in 2019: fits the contact-bleeding, IUD / Contraception and Prior cervical procedure fields |
+| `NSC-ORD-27901` | Noor Haddad | Self-Collected Vaginal Swab (HPV Only) | self-collected swab, primary HPV |
+| `RMC-ORD-63401` | Marcus Delgado | Thyroid Fine Needle Aspiration | 2.1 cm nodule, TI-RADS 4, rapid on-site evaluation requested |
+| `RMC-ORD-63402` | Helena Brandt | Lymph Node, Fine Needle Aspiration | |
+| `MGH-ORD-71035` | Walter Kessler | Urine Cytology | |
+| `MGH-ORD-71036` | Dolores Ibarra | Pleural Fluid Cytology (STAT) | |
+| `NSC-ORD-27902` | Imogen Farrow | Breast, Fine Needle Aspiration | |
+
+Each order's specimen text is exactly an entry name, so it imports onto that entry and its department ("Department: GYN Cytology" under the specimen). The older orders in the list (for example `RMC-ORD-63319`, a thyroid FNA written as free text) still show as unmatched and create pending entries and departments, as they were written to; use the eight above for the video.
+
+**What you see after Submit Accession** (checked in a fresh browser, Oct 28): `MGH-ORD-71030` is labelled `GYN26-0001`, then the next Pap `GYN26-0002`; `RMC-ORD-63401` is `NG26-0001`; a surgical dictionary entry is `S26-0001`. The Pap with HPV co-test has decant `GYN26-0001-AD1` and an HPV order in the Molecular Order Queue (status Queued); the thyroid FNA has cell block decant `NG26-0001-AD1`. The confirmation toast and the worklist row still show the internal case number `O26-00nn` (the stable internal key; the accession number is on the labels, the report and the cassettes).
+
+**Where the cases show up** (Home → Cytology Workspace, "Cytology Worklist"): GYN cases appear under the **GYN Cytology** tab, My Worklist and Unassigned Pool. Non-GYN and FNA cases appear under the **Non-GYN / FNA Queue** tab (organ chips such as Thyroid), because the demo starts with Configuration → Cytology → Non-GYN Cytology Routing set to the Cytology worklist. The product default is the other choice (Non-GYN and FNA on the Surgical Pathology worklist); both are legitimate, and Full Reset returns to the demo choice. Already seeded for screening (fresh browser, Oct 28): on the GYN tab 12 cases on My Worklist (S26-5001, S26-5002, S26-5006, S26-5007 and others), 6 in the Pool and 3 in QC / Rescreen; on the Non-GYN tab S26-5005 (thyroid FNA) on My Worklist, with the Unassigned Pool empty. A case you accession in the video joins these. ROSE and adequacy are on the screening case itself, not at Accession.
+
+**What cannot be shown yet**
+- **HPV reflex is an order, not a loop.** Accessioning an HPV protocol sends the HPV order (Molecular Order Queue). A result and the genotyping reflex come from the interface or from the seeded cases (S26-5002 shows both); genotyping is still applied by hand when a screen is positive. The `sendOutboundOrder` setting on a protocol task has no screen in Configuration: it is seed data only.
+- **Slides and smears are not generated.** Only decants (cell blocks and the HPV aliquot) are. Every protocol-generated decant is stored as type cell block, including the HPV aliquot, and the "Blocks & Stains" panel after Submit lists blocks only (decants are in the Cytology Workspace material view).
+- **SurePath and ThinPrep without HPV have no protocol**, so they generate no material.
+- **Templates:** no default synoptic template for breast FNA, pleural, peritoneal, CSF, bronchial or sputum (none ships); the picker is manual for those.
+- **Import does not fill the cytology card.** Last menstrual period, hormonal status, prior HPV result, contraception and prior procedure are typed by the accessioner; only the indication and ICD-10 come from the order.
+- **Molecular and autopsy dictionary entries have no department**, so they still draw from the fallback `O26-xxxx` series.

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 629 — Inbound hrHPV result: engine responses, audit, Invalid result on the triage row, and the written contract (PS-174)",
+    "description": "Vitest, 2026-10-19: full suite 1675 files (1670 passed, 4 skipped, 1 failed); 14,130 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. Not built or tested: the API server route and engine channel for a real molecular platform; the HL7 mapping against a vendor specification."
+  },
+  "tests": [
+    {
+      "testKey": "PS-830",
+      "start": "2026-10-20T00:20:00Z",
+      "finish": "2026-10-20T00:40:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/hl7/hpvResultInboundResponse.test.ts\nPASSED: src/services/hl7/processInboundHpvResultEvent.audit.test.ts\nPASSED: src/services/hl7/processInboundHpvResultEvent.test.ts\nPASSED: src/services/cytology/hpvTriageRowStatus.test.ts\nPASSED: src/pages/CytologyWorklistPage/CytologyWorklistPage.hpvResult.test.tsx\nPASSED: src/i18n/localeParity.test.ts\nNot tested: server route, engine channel, vendor mapping."
+    }
+  ]
+}

@@ -1,221 +1,251 @@
-# src/
+**Batch 755b (part 2):** eight more generic checklists reworded; their demo cases agree with them; `offeredOnCasePicker()` hides the five unused demo checklists from the case picker.
 
-The application root. Loose files that sit directly here, with no folder of their own — nearly every subfolder has its own `README.md` (see `pages/README.md`, `services/README.md`, `types/README.md`, `components/README.md`, `utils/README.md`, etc.; `mocks/`, `orchestrator/`, `protocols/`, and `styles/` don't have one yet). For setup and scripts see the repo-root [`README.md`](../README.md).
+**Batch 755b (part 1):** breast invasive and UK-layout checklist wording (`data/templates/generic/`), Manchester demo cases in real words, PATH-UK-001 fictional (Dr. Imogen Hartley) and Paul Carter's own record (UK-ADV-001).
 
-## Standing rules for every change
+**Batch 755a:** plain checklist names with a **Demo wording** tag; demo checklists can't be copied (screens and `templateService.saveDraft`); the autopsy checklist on A26-4665/4666; S26-4404, MFT26-8804 and MFT26-8802 findings reworded. Split on touch: `TemplatePicker.tsx` out of `RightSynopticPanel.tsx`, `useEditorStartingTemplate.ts` out of `SynopticEditor.tsx`.
 
-No inline CSS, no business logic in components, and full international support (every UI string via `t()`, every key in all five locales). The full rules and the pre-delivery checklist are in the repo-root [`CLAUDE.md`](../CLAUDE.md); the i18n reference is [`i18n/README.md`](./i18n/README.md). Three tests enforce them: `i18n/localeParity.test.ts` (every key, every locale, project-wide), `services/participationTypes/standingRules.guard.test.ts` (all three rules, for the signing-authority screens), and `services/duplication/duplicatePolicy.guard.test.ts` (the Duplicate policy, localized copy names project-wide, and no inline CSS in the admin screens it covers).
+**Batch 754:** the 19 demonstration checklists never reach a customer: a customer build leaves them out (and its check fails if one is in it), and ForMedrixAI support can remove them from an organisation's library. The unused `src/protocols/` editor and its "CAP …" registry are deleted. See `docs/architecture/DEMO_CHECKLISTS.md`.
 
-## Duplicate policy (Sep 2026, PS-73)
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (not CAP or RCPath text), and the Video 9 prostate cases answered in step with their maps. See `data/templates/generic/README.md` and `services/cases/README.md`.
 
-Which admin records can be duplicated, and what a copy keeps or clears, is decided in [`services/duplication/`](./services/duplication/README.md). The rule of thumb: complex configuration, templates and multi-site variants can be copied; real people, flat lookups and audit records can't. Copy names always come from `t('common.copyOfName')`.
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
 
-## Recent batches
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
 
-- **Batch 382 (Sep 2026, PS-359):** Field Requirements for the case report page's frozen-versus-final reconciliation and the two billing modals (post-sign-out reason, applied-code correction), each with a voice command. Correcting an applied billing code now needs its own capability, `billing:applied-code:correct`, given to every role that could before.
-- **Batch 381 (Sep 2026, PS-359):** Field Requirements for the case report page's holds, comments, Delegate, biopsy arrays, and block cancellation and restains. Holds and delegation now need capabilities, given to every role that could use them before. The report page came off the deployment baselines.
-- **Batch 380 (Sep 2026, PS-359):** Field Requirements reach the case report page: Add/Edit specimen, amendments and addenda, and critical findings, each with a voice save command. Fixed minor amendments and addenda that couldn't be saved from a new draft.
-- **Batch 379 (Sep 2026, PS-359):** Grossing's protocol rule is required by default but switchable per organisation. Switched off, completing a specimen that has no protocol asks for confirmation and routes it for secondary review as an open QA deficiency.
-- **Batch 378 (Sep 2026, PS-359):** Complete grossing. The Grossing screen can finish grossing, by button, voice or keyboard, once the organisation's Grossing field requirements are met. Cases move to Gross Complete, and it's audited.
-- **Batch 376 (Sep 2026, PS-359):** Field Requirements. Each organisation chooses which fields a page requires before saving, and locked fields are always required. Accession is the first page.
-- **Batch 375 (Sep 2026):** fewer Home tiles. The two peer-review queues are views in the Worklist, Add-On Orders is an action on a case's report page, and Batch Management is in the Pathology Workspace.
-- **Batch 374 (Sep 2026):** the Home page shows only the tiles a user may open. Each screen is a capability that roles grant, and routes check it too. There are four new bench roles: Accessioner, Histotechnologist, Cytotechnologist and Molecular Technologist.
-- **Batch 373 (Sep 2026):** every demo case belongs to an organisation. Hospital ids are linked to their organisations, and the international screening labs are organisations in their own right. Organisations with nobody to approve support access start at Always allowed in the demo.
-- **Batch 372 (Sep 2026):** ForMedrixAI support access, controlled by each hospital.
-  - **Policy per organisation:** Disabled, Approval required (default) or Always allowed, with an access window (default 2 hours).
-  - **Just-in-time approval:** support requests access per ticket with a reason; the hospital's approvers get a message and approve or reject; access ends when the window runs out or either side ends it.
-  - **The hospital's own support audit:** every request, decision, open, list, search and edit by support, hash-chained so changes show, exportable as CSV or JSON.
-- **Batch 371 (Sep 2026):** Superadmin is reserved for ForMedrixAI support.
-  - **Read-only for hospitals:** the role holds every capability and is read-only in a hospital's Role Dictionary.
-  - **Platform-only capabilities** can't be put on a hospital role.
-  - **Support access to other organisations' cases** is checked and audited.
-  - **Demo sign-ins:** only ForMedrixAI people use Superadmin.
-- **Batch 370 (Sep 2026, PS-356):** capabilities, phase 2.
-  - **Closed a self-escalation gap:** anyone signed in could edit roles (their own capabilities included) and staff role assignments. That now needs `config:roles:manage`, `config:staff:edit` and `config:staff-access:assign`.
-  - **Facility scope:** staff get a facility assignment that limits case actions and QA exports.
-  - **Removed:** the role-level pediatric, orchestration and facility switches, which were never enforced.
-  - **Demo reset:** the full reset needs a capability, and its logic moved to `services/demoReset/`.
-- **Batch 369 (Sep 2026, PS-355):** capabilities. Access control is now enforced:
-  - capabilities are checked by the service that does the work, audited with the granting role, and have no bypass;
-  - they cover the change-history export and the 14 QA report exports;
-  - the Role Dictionary has a grouped Capabilities tab with dependency prompts;
-  - two new built-in roles, QA Reviewer and Superadmin.
+**Batch 721:** Accession screen in two columns on a wide window (`pages/AccessionPage/`, `hooks/useAccessionTwoColumn.ts`, `services/accessioning/resolveAccessionPanels.ts`). Changelog: `i18n/README.md`.
 
-  The old unenforced Permissions tab is now Commands. See `services/authorization/`.
-- **Batch 368 (Sep 2026, PS-353):** report change log. Every case save is recorded: who, when, workstation, and every field changed old → new (`services/reportChangeLog/`). The report page has a Change history view with word-level diffs, and an audited CSV export (since Batch 369 it needs the capability `report:change-history:export`).
-- **Batch 367 (Sep 2026, PS-74):** no inline CSS anywhere in the UI. The last ~120 inline styles moved into `pathscribe.css`, and colours built in JSX became `--ps-hue` + `color-mix()`. `services/styleRules/` checks the whole app with no exception list.
-- **Batch 366 (Sep 2026, PS-68):** the unused `types/case/ReportSnapshot.ts` was removed; `ReportVersionRecord` is the one report release record.
-- **Batch 365 (Sep 2026, PS-347):** Belgian French (fr-BE) regional variant (`i18n/`); Netherlands dates are DD-MM-YYYY; the order lookup writes and finds dates of birth in every jurisdiction's format (`utils/isoDateForSearch.ts`).
-- **Batch 364 (Sep 2026, PS-349/PS-350):** support tickets no longer send the page address (it carried the case number); support references (`SR-7K2Q-9MXD`) stand in for case numbers, with a lookup for lab staff (`services/supportReferences/`).
-- **Batch 363 (Sep 2026, PS-72):** every patient identifier the UI shows is tagged for redaction in support-ticket screenshots, and a structure-aware check (`services/phi/`) keeps it that way.
-- **Batch 362 (Sep 2026):** Belgian Dutch (nl-BE) added as a regional variant of Dutch: Belgian wording where it differs, Dutch elsewhere, Belgian date formats (`i18n/`).
-- **Batch 361 (Sep 2026):** a device with an open malfunction or past due is shown in red in the equipment register and the molecular batch instrument picker (flagged, not blocked).
-- **Batch 360 (Sep 2026):** equipment maintenance and calibration records. Each device can have schedules and an append-only, audited service log; the register shows up-to-date, due-soon, overdue and open-malfunction status (`services/equipment/`).
-- **Batch 359 (Sep 2026):** Printer Profiles and a new Grossing Hardware screen name their physical device from the equipment register; the register shows which settings point at each device.
-- **Batch 358 (Sep 2026):** one equipment register for every device: identity, make, model, serial number, lab, station and status (`services/equipment/`, Configuration → System → Equipment). It replaced the Instruments list; molecular batches target its analysers. Workflow settings stay on their own screens.
-- **Batch 357 (Sep 2026):** demo scan stations and instruments gain seed records added after a browser stored them (`services/mockSeedMerge.ts`), so the molecular bay appears without Demo Reset.
-- **Batch 356 (Sep 2026):** PS-326: an instrument list (`services/instruments/`, Configuration → System → Instruments). Molecular batches pick their target instrument from it instead of typing it, and worklist dispatch checks the instrument's scan station.
-- **Batch 355 (Sep 2026):** PS-346: deleted the orphaned informal-review banner (`pages/SynopticReportPage/components/InformalReviewBanner.tsx`), its CSS, its keys in all five languages, and the one rule only it used.
-- **Batch 354 (Sep 2026):** Search's submitting-facility and performing-lab filters include every organisation under a chosen one, so a Trust finds its sites' cases (`services/facilities/facilityHierarchy.ts`, `services/caseSearch/`, `pages/SearchPage.tsx`).
-- **Batch 353 (Sep 2026):** TAT targets and case delegations moved behind services the API server can own (`services/tatConfig/`, `services/delegations/`). Every screen and service that used them now goes through `tatTargetService` / `delegationService`, instead of the TAT screen's browser storage and the demo case service. Six files came off the deployment baselines. Contract: `docs/architecture/TAT_AND_DELEGATION_API.md`.
-- **Batch 352 (Sep 2026):** facility records for the 11 ordering clients the Manchester, Midwest, Henry Ford and Desert Valley outreach demo cases pointed at, each linked to its performing lab, so Search by performing lab finds those cases (`services/facilities/`).
-- **Batch 351 (Sep 2026):** Search section 3: the 15 new searchable kinds of case data: case type, sign-out/release date, pathologist role, revisions, holds, result flag, pending work, TAT, subspecialty, performing lab, location, intake, payer, CPT, autopsy (`services/caseSearch/`, `pages/SearchPage.tsx`).
-- **Batch 350 (Sep 2026):** Search repaired, with results paged on the server (`services/caseSearch/`, `utils/search/`, `pages/SearchPage.tsx`). The broken filters work, export covers every match, saved searches use a service, and the page is off the deployment baseline. Contract: `docs/architecture/CASE_SEARCH_API.md`.
-- **Batch 349 (Sep 2026):** quick UI fixes: PS-100 warning toasts stay until closed, PS-101 case search finds an MRN or other identifier on its own and searches all dates for one, PS-126 readable macro text and an administrators' "All" macro list grouped by type (`utils/toastPolicy.ts`, `utils/search/`, `services/macros/macroAccess.ts`).
-- **Batch 348 (Sep 2026):** PS-67, one service result shape across the app: the AI services' older `{ success, data, error }` type (`types/serviceResult.ts`) is removed.
-- **Batch 347 (Sep 2026):** PS-54, interface-engine print results reach the user over the live-update connection, with a manual Retry (`services/networkPrint/`); slide labels now print on that path.
-- **Batch 346 (Sep 2026):** PS-52, a configurable agent port and an on-screen "queued / printing now" status line for agent print jobs (`components/Printing/`).
-- **Batch 345 (Sep 2026):** each signature checked when it is saved, and stored (PS-60 follow-up).
-  - **The check:** sign-out, countersign, finalize, cytology and autopsy signing all check the signer's confirmation, including the SSO sign-in token, before the signed change is written.
-  - **The record:** a signature record keeps who signed, what it meant and how they were confirmed (`services/signatures/`).
-  - **Staff → edit:** now lists a person's linked sign-in accounts, with Unlink.
-- **Batch 344 (Sep 2026):** signer confirmation (PS-60 follow-up).
-  - **What changed:** every signature now proves who is signing: the password again, or for SSO the hospital's sign-in page again.
-  - **Where:** sign-out, countersign, finalize, cytology, autopsy PAD/FAD.
-  - **Why:** before, the password fields were never checked.
-  - **Lockout:** five failures lock signing for 15 minutes.
-  - **Popup page:** `main.tsx` answers the sign-in popup's return page without starting the app.
-- **Batch 343 (Sep 2026):** PS-60 single sign-on.
-  - **SSO:** sign-in with the hospital's identity provider: OpenID Connect with PKCE, Entra ID first, Okta and others generically. No client secret is needed. Only provisioned, active staff get in.
-  - **Password sign-in:** the demo accounts' plain-text passwords are gone from the code and the bundle (hashed, and left out of SSO-only builds).
-  - **Specs:** the API server's part is specified in `docs/architecture/AUTHENTICATION_OIDC.md`.
-- **Batch 342 (Sep 2026):** PS-262 live updates.
-  - **What:** OR Suite Live Boards and the Intraop Queue update across devices through a SignalR hub on the ASP.NET Core API server (Pete's decision). The client reconnects forever, falls back to polling, and shows a connection badge.
-  - **Without a hub:** same-browser windows still update instantly.
-  - **Hub spec:** in `docs/architecture/`.
-- **Batch 341 (Sep 2026):** PS-344 follow-up.
-  - **React Router 7:** upgraded from 6.30.6 to 7.18.4, which closes the last React Router advisory. The app now imports from `react-router`; the `react-router-dom` package is gone.
-  - **Node 24 LTS:** the project is standardised on it (`engines` 24.x, `.nvmrc`).
-  - **Audit:** `npm audit` is down to 2 moderate findings, both in legacy Firebase tooling.
-- **Batch 340 (Sep 2026):** PS-344 dependency security.
-  - **Findings:** `npm audit` went from 54 (8 high, 46 moderate) to 4 moderate.
-  - **Updates:** TipTap 3.23.4 → 3.31.3 (all editor packages), React Router 6.30.4 → 6.30.6, vitest 4.1.10 → 4.1.11 and js-yaml 4.3.2, plus a patched minimatch for typescript-eslint through `overrides`.
-  - **Mitigated:** React Router 6's remaining open-redirect advisory is fixed only in React Router 7. PathScribe now guards the one navigation target that comes from stored data (`utils/safeInternalPath.ts`, used for message config links in `AppShell`).
-- **Batch 339 (Sep 2026):** PS-342 dictionary build step for the licensed clinical vocabularies.
-  - **What it does:** drop the SPECIALIST Lexicon, SNOMED CT editions and LOINC into `spellcheck-data/licensed/`, then run `npm run spellcheck:build`. The build derives word lists for every language: English dialects follow SNOMED's language reference sets, and translations come from the national editions and LOINC's linguistic variants. US/UK pairs become regional-variant rules. SNOMED/LOINC words also appear in suggestions.
-  - **Tested:** end to end on synthetic sample files, and in the browser. Waiting on the licences (PS-343).
-- **Batch 338 (Sep 2026):** PS-342 spell checking in the report screens.
-  - **Where:** the report editor and every report text box (synoptic text fields, report modals, cytology notes, intraop quick gross and frozen diagnosis). Squiggles appear about 300 ms after typing stops, with no effect on typing speed; right-click for suggestions, Ignore, or Add to my / the facility dictionary.
-  - **Language:** the case's own choice (a control in each report screen), else the assigned pathologist's preference (Staff → edit), else the ordering facility's default.
-  - **Retired:** the AI spelling check on Accept.
-  - **Fix:** suggestions are now ranked by closeness, so "specimin" offers "specimen" first.
-  - **Clean-up:** `PathScribeEditor.tsx` has no inline CSS or browser storage left.
-- **Batch 337 (Sep 2026):** PS-342, German spell checking added under the GPL (per Pete).
-  - **How it ships:** the dictionary ships unmodified, as a separate file, with the full GPL texts and a source offer.
-  - **Before release:** a lawyer's confirmation and a source-request contact are needed.
-  - **Gap:** German has no medical word list yet.
-- **Batch 336 (Sep 2026):** PS-342 spell-check engine.
-  - **Engine:** real Hunspell (WebAssembly) in a Web Worker, checking through the personal → facility → regional check → medical → clinical → base tiers, with codes passed through. It checks 5,000 words in about 25 ms in the browser.
-  - **Content:** a PathScribe pathology lexicon (English with US/UK pairs; a Korean seed list), and dictionaries for English (4 variants), French, Dutch and Korean.
-  - **Personal and facility dictionaries:** facility words are audited.
-  - **Fix:** a malformed CSS comment in `pathscribe.css` had been breaking `vite build`.
-  - **Next:** the editors are wired up in Batch 338.
-- **Batch 335 (Sep 2026):** PS-341 completed.
-  - **Country Signing Rules:** a new System screen where a platform administrator edits each participation type's rules per country. It covers the local title, signing flags and regulatory basis, and whether a country-scoped role is offered. Every change is audited with a reason.
-  - **Fix:** saved signing-rule changes now reach the sign-out check without a page reload.
-- **Batch 334 (Sep 2026):** PS-89 screens.
-  - **Code Import (Bulk):** a new System screen uploads a CSV, matches its columns, lists refused rows with reasons, and imports one job for a second person to approve. Every job is listed with rollback.
-  - **Pending approvals:** an import job is approved or rejected as a whole.
-  - **Audit:** every step is audited.
-  - **Database:** the docs now record Microsoft SQL Server as the production database.
-- **Batch 333 (Sep 2026):** PS-89, Generic Code Engine (rules and storage).
-  - **Billing rules:** they carry a vocabulary and a country.
-  - **Bulk imports:** each is one PENDING_APPROVAL job, decided as a whole under four-eyes, with rollback.
-  - **Fix:** approving a future-dated rule no longer retires the current rule early.
-- **Batch 332 (Sep 2026):** PS-327 completed for Cytology.
-  - **Pathologist track:** per-lab and country signing authority now applies to Cytology's pathologist track. The cytotechnologist track's CLIA rules are unchanged.
-  - **Translated:** Cytology's sign-out text and the Autopsy body-release banner.
-- **Batch 331 (Sep 2026):** PS-327. Autopsy PAD/FAD signing now checks signing authority. Before this, anyone reaching the button could sign.
-  - **All autopsies:** they use Surgical Pathology's per-lab and country rules, with the coroner jurisdiction choosing the country profile.
-  - **Forensic cases:** these also need an active jurisdictional appointment. There's no admin override.
-  - **Recording appointments:** the new Staff credentials editor records them.
-- **Batch 330 (Sep 2026):** deployment-readiness guard.
-  - **What it checks:** UI code may not import mock services, browser storage or Firebase directly.
-  - **Existing files:** they are listed in a baseline that only shrinks. So the screens stay deployable to public or private cloud while the real backend is built.
-  - **New helper:** `utils/uiPreferences.ts` for display preferences.
-- **Batch 329 (Sep 2026):** PS-63.
-  - **Drafting:** limited to Template Author, and Admin inherits it. The editor opens read-only otherwise.
-  - **Built-in roles:** Template Author, Template Approver and Lab Director are built-in roles with fixed ids, so renaming them doesn't break the rules. Existing sites gain them automatically.
-- **Batch 328 (Sep 2026):** PS-63, template review rules enforced.
-  - **Approving and publishing:** limited to Template Approver / Lab Director / Admin, and never by the template's own authors unless the site allows it.
-  - **Required Reviewers:** a site setting, 1 by default.
-  - **SNOMED:** diagnostic templates need 80% SNOMED coverage to publish.
-  - **Settings:** System → Template Review.
-- **Batch 327 (Sep 2026):** HTTPS everywhere PathScribe makes a connection.
-  - **Workstation agent:** it now connects over encrypted WebSocket only (`wss://`), with a certificate unique to each workstation.
-  - **Report renderer and interface receiver:** production builds require `https://` URLs and refuse to fall back to `http://localhost`.
-  - **Grossing scale:** its agent address must be `https://`.
-  - The deployed app itself was already HTTPS-only: Vercel redirects HTTP and sends HSTS.
-- **Batch 326 (Sep 2026):** PS-63.
-  - **Admin Guide:** a section on building, reviewing and publishing synoptic templates (`components/Config/Protocols/README.md`), written from an end-to-end walkthrough in the app.
-  - **Fix:** refreshing the template editor after the first save no longer creates a second copy.
-  - **Found and left for a decision:** the "≥80% SNOMED before publishing" rule isn't enforced, and authors can publish their own templates.
-- **Batch 325 (Sep 2026):** PS-52, PathScribe's side of the workstation PathScribe Agent (`utils/labels/pathscribeAgent/`).
-  - **Discovery:** it tries ports 9100, 9101 and 9102 and trusts only a real agent handshake.
-  - **Printing:** each print gets a job ID and waits for that job's own success or error.
-  - **Contract:** the agent's developers build to the WebSocket contract in its README.
-  - Printers set to Bridge Type **PathScribe Agent** now print through it; the agent program itself is still to be built.
-- **Batch 323 (Sep 2026):**
-  - **PS-87, LIS ingestion layer (Pete's design):** HL7 v2, JSON webhook and polling adapters feed one staging queue, and the Assist AI-draft worker reads only from it. Admin screen: **Assist LIS Ingestion**. See `services/lisIngestion/README.md`.
-  - **PS-62, native dropdowns:** every native `<select>` shares one dark open-list style. See `components/Common/README.md`.
-- **Batch 322 (Sep 2026):** PS-87, Assist-mode LIS polling. PathScribe polls the external LIS.
-  - **Gross Complete:** the AI picks the synoptic templates and fills what the gross supports.
-  - **Microscopic/Diagnosis Complete:** the AI completes the draft.
-  - **Review:** every draft waits for pathologist review in the existing report editor.
-  - Admin screen: System → Integrations → Assist LIS Polling. Details in `services/assistPolling/README.md`.
-- **Batch 321 (Sep 2026):** Admin Guide material on how a site prints labels, and what a customer's IT must agree to before the PathScribe Agent is installed (PS-52). It is in `services/printerProfiles/README.md`; no code changed.
-- **Batch 320 (Sep 2026):** PS-58. AI models are now a global ForMedrixAI catalog plus per-organisation adoption records (Pete's Option 2).
-  - Status, default and case counts belong to each organisation.
-  - The store's "Download" is now **Adopt**.
-  - The old unscoped model list is migrated on first load.
-  - `firestore.rules` covers `/modelCatalog` and `/organisations/{orgId}/adoptedModels`.
-  - Details in `services/models/README.md`.
-- **Batch 319 (Sep 2026):** PS-78. `pathscribe.css` lost 130 dead `ps-msg-*` rules (70 classes no source file uses, left over from a pasted earlier Messages UI spec), about 830 lines. A browser computed-style comparison of the live message drawer found no visual change. Full account in `docs/ARCHIVE.md`. The same batch also fixed a timeout in `pages/__tests__/ConfigurationPage.test.tsx`: the page was imported dynamically inside the first test, which timed out on a loaded machine and cascaded into six more failures.
-- **Batch 318 (Sep 2026):**
-  - **PS-137:** abnormal-detection agreement signals are tagged with the covering Validation Study.
-  - **PS-86:** Audit Log → Interfaces → **Outbound Dispatches** shows each OrderCreated send and its outcome, and opens the exact JSON payload.
-  - Details: `services/abnormalDetection/`, `services/interfaceEngine/`, `pages/README.md`, and the Batch 318 entry in `i18n/README.md`.
+**Batch 711:** `services/staffPasswords/` gains the password reset request service; `components/Auth/PasswordResetRequest.tsx` is the sign-in step that uses it (demo, password sign-in only).
 
-## Application entry & routing
+**Batch 675:** MFA policy service for the API server (`services/auth/mfa/`); browser side only, server routes not built. See `docs/architecture/ACCESS_SESSION_API.md` §5.
 
-- **`main.tsx`** — real React entry point, mounts `App` and imports the two root stylesheets. Batch 344: on `/auth/signing/<provider>` (the signature-confirmation popup) it only passes the identity provider's answer back to the opener and never starts the app.
-- **`App.tsx`** — the route table (every `<Route path=...>` in the app), lazy-loaded page imports, `ToastContainer`.
-- **`ProtectedRoute.tsx`** — auth gate: redirects unauthenticated users to `/login`, passing the page they wanted as `from` (Batch 343), and wires idle-timeout and session-supersede detection.
-- **`MobileRestrictedRoute.tsx`** — real device-based route restriction for the Intraop Queue mobile/OR workflow (viewport width + `pointer:coarse`, not width alone, plus a `sessionStorage` override escape hatch — see `utils/deviceDetection.ts`'s own header for the full reasoning).
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; they open in a remembered window, or a new tab if the browser refuses one.
 
-## Stylesheets
+**Batch 651 (audit gaps):** pool, delegation, team, comment, dictionary, language and deficiency actions are audited by their services; see `services/auditlog/README.md`.
 
-- **`pathscribe.css`** — the main, real stylesheet. Very large (20,000+ lines) — every `.ps-*` class family referenced throughout every component's own README lives here.
+**Batch 650:** registered voice and keyboard commands that no screen answered (Sign Out Case, History, Codes, Accept / Pass, Worklist tiles, Search, TAT tiles, Finalise) now do what their buttons do; the rest are listed with reasons in `docs/product/KNOWN_GAPS.md` and guarded by `services/actionRegistry/actionListeners.guard.test.ts`.
 
-  **Real, found-and-fixed accessibility bug across the whole file, per direct report ("occasional text that is dark and pretty much impossible to read")**: systematically audited every plain `color:` declaration for real, computed low luminance (never assumed from a color's name — actually computed relative luminance for every match), then, for each dark match, checked its own real CSS rule block for a genuinely light background before deciding it was actually broken — a dark color is completely correct when its own rule also sets a light/bright background (e.g. dark text on a bright accent-colored button), and several real print-only rules (`@media print`, `#ps-copilot-print-area` and its own real print override for `.ps-copilot-report-diff-current`) are correctly dark-on-white, confirmed directly by tracing them into their real `@media print` block rather than assumed.
+**Batch 649:** safety and access fixes. Screenshot redaction covers every `data-phi` / `data-pii` element; the barcode listener ignores script-made keystrokes; both surgical sign-out paths run the same review gates and write in a safe order; signatures are linked to the report version and PDF hash; 17 new capabilities, and `admin-override` no longer signs a case. See `i18n/README.md` (Batch 649).
 
-  **Root cause, confirmed with two directly-verified examples before fixing anything at scale**: `#0f172a`/`#1e293b` — this app's own darkest background-palette colors — were being used as *text* color in ~75 real places, almost certainly copy-pasted from rules originally written for a light-themed context and never updated for this dark theme. `.rp-shell` (the ReportPreviewPage window's own root container) set `background: #1a2332; color: #1a1a1a;` on the *same rule* — its own default text color was dark while its own background was also dark, so anything inside it without a more specific override was silently invisible. `.ps-orch-chev`/`.ps-orch-hint` sat right between a dozen correctly-light-colored sibling rules using `#1e293b` instead — and `.ps-orch-chev`'s own `:hover` state correctly used `#64748b`, meaning the chevron icon was genuinely invisible until hovered, exactly matching the "occasional" symptom reported.
+## Batch 645 — Lockbox Drop-Off
 
-  **60 real instances fixed**, each replaced by exact line number (never a blanket find/replace, since the same offending color values also appear correctly elsewhere in genuinely fine, bright-background contexts that were deliberately left untouched) — `#0f172a`/`#1a1a1a`/`#0d1117`/`#0b1120` (the darkest, "primary/heading" role in the original mistaken source) mapped to this app's own real primary light text color, `#e2e8f0`; `#1e293b`/`#1f2937`/`#333` (slightly lighter, "secondary/body" role) mapped to this app's own real secondary/muted light text color, `#94a3b8`. One real, selector-informed exception: `.ps-orch-synoptic-lock`'s own `#1e3a2f` (a dark, muted green — clearly intended as a status/badge indicator, per its own class name) mapped to `#34d399`, this app's own already-established success-green (`.ps-orch-badge--done`), rather than the generic primary/secondary mapping. Verified directly, not assumed: re-ran the same detection script afterward and confirmed zero remaining real matches; confirmed brace balance (6,375 open / 6,375 close) wasn't disturbed by the automated, line-targeted edits.
+After-hours specimens are scanned into a lockbox at a kiosk screen, and the morning team works from an Overnight folder. New: `services/lockbox/`, `pages/LockboxDropOffPage/`, `components/Lockbox/`, `lockboxCapabilities.ts`, `constants/lockboxActionGroup.ts`, `services/actionRegistry/lockboxVoiceCommands.ts`; changed: the Home tile, route, screen access, capability seeds, the Role Dictionary actions, voice and hotkeys, and the six locale files. Contract for the API server: `docs/architecture/LOCKBOX_API.md`.
 
-  **Real, deliberately NOT touched, and why**: ~15 instances of dark text on a genuinely bright button/badge background (e.g. `#0f172a` on `.ps-btn-pill`'s own `#0ea5e9` blue) — real, readable, intentional design, confirmed by computing the actual background luminance rather than assuming; the full `.ps-copilot-print-area`/`.ps-copilot-report-diff-current` print-only cluster, confirmed genuinely inside `@media print` by tracing brace depth back to the actual `@media print` line, not assumed from the selector name alone.
+## Batch 620 (part E) — US ePath (PS-800)
 
-  **Real, per direct follow-up ("let's check for inline use too")**: the same systematic, luminance-based search run across every real `.tsx`/`.ts` file for inline `style={{...}}` color declarations. Most of the 30 initial matches turned out to be genuine false positives on closer inspection — standalone print/email/label HTML template strings that correctly render on white outside this app's own UI entirely (`ValidationStudiesSection.tsx`, `printLabels.ts`, `CopilotReportViewModal.tsx`, `enhancementEmailTemplates.ts`), light-background modals/dropdowns with `background: 'white'`/`'#fff'` on their own enclosing container (`SynopticEditor.tsx`, several `PathScribeEditor.tsx` popovers), and tab/filter-configuration objects where a `color:` field is decorative data, not CSS text color at all (`QualityAssurancePage.tsx`, `WorklistPage.tsx`). 5 real bugs confirmed and fixed, documented at each affected component's own README: `components/Editor/README.md` (the most significant one — a real, user-reachable bug where `PathScribeEditor.tsx`'s own dark-mode toggle correctly switched the toolbar chrome but left the actual report text hardcoded to the light theme's own color, found to be a real follow-up gap in an *earlier* theming fix to this same component), `components/Config/Protocols/README.md` (two lifecycle-stepper separator characters), `components/Config/Templates/README.md` (the same separator pattern, independently confirmed), and `components/ClientDictionary/README.md` (a save button, borderline-readable against its own teal background state, matching the exact pattern already fixed in `.ps-login-submit` above).
+New `services/usEpath/` (state profiles, routing by the performing facility's state, checks, transport adapter contract, the prepare step), `services/hl7/epathBuilder.ts` (the NPCR ePath base message, HL7 v2.5.1 ORU^R01) and Configuration > System > US ePath. Contract: `docs/architecture/US_EPATH_API.md`. Only a labelled example profile ships; real profiles come from each state's published specification.
 
-- **`index.css`** — base/reset styles loaded alongside `pathscribe.css`.
-- **`login-brand.css`** — login-page-specific branding styles.
-- **`research-ticker.css`** — styles for the PubMed literature feed ticker (`ps-litfeed-*` namespace).
+## Batch 620 (part S) — registry batch files (PS-800)
 
-## Type declarations
+New `services/batchRegistryFeed/` (profiles for screening programmes and registries that take a CSV or XML file, file building with checksums, records held back when a required field is missing, the registry's answer to a file applied to each record, the programmes' submissions on the Outbound Queue) and Configuration > System > Registry Batch Files. A batch programme's sign-out result is queued and goes in the next file. A labelled example profile ships; the NAACCR XML feed is a slot that cannot be turned on yet. Capabilities `config:batch-registry-feed:manage` and `registry:batch-file:generate`; contract `docs/architecture/BATCH_REGISTRY_FEED_API.md`.
 
-- **`vite-env.d.ts`** — standard Vite client type reference.
-- **`global.d.ts`** — global `Window` interface augmentation (e.g. `window.find`).
-- **`talisman.d.ts`** — type declaration for the untyped `talisman/phonetics/double-metaphone` module (used by patient-matching phonetic search).
+## Batch 620 (part C) — UK cancer registry (COSD) destination, checks and correction window (PS-800)
 
-## Real findings
+New `services/cosd/` (destination settings with enterprise and performing-facility overrides, offline checks on a UK submission, a labelled simplified preview, working-day correction due dates) and Configuration > System > UK Cancer Registry (COSD). The preview is not the official COSD schema; the rules that still need the published specification are listed in `docs/architecture/UK_COSD_API.md`.
 
-**`NETFLIX_SETUP.md`, `ACCESS_CONTROL_PLAN.md`, `PRIORITY_FIXES.md`** — corrected Sep 2026: an earlier version of this note said none of these existed anywhere and the reason was "genuinely unclear". Both claims were wrong; `docs/ARCHIVE.md` records exactly what happened. `ACCESS_CONTROL_PLAN.md` moved to [`docs/architecture/`](../docs/architecture/ACCESS_CONTROL_PLAN.md) and still exists. `NETFLIX_SETUP.md` was retired as completed one-time setup. `PRIORITY_FIXES.md` was retired on 2026-08-19, when its open items became Jira PS-57 to PS-71, so the many `PRIORITY_FIXES.md #N` citations in folder READMEs are historical references, not broken links to a live file.
+## Batch 618 (part C) — server version of case material (PS-482)
 
-**`css-audit.cjs`** — confirmed real and present, distinct from (not identical to) `scripts/css-audit.js` — different line counts (134 vs. 146), so likely a diverged copy rather than a simple duplicate. Every other similar audit script in this codebase lives in `scripts/`, matching this file's own header comment ("Place anywhere in the project and run..."), which suggests it was designed to be portable and just never got moved. Worth a real decision on whether to consolidate with `scripts/css-audit.js` or confirm they've genuinely diverged for a real reason.
+`caseMaterialService` is now a service with a demo version and an API-server version (`services/material/`, `docs/architecture/CASE_MATERIAL_API.md`): one `POST /api/material/case-material/apply-decant-change` returns the whole updated material tree and the affected billing lines. Exported from `@/services`; `applyDecantChangeLive` calls the chosen version. The optimistic store and selection state stay in the browser. Nothing was tried against a real server.
 
-**`FHIR_DISPATCH_ARCHITECTURE_PLAN.md`** — a real, deliberate, forward-looking planning document (`Status: PLANNED, not built`), same spirit as the access-control planning once described above. Records the confirmed target architecture for standardizing external registry/EHR dispatch on FHIR JSON via a boundary adapter layer (cytology's own domain model stays untouched), and — critically — a real research finding made before any of it was built: cytology sign-out must never drive cancer-registry dispatch for cervical findings, at any severity, since national reportability standards (NAACCR/SEER) explicitly require histologic confirmation, not a cytology impression alone.
+## Batch 617 (part R) — one route style for every server version of a service (PS-488 dev notes, Pete)
 
-**`FRONTEND_AS_SPEC_CAVEATS.md`** — real, per direct guidance: "the team is using the front end to help them define the backend." Consolidates every place in this codebase where the mock/demo implementation contains a deliberate simplification, an honest documented gap, or a client-side-only mechanism that would produce a wrong or dangerously incomplete real backend if read as literal spec. Leads with the most severe finding by far: `getSessionUser()` reads role and permissions directly from unauthenticated, client-editable `localStorage` — every authorization rule built on top of it is real, careful logic worth porting, but the trust boundary itself must never be. Also covers: four real national-ID gaps (MRN standing in for KCCR/PPSN/Health+Care Number/Medicare) that would get real registry submissions rejected if not fixed before going live; the workload-cap report's Enterprise-only simplification versus the real three-tier cascade already enforced elsewhere; the Cancer Registry/cytology boundary rule that currently exists only as prose in `FHIR_DISPATCH_ARCHITECTURE_PLAN.md`, not as any enforced type constraint; and the QA report aggregation logic being a reference for correct *behavior*, not code meant to be ported line-for-line into a real, server-side query.
+- **One route style.** Every server (HTTP) version now uses `/api/<area>/<service>/<method-kebab>`; a read whose arguments are all plain values is `GET` (arguments in the query string), everything else is `POST`; `PUT`, `PATCH` and `DELETE` are no longer used and no id or text is in the path. About 85 services written as REST resources were converted (code, fake-fetch tests, contract docs); the earlier-to-current path of every call is in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+- **Why method routes:** the interface already has one method per action, so the server's route table is the interface's method list; the kit generates the path, so it cannot be misspelt; commands carry what they change in a body, which keeps patient text out of URLs and logs.
+- **Guard:** `src/services/apiServer/httpRoutes.guard.test.ts` fails on any other verb or path shape. Three files keep their own contracts (job polling and binary downloads): `exports/httpExportApi.ts`, `reportDocuments/httpReportDocumentService.ts`, `reports/httpReportVersionService.ts`.
+- **Wire changes the server author must know:** an id that was in the path is now in the query string or the body (`update(id, changes)` sends `{ id, changes }`); `deny` and `revoke` still send only the reason (plus `id`); the audit log and error log filters are sent as a body (the value `all` is still left out); a case list sends its filters as a body and ignores a cursor with no page size, as before; the follow-up commands send only the key and the choice.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
 
----
-*Subfolder READMEs: [pages/](./pages/README.md) · [services/](./services/README.md) · [types/](./types/README.md) · [components/](./components/README.md) · [utils/](./utils/README.md) · [hooks/](./hooks/README.md) · [contexts/](./contexts/README.md) · [data/](./data/README.md) · [i18n/](./i18n/README.md) · [api/](./api/README.md) · [audit/](./audit/README.md) · [loaders/](./loaders/README.md) · [firebase/](./firebase/README.md) · [theme/](./theme/README.md) · [constants/](./constants/README.md) · [mock/](./mock/README.md). No README yet: `mocks/`, `orchestrator/` (previously linked here, but the file doesn't exist), `protocols/`, `styles/`.*
+**Batch 618 (part B):** the partial nephrectomy drawing shows Gerota's fascia and the adrenal only when the extent reports them (PS-492); a size guard stops source files over 1,000 lines from growing (PS-497).
+
+
+**Batch 618 (part A):** a second facility for the technical component of a split case (PS-336): `services/accessioning/resolveTechnicalFacilityOffer.ts`, `services/billing/resolveChargeFacilities.ts`, `pages/AccessionPage/AccessionTechnicalFacilityField.tsx`.
+
+## Batch 638
+
+Batch 638 (Oct 20, 2026): CSMS messages wait for the eligibility check; Belgian Dutch dictation option; colleague reassignment room prorated by logged hours; surgical demo patients in the patient index. See `src/i18n/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+## Batch 639
+
+Batch 639 (Oct 20, 2026): hotkey decisions answered. Print Current Cassette moves to Alt+Shift+O; Discard Unsaved Changes asks for confirmation. See `docs/product/HOTKEY_DECISIONS.md`.
+
+## Batch 640
+
+Batch 640 (Oct 20, 2026): self-collected HPV recall windows and wording are set per country (Australia, New Zealand) by the laboratory's administrator, from a dropdown. See `docs/architecture/HPV_RESULT_INBOUND.md` section 8.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 650 (650a)
+
+Voice engine: Report Draft phrases register, Enter Gross / Micro / Diagnosis move dictation into their section, AI-refined dictation replaces instead of repeating, corrections are learned in the report editors, six risky commands are said twice, voice uses the keyboard's eligibility rule, and spoken commands are audited. `services/voice/README.md`.
+
+
+
+## Batch 651: AI answers checked in code
+See `services/aiIntegration/aiSuggestionRules.ts`, `services/coding/aiCodeSuggestions.ts`, `orchestrator/narrativeProvenance.ts` and `docs/product/GUIDE_UPDATES.md` (Batch 651).
+
+## Batch 652 — Specimen pipeline gaps
+
+Specimen pipeline gaps closed (triage gate as a service, intraoperative findings carried to the case, every frozen specimen reconciled, pool routing from both grossing screens and the Assignment Timeout, Lockbox receipt linked to its case, repeatable report PDFs). Details: `docs/product/GUIDE_UPDATES.md`, `docs/product/GAP_REGISTER.md`.
+
+## Batch 652 (defect fixes)
+
+Defect fixes: see `i18n/README.md` (Batch 652, defect fixes) for the files.
+
+- Batch 669b: the User Guide route (`/help/*`) moved into the no-top-bar shell in `SignedInApp.tsx`, so the guide window shows only the guide.
+
+- Batch 669c: old embedded guide PDFs and the About-menu guide links removed; guides open only from the top-bar Help buttons.
+
+- Batch 669d: the top-bar Help buttons now appear on Configuration (the page publishes its open tab and section through `services/help/helpAnchorStore.ts`, `hooks/usePublishHelpAnchor.ts`), the ? shows on every screen, and the Administrator Guide re-scrolls to the section as screenshots load (`scripts/admin-guide/guide.js`).
+
+- Batch 669e: fixes for ws-8, ws-10, ws-11, ws-16, ws-17, everyday-17, everyday-22, access-1, access-11 (see `docs/product/GUIDE_UPDATES.md`).
+
+- Batch 669f: second group of findings fixed (workstations, molecular, operations, messaging, cytology); three new capabilities (see `docs/product/CAPABILITIES.md`).
+
+- Batch 669g: unrecognised secondary cytology code blocked with an inline message; a reply moves its conversation up; Mark as unread disabled when you wrote last.
+
+- Batch 669h: Control Rules has its own view permission; External Consult is masked by default (audited opt-in for full identity); the Home footer status is real and the static compliance claims are removed.
+
+- Batch 669i: External Consult links stop at 3 views or 48 hours after signature; Audit Log can preview identity; date of birth is fixed DD-MMM-YYYY.
+
+Batch 670: audit writes (and the rest of the audit path) now go through the switched `auditService`; see `src/services/apiServer/README.md`.
+
+- Batch 679: `services/regulatoryProfile/` (documentation / clinical_support switch); `docs/product/REGULATORY_PROFILE.md`.
+
+- Batch 680: `services/aiGovernance/` (audit of AI accept/reject/code binding); sign-out gate for unaccepted AI narrative.
+
+- Batch 682: AI settings follow the regulatory profile (mismatch rules note; unused confidence checkbox removed).
+
+- Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
+
+- Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
+
+**Batch 713:** scan stations are offered only to people who may use them (sign-in prompt, header list, `STATION:` barcode switch); see `services/scanStations/README.md`.
+
+**Oct 28, 2026:** Feedback destination and validation routing (Oct 28, 2026): Enhancement Requests can be delivered to a website address set in Configuration > System > Feedback or pre-seeded in config.json (`VITE_ENHANCEMENT_REQUEST_URL`); QA feedback has an AI / Template validation category that links a validation study and template and goes to its own recipients (`FEEDBACK_ROUTED_TO_VALIDATION`). See `docs/architecture/FEEDBACK_DESTINATION.md`.
+
+**Batch 715 (Oct 28, 2026):** letters or numbers for specimens, blocks and slides, set per enterprise with a per-lab override (Configuration > System > Integrations > Facility Configuration). Rules and gaps: `services/labeling/README.md`.
+
+## Batch 726
+
+Lab Workflow & Batch spec, first part: the bench workstations read batches, every station scan is recorded (`services/stationScans/`), a carrier keeps its batch from step to step.
+
+## Batch 727
+
+Wall displays: add-ons on Embedding & Microtome with time X, the Stations view (spec section 9's live set), every label translated.
+
+## Batch 728
+
+Research cases and batch purposes (spec Decision 4): `services/researchCases/`, `services/batches/batchPurposes.ts`, Configuration → System → Research Cases & Batch Purposes.
+
+## Batch 729
+
+Station tracking part 2: matrix blocks at Embedding and Slide Distribution, the scan history panel, printed/completed events, wrong-case check at Grossing, not-scanned and loose items on the Stations view.
+
+## Batch 730
+
+Lab Workflow Reports (`services/labWorkflowReports/`, Batch Management → Workflow Reports), BI feed datasets, "print labels at" (`services/labelPrintRoutes/`), Equipment Log temperature checks.
+
+## Batch 731
+
+Exhausted-block rule (Lab Workflow spec §10.6, as decided), item end states (§10.5) and lineage (§10.4). See `src/i18n/README.md` Batch 731.
+
+## Batch 732
+
+Batch 732: megablocks and multi-piece blocks (Lab Workflow spec §11): block type, piece map, slide size, sections and levels per slide, orders for a piece, partial exhaustion. See `src/i18n/README.md` Batch 732.
+
+## Batch 745
+
+Batch 745: S6 autopsy seed (`services/cases/demoBaselineCases.ts`, the autopsy dictionary entry, patients).
+
+## Batch 744
+
+Batch 744: S14 fluid and FNA seed (`services/cases/demoFluidCases.ts`, batches, instrument orders, patients, TTF-1); Cytology Worklist names.
+
+## Batch 743
+
+Batch 743: Assist cases: the Attachments window keeps references only (`services/caseAttachments/reportEditState.ts`, `services/imageAssociation/caseReportImages.ts`, `components/CaseAttachments/CaseAttachmentsModal.tsx`).
+
+## Batch 742
+
+Batch 742: case attachments and images inside report sections: `services/caseAttachments/` (new), `services/imageAssociation/` (placements in sections), `components/CaseAttachments/` (new; replaces `components/ReportImages/`), `hooks/useCaseAttachments.ts`, `hooks/useReportPlacements.ts`, the report page, the Cytology Workspace and the report preview.
+
+## Batch 741
+
+Batch 741: `services/material/specimenDivision.ts`, `components/Material/DivideSpecimenPanel.tsx`, `hooks/useSpecimenDivision.ts`.
+
+## Batch 740
+
+Batch 740: `pages/CytologyPrepStationPage/` (new), `services/cytology/cellBlockHandoff.ts`, capabilities `screen:cytology-prep:open` and `cytology:cell-block:hand-off`.
+
+## Batch 739
+
+Batch 739: aliquot decants (`types/case/Material.ts`, `utils/aliquotMigration.ts`, `utils/decantTypeText.ts`), liquid-based Pap protocols, processor on the instrument order, cytospin suggestion.
+
+## Batch 738
+
+Batch 738: demo seed data (`services/protocols/surgicalDemoProtocols.ts`, `services/cases/demoSignOutReadyCase.ts`, orders, stations, printer, users), colon template wording (`data/templates/generic/`), review window labels (`services/reports/synopticReviewEntries.ts`).
+
+## Batch 737
+
+Batch 737: matrix add-on orders (`services/addOnOrders/`), megablock cassette template (`utils/labels/`), exhausted and large-format checks in Batch Management (`services/batches/`, `utils/`), staining racks in Equipment (`components/Config/System/StainingRacksPanel.tsx`).
+
+## Batch 736
+
+Batch 736: bench reasons in the Reason Dictionary (`services/reasons/benchReasons.ts`, `components/Config/System/BenchReasonsSection.tsx`), reason codes on add-on exceptions and batches, header search above the keyboard.
+
+## Batch 735
+
+Batch 735: station touch layout (`components/Touch/`, `SignedInApp.tsx` wraps the station routes), `StationScanField`, `QuickReasonPicks`, `utils/touch/`, `services/scanner/scanRoutePolicy.ts`; unused scan-field CSS removed from `pathscribe.css`.
+
+## Batch 734
+
+Batch 734: ad-hoc carriers move silently (`services/batches/`); direct browser printing per facility (`services/printing/directDevicePrinting.ts`, `components/FacilityDictionary/DirectPrintingSetting.tsx`).
+
+## Batch 733
+
+Batch 733: one flag per exhausted block and one answer for every waiting slide; destructive cutting only while tissue may remain (Pete's decisions, Oct 30, 2026).
+
+## Batch 746
+
+Batch 746: S7 molecular seed (`services/cases/demoMolecularCases.ts`, `services/molecular/molecularRunHistoryDemoSeed.ts`, control rule, reagent lots, patients).
+
+## Batch 747
+
+Batch 747: S8 wall displays (the facility fix in `services/facilityOpsDashboard/caseFacility.ts`, the wall-volume seed, the demo display tokens card on the Demo Reset tab).
+
+## Batch 748
+
+Batch 748: S9 and S11 seed (`services/cases/demoBlockTypeCases.ts`, a retention hold, a Checkout batch).
+
+## Batch 749
+
+Batch 749: S5 and S4 cytology seed (`services/cases/demoCytologyVolumeCases.ts`).
+
+## Batch 750
+
+Batch 750: slide images (seed row S10). PathScribe has no slide viewer: a slide shows its scanner's reference preview and opens in the laboratory's own digital pathology application, in a remembered window (`services/digitalPathology/slideImages.ts`, `components/SlideImage/`, `hooks/useSlideImage.ts`, `pages/WindowPositionPage/`, `services/windowPlacement/`).
+
+## Batch 751
+
+Batch 751: the organ map on Assist cases is a working aid only, and a lab can have it delivered to its laboratory system as text and a PNG or PDF file (Lab Workflow spec section 12); seed row S15.
+
+Batch 756: a case made on Accession reaches every bench: the Grossing queue lists it, and a cassette, block or slide scan finds it by the accession number on its label (S26-0001), not only by its internal id (O26-0031); no false "Unsaved Draft Found" on the report page; station scan fields show their keyboard and submit buttons on touch screens only; one toast per burst of simulated prints. Found while recording demo Video 1.
+
+Batch 757 (Pete's embedding-to-staining flow): carriers list their items at the bench, an Embedding-to-Microtome tray, the Microtome's dual scan into a staining rack, the full rack scanned to seal it, typed entry and check-off by hand everywhere a scan is needed.
+
+Batch 758: the Microtome's own print mode and Block printing, the block lockout (recut, void, continue), Scan-Last staining racks with a per-station bench, and a sign-out prompt while slides are on the bench (`utils/leaveGuards.ts`).
+
+Batch 759 (Pete's patient verification spec): no patient names, dates of birth or MRNs on the bench screens; the Foreign case ID of an outside case beside the accession; a quiet Manual Entry flag for every typed id, with a check line on screen.
+
+Batch 760: cytology screening and its worklist without patient name, date of birth or MRN.
+
+Batch 761: reusable staining racks: scan, load, close, run after run, with a warning for a run never closed.
+
+Batch 762: scanned requisitions filed on their case by barcode, the Requisition Inbox for the ones that match no case, and the case's Requisition button.
+
+Batch 763: the QC gate after staining and before distribution (stainers and scanners), and every action on Superadmin.

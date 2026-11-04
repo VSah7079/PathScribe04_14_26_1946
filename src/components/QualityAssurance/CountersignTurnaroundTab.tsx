@@ -17,9 +17,9 @@
 // its color matches exactly; the pending tile's amber highlight reuses
 // the `.ps-qa-tile--warning`/`--value--warning` pair added in batch 161.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { countersignService, auditService } from '@/services';
@@ -29,12 +29,17 @@ import type { CountersignRecord } from '@/types/case/CountersignRecord';
 import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { caseMatchesScope, exportQaReportRows, scopeLabel, QaScope, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { facilityMonthlyTrend, averageHours } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 const hoursBetween = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getTime()) / 3600000;
 
 export const CountersignTurnaroundTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [records, setRecords] = useState<CountersignRecord[]>([]);
   const [caseClientById, setCaseClientById] = useState<Record<string, string | undefined>>({});
@@ -89,25 +94,11 @@ export const CountersignTurnaroundTab: React.FC = () => {
 
   // Real monthly turnaround trend, last 6 months — same pattern as the
   // other two QA tabs' trend charts.
-  const monthlyTrend = useMemo(() => {
-    const months: { month: string; avgHours: number | null; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const inMonth = countersigned.filter(r => {
-        const ts = new Date(r.countersignedAt!).getTime();
-        return ts >= monthStart && ts < monthEnd;
-      });
-      const avgHours = inMonth.length > 0
-        ? +(inMonth.reduce((s, r) => s + hoursBetween(r.releasedAt, r.countersignedAt!), 0) / inMonth.length).toFixed(1)
-        : null;
-      months.push({ month: monthKey, avgHours, total: inMonth.length });
-    }
-    return months;
-  }, [countersigned]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const monthlyTrend = useMemo(() => facilityMonthlyTrend(countersigned, r => r.countersignedAt, inMonth => ({
+    avgHours: averageHours(inMonth, r => r.releasedAt, r => r.countersignedAt!), total: inMonth.length,
+  }), systemConfig.facilityTimezone), [countersigned, systemConfig.facilityTimezone]);
 
   const handleExport = () => {
     const rows = scoped.map(r => ({
@@ -121,10 +112,10 @@ export const CountersignTurnaroundTab: React.FC = () => {
       'Changed Fields': r.changedFieldCount ?? '',
       'Attending Feedback': r.attendingFeedback ?? '',
     }));
-    void exportQaReportRows('qa:countersign-turnaround:export', rows, `countersign-turnaround-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:countersign-turnaround:export', rows, `countersign-turnaround-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('countersignTurnaroundTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('countersignTurnaroundTab.loading')} />;
 
   return (
     <div>
@@ -137,9 +128,9 @@ export const CountersignTurnaroundTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={monthlyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="h" />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={32} unit="h" />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -189,7 +180,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
           <tbody>
             {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={4}>{t('countersignTurnaroundTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
-              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+              <tr key={r.id} className="ps-conf-tr-clickable" {...pressable(() => void openCasePage(r.caseId, 'synoptic'), { role: null })}>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                 <td className="ps-conf-td">{r.residentName}</td>
                 <td className="ps-conf-td">{new Date(r.releasedAt).toLocaleString()}</td>
@@ -214,7 +205,7 @@ export const CountersignTurnaroundTab: React.FC = () => {
           <tbody>
             {countersigned.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('countersignTurnaroundTab.noCountersignedMessage')}</td></tr>}
             {countersigned.map(r => (
-              <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+              <tr key={r.id} className="ps-conf-tr-clickable" {...pressable(() => void openCasePage(r.caseId, 'synoptic'), { role: null })}>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                 <td className="ps-conf-td">{r.residentName}</td>
                 <td className="ps-conf-td">{r.attendingName}</td>

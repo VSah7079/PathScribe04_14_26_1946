@@ -1,0 +1,3 @@
+/* Batch 668: the Help buttons in the top bar (beside the microphone). Same size and border as the other .ps-nav-btn icons. */
+.ps-nav-help-btn { color: var(--ps-teal-light, #38bdf8); text-decoration: none; }
+.ps-nav-help-btn:focus-visible { outline: 2px solid var(--ps-teal-light, #38bdf8); outline-offset: 2px; }

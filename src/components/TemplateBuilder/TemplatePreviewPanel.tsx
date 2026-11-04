@@ -1,38 +1,22 @@
 // src/components/TemplateBuilder/TemplatePreviewPanel.tsx
 // Word-style paginated preview. Auto-paginates from content height.
-// Page size is sticky across sessions via localStorage.
+// Opens at the lab's page size and margins (Batch 431, Document Style).
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { ReportTemplate as OldTemplate, TemplateNode } from '../../types/template';
 import type { StructuredContext } from '../../orchestrator/contextBuilder';
 import { evalCondition } from '../../pages/ReportPreview/ReportPreviewRenderer';
+import { formatDateLong } from '@/utils/formatDate';
+import { PAGE_SIZES, PAGE_SIZE_REGION_KEY, getLabPageSetup, type Margins } from '@/services/reportAppearance/pageSetup';
 
 // ── Page sizes ─────────────────────────────────────────────────
 const MM = 96 / 25.4;
 const mm = (v: number) => Math.round(v * MM);
 
-// Paper size names (A4, US Letter, ...) are standardised international
-// nomenclature and stay literal in every locale; only the descriptive
-// "where it's used" region text is translated, via this id-keyed map.
-export interface PageSize { id: string; label: string; widthMm: number; heightMm: number; }
-const PAGE_SIZES: PageSize[] = [
-  { id: 'a4',     label: 'A4',        widthMm: 210, heightMm: 297 },
-  { id: 'letter', label: 'US Letter', widthMm: 216, heightMm: 279 },
-  { id: 'legal',  label: 'US Legal',  widthMm: 216, heightMm: 356 },
-  { id: 'a3',     label: 'A3',        widthMm: 297, heightMm: 420 },
-  { id: 'b5',     label: 'B5',        widthMm: 176, heightMm: 250 },
-];
-const PAGE_SIZE_REGION_KEY: Record<string, string> = {
-  a4: 'templatePreviewPanel.pageSize.region.a4',
-  letter: 'templatePreviewPanel.pageSize.region.letter',
-  legal: 'templatePreviewPanel.pageSize.region.legal',
-  a3: 'templatePreviewPanel.pageSize.region.a3',
-  b5: 'templatePreviewPanel.pageSize.region.b5',
-};
-
-export interface Margins { top: number; right: number; bottom: number; left: number; }
-const DEFAULT_MARGINS: Margins = { top: 25, right: 20, bottom: 25, left: 20 };
+// Batch 431: page sizes and the lab's page setup live in
+// services/reportAppearance/pageSetup.ts (lab-wide, set in Document Style).
+export type { PageSize, Margins } from '@/services/reportAppearance/pageSetup';
 const MARGIN_SIDE_LABEL_KEY: Record<keyof Margins, string> = {
   top: 'templatePreviewPanel.margins.top',
   right: 'templatePreviewPanel.margins.right',
@@ -46,7 +30,7 @@ const MARGIN_SIDE_LABEL_KEY: Record<keyof Margins, string> = {
 const MOCK_CTX: any = {
   builtAt: new Date().toISOString(), caseId: 'PREVIEW-001', reportingMode: 'pathscribe',
   patient: { id: 'PT-001', name: 'Eleanor Whitmore', firstName: 'Eleanor', lastName: 'Whitmore',
-    dob: '1962-04-15', age: 63, sex: 'Female', mrn: 'MRN-8842917' },
+    dob: '1962-04-15', age: 63, sex: 'Female', sexAtBirth: 'Female', mrn: 'MRN-8842917' },
   specimens: [
     { id: 'SP-001', index: 0, label: 'A', type: 'Excision biopsy',
       site: 'Left breast, upper outer quadrant', laterality: 'Left', fixative: 'Formalin',
@@ -201,7 +185,7 @@ const FieldTable: React.FC<{ nodes: TemplateNode[]; ctx: StructuredContext }> = 
 // ── Content node ───────────────────────────────────────────────
 const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNum?: number; totalPages?: number }> =
   ({ node, ctx, pageNum = 1, totalPages = 1 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (node.showWhen && !evalCond(node.showWhen, ctx)) return null;
   if (isField(node)) return <FieldTable nodes={[node]} ctx={ctx} />;
   // 'synoptic-block' is deliberately outside the formal TemplateNode
@@ -304,29 +288,28 @@ const ContentNode: React.FC<{ node: TemplateNode; ctx: StructuredContext; pageNu
         </div>
       );
     case 'header':
-      // "PathScribe Laboratory" / "Department of Anatomic Pathology" mirror
-      // the same default institution-name/department fallback values seeded
-      // in mockReportPartService.ts (e('Institution', ..., 'PathScribe
-      // Laboratory')) — mock/demo institution data for this preview, not
-      // UI chrome, so left untranslated like the rest of MOCK_CTX.
+      // Batch 513 (PS-269): "PathScribe Laboratory" is the sample
+      // institution's brand name and stays literal; the sample department
+      // line is preview chrome, so it is translated. The date follows the
+      // user's locale instead of a hard-coded 'en-GB'.
       return (
         <div className="ps-tpp-print-header">
           <div>
             {node.showLogo && <div className="ps-tpp-print-header-logo">PathScribe Laboratory</div>}
-            <div className="ps-tpp-print-header-sub">Department of Anatomic Pathology</div>
+            <div className="ps-tpp-print-header-sub">{t('templatePreviewPanel.sampleDepartment')}</div>
           </div>
           <div className="ps-tpp-print-header-right" data-phi="accession">{node.showAccession && <div className="ps-tpp-print-header-accession">{MOCK_CTX.order.fullAccession}</div>}
             {node.showPatientName && <div className="ps-tpp-print-header-patient" data-phi="name">{MOCK_CTX.patient.name}</div>}
-            <div className="ps-tpp-print-header-sub">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+            <div className="ps-tpp-print-header-sub">{formatDateLong(new Date().toISOString(), i18n.language)}</div>
           </div>
         </div>
       );
     case 'footer':
-      // Patient name/DOB/accession are mock demo data (MOCK_CTX), left
-      // untranslated like the rest of the mock context.
+      // Patient name/DOB/accession values are mock demo data (MOCK_CTX); the
+      // "DOB" label and the separators come from one template key.
       return (
         <div className="ps-tpp-print-footer">
-          <span>{MOCK_CTX.patient.name} · DOB {MOCK_CTX.patient.dob} · {MOCK_CTX.order.fullAccession}</span>
+          <span data-phi="true">{t('templatePreviewPanel.footerPatientLine', { name: MOCK_CTX.patient.name, dob: MOCK_CTX.patient.dob, accession: MOCK_CTX.order.fullAccession })}</span>
           {node.showPageNumbers && <span>{t('templatePreviewPanel.pageNumber', { pageNum, totalPages })}</span>}
         </div>
       );
@@ -474,22 +457,11 @@ interface Props { template: OldTemplate; onClose: () => void; }
 
 export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => {
   const { t } = useTranslation();
-  // ── Sticky page size across sessions ──────────────────────────
-  const [pageSizeId, setPageSizeId] = useState(() =>
-    localStorage.getItem('ps_preview_page_size') ?? 'a4'
-  );
-  const handlePageSizeChange = (id: string) => {
-    setPageSizeId(id);
-    localStorage.setItem('ps_preview_page_size', id);
-  };
-
-  const [margins, setMargins] = useState<Margins>(() => {
-    try {
-      const stored = localStorage.getItem('ps_preview_margins');
-      if (stored) return JSON.parse(stored) as Margins;
-    } catch { /* ignore corrupt stored value */ }
-    return DEFAULT_MARGINS;
-  });
+  // Batch 431: opens at the lab's page size and margins (Document Style).
+  // Trying another size or margin here is for this preview only.
+  const [pageSizeId, setPageSizeId] = useState(() => getLabPageSetup().pageSizeId);
+  const handlePageSizeChange = (id: string) => setPageSizeId(id);
+  const [margins, setMargins] = useState<Margins>(() => getLabPageSetup().margins);
   const [showCtx, setShowCtx] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const ctx = MOCK_CTX;
@@ -515,7 +487,7 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
 
       {/* Toolbar */}
       <div className="ps-tpp-toolbar">
-        <select value={pageSizeId} onChange={e => handlePageSizeChange(e.target.value)}
+        <select aria-label={t('a11y.fields.pageSize')} value={pageSizeId} onChange={e => handlePageSizeChange(e.target.value)}
           className="ps-tpp-toolbar-select">
           {PAGE_SIZES.map(p => <option key={p.id} value={p.id}>{p.label} — {t(PAGE_SIZE_REGION_KEY[p.id])}</option>)}
         </select>
@@ -531,15 +503,12 @@ export const TemplatePreviewPanel: React.FC<Props> = ({ template, onClose }) => 
       {settingsOpen && (
         <div className="ps-tpp-margins-panel">
           <span className="ps-tpp-margins-label">{t('templatePreviewPanel.margins.heading')}</span>
+          <span className="ps-tpp-margins-hint">{t('templatePreviewPanel.margins.previewOnlyHint')}</span>
           {(['top','right','bottom','left'] as (keyof Margins)[]).map(side => (
             <label key={side} className="ps-tpp-margin-field">
               {t(MARGIN_SIDE_LABEL_KEY[side])}
               <input type="number" value={margins[side]} min={5} max={50}
-                onChange={e => setMargins(m => {
-                    const next = { ...m, [side]: parseInt(e.target.value) || 20 };
-                    localStorage.setItem('ps_preview_margins', JSON.stringify(next));
-                    return next;
-                  })}
+                onChange={e => setMargins(m => ({ ...m, [side]: parseInt(e.target.value) || 20 }))}
                 className="ps-tpp-margin-input" />
             </label>
           ))}

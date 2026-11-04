@@ -1,0 +1,1437 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Annexes : Dépannage et vérification du journal d&#x27;audit · Guide de l&#x27;administrateur PathScribe (édition interne ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="fr" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Guide de l&#x27;administrateur</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Rechercher des écrans, des champs, des codes d&#x27;erreur" aria-label="Rechercher dans le guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Langue"><option value="en">English</option><option value="fr" selected>Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Imprimer / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Chapitres du guide"><a href="index.html">Sommaire</a><a href="setup-sequence.html">Ordre de configuration</a><a href="01-system-overview.html">1. Vue d&#x27;ensemble et architecture du système</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1 : Prérequis du système principal (à configurer en premier)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2 : Répertoires de référence et données cliniques de base (à configurer en deuxième)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3 : Moteurs de flux de travail et configuration opérationnelle (à configurer en troisième)</a><a href="05-tier4-ai-framework.html">5. Niveau 4 : Le cadre d&#x27;IA intégré de PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5 : Comptes rendus, formulaires synoptiques et configuration du planificateur</a><a href="07-tier6-interface-engine.html">7. Niveau 6 : moteur d&#x27;interface et intégrations de systèmes externes</a><a href="08-tier7-billing-registry.html">8. Niveau 7 : facturation, gestion du cycle de revenus et déclaration aux registres</a><a href="09-appendices.html" aria-current=page>9. Annexes : Dépannage et vérification du journal d&#x27;audit</a><a href="99-glossary.html">99. Annexe : Glossaire des termes et abréviations</a></nav><main id="main"><aside class="pagetoc" aria-label="Sur cette page"><b>Sur cette page</b><ul><li class="l2"><a href="#ch9-matrix">Matrice de dépannage</a></li><li class="l3"><a href="#ch9-matrix-empty">Listes vides et messages « non configuré »</a></li><li class="l3"><a href="#ch9-matrix-permissions">Enregistrements refusés, boutons grisés et écrans inaccessibles</a></li><li class="l3"><a href="#ch9-matrix-print">Étiquettes et comptes rendus qui ne s&#x27;impriment pas</a></li><li class="l3"><a href="#ch9-matrix-interfaces">Messages d&#x27;interface bloqués</a></li><li class="l3"><a href="#ch9-matrix-signin">Échec de la connexion</a></li><li class="l3"><a href="#ch9-matrix-stuck">Un message d&#x27;interface ou un écran semble bloqué</a></li><li class="l2"><a href="#ch9-error-codes">Index des codes d&#x27;erreur du système</a></li><li class="l3"><a href="#ch9-codes-http">Codes que peut afficher tout écran relié au serveur</a></li><li class="l3"><a href="#ch9-codes-exports">Exportations</a></li><li class="l3"><a href="#ch9-codes-config">Configuration au démarrage</a></li><li class="l3"><a href="#ch9-codes-print">Impression, étiquettes et agent de site</a></li><li class="l3"><a href="#ch9-codes-outbound">Messages sortants, actes facturables, registres et tâches du serveur</a></li><li class="l3"><a href="#ch9-codes-config-screens">Écrans de configuration : refus à connaître</a></li><li class="l2"><a href="#ch9-system-logs">Référence des Journaux système</a></li><li class="l3"><a href="#screen-audit-log">Journaux système</a></li><li class="l2"><a href="#ch9-audit-verification">Guide de vérification du journal d&#x27;audit</a></li><li class="l3"><a href="#ch9-audit-recorded">Ce qui est enregistré</a></li><li class="l3"><a href="#ch9-audit-find-setting">Comment retrouver la modification d&#x27;un paramètre</a></li><li class="l3"><a href="#ch9-audit-find-permission">Comment vérifier qui a modifié une autorisation</a></li><li class="l3"><a href="#ch9-audit-integrity">Comment fonctionnent l&#x27;intégrité et la conservation du registre</a></li><li class="l3"><a href="#ch9-audit-export">Comment exporter</a></li><li class="l3"><a href="#ch9-audit-support">Comment s&#x27;articule l&#x27;audit de l&#x27;Accès du support</a></li><li class="l3"><a href="#ch9-audit-routine">Une routine de vérification courte</a></li></ul></aside><article><h1 id="ch9"><a class="anchor" href="#ch9" aria-label="Link to this section">#</a> Annexes : Dépannage et vérification du journal d'audit</h1>
+<p>Ce chapitre comprend trois parties. La première est une matrice de dépannage : les problèmes que rencontre le plus souvent un administrateur, chacun avec sa cause et l'écran qui permet de le corriger. La deuxième est un index des codes d'erreur que PathScribe affiche ou enregistre. La troisième décrit l'écran Journaux système et donne un guide pas à pas pour vérifier le contenu du <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a>. Le glossaire des termes est le dernier chapitre du guide (<a href="99-glossary.html#ch99">Glossaire</a>).</p>
+<p><strong>Le Guide utilisateur (Batch 657).</strong> Le Guide utilisateur en ligne, destiné aux personnes qui font le travail, est généré à partir de fichiers Markdown dans <code>docs/user-guide/</code> par <code>python3 scripts/user-guide/build.py</code> et publié avec l'application sous <code>/help</code> ; le bouton Aide de chaque écran et F1 ouvrent l'article de l'écran affiché. Les écrans de configuration et d'administration conservent leurs boutons du Guide de l'administrateur. Aucun paramètre n'est nécessaire. Pour ajouter ou modifier une page, modifiez son fichier et régénérez ; la génération vérifie les sections obligatoires, les liens et les routes.</p>
+<p>Chaque message cité ici est le texte français du produit. Chaque code existe dans le code source ; un code qui n'est qu'un espace réservé dans un contrat, sans usage dans le produit, n'est pas répertorié.</p>
+<h2 id="ch9-matrix"><a class="anchor" href="#ch9-matrix" aria-label="Link to this section">#</a> Matrice de dépannage</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Guide de l&#x27;administrateur &gt; Annexes &gt; Matrice de dépannage"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Guide de l&#x27;administrateur</span> <span aria-hidden="true">›</span> <span>Annexes</span> <span aria-hidden="true">›</span> <span>Matrice de dépannage</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>Utilisation de la matrice.</strong> Repérez le symptôme signalé par l'utilisateur, lisez la cause probable et appliquez la correction. La plupart des signalements « ça ne fonctionne pas » relèvent de l'une de deux causes : un dictionnaire qui n'a jamais été configuré (une liste vide), ou un <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> qui ne détient pas une <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> (un bouton grisé ou un enregistrement refusé). Lorsque le symptôme affiche un code en majuscules, cherchez-le dans l'<a href="#ch9-error-codes">index des codes d'erreur</a>.</p>
+<p><strong>Avant toute chose.</strong> Deux vérifications répondent à la plupart des questions.</p>
+<ol>
+<li>Ouvrez les <a href="#screen-audit-log">Journaux système</a> et recherchez le nom de la personne ou la clé de la capacité. Un contrôle d'autorisation refusé écrit une entrée <strong>Capability refused</strong> qui nomme la capacité et le rôle de session de la personne.</li>
+<li>Consultez l'onglet <strong>Journal des erreurs</strong> pour y trouver une erreur ouverte avec un code, une source et une heure proches du signalement.</li>
+</ol>
+<h3 id="ch9-matrix-empty"><a class="anchor" href="#ch9-matrix-empty" aria-label="Link to this section">#</a> Listes vides et messages « non configuré »</h3>
+<p>Une liste déroulante vide ou un message « aucun configuré » signifie presque toujours qu'un dictionnaire placé plus tôt dans l'ordre de configuration a été ignoré. La page <a href="setup-sequence.html">Ordre de configuration</a> indique cet ordre.</p>
+<table>
+<thead>
+<tr>
+<th>Symptôme (ce que voit l'utilisateur)</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dans la fenêtre d'équipe d'un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> : <strong>Aucun <a class="term" href="99-glossary.html#g-participation-type" title="Un rôle qu&#x27;une personne joue sur un dossier, tel que pathologiste principal ou dépisteur, avec sa propre autorité de signature.">type de participation</a> configuré</strong>, avec l'indication « Configurez les types dans Système → Types de participation. »</td>
+<td>Aucun type de participation n'existe.</td>
+<td>Ajoutez les types utilisés par le laboratoire, puis rouvrez la fenêtre.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Types de participation</a></td>
+</tr>
+<tr>
+<td>Une impression de test ou une fenêtre d'étiquette indique <strong>Aucun <a class="term" href="99-glossary.html#g-printer-profile" title="Les paramètres enregistrés pour un modèle d&#x27;imprimante, y compris son mode de connexion (passerelle).">profil d'imprimante</a> configuré</strong>.</td>
+<td>Aucun profil d'imprimante n'a été ajouté.</td>
+<td>Ajoutez un profil d'imprimante pour chaque modèle d'imprimante d'étiquettes.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Profils d'imprimante</a></td>
+</tr>
+<tr>
+<td>Un poste d'<a class="term" href="99-glossary.html#g-embedding" title="L&#x27;étape où le tissu traité est mis en paraffine dans une cassette pour constituer un bloc.">inclusion</a> ou de <a class="term" href="99-glossary.html#g-microtomy" title="La coupe de sections fines dans un bloc avec un microtome pour réaliser des lames.">microtomie</a> indique <strong>Aucune imprimante configurée</strong> ou <strong>Le profil d'imprimante configuré n'existe plus.</strong> Un poste de distribution des lames indique <strong>Ce poste n’est pas configuré pour imprimer des étiquettes de lame.</strong></td>
+<td>Le poste n'a pas de profil d'imprimante, ou son profil a été supprimé.</td>
+<td>Ouvrez le poste et choisissez un profil d'imprimante qui existe encore.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-scan_stations">Postes de numérisation</a>, <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Profils d'imprimante</a></td>
+</tr>
+<tr>
+<td>Une fenêtre de distribution des lames ou de lot de numérisation indique <strong>Aucun scanner de lames n’est configuré</strong> (le texte cite Configuration, Équipements, type « Scanner de lames »).</td>
+<td>Aucun enregistrement d'équipement de type Scanner de lames.</td>
+<td>Ajoutez les scanners.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-equipment">Équipements</a></td>
+</tr>
+<tr>
+<td>Une étiquette ne s'imprime pas et le message indique <strong>Aucun <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, le numéro que porte un code-barres GS1. Les Paramètres d&#x27;impression contiennent le GTIN de l&#x27;établissement.">GTIN</a> <a class="term" href="99-glossary.html#g-gs1" title="L&#x27;organisation de normalisation à l&#x27;origine des formats de codes-barres et de la numérotation GTIN utilisés sur les étiquettes de cassettes et de lames.">GS1</a> configuré. Définissez-en un dans les paramètres d’impression avant d’imprimer une étiquette de <a class="term" href="99-glossary.html#g-cassette" title="Le support en plastique dans lequel un bloc de tissu est inclus et étiqueté en vue de la coupe.">cassette</a> GS1</strong> (ou une étiquette de lame).</td>
+<td>Aucun GTIN GS1 n'a été saisi pour l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>.</td>
+<td>Saisissez le GTIN dans les Paramètres d'impression.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-print_settings">Paramètres d'impression</a></td>
+</tr>
+<tr>
+<td>Le tableau de bord des opérations de l'établissement indique <strong>Aucun profil d’affichage n’est encore configuré</strong>.</td>
+<td>Aucun <a class="term" href="99-glossary.html#g-display-profile" title="Une disposition enregistrée de tuiles de tableau de bord qu&#x27;un écran mural affiche.">profil d'affichage</a> n'existe.</td>
+<td>Ajoutez-en un dans Profils d'affichage.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-display_profiles">Profils d'affichage</a></td>
+</tr>
+<tr>
+<td>Le tableau de bord du <a class="term" href="99-glossary.html#g-block" title="Un fragment de tissu inclus dans de la paraffine à l&#x27;intérieur d&#x27;une cassette, dans lequel les lames sont coupées.">bloc</a> opératoire indique <strong>Aucun terminal configuré</strong>.</td>
+<td>Aucun terminal de suite opératoire n'existe.</td>
+<td>Ajoutez les terminaux.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-or_suite_terminals">Terminaux de salle d'opération</a></td>
+</tr>
+<tr>
+<td>Dans la fenêtre de règle d'acheminement : <strong>Aucun groupe actif. Activez d'abord « Pool / Groupe de travail » sur une <a class="term" href="99-glossary.html#g-subspecialty" title="Un domaine de la pathologie, tel que le sein ou le tube digestif, utilisé pour orienter les dossiers. Une sous-spécialité peut être basculée en mode partagé.">sous-spécialité</a>.</strong></td>
+<td>Aucune sous-spécialité n'est en mode Pool / Groupe de travail.</td>
+<td>Activez Pool / Groupe de travail pour au moins une sous-spécialité, puis ajoutez la règle.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-subspecialties">Sous-spécialités</a>, <a href="04-tier3-workflow-engines.html#screen-routing_rules">Règles d'acheminement</a></td>
+</tr>
+<tr>
+<td>Dans la fenêtre de nouveau contenant : <strong>Aucun établissement n'est actuellement configuré avec le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> de <a class="term" href="99-glossary.html#g-reference-lab" title="Un laboratoire auquel des analyses sont sous-traitées. Un établissement reçoit le rôle de Laboratoire de référence.">laboratoire de référence</a>.</strong></td>
+<td>Aucun établissement n'a le rôle de laboratoire de référence.</td>
+<td>Attribuez ce rôle à un établissement dans ses paramètres.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a></td>
+</tr>
+<tr>
+<td>Un utilisateur qui essaie la messagerie sécurisée voit <strong>Votre laboratoire n’a aucune passerelle de messagerie sécurisée.</strong></td>
+<td>L'établissement n'a aucune passerelle dans son onglet Messagerie sécurisée.</td>
+<td>Ajoutez une passerelle dans les paramètres de l'établissement.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a></td>
+</tr>
+<tr>
+<td>La liste <strong>Ajouter</strong> des niveaux de <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> par client est vide, avec la note que chaque client a déjà un niveau ou qu'aucun client n'est configuré.</td>
+<td>Chaque établissement a déjà un niveau de service, ou aucun établissement client n'existe.</td>
+<td>Ajoutez d'abord les établissements, ou modifiez le niveau existant.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-clients">Configuration des établissements</a>, <a href="03-tier2-master-dictionaries.html#screen-client_sla">Niveaux de service par client</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-permissions"><a class="anchor" href="#ch9-matrix-permissions" aria-label="Link to this section">#</a> Enregistrements refusés, boutons grisés et écrans inaccessibles</h3>
+<p>PathScribe contrôle les capacités deux fois. L'écran grise une action que la personne ne peut pas effectuer. Le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> qui exécute l'action contrôle de nouveau et la refuse. En production, le serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> répète le contrôle et a le dernier mot. Aucun <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> ne peut contourner ce contrôle, Superadmin compris.</p>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Un bouton est grisé. Son infobulle indique <strong>Vos rôles n'incluent pas « <capability> ».</strong></td>
+<td>Aucun des rôles de la personne ne détient cette <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a>.</td>
+<td>Ajoutez la capacité à un rôle que la personne détient. Les capacités sont regroupées par domaine dans le dictionnaire des rôles.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>L'infobulle indique <strong>« <capability> » nécessite aussi « <other> », que vos rôles n'incluent pas.</strong></td>
+<td>La capacité en exige une autre (sa liste <code>requires</code> dans le catalogue).</td>
+<td>Accordez les deux. L'enregistrement d'un rôle est refusé avec « a capability is missing one it needs » tant que la capacité exigée n'est pas aussi accordée.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>L'infobulle indique <strong>« <capability> » n'est pas disponible ici : vos établissements attribués ne le couvrent pas.</strong></td>
+<td>La personne détient la capacité, mais l'action concerne un <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> extérieur à ses établissements attribués (ou porte sur tous les établissements).</td>
+<td>Modifiez l'attribution d'établissements de la personne.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Un enregistrement de Configuration échoue avec <strong>Non enregistré : il faut l'autorisation « <permission> ». Un administrateur peut l'accorder dans Configuration → Personnel → Dictionnaire des rôles.</strong></td>
+<td>La personne n'a pas la capacité <code>config:...:manage</code> de cet écran (code <code>CONFIG_NOT_PERMITTED</code>).</td>
+<td>Accordez l'autorisation indiquée au rôle de la personne.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>L'enregistrement d'un rôle échoue : <strong>Non enregistré : plus aucun rôle ne pourrait gérer les rôles.</strong></td>
+<td>La modification ne laisserait aucun rôle attribuable détenant <code>config:roles:manage</code>.</td>
+<td>Accordez d'abord <strong>Gérer les rôles</strong> à un autre rôle attribuable, puis enregistrez.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>L'enregistrement d'un rôle ou d'un membre du personnel échoue avec <strong>modifier les règles de <a class="term" href="99-glossary.html#g-discordance" title="Une différence entre deux lectures du même matériel, par exemple entre un diagnostic préliminaire et un diagnostic final, ou entre un premier et un second pathologiste.">discordance</a> clinique et approuver les instructions de l’IA sont des tâches séparées</strong>.</td>
+<td>Une même personne (ou un même rôle) ne peut pas détenir à la fois <code>config:clinical-mismatch-rules:manage</code> et <code>config:ai-prompt:approve</code> (code <code>SEPARATION_OF_DUTIES</code>).</td>
+<td>Répartissez les deux capacités entre deux rôles détenus par des personnes différentes.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>L'enregistrement d'un rôle échoue avec <strong>ce rôle est géré par ForMedrixAI</strong>.</td>
+<td>Le rôle Superadmin ne peut pas être modifié dans un hôpital.</td>
+<td>Aucune. Utilisez un autre rôle.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>Un utilisateur ouvre un écran et voit <strong>Vous n'avez pas accès à cet écran</strong> ; après la connexion, la page d'accueil indique <strong>Aucun de vos rôles ne vous donne encore accès à un écran.</strong></td>
+<td>Le rôle n'a pas la capacité <code>screen:&lt;name&gt;:open</code>, donc l'accueil n'affiche aucune tuile et la route refuse l'adresse.</td>
+<td>Ajoutez la capacité d'écran au rôle.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>Une personne ne peut pas approuver sa propre modification : <strong>Vous avez modifié ce texte : vous ne pouvez pas l’approuver.</strong></td>
+<td>L'auto-approbation est refusée pour les instructions de l'IA (code <code>SELF_APPROVAL</code>).</td>
+<td>Faites approuver le texte par un autre titulaire de <code>config:ai-prompt:approve</code>.</td>
+<td><a href="05-tier4-ai-framework.html#screen-ai_instructions">Instructions de l’IA</a></td>
+</tr>
+<tr>
+<td>Un bouton d'export ne fait rien, ou l'écran d'export affiche <strong>Vous n'avez pas l'autorisation d'exporter ce rapport.</strong></td>
+<td>Chaque export a sa propre capacité (par exemple <code>audit:audit-log:export</code>), et le serveur la contrôle de nouveau au téléchargement.</td>
+<td>Accordez la capacité d'export indiquée dans l'infobulle du bouton.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-print"><a class="anchor" href="#ch9-matrix-print" aria-label="Link to this section">#</a> Étiquettes et comptes rendus qui ne s'impriment pas</h3>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Une étiquette va dans la fenêtre d'impression du navigateur et le message indique <strong>L'imprimante d'étiquettes n'est pas connectée ; l'étiquette a donc été envoyée à la fenêtre d'impression du navigateur. Vérifiez que <a class="term" href="99-glossary.html#g-qz-tray" title="Un petit programme installé sur un ordinateur qui permet à une page web d&#x27;imprimer sur une imprimante locale, telle qu&#x27;une imprimante d&#x27;étiquettes, sans boîte de dialogue d&#x27;impression.">QZ Tray</a> est en cours d'exécution sur cet ordinateur.</strong></td>
+<td>Le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> QZ Tray n'est pas en cours d'exécution ou n'est pas joignable sur cet ordinateur.</td>
+<td>Démarrez QZ Tray sur l'ordinateur et imprimez de nouveau.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Profils d'imprimante</a>, <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Paramètres d'impression</a></td>
+</tr>
+<tr>
+<td><strong>L’étiquette <id> n’a pas été imprimée : <printer> n’a plus d’étiquettes / n’a plus de ruban / la tête d’impression est ouverte / n’a pas pu être joint.</strong></td>
+<td>L'imprimante a signalé cet état (codes <code>PAPER_OUT</code>, <code>RIBBON_OUT</code>, <code>HEAD_OPEN</code>, <code>PRINTER_UNREACHABLE</code>).</td>
+<td>Corrigez l'imprimante, puis relancez l'étiquette. Une étiquette n'est jamais relancée automatiquement, elle ne peut donc pas être imprimée deux fois.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">File d'impression</a></td>
+</tr>
+<tr>
+<td><strong>...n’a pas été imprimée : <printer> a refusé la mise en page de l’étiquette</strong> ou <strong>son code-barres n'a pas passé la validation <a class="term" href="99-glossary.html#g-gs1" title="L&#x27;organisation de normalisation à l&#x27;origine des formats de codes-barres et de la numérotation GTIN utilisés sur les étiquettes de cassettes et de lames.">GS1</a>. Il s’agit d’un problème PathScribe ; veuillez le signaler.</strong></td>
+<td>Le contenu de l'étiquette a été refusé (<code>MALFORMED_ZPL</code>, <code>INVALID_GS1</code>). Une nouvelle tentative n'y changera rien.</td>
+<td>Signalez-le au support ForMedrixAI en indiquant l'heure et la mise en page de l'étiquette.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-label_designer">Concepteur d'étiquettes</a></td>
+</tr>
+<tr>
+<td>Un travail d'impression de compte rendu est en <strong>Échec</strong> avec « L'impression réseau nécessite l'<a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a> PathScribe. »</td>
+<td>Un compte rendu a été envoyé depuis un navigateur à une imprimante réseau, que le navigateur ne peut pas joindre (<code>NEEDS_SITE_AGENT</code>).</td>
+<td>Faites passer l'impression du laboratoire par une imprimante d'agent de site.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Agents de site</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-print_routing_rules">Règles de routage des destinations d'impression</a></td>
+</tr>
+<tr>
+<td>L'impression « fonctionne » mais rien ne sort dans la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a>.</td>
+<td>La version de démonstration enregistre les impressions au lieu de les envoyer.</td>
+<td>Consultez le journal des impressions simulées.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-simulated_print">Journal des impressions simulées</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-interfaces"><a class="anchor" href="#ch9-matrix-interfaces" aria-label="Link to this section">#</a> Messages d'interface bloqués</h3>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Un message apparaît dans <strong>File <a class="term" href="99-glossary.html#g-dlq" title="File des messages en échec définitif (Dead-letter queue), la liste des messages dont toutes les tentatives ont échoué. Les Journaux système en comptent une pour les messages d&#x27;interface sortants et une pour les actes facturables.">DLQ</a> d'interface sortante</strong> avec l'erreur <strong>Envoi rejeté</strong>, <strong>Délai d'envoi dépassé</strong> ou <strong>Moteur inaccessible</strong>.</td>
+<td>Le moteur d'interfaces n'a pas renvoyé de réponse 2xx (<code>DISPATCH_REJECTED</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_UNREACHABLE</code>). Le message est conservé pour une nouvelle tentative.</td>
+<td>Vérifiez le moteur dans le sous-onglet <strong>Moteurs</strong>. Lorsqu'il est en bon état, choisissez <strong>Réessayer l'envoi</strong> (nécessite <code>interface:outbound:resend</code>).</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>La nouvelle tentative répond <strong>Suspendu dans la file d’envoi : libérez-le d’abord à cet endroit.</strong></td>
+<td>Le message est suspendu dans la <a class="term" href="99-glossary.html#g-outbound-queue" title="La liste des messages et des actes facturables que PathScribe a construits et qui sont en attente d&#x27;envoi, retenus, envoyés ou en échec.">file d'envoi</a>.</td>
+<td>Libérez-le sur cet écran, puis renvoyez-le.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>La nouvelle tentative répond <strong>En attente : le <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, la forme sous laquelle un compte rendu signé est conservé et imprimé.">PDF</a> du compte rendu n’est pas encore disponible.</strong></td>
+<td>Le document du compte rendu n'est pas encore généré.</td>
+<td>Patientez. Le message est envoyé avec le PDF lors d'une nouvelle tentative ultérieure.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>Un acte facturable figure dans la <strong>File d'échec sortante</strong> (financier) avec <strong>Code <a class="term" href="99-glossary.html#g-icd-10" title="La Classification internationale des maladies, dixième révision, un jeu de codes de diagnostic.">CIM-10</a> manquant</strong> ou <strong><a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, l&#x27;identifiant à dix chiffres d&#x27;un prestataire de soins américain, requis sur un acte facturable.">NPI</a> du prestataire manquant</strong>.</td>
+<td>L'acte facturable ne peut pas être construit sans le code ou le NPI (<code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>).</td>
+<td>Saisissez la valeur sur la ligne ; la ligne comporte un champ pour chacune.</td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Journaux système : facturation</a></td>
+</tr>
+<tr>
+<td>Une tâche des <strong>Tâches du serveur</strong> ne peut pas être remise en file : <strong>Renvoyez cette tâche depuis Interfaces.</strong></td>
+<td>Les tâches d'interface et d'impression sont renvoyées depuis leurs propres écrans (<code>WRONG_SCREEN</code>).</td>
+<td>Utilisez la file des interfaces ou la <a class="term" href="99-glossary.html#g-print-queue" title="La liste des travaux d&#x27;impression de comptes rendus et d&#x27;étiquettes avec leur statut, de en file d&#x27;attente à imprimé ou en échec.">file d'impression</a>, avec <code>interface:outbound:resend</code> ou <code>print:job:retry</code>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>Une remise en file répond <strong>Cette tâche n’est plus en échec ; elle a peut-être déjà été relancée.</strong></td>
+<td>Quelqu'un l'a déjà remise en file (<code>NOT_DEAD_LETTERED</code>).</td>
+<td>Actualisez. Aucune action.</td>
+<td><a href="#screen-audit-log">Journaux système</a></td>
+</tr>
+<tr>
+<td>Exceptions d'interface en attente (un badge de compteur sur l'onglet <strong>Journal des interfaces</strong>).</td>
+<td>Les messages entrants qui n'ont pu être rattachés à un patient ou à un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> attendent une personne.</td>
+<td>Ouvrez le sous-onglet <strong>Exceptions d'interface</strong> et examinez chacune.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-signin"><a class="anchor" href="#ch9-matrix-signin" aria-label="Link to this section">#</a> Échec de la connexion</h3>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Adresse e-mail ou mot de passe incorrect.</strong>, puis <strong>Une tentative échouée de plus bloquera la connexion pour cette adresse e-mail pendant 15 minutes.</strong></td>
+<td>La connexion par mot de passe bloque une adresse e-mail après 5 échecs consécutifs, pendant 15 minutes. Le décompte porte sur l'adresse saisie, qu'elle appartienne ou non à un compte.</td>
+<td>Attendez 15 minutes, ou définissez un nouveau mot de passe pour la personne : définir un mot de passe lève le blocage. Le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> contient <strong>Sign-in failed</strong>, <strong>Sign-in locked</strong> et <strong>Sign-in refused</strong>.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td><strong>Demandez à votre administrateur de réinitialiser votre mot de passe depuis l'écran Personnel.</strong></td>
+<td>La personne a oublié son mot de passe. Le formulaire de connexion ne propose pas de réinitialisation en libre-service.</td>
+<td>Définissez un mot de passe temporaire dans la fiche de la personne. La personne doit choisir le sien à la prochaine connexion.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Vous êtes connecté, mais aucun compte PathScribe actif n’existe à votre nom.</strong></td>
+<td>Aucune fiche de personnel ne correspond (<code>not_provisioned</code>).</td>
+<td>Ajoutez la personne comme membre. La première <a class="term" href="99-glossary.html#g-single-sign-on" title="Se connecter une seule fois avec le fournisseur d&#x27;identité d&#x27;une organisation au lieu d&#x27;un mot de passe PathScribe. Aussi écrit SSO.">authentification unique</a> établit le lien par l'adresse e-mail.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Votre compte PathScribe est inactif.</strong></td>
+<td>La fiche de personnel est inactive.</td>
+<td>Réactivez-la.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Plusieurs comptes PathScribe correspondent à cette connexion.</strong></td>
+<td>Deux fiches de personnel partagent la même adresse e-mail (<code>ambiguous</code>).</td>
+<td>Supprimez le doublon.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Ce compte PathScribe est déjà associé à un autre compte de connexion.</strong></td>
+<td>Une boîte aux lettres réattribuée : la fiche est liée à une autre identité chez le même fournisseur (<code>already_linked</code>).</td>
+<td>Dissociez l'ancien compte dans la fiche de la personne, puis reconnectez-vous.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Votre compte PathScribe ne donne pas accès à cette application.</strong></td>
+<td>Les rôles de la personne ne comportent ni accès aux dossiers ni accès à la configuration (<code>no_app_access</code>).</td>
+<td>Attribuez à la personne un <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> avec accès.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></td>
+</tr>
+<tr>
+<td>Authentification unique : <strong>Votre organisation exige un second facteur, et le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> de connexion n'en a signalé aucun.</strong></td>
+<td>Le <a class="term" href="99-glossary.html#g-identity-provider" title="Le service qui authentifie les personnes pour l&#x27;authentification unique, tel que l&#x27;annuaire Microsoft Entra d&#x27;un hôpital.">fournisseur d'identité</a> n'a pas signalé de second facteur (<code>mfa_required</code>).</td>
+<td>Effectuez le second facteur auprès du fournisseur d'identité.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sécurité de session</a></td>
+</tr>
+<tr>
+<td><strong>La connexion n’est pas configurée pour cette installation. Contactez votre administrateur système.</strong></td>
+<td>La version déployée n'a aucune connexion configurée.</td>
+<td>Corrigez <code>config.json</code> (voir les codes de démarrage ci-dessous).</td>
+<td><a href="#ch9-codes-config">Codes de configuration au démarrage</a></td>
+</tr>
+<tr>
+<td>Une page entière <strong>PathScribe ne peut pas démarrer : sa configuration doit être corrigée</strong> avec une liste de codes.</td>
+<td><code>config.json</code> contient un paramètre que le produit refuse. PathScribe ne démarre pas avec des paramètres erronés.</td>
+<td>Corrigez <code>config.json</code> sur le serveur web et rechargez. Chaque code figure dans l'index.</td>
+<td><a href="#ch9-codes-config">Codes de configuration au démarrage</a></td>
+</tr>
+<tr>
+<td>Codes du second facteur : <strong>Ce code a déjà été utilisé. Attendez le suivant.</strong> ou <strong>Trop de tentatives. Les codes du second facteur sont verrouillés jusqu’à <time>.</strong></td>
+<td>Le code a été rejoué, ou trop de codes erronés ont été saisis.</td>
+<td>Attendez le code suivant, ou jusqu'à l'heure de fin du verrouillage.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sécurité de session</a></td>
+</tr>
+<tr>
+<td><strong>Ce compte est déjà connecté sur un autre onglet ou une autre fenêtre de ce navigateur.</strong></td>
+<td>PathScribe autorise une seule session active par compte et par navigateur.</td>
+<td>Continuez pour déconnecter l'autre session (son travail non enregistré est conservé et proposé pour révision).</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sécurité de session</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-stuck"><a class="anchor" href="#ch9-matrix-stuck" aria-label="Link to this section">#</a> Un message d'interface ou un écran semble bloqué</h3>
+<table>
+<thead>
+<tr>
+<th>Symptôme</th>
+<th>Cause probable</th>
+<th>Correction</th>
+<th>Écran</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Un écran indique <strong>Le serveur PathScribe est injoignable. Réessayez dans un instant.</strong></td>
+<td>Le navigateur n'a pas pu joindre le serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>, ou celui-ci a répondu par une erreur serveur (<code>UNAVAILABLE</code>), ou n'a pas répondu en 30 secondes (<code>TIMED_OUT</code>).</td>
+<td>Vérifiez le chemin réseau et l'état du serveur API. L'écran réessaie là où il l'indique (par exemple le panneau des moteurs toutes les minutes).</td>
+<td><a href="#screen-audit-log">Journaux système</a></td>
+</tr>
+<tr>
+<td><strong>Votre session a pris fin. Reconnectez-vous.</strong></td>
+<td>Le serveur a renvoyé 401 (<code>SIGNED_OUT</code>).</td>
+<td>Reconnectez-vous.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sécurité de session</a></td>
+</tr>
+<tr>
+<td><strong>C'est déjà fait. Actualisez et vérifiez de nouveau.</strong> ou un enregistrement qui signale un conflit.</td>
+<td>Quelqu'un d'autre a modifié le même enregistrement (<code>CONFLICT</code>).</td>
+<td>Actualisez l'écran et appliquez de nouveau la modification.</td>
+<td><a href="#screen-audit-log">Journaux système</a></td>
+</tr>
+<tr>
+<td>Un export reste en <strong>En préparation</strong>, ou se termine par <strong>L’exportation a pris trop de temps et a été arrêtée.</strong></td>
+<td>Une génération est arrêtée au bout de 30 minutes (<code>TIMED_OUT</code>).</td>
+<td>Affinez les filtres et exportez de nouveau.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a></td>
+</tr>
+<tr>
+<td><strong>Vous avez déjà 3 exportations en préparation.</strong></td>
+<td>Un utilisateur peut avoir 3 exports ouverts (<code>TOO_MANY_OPEN</code>).</td>
+<td>Attendez qu'un export se termine, ou annulez-en un.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-error-codes"><a class="anchor" href="#ch9-error-codes" aria-label="Link to this section">#</a> Index des codes d'erreur du système</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Guide de l&#x27;administrateur &gt; Annexes &gt; Index des codes d&#x27;erreur du système"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Guide de l&#x27;administrateur</span> <span aria-hidden="true">›</span> <span>Annexes</span> <span aria-hidden="true">›</span> <span>Index des codes d&#x27;erreur du système</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>Ce que couvre cet index.</strong> Les codes en majuscules du code source qu'un administrateur peut voir à l'écran, lire dans le Journal des erreurs ou trouver dans un contrat. Chaque ligne indique l'écran où le code apparaît, sa signification et la marche à suivre. Le contrat nommé dans la deuxième colonne se trouve dans <code>docs/architecture/</code> ; lorsqu'aucun contrat ne répertorie un code, la ligne nomme le fichier du <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> à la place.</p>
+<p><strong>Comment les codes parviennent à l'écran.</strong> Le client <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> attribue à chaque appel échoué un code court et fixe, et n'utilise jamais le texte du message du serveur, car ce texte pourrait nommer un patient. Un code du serveur est utilisé lorsqu'il est composé de lettres majuscules, de chiffres et de traits de soulignement, de 2 à 40 caractères, et commence par une lettre. Sinon, le code est déduit du statut HTTP.</p>
+<table>
+<thead>
+<tr>
+<th>Statut</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td><code>SIGNED_OUT</code></td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NOT_PERMITTED</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code></td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>CONFLICT</code></td>
+</tr>
+<tr>
+<td>400, 422</td>
+<td><code>INVALID</code></td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_MANY_REQUESTS</code></td>
+</tr>
+<tr>
+<td>tout autre</td>
+<td><code>UNAVAILABLE</code></td>
+</tr>
+</tbody>
+</table>
+<p>Il existe aussi des motifs en minuscules (par exemple les motifs de connexion <code>not_provisioned</code> et <code>inactive</code>, et les motifs du serveur <code>capability_refused</code>, <code>support_access_disabled</code> et <code>support_access_not_approved</code>). Ce ne sont pas des codes en majuscules ; ils figurent donc dans la matrice ci-dessus et dans l'écran <a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a>, et non dans cet index.</p>
+<h3 id="ch9-codes-http"><a class="anchor" href="#ch9-codes-http" aria-label="Link to this section">#</a> Codes que peut afficher tout écran relié au serveur</h3>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-signed-out"><td><code>SIGNED_OUT</code></td>
+<td>Tout écran qui appelle le serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> section 4 ; <code>src/services/apiServer/apiHttpClient.ts</code>.</td>
+<td>Le serveur a répondu 401 : la connexion a pris fin ou le jeton n'a pas été accepté.</td>
+<td>Reconnectez-vous. Si le code revient immédiatement après la connexion, informez le support ForMedrixAI.</td>
+</tr>
+<tr id="e-not-permitted"><td><code>NOT_PERMITTED</code></td>
+<td>Tout écran relié au serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> ; <code>AUTHORIZATION_API.md</code>.</td>
+<td>Le serveur a répondu 403 : la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> est manquante, ou elle est en dehors des établissements de la personne.</td>
+<td>Voir les lignes de la matrice sur les boutons grisés. Recherchez <strong>Capability refused</strong> dans les <a href="#screen-audit-log">Journaux système</a>.</td>
+</tr>
+<tr id="e-not-found"><td><code>NOT_FOUND</code></td>
+<td>Tout écran relié au serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>L'enregistrement n'existe plus, par exemple parce qu'il a été supprimé ou retiré par quelqu'un d'autre.</td>
+<td>Actualisez et rouvrez-le.</td>
+</tr>
+<tr id="e-conflict"><td><code>CONFLICT</code></td>
+<td>Tout écran avec un enregistrement versionné. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> (enregistrements versionnés).</td>
+<td>Le serveur a répondu 409 : l'enregistrement a changé depuis sa lecture. Pour un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>, le serveur renvoie aussi la version qu'il détient.</td>
+<td>Actualisez et appliquez de nouveau la modification.</td>
+</tr>
+<tr id="e-invalid"><td><code>INVALID</code></td>
+<td>Tout enregistrement relié au serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Le serveur a répondu 400 ou 422 : il a refusé les valeurs.</td>
+<td>Vérifiez les saisies du formulaire et enregistrez de nouveau.</td>
+</tr>
+<tr id="e-too-many-requests"><td><code>TOO_MANY_REQUESTS</code></td>
+<td>Tout écran relié au serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> ; <code>STAFF_ADMIN_API.md</code>.</td>
+<td>Le serveur a répondu 429 : une limite de débit a été atteinte.</td>
+<td>Patientez un instant et réessayez. Les cas répétés sont à signaler au support ForMedrixAI.</td>
+</tr>
+<tr id="e-timed-out"><td><code>TIMED_OUT</code></td>
+<td>Tout écran relié au serveur ; la liste des exports. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> ; <code>ASYNC_EXPORT_API.md</code> section 4.</td>
+<td>L'appel n'a reçu aucune réponse en 30 secondes (la valeur par défaut du client). Pour la génération d'un export, la génération a été arrêtée au bout de 30 minutes.</td>
+<td>Réessayez. Pour un export, affinez les filtres.</td>
+</tr>
+<tr id="e-unavailable"><td><code>UNAVAILABLE</code></td>
+<td>Tout écran relié au serveur, par exemple la liste des postes de travail, la liste des agents de site, le panneau des moteurs et les Tâches du serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Le serveur n'a pas pu être joint, a répondu avec un autre statut, ou a envoyé une réponse qui n'était pas un objet <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a>.</td>
+<td>Vérifiez le réseau et le serveur API. Réessayez.</td>
+</tr>
+<tr id="e-not-supported"><td><code>NOT_SUPPORTED</code></td>
+<td>Une action réservée à la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a>, sur un déploiement serveur. Contrat : <code>HTTP_SERVICES_PATTERN.md</code> ; <code>src/services/apiServer/httpServiceExtras.ts</code>.</td>
+<td>La méthode n'existe que pour la version de démonstration (chargement de données de démonstration). La <a class="term" href="99-glossary.html#g-server-build" title="Une version de PathScribe pour un déploiement réel, sans comptes de démonstration, qui se connecte par le fournisseur d&#x27;identité et communique avec le serveur API.">version serveur</a> n'effectue aucun appel.</td>
+<td>Rien. Comportement attendu sur un déploiement serveur.</td>
+</tr>
+<tr>
+<td id="ch9-codes-permission">### Refus d'autorisation et d'approbation</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-config-not-permitted"><td><code>CONFIG_NOT_PERMITTED</code></td>
+<td>Tout enregistrement de Configuration. Contrat : <code>AUTHORIZATION_API.md</code> ; <code>src/services/authorization/guardConfigWrites.ts</code>.</td>
+<td>Les rôles de la personne n'ont pas la capacité requise pour cet écran ; rien n'a donc été enregistré. La page Configuration affiche le nom de la capacité.</td>
+<td>Accordez la capacité dans <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>.</td>
+</tr>
+<tr id="e-export-not-permitted"><td><code>EXPORT_NOT_PERMITTED</code></td>
+<td>Export de la recherche de dossiers et export du rapport de dossiers. Contrat : <code>CASE_SEARCH_API.md</code> ; <code>AUTHORIZATION_API.md</code> (exports).</td>
+<td>La capacité d'export (<code>search:case-results:export</code> ou <code>search:case-report:export</code>) est manquante. Aucune ligne n'est renvoyée.</td>
+<td>Accordez la capacité.</td>
+</tr>
+<tr id="e-separation-of-duties"><td><code>SEPARATION_OF_DUTIES</code></td>
+<td>Enregistrement d'un <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> et enregistrement d'un membre du personnel. Contrat : <code>AUTHORIZATION_API.md</code> (<a class="term" href="99-glossary.html#g-separation-of-duties" title="Une règle selon laquelle deux pouvoirs ne doivent pas reposer sur une seule personne, comme modifier les règles de discordance clinique et approuver les instructions de l&#x27;IA.">séparation des tâches</a>).</td>
+<td>Un même rôle ou une même personne détiendrait à la fois <code>config:clinical-mismatch-rules:manage</code> et <code>config:ai-prompt:approve</code>.</td>
+<td>Répartissez les deux capacités entre des rôles distincts détenus par des personnes différentes.</td>
+</tr>
+<tr id="e-self-approval"><td><code>SELF_APPROVAL</code></td>
+<td>Instructions de l'IA. Contrat : <code>AUTHORIZATION_API.md</code> ; <a href="05-tier4-ai-framework.html#screen-ai_instructions">Instructions de l’IA</a>.</td>
+<td>La personne a modifié le texte en attente et ne peut donc pas l'approuver.</td>
+<td>Faites-le approuver par un autre titulaire de <code>config:ai-prompt:approve</code>.</td>
+</tr>
+<tr id="e-ai-vendor-not-allowed"><td><code>AI_VENDOR_NOT_ALLOWED</code></td>
+<td>Toute fonctionnalité d'IA. Contrat : <code>AI_PROXY.md</code> ; <code>src/services/aiIntegration/aiCallPolicy.ts</code>.</td>
+<td>La <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Une règle propre à chaque juridiction qui indique quels services d&#x27;IA et quelles régions d&#x27;hébergement peuvent être utilisés. Un appel refusé par la règle n&#x27;est pas envoyé, et la fonctionnalité continue sans IA.">politique des fournisseurs d'IA</a> refuse le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> ou la région pour la <a class="term" href="99-glossary.html#g-jurisdiction" title="Un pays ou un système de santé national dont PathScribe applique les règles, tel que les États-Unis, l&#x27;Angleterre et le pays de Galles ou l&#x27;Allemagne. Elle définit les systèmes de codes, les règles de signature, les durées minimales de conservation et les formats.">juridiction</a>. L'appel n'est pas effectué et est consigné dans l'audit sous <code>AI_CALL_REFUSED</code>. La fonctionnalité continue sans IA et indique « L’IA n’est pas disponible pour cette juridiction. »</td>
+<td>Modifiez la règle ou la <a class="term" href="99-glossary.html#g-hosting-region" title="La région géographique où un service d&#x27;IA dans le cloud traite les données. La politique des fournisseurs d&#x27;IA peut autoriser ou refuser des régions.">région d'hébergement</a> dans l'onglet <a href="05-tier4-ai-framework.html#screen-tab-ai">Comportement de l’IA</a>, si la politique du laboratoire le permet.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-exports"><a class="anchor" href="#ch9-codes-exports" aria-label="Link to this section">#</a> Exportations</h3>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-invalid-parameters"><td><code>INVALID_PARAMETERS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>. Contrat : <code>ASYNC_EXPORT_API.md</code> section 3.</td>
+<td>Le serveur n'a pas pu utiliser les filtres.</td>
+<td>Modifiez les filtres et exportez de nouveau.</td>
+</tr>
+<tr id="e-too-many-rows"><td><code>TOO_MANY_ROWS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>. Contrat : <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>Plus de 1 000 000 de lignes correspondent.</td>
+<td>Affinez les filtres.</td>
+</tr>
+<tr id="e-too-many-open"><td><code>TOO_MANY_OPEN</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>. Contrat : <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>La personne a déjà 3 exports en file d'attente ou en cours.</td>
+<td>Attendez, ou annulez-en un.</td>
+</tr>
+<tr id="e-build-failed"><td><code>BUILD_FAILED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>. Source : <code>src/services/exports/asyncExportContract.ts</code>.</td>
+<td>Le serveur n'a pas pu créer le fichier. Une génération dispose de 2 tentatives.</td>
+<td>Réessayez. Si elle échoue de nouveau, informez le support ForMedrixAI.</td>
+</tr>
+<tr id="e-cancelled"><td><code>CANCELLED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>. Source : <code>src/i18n/locales/en.json</code> (<code>exports.problem</code>).</td>
+<td>L'export a été annulé.</td>
+<td>Exportez de nouveau s'il est toujours nécessaire.</td>
+</tr>
+<tr id="e-expired"><td><code>EXPIRED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a> ; l'<a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a>. Contrat : <code>ASYNC_EXPORT_API.md</code> ; <code>SITE_AGENT_API.md</code> section 6.</td>
+<td>Pour un export : le fichier a été supprimé à la fin de sa durée de <a class="term" href="99-glossary.html#g-retention" title="La durée pendant laquelle un type de données ou de matériel est conservé. Les durées de conservation sont fixées par juridiction, avec une dérogation facultative.">conservation</a> (7 jours par défaut, de 1 à 30 jours selon le laboratoire). Pour une tâche d'agent de site : elle n'a pas démarré à temps et a été renvoyée.</td>
+<td>Exportez de nouveau. Pour une tâche, voir les lignes sur l'impression ci-dessous.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config"><a class="anchor" href="#ch9-codes-config" aria-label="Link to this section">#</a> Configuration au démarrage</h3>
+<p>Ces codes apparaissent sur l'écran pleine page <strong>PathScribe ne peut pas démarrer : sa configuration doit être corrigée</strong>. PathScribe ne démarre pas tant qu'ils ne sont pas corrigés. Les paramètres et les règles figurent dans <code>RUNTIME_CONFIG.md</code> section 3. Le code est <code>src/services/runtimeConfig/runtimeSettings.ts</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-unreadable"><td><code>UNREADABLE</code></td>
+<td>Écran de démarrage.</td>
+<td><code>config.json</code> n'est pas un <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> valide.</td>
+<td>Corrigez le fichier.</td>
+</tr>
+<tr id="e-not-an-object"><td><code>NOT_AN_OBJECT</code></td>
+<td>Écran de démarrage.</td>
+<td><code>config.json</code> doit être une liste de paramètres et de valeurs (un objet JSON).</td>
+<td>Corrigez le fichier.</td>
+</tr>
+<tr id="e-unknown-setting"><td><code>UNKNOWN_SETTING</code></td>
+<td>Écran de démarrage.</td>
+<td>Le nom ne fait pas partie des paramètres que PathScribe connaît, ou c'est un nom réservé à la construction de la version.</td>
+<td>Vérifiez l'orthographe par rapport à <code>RUNTIME_CONFIG.md</code>.</td>
+</tr>
+<tr id="e-not-text"><td><code>NOT_TEXT</code></td>
+<td>Écran de démarrage.</td>
+<td>Une valeur doit être un texte, un nombre, ou true ou false.</td>
+<td>Corrigez la valeur.</td>
+</tr>
+<tr id="e-too-long"><td><code>TOO_LONG</code></td>
+<td>Écran de démarrage.</td>
+<td>Une valeur dépasse 2 000 caractères.</td>
+<td>Raccourcissez-la.</td>
+</tr>
+<tr id="e-invalid-url"><td><code>INVALID_URL</code></td>
+<td>Écran de démarrage.</td>
+<td>La valeur doit être une adresse web, ou un chemin de ce site commençant par <code>/</code>, sans nom d'utilisateur ni mot de passe.</td>
+<td>Corrigez l'adresse.</td>
+</tr>
+<tr id="e-not-https"><td><code>NOT_HTTPS</code></td>
+<td>Écran de démarrage.</td>
+<td>Une adresse doit utiliser https. Le simple http n'est autorisé que vers cet ordinateur, dans une version de développement.</td>
+<td>Utilisez une adresse https.</td>
+</tr>
+<tr id="e-not-this-site"><td><code>NOT_THIS_SITE</code></td>
+<td>Écran de démarrage.</td>
+<td>Un chemin de proxy mène vers un autre site (par exemple <code>//host</code>).</td>
+<td>Utilisez un chemin de ce site, ou une adresse https.</td>
+</tr>
+<tr id="e-api-server-required"><td><code>API_SERVER_REQUIRED</code></td>
+<td>Écran de démarrage.</td>
+<td>Une <a class="term" href="99-glossary.html#g-server-build" title="Une version de PathScribe pour un déploiement réel, sans comptes de démonstration, qui se connecte par le fournisseur d&#x27;identité et communique avec le serveur API.">version serveur</a> a besoin de l'adresse du serveur PathScribe et aucune n'est définie.</td>
+<td>Définissez l'adresse de l'<a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>.</td>
+</tr>
+<tr id="e-sso-required"><td><code>SSO_REQUIRED</code></td>
+<td>Écran de démarrage.</td>
+<td>Une version serveur se connecte uniquement par le <a class="term" href="99-glossary.html#g-identity-provider" title="Le service qui authentifie les personnes pour l&#x27;authentification unique, tel que l&#x27;annuaire Microsoft Entra d&#x27;un hôpital.">fournisseur d'identité</a> ; <code>VITE_AUTH_MODE</code> doit donc valoir <code>sso</code>.</td>
+<td>Définissez-le ainsi que les paramètres du fournisseur.</td>
+</tr>
+<tr id="e-api-server-in-demo-build"><td><code>API_SERVER_IN_DEMO_BUILD</code></td>
+<td>Écran de démarrage.</td>
+<td>Une <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a> ne communique jamais avec un véritable serveur.</td>
+<td>Installez une version serveur.</td>
+</tr>
+<tr id="e-not-in-demo-build"><td><code>NOT_IN_DEMO_BUILD</code></td>
+<td>Écran de démarrage.</td>
+<td>Une version de démonstration ne peut pas utiliser un paramètre de <a class="term" href="99-glossary.html#g-hub" title="Le service SignalR qui pousse les mises à jour en direct du serveur API vers les écrans ouverts.">hub</a>, de moteur de rendu, de récepteur d'interface ou de tâches du serveur, et n'est jamais une version de production.</td>
+<td>Installez une version serveur.</td>
+</tr>
+<tr id="e-address-not-from-server"><td><code>ADDRESS_NOT_FROM_SERVER</code></td>
+<td>Écran de démarrage, marqué « from the PathScribe server's /api/config ».</td>
+<td>Le serveur ne peut pas définir d'adresse, car la politique de sécurité du site est établie à partir de <code>config.json</code>.</td>
+<td>Placez l'adresse dans <code>config.json</code>.</td>
+</tr>
+<tr id="e-not-from-server"><td><code>NOT_FROM_SERVER</code></td>
+<td>Écran de démarrage, marqué « from the PathScribe server's /api/config ».</td>
+<td>Seul <code>config.json</code> ou la version construite peut définir ce paramètre (connexion, <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> de l'instance, tâches exécutées par le serveur).</td>
+<td>Déplacez le paramètre dans <code>config.json</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-print"><a class="anchor" href="#ch9-codes-print" aria-label="Link to this section">#</a> Impression, étiquettes et agent de site</h3>
+<p>Les six premiers codes ont leur propre texte de message. Le contrat des codes de l'agent est <code>SITE_AGENT_API.md</code> section 6 ; la liste est <code>AGENT_ERROR_CODES</code> dans <code>src/services/siteAgent/siteAgentContract.ts</code>. Les impressions de comptes rendus sont retentées selon le calendrier de livraison du laboratoire (1, 5 et 15 minutes par défaut, jusqu'à 10 nouvelles tentatives). Les étiquettes ne sont jamais retentées automatiquement.</p>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-printer-unreachable"><td><code>PRINTER_UNREACHABLE</code></td>
+<td>Notification d'étiquette ; File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Aucune connexion avec l'imprimante. Retenté pour les comptes rendus.</td>
+<td>Vérifiez l'alimentation et le réseau de l'imprimante, puis réessayez.</td>
+</tr>
+<tr id="e-paper-out"><td><code>PAPER_OUT</code></td>
+<td>Notification d'étiquette ; File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'imprimante d'étiquettes n'a plus d'étiquettes.</td>
+<td>Chargez des étiquettes et réessayez.</td>
+</tr>
+<tr id="e-ribbon-out"><td><code>RIBBON_OUT</code></td>
+<td>Notification d'étiquette ; File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'imprimante d'étiquettes n'a plus de ruban.</td>
+<td>Chargez un ruban et réessayez.</td>
+</tr>
+<tr id="e-head-open"><td><code>HEAD_OPEN</code></td>
+<td>Notification d'étiquette ; File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>La tête d'impression est ouverte.</td>
+<td>Fermez-la et réessayez.</td>
+</tr>
+<tr id="e-malformed-zpl"><td><code>MALFORMED_ZPL</code></td>
+<td>Notification d'étiquette. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'imprimante a refusé la mise en page de l'étiquette. Non retenté.</td>
+<td>Signalez-le au support ForMedrixAI.</td>
+</tr>
+<tr id="e-invalid-gs1"><td><code>INVALID_GS1</code></td>
+<td>Notification d'étiquette. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Le code-barres de l'étiquette n'a pas passé la validation <a class="term" href="99-glossary.html#g-gs1" title="L&#x27;organisation de normalisation à l&#x27;origine des formats de codes-barres et de la numérotation GTIN utilisés sur les étiquettes de cassettes et de lames.">GS1</a>. Non retenté.</td>
+<td>Signalez-le au support ForMedrixAI. Vérifiez le <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, le numéro que porte un code-barres GS1. Les Paramètres d&#x27;impression contiennent le GTIN de l&#x27;établissement.">GTIN</a> dans les <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Paramètres d'impression</a>.</td>
+</tr>
+<tr id="e-needs-site-agent"><td><code>NEEDS_SITE_AGENT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">File d'impression</a>. Contrat : <code>SITE_AGENT_API.md</code> ; <code>src/services/printing/printJobFailureReason.ts</code>.</td>
+<td>Un navigateur ne peut pas envoyer vers une imprimante réseau. La tâche échoue immédiatement et passe dans la file des exceptions.</td>
+<td>Utilisez une imprimante d'<a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a>. Voir <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Agents de site</a>.</td>
+</tr>
+<tr id="e-printer-offline"><td><code>PRINTER_OFFLINE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">File d'impression</a>. Source : <code>src/services/printing/attemptPrintDelivery.ts</code>.</td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="Un petit programme installé sur un ordinateur qui permet à une page web d&#x27;imprimer sur une imprimante locale, telle qu&#x27;une imprimante d&#x27;étiquettes, sans boîte de dialogue d&#x27;impression.">QZ Tray</a> n'est pas connecté sur l'ordinateur d'impression. Retenté.</td>
+<td>Démarrez QZ Tray.</td>
+</tr>
+<tr id="e-print-rejected"><td><code>PRINT_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">File d'impression</a>. Source : <code>attemptPrintDelivery.ts</code>, <code>redispatchPrintJob.ts</code>.</td>
+<td>Une tâche ne peut pas être imprimée, par exemple parce qu'aucune imprimante n'est configurée pour la livraison par QZ Tray, ou que le document du compte rendu n'a pas pu être créé.</td>
+<td>Corrigez les paramètres de l'imprimante, puis réessayez.</td>
+</tr>
+<tr id="e-printer-rejected"><td><code>PRINTER_REJECTED</code></td>
+<td>File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'imprimante a refusé la tâche. Non retenté.</td>
+<td>Consultez l'affichage d'erreur propre à l'imprimante.</td>
+</tr>
+<tr id="e-document-unavailable"><td><code>DOCUMENT_UNAVAILABLE</code></td>
+<td>File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Le lien de téléchargement de l'agent a échoué ou a expiré. Retenté.</td>
+<td>Rien au début. Si le problème persiste, informez le support ForMedrixAI.</td>
+</tr>
+<tr id="e-document-integrity"><td><code>DOCUMENT_INTEGRITY</code></td>
+<td>File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Le <a class="term" href="99-glossary.html#g-sha-256" title="Une fonction de hachage cryptographique qui transforme un fichier ou un enregistrement en une empreinte de taille fixe, utilisée pour détecter une modification.">SHA-256</a> du fichier ne correspondait pas ; il n'a donc jamais été imprimé. Non retenté.</td>
+<td>Informez le support ForMedrixAI.</td>
+</tr>
+<tr id="e-unknown-destination"><td><code>UNKNOWN_DESTINATION</code></td>
+<td>File d'impression ; dépôt de fichier. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'agent n'a ni imprimante ni partage portant cet identifiant (sa configuration n'est pas à jour).</td>
+<td>Mettez à jour la liste des imprimantes de l'agent dans <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Agents de site</a>.</td>
+</tr>
+<tr id="e-share-unreachable"><td><code>SHARE_UNREACHABLE</code></td>
+<td>Livraison par dépôt de fichier. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Le partage n'a pas pu être joint. Retenté.</td>
+<td>Vérifiez le partage.</td>
+</tr>
+<tr id="e-share-access-denied"><td><code>SHARE_ACCESS_DENIED</code></td>
+<td>Livraison par dépôt de fichier. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'agent n'a pas le droit d'écrire sur le partage. Non retenté.</td>
+<td>Corrigez les autorisations du partage.</td>
+</tr>
+<tr id="e-share-full"><td><code>SHARE_FULL</code></td>
+<td>Livraison par dépôt de fichier. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Le partage est plein. Retenté.</td>
+<td>Libérez de l'espace.</td>
+</tr>
+<tr id="e-in-doubt"><td><code>IN_DOUBT</code></td>
+<td>File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>L'agent s'est arrêté après avoir commencé l'envoi et avant de connaître le résultat. Il n'est jamais renvoyé automatiquement.</td>
+<td>Vérifiez l'imprimante. Réimprimez si la page n'est pas sortie.</td>
+</tr>
+<tr id="e-agent-error"><td><code>AGENT_ERROR</code></td>
+<td>File d'impression. Contrat : <code>SITE_AGENT_API.md</code>.</td>
+<td>Toute autre défaillance de l'agent. Retenté.</td>
+<td>Vérifiez l'agent dans <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Agents de site</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-outbound"><a class="anchor" href="#ch9-codes-outbound" aria-label="Link to this section">#</a> Messages sortants, actes facturables, registres et tâches du serveur</h3>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-dispatch-rejected"><td><code>DISPATCH_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a> (affiché comme « Envoi rejeté »). Contrat : <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Le moteur n'a pas renvoyé de réponse 2xx. Le message est conservé pour une nouvelle tentative.</td>
+<td>Vérifiez le moteur, puis <strong>Réessayer l'envoi</strong>.</td>
+</tr>
+<tr id="e-dispatch-timeout"><td><code>DISPATCH_TIMEOUT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a> (affiché comme « Délai d'envoi dépassé »). Contrat : <code>OUTBOUND_QUEUE_API.md</code> ; <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Le moteur n'a pas répondu à temps.</td>
+<td>Comme ci-dessus.</td>
+</tr>
+<tr id="e-dispatch-unreachable"><td><code>DISPATCH_UNREACHABLE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a> (affiché comme « Moteur inaccessible »). Contrat : <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Le moteur n'a pas pu être joint.</td>
+<td>Comme ci-dessus.</td>
+</tr>
+<tr id="e-missing-icd10"><td><code>MISSING_ICD10</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Journaux système : facturation</a>. Contrat : <code>DIAGNOSIS_CODING.md</code> ; <code>src/services/billing/validateChargeMetadata.ts</code>.</td>
+<td>Un acte facturable n'a pas de code <a class="term" href="99-glossary.html#g-icd-10" title="La Classification internationale des maladies, dixième révision, un jeu de codes de diagnostic.">CIM-10</a>.</td>
+<td>Saisissez le code sur la ligne.</td>
+</tr>
+<tr id="e-missing-provider-npi"><td><code>MISSING_PROVIDER_NPI</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Journaux système : facturation</a>. Source : <code>validateChargeMetadata.ts</code>.</td>
+<td>Un acte facturable n'a pas de <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, l&#x27;identifiant à dix chiffres d&#x27;un prestataire de soins américain, requis sur un acte facturable.">NPI</a> du prestataire.</td>
+<td>Saisissez le NPI sur la ligne.</td>
+</tr>
+<tr id="e-registry-not-ready"><td><code>REGISTRY_NOT_READY</code></td>
+<td>File d'envoi ; Exceptions de <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>. Contrat : <code>BATCH_REGISTRY_FEED_API.md</code> ; <code>REGISTRY_ACKNOWLEDGEMENT_API.md</code>.</td>
+<td>Une soumission à un registre est retenue : un champ ou un paramètre obligatoire est manquant.</td>
+<td>Complétez l'élément manquant nommé sur l'entrée.</td>
+</tr>
+<tr id="e-registry-live-not-approved"><td><code>REGISTRY_LIVE_NOT_APPROVED</code></td>
+<td>File d'envoi ; Exceptions de registre. Contrat : <code>REGISTRY_GO_LIVE_API.md</code>.</td>
+<td>Un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> réel a été validé, mais la connexion au registre n'est pas approuvée en production. L'entrée affiche « Retenu : attestation requise ».</td>
+<td>Effectuez l'approbation de mise en production dans l'écran des paramètres du registre.</td>
+</tr>
+<tr id="e-not-dead-lettered"><td><code>NOT_DEAD_LETTERED</code></td>
+<td>Tâches du serveur. Contrat : <code>MESSAGE_BUS_API.md</code>.</td>
+<td>La tâche n'est plus en échec (409).</td>
+<td>Actualisez.</td>
+</tr>
+<tr id="e-wrong-screen"><td><code>WRONG_SCREEN</code></td>
+<td>Tâches du serveur. Source : <code>src/services/serverJobs/serverJobsContract.ts</code>.</td>
+<td>Les tâches d'interface et d'impression ne sont pas remises en file ici.</td>
+<td>Renvoyez depuis la file des interfaces ou la <a class="term" href="99-glossary.html#g-print-queue" title="La liste des travaux d&#x27;impression de comptes rendus et d&#x27;étiquettes avec leur statut, de en file d&#x27;attente à imprimé ou en échec.">file d'impression</a>.</td>
+</tr>
+<tr id="e-consult-link-not-active"><td><code>CONSULT_LINK_NOT_ACTIVE</code></td>
+<td>Onglet Liens de consultation. Contrat : <code>CONSULT_ACCESS_API.md</code>.</td>
+<td>Le lien est déjà révoqué ou expiré.</td>
+<td>Actualisez.</td>
+</tr>
+<tr id="e-no-recipients"><td><code>NO_RECIPIENTS</code></td>
+<td>Planifications de rapports. Contrat : <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Il ne reste aucun destinataire actif.</td>
+<td>Choisissez au moins un destinataire.</td>
+</tr>
+<tr id="e-too-many-schedules"><td><code>TOO_MANY_SCHEDULES</code></td>
+<td>Planifications de rapports. Contrat : <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>La personne a atteint le nombre maximal de planifications autorisées.</td>
+<td>Supprimez ou fusionnez une planification.</td>
+</tr>
+<tr id="e-recipient-access-unknown"><td><code>RECIPIENT_ACCESS_UNKNOWN</code></td>
+<td>Planifications de rapports. Contrat : <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Ce qu'un destinataire peut voir n'a pas pu être déterminé ; rien n'a donc été généré.</td>
+<td>Vérifiez les rôles et les établissements du destinataire.</td>
+</tr>
+<tr id="e-run-failed"><td><code>RUN_FAILED</code></td>
+<td>Planifications de rapports. Source : <code>src/services/scheduledReports/createScheduledReportService.ts</code>.</td>
+<td>Une exécution planifiée a échoué.</td>
+<td>Consultez le Journal des erreurs.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config-screens"><a class="anchor" href="#ch9-codes-config-screens" aria-label="Link to this section">#</a> Écrans de configuration : refus à connaître</h3>
+<table>
+<thead>
+<tr>
+<th>Code d'erreur</th>
+<th>Où il apparaît</th>
+<th>Signification</th>
+<th>Que faire</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-reason-required"><td><code>REASON_REQUIRED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>, révocations de postes de travail et de flux, et plusieurs actions sur les dossiers. Source : le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> de chaque écran.</td>
+<td>Un motif est requis pour la modification.</td>
+<td>Saisissez un motif.</td>
+</tr>
+<tr id="e-bad-date"><td><code>BAD_DATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>src/services/coding/codeSystemPolicyRules.ts</code>.</td>
+<td>Une date n'est pas une vraie date du calendrier.</td>
+<td>Corrigez-la.</td>
+</tr>
+<tr id="e-bad-role"><td><code>BAD_ROLE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Un <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> d'une règle n'est pas valide.</td>
+<td>Choisissez un rôle valide.</td>
+</tr>
+<tr id="e-bad-system"><td><code>BAD_SYSTEM</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Un système de codage est vide ou non valide.</td>
+<td>Choisissez un système de codage.</td>
+</tr>
+<tr id="e-duplicate"><td><code>DUPLICATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Le même système de codage a deux lignes avec la même date de début.</td>
+<td>Supprimez une ligne ou modifiez sa date.</td>
+</tr>
+<tr id="e-no-rules"><td><code>NO_RULES</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Il n'y a aucune règle.</td>
+<td>Ajoutez une règle, ou revenez à la valeur par défaut.</td>
+</tr>
+<tr id="e-too-many"><td><code>TOO_MANY</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Systèmes de codage</a>. Source : <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Il y a trop de règles.</td>
+<td>Supprimez-en quelques-unes.</td>
+</tr>
+<tr id="e-same-person"><td><code>SAME_PERSON</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>src/services/billing/codeEngine/planImportJob.ts</code>.</td>
+<td>La personne qui a téléversé l'import ne peut pas l'approuver ni le rejeter (<a class="term" href="99-glossary.html#g-four-eyes-principle" title="Une règle selon laquelle une personne prépare une modification et une autre personne l&#x27;approuve. L&#x27;import des codes de facturation l&#x27;utilise.">principe des quatre yeux</a>).</td>
+<td>Une autre personne doit décider.</td>
+</tr>
+<tr id="e-job-not-approved"><td><code>JOB_NOT_APPROVED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>planImportJob.ts</code>.</td>
+<td>Seul un import approuvé peut être annulé.</td>
+<td>Aucune.</td>
+</tr>
+<tr id="e-job-not-pending"><td><code>JOB_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>planImportJob.ts</code>.</td>
+<td>L'import n'est plus en attente d'approbation.</td>
+<td>Actualisez.</td>
+</tr>
+<tr id="e-mapping-incomplete"><td><code>MAPPING_INCOMPLETE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>src/services/billing/mockCodeImportService.ts</code>.</td>
+<td>Les colonnes du code de facturation, du code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a> et de la date d'effet ne sont pas toutes associées.</td>
+<td>Associez-les, ou indiquez une seule date d'effet pour tout le fichier.</td>
+</tr>
+<tr id="e-no-rows"><td><code>NO_ROWS</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>mockCodeImportService.ts</code>.</td>
+<td>Le fichier ne contient aucune ligne pouvant être importée.</td>
+<td>Vérifiez le fichier.</td>
+</tr>
+<tr id="e-rows-refused"><td><code>ROWS_REFUSED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>mockCodeImportService.ts</code>.</td>
+<td>Certaines lignes ne peuvent pas être importées.</td>
+<td>Corrigez-les, ou choisissez de les ignorer.</td>
+</tr>
+<tr id="e-row-missing"><td><code>ROW_MISSING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>mockCodeImportService.ts</code>.</td>
+<td>Une version de code issue de l'import n'existe plus ; elle ne peut donc pas être approuvée.</td>
+<td>Téléversez de nouveau l'import.</td>
+</tr>
+<tr id="e-row-not-pending"><td><code>ROW_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes</a>. Source : <code>mockCodeImportService.ts</code>.</td>
+<td>Une version de code issue de l'import n'est plus en attente.</td>
+<td>Téléversez de nouveau l'import.</td>
+</tr>
+<tr id="e-name-taken"><td><code>NAME_TAKEN</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Postes de travail</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : <code>src/services/workstationRegistry/workstationRegistryRules.ts</code> ; <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Un autre <a class="term" href="99-glossary.html#g-workstation" title="Un ordinateur enregistré dans un établissement, avec sa discipline, sa zone et ses imprimantes associées.">poste de travail</a> actif de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> porte ce nom.</td>
+<td>Choisissez un autre nom.</td>
+</tr>
+<tr id="e-already-revoked"><td><code>ALREADY_REVOKED</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Postes de travail</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : les deux mêmes services.</td>
+<td>Le poste de travail est déjà révoqué.</td>
+<td>Aucune.</td>
+</tr>
+<tr id="e-revoke-reason-invalid"><td><code>REVOKE_REASON_INVALID</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Postes de travail</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : les deux mêmes services.</td>
+<td>Un motif doit être choisi, avec une note pour Autre.</td>
+<td>Choisissez un motif.</td>
+</tr>
+<tr id="e-feed-off"><td><code>FEED_OFF</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Le flux est désactivé.</td>
+<td>Activez-le dans les paramètres du flux.</td>
+</tr>
+<tr id="e-dataset-not-in-feed"><td><code>DATASET_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : <code>biFeedRules.ts</code>.</td>
+<td>Un jeu de données n'est pas proposé par le flux.</td>
+<td>Ajoutez-le d'abord dans les paramètres du flux.</td>
+</tr>
+<tr id="e-facility-not-in-feed"><td><code>FACILITY_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : <code>biFeedRules.ts</code>.</td>
+<td>Un établissement n'est pas proposé par le flux.</td>
+<td>Ajoutez-le d'abord dans les paramètres du flux.</td>
+</tr>
+<tr id="e-identified-not-approved"><td><code>IDENTIFIED_NOT_APPROVED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de rapports</a>. Source : <code>biFeedRules.ts</code>.</td>
+<td>Les jetons identifiés nécessitent une approbation enregistrée.</td>
+<td>Enregistrez l'approbation.</td>
+</tr>
+<tr id="e-not-hl7"><td><code>NOT_HL7</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>src/services/lisIngestion/adapters/hl7v2StatusAdapter.ts</code>.</td>
+<td>Le message n'est pas un message <a class="term" href="99-glossary.html#g-hl7-v2" title="Le format de message HL7 largement utilisé, composé de lignes de champs séparés par des barres verticales, chaque message commençant par un segment MSH.">HL7 v2</a> (il doit commencer par un segment <a class="term" href="99-glossary.html#g-msh" title="Le premier segment d&#x27;un message HL7 v2. Il nomme l&#x27;émetteur, le destinataire, le type de message et la version.">MSH</a>).</td>
+<td>Vérifiez le système émetteur.</td>
+</tr>
+<tr id="e-unsupported-message-type"><td><code>UNSUPPORTED_MESSAGE_TYPE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>hl7v2StatusAdapter.ts</code>.</td>
+<td>Seuls les messages <a class="term" href="99-glossary.html#g-oru" title="Le type de message HL7 de résultat d&#x27;observation non sollicité. ORU^R01 transporte un résultat.">ORU</a>^R01, <a class="term" href="99-glossary.html#g-orm" title="Le type de message HL7 de demande générale (ORM^O01).">ORM</a>^O01 et <a class="term" href="99-glossary.html#g-oml" title="Le type de message HL7 de demande de laboratoire (OML^O21).">OML</a>^O21 sont acceptés.</td>
+<td>Envoyez un type pris en charge.</td>
+</tr>
+<tr id="e-missing-accession"><td><code>MISSING_ACCESSION</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>hl7v2StatusAdapter.ts</code>, <code>webhookJsonAdapter.ts</code>.</td>
+<td>Le message n'a pas de <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a>.</td>
+<td>Corrigez l'émetteur.</td>
+</tr>
+<tr id="e-missing-status"><td><code>MISSING_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>src/services/lisIngestion/types.ts</code>.</td>
+<td>Le message n'a pas de statut <a class="term" href="99-glossary.html#g-lis" title="Système d&#x27;information de laboratoire, le logiciel qui gère les demandes, les prélèvements et les résultats d&#x27;un laboratoire.">SIL</a>.</td>
+<td>Corrigez l'émetteur.</td>
+</tr>
+<tr id="e-invalid-json"><td><code>INVALID_JSON</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>types.ts</code>.</td>
+<td>Le message n'est pas un <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> valide.</td>
+<td>Corrigez l'émetteur.</td>
+</tr>
+<tr id="e-crosswalk-duplicate-status"><td><code>CROSSWALK_DUPLICATE_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>src/services/assistPolling/mockAssistPollingService.ts</code>.</td>
+<td>Un statut SIL est associé deux fois.</td>
+<td>Associez chaque statut une seule fois.</td>
+</tr>
+<tr id="e-interval-out-of-range"><td><code>INTERVAL_OUT_OF_RANGE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">Réception SIL (mode Assistance)</a>. Source : <code>mockAssistPollingService.ts</code>.</td>
+<td>L'intervalle d'interrogation est en dehors des minutes entières autorisées.</td>
+<td>Saisissez une valeur dans la plage indiquée.</td>
+</tr>
+<tr id="e-nhs-number-check-digit"><td><code>NHS_NUMBER_CHECK_DIGIT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>Le <a class="term" href="99-glossary.html#g-nhs-number" title="L&#x27;identifiant de patient à dix chiffres utilisé par le NHS en Angleterre et au pays de Galles. Le dernier chiffre est un chiffre de contrôle.">numéro NHS</a> ne passe pas le contrôle de son chiffre de contrôle.</td>
+<td>Corrigez le numéro dans le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>.</td>
+</tr>
+<tr id="e-nhs-number-format"><td><code>NHS_NUMBER_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>Le numéro NHS n'a pas dix chiffres.</td>
+<td>Corrigez-le.</td>
+</tr>
+<tr id="e-patient-identifier-missing"><td><code>PATIENT_IDENTIFIER_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>Le numéro NHS est manquant.</td>
+<td>Saisissez-le.</td>
+</tr>
+<tr id="e-icdo-missing"><td><code>ICDO_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>Il n'y a pas de code CIM-O-3.</td>
+<td>Ajoutez-le au dossier.</td>
+</tr>
+<tr id="e-icdo-format"><td><code>ICDO_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>Un code CIM-O-3 n'a pas la forme <code>8500/3</code>.</td>
+<td>Corrigez-le.</td>
+</tr>
+<tr id="e-diagnosis-date-missing"><td><code>DIAGNOSIS_DATE_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a>. Contrat : <code>UK_COSD_API.md</code>.</td>
+<td>La date du diagnostic est manquante.</td>
+<td>Saisissez-la.</td>
+</tr>
+<tr id="e-xml-not-well-formed"><td><code>XML_NOT_WELL_FORMED</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Registre du cancer britannique (COSD)</a> ; téléversement d'un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a>. Contrat : <code>UK_COSD_API.md</code> ; source : <code>protocolUploadValidation.ts</code>.</td>
+<td>L'aperçu, ou le fichier téléversé, n'est pas un <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a> bien formé.</td>
+<td>Corrigez les données ou le fichier.</td>
+</tr>
+<tr id="e-unsupported-format"><td><code>UNSUPPORTED_FORMAT</code></td>
+<td>Téléversement d'un protocole dans la Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a> (<a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Bibliothèque synoptique</a>). Source : <code>src/services/templates/protocolUploadValidation.ts</code>.</td>
+<td>Le type de fichier n'est pas pris en charge. Utilisez JSON, XML ou XLSX.</td>
+<td>Convertissez le fichier.</td>
+</tr>
+<tr id="e-file-too-large"><td><code>FILE_TOO_LARGE</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Le fichier dépasse 10 Mo.</td>
+<td>Réduisez-le.</td>
+</tr>
+<tr id="e-json-invalid"><td><code>JSON_INVALID</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Le fichier n'est pas un JSON valide.</td>
+<td>Corrigez-le.</td>
+</tr>
+<tr id="e-json-newer-format"><td><code>JSON_NEWER_FORMAT</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Le fichier a été exporté par une version plus récente de PathScribe.</td>
+<td>Mettez PathScribe à jour, ou exportez depuis la même version.</td>
+</tr>
+<tr id="e-xml-not-sdc"><td><code>XML_NOT_SDC</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Le XML n'est pas un formulaire <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP electronic Cancer Checklists, la forme structurée des protocoles de cancérologie du CAP, distribuée au format SDC XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, la norme de formulaire XML utilisée pour distribuer les listes de contrôle de cancérologie électroniques du CAP.">SDC</a>).</td>
+<td>Utilisez le bon fichier.</td>
+</tr>
+<tr id="e-not-importable"><td><code>NOT_IMPORTABLE</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Le format peut être vérifié mais pas encore importé. L'import fonctionne pour les fichiers de protocole PathScribe (JSON).</td>
+<td>Utilisez un fichier JSON PathScribe.</td>
+</tr>
+<tr id="e-xlsx-not-mapped"><td><code>XLSX_NOT_MAPPED</code></td>
+<td>Téléversement d'un protocole. Source : <code>protocolUploadValidation.ts</code>.</td>
+<td>Les feuilles du classeur n'ont pas été lues ; les colonnes n'ont donc pas été associées aux questions.</td>
+<td>Utilisez un format pris en charge.</td>
+</tr>
+<tr id="e-production-gated"><td><code>PRODUCTION_GATED</code></td>
+<td><a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>. Source : <code>src/services/smartCapture/smartCaptureStates.ts</code>.</td>
+<td>Un véritable moteur d'interfaces est configuré et le <a class="term" href="99-glossary.html#g-production-gate" title="Un interrupteur qui reste fermé tant qu&#x27;un laboratoire n&#x27;a pas approuvé l&#x27;envoi de données réelles vers un moteur d&#x27;interfaces réel.">verrou de production</a> est fermé ; rien n'a donc été envoyé.</td>
+<td>Ouvrez le verrou de production lorsque le laboratoire est prêt.</td>
+</tr>
+<tr id="e-already-accessioned"><td><code>ALREADY_ACCESSIONED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Dépôt Lockbox</a>. Contrat : <code>LOCKBOX_API.md</code>.</td>
+<td>Le récépissé a déjà reçu un numéro d'accession (409).</td>
+<td>Aucune.</td>
+</tr>
+<tr id="e-placeholder-unresolved"><td><code>PLACEHOLDER_UNRESOLVED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Dépôt Lockbox</a>. Contrat : <code>LOCKBOX_API.md</code>.</td>
+<td>L'<a class="term" href="99-glossary.html#g-accession" title="L&#x27;acte de réceptionner un prélèvement et de lui attribuer un numéro de dossier permanent ; désigne aussi ce numéro (le numéro d&#x27;accession). Elle relie un dossier au tissu physique et à sa chaîne de conservation.">accession</a> a été demandée pour un <a class="term" href="99-glossary.html#g-placeholder" title="Un enregistrement créé pour un code-barres de boîte de dépôt qui n&#x27;a pas encore de demande. Il contient le récépissé et sera relié ultérieurement à une demande ; il ne reçoit jamais de numéro d&#x27;accession.">enregistrement provisoire</a> sans numéro de demande relié (409).</td>
+<td>Reliez d'abord l'enregistrement provisoire à sa demande.</td>
+</tr>
+<tr id="e-not-a-placeholder"><td><code>NOT_A_PLACEHOLDER</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Dépôt Lockbox</a>. Contrat : <code>LOCKBOX_API.md</code>.</td>
+<td>Seul un enregistrement provisoire peut être relié à une demande.</td>
+<td>Aucune.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-system-logs"><a class="anchor" href="#ch9-system-logs" aria-label="Link to this section">#</a> Référence des Journaux système</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Guide de l&#x27;administrateur &gt; Annexes &gt; Référence des Journaux système"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Guide de l&#x27;administrateur</span> <span aria-hidden="true">›</span> <span>Annexes</span> <span aria-hidden="true">›</span> <span>Référence des Journaux système</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p>Les Journaux système sont l'endroit où l'on lit l'enregistrement de ce que les personnes, le système et l'IA ont fait. Cette partie documente l'écran. La partie suivante (<a href="#ch9-audit-verification">Guide de vérification du journal d'audit</a>) explique comment l'utiliser pour répondre aux questions d'un auditeur.</p>
+<h3 id="screen-audit-log"><a class="anchor" href="#screen-audit-log" aria-label="Link to this section">#</a> Journaux système</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Journaux système"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Journaux système</span></nav>
+
+<p><strong>Statut :</strong> Réalisé. Le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> est conservé dans le navigateur dans la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a> ; avec un serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>, il est conservé par le serveur (voir les limites connues).</p>
+<p><strong>1. Navigation :</strong> tuile <strong>Journaux système</strong> de l'accueil (adresse <code>/audit</code>).
+<strong>2. Élément de maintenance :</strong> Journaux système (un écran de référence ; rien n'y est configuré).</p>
+<p><strong>3. Finalité métier et périmètre.</strong> Un seul écran pour le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> de conformité du laboratoire : actions de l'IA, modifications des utilisateurs, événements système, erreurs, activité d'assurance qualité, activité des interfaces et de l'impression, échecs d'envoi financier, alertes critiques, liens de consultation externe et tâches d'arrière-plan du serveur API. Il est en lecture seule, hormis trois actions : résoudre une erreur avec <strong>Résoudre</strong>, renvoyer un message d'interface ou une tâche d'impression en échec, et révoquer un <a class="term" href="99-glossary.html#g-consult-link" title="Un lien en lecture seule délivré à un consultant extérieur pour un dossier. Il peut être révoqué immédiatement et expire de lui-même.">lien de consultation</a>. Chaque onglet est un enregistrement différent tenu par un <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> différent. Les onglets Journal d'audit et Journal des erreurs sont documentés ici. L'onglet <strong>Journal des interfaces</strong> est documenté dans <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a> et l'onglet <strong>Facturation</strong> dans <a href="08-tier7-billing-registry.html#screen-audit-financial">Journaux système : facturation</a>.</p>
+<p><strong>4. Prérequis et dépendances.</strong> L'écran n'affiche que ce qui s'est produit ; il n'y a donc rien à configurer au préalable, sauf qui peut l'ouvrir. Une personne qui n'a pas <code>screen:audit-log:open</code> ne voit aucune tuile d'accueil et, si elle saisit l'adresse, obtient le message « Vous n'avez pas accès à cet écran ».</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-log.webp" alt="Journaux système, onglet Journal d&#x27;audit avec pastilles de type, filtres et Exporter en CSV" loading="lazy"><figcaption>Journaux système, onglet Journal d&#x27;audit avec pastilles de type, filtres et Exporter en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></figcaption></figure>
+
+<p>L'en-tête de la page indique <strong>Journaux système</strong> avec le sous-titre « Registre complet des actions de l'IA, des modifications utilisateur, des événements système, des erreurs et de l'activité d'assurance qualité ». Viennent ensuite une barre d'onglets, puis une zone <strong>Retrouver une <a class="term" href="99-glossary.html#g-support-reference" title="Un code aléatoire et non identifiant de la forme `SR-XXXX-XXXX` que le personnel communique au support à la place d&#x27;un numéro de dossier.">référence support</a></strong>, puis l'onglet actif. Un badge de compteur sur <strong>Journal des erreurs</strong> indique les erreurs ouvertes, sur <strong>Journal des interfaces</strong> les exceptions d'interface en attente et sur <strong>Assurance qualité</strong> les éléments qualité ouverts. Une personne dont le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> est Pathologiste voit l'avis « Seule votre activité sur vos dossiers est affichée — les événements d'étude de validation ne sont pas visibles par les pathologistes ».</p>
+<figure class="shot"><img src="../img/screen-audit-log-errors.webp" alt="Journaux système, onglet Journal des erreurs" loading="lazy"><figcaption>Journaux système, onglet Journal des erreurs</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong> L'écran comporte des filtres, des colonnes et des boutons plutôt que des champs de formulaire. Les noms de ligne commencent par l'onglet.</p>
+<h4>Onglets</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-tab-audit-log"><td>Onglet : Journal d'audit</td>
+<td>Onglet</td>
+<td>Sans objet</td>
+<td>Toutes les entrées d'audit que la personne peut voir. Documenté ci-dessous.</td>
+<td>Sélectionné à l'ouverture</td>
+</tr>
+<tr id="f-audit-log-tab-error-log"><td>Onglet : Journal des erreurs</td>
+<td>Onglet</td>
+<td>Sans objet</td>
+<td>Les erreurs enregistrées par le système, avec un code. Documenté ci-dessous.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-interface-log"><td>Onglet : Journal des interfaces</td>
+<td>Onglet avec les sous-onglets Exceptions d'interface, File <a class="term" href="99-glossary.html#g-dlq" title="File des messages en échec définitif (Dead-letter queue), la liste des messages dont toutes les tentatives ont échoué. Les Journaux système en comptent une pour les messages d&#x27;interface sortants et une pour les actes facturables.">DLQ</a> d'interface sortante, Envois sortants, File d'impression, Moteurs</td>
+<td>Sans objet</td>
+<td>Voir <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a>. L'adresse <code>?tab=interfaces</code> l'ouvre.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-quality-assurance"><td>Onglet : Assurance qualité</td>
+<td>Onglet avec un choix de Groupe</td>
+<td>Sans objet</td>
+<td>Huit groupes d'enregistrements qualité : Non-conformités, Liaison <a class="term" href="99-glossary.html#g-intraoperative" title="Pendant la chirurgie. Les consultations peropératoires, telles que les coupes congelées, sont traitées dans la file peropératoire.">peropératoire</a>, Discordance &amp; réconciliation, Délai de <a class="term" href="99-glossary.html#g-countersign" title="Une seconde signature d&#x27;une autre personne qualifiée sur un compte rendu, par exemple celle d&#x27;un pathologiste sur le travail d&#x27;un cytotechnicien.">contre-signature</a>, Revue d'habilitation, Dérive post-finalisation, Revue de correspondance patient et Revues de direction. Chaque groupe a ses propres choix de Statut.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-financial"><td>Onglet : Facturation</td>
+<td>Onglet avec les sous-onglets Journaux de facturation et File d'échec sortante</td>
+<td>Sans objet</td>
+<td>Voir <a href="08-tier7-billing-registry.html#screen-audit-financial">Journaux système : facturation</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-critical-alerts"><td>Onglet : Alertes critiques</td>
+<td>Onglet</td>
+<td>Sans objet</td>
+<td>L'enregistrement des alertes de résultats critiques.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-consult-links"><td>Onglet : Liens de consultation</td>
+<td>Onglet</td>
+<td>Sans objet</td>
+<td>Tous les liens de consultation externe de tous les dossiers, avec <strong>Actifs uniquement</strong> et <strong>Révoquer</strong>. Affiché aux personnes qui ont <code>audit:consult-links:view</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-tab-server-jobs"><td>Onglet : Tâches du serveur</td>
+<td>Onglet</td>
+<td>Sans objet</td>
+<td>Les tâches d'arrière-plan du serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> : état de santé et messages en échec définitif, avec remise en file. Affiché uniquement aux personnes qui ont <code>jobs:server-job:view</code>. Un lien ouvert sans cette <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> mène au Journal d'audit.</td>
+<td>Masqué sans la capacité</td>
+</tr>
+<tr id="f-audit-log-find-a-support-reference"><td>Retrouver une <a class="term" href="99-glossary.html#g-support-reference" title="Un code aléatoire et non identifiant de la forme `SR-XXXX-XXXX` que le personnel communique au support à la place d&#x27;un numéro de dossier.">référence support</a></td>
+<td>Texte, forme <code>SR-XXXX-XXXX</code></td>
+<td>Facultatif</td>
+<td>Nomme le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>, l'entrée d'audit, l'entrée d'erreur ou l'exception d'interface sur lequel pointe une référence support. Une recherche est elle-même auditée (<code>support_reference.resolved</code>). Si l'entrée est en dehors de la plage chargée, un message demande d'élargir la plage de dates.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4>Onglet Journal d'audit</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-audit-log-type-pills"><td>Journal d'audit : Pastilles de type</td>
+<td>Choix : Tout, IA, Utilisateur, Système, avec compteurs</td>
+<td>Facultatif</td>
+<td>Filtre selon le type de l'entrée.</td>
+<td>Tout</td>
+</tr>
+<tr id="f-audit-log-audit-log-patient-management-only"><td>Journal d'audit : Gestion des patients uniquement</td>
+<td>Case à cocher Oui/Non avec compteur</td>
+<td>Facultatif</td>
+<td>Affiche uniquement les événements dont le nom commence par <code>mpi.</code> (fusion, déplacement, liaison, nouveau rattachement, mise à jour démographique). Se combine avec les autres filtres. Un futur événement <code>mpi.</code> est inclus automatiquement.</td>
+<td>Non</td>
+</tr>
+<tr id="f-audit-log-audit-log-user-filter"><td>Journal d'audit : Filtre Utilisateur</td>
+<td>Choix de tous les utilisateurs des entrées chargées</td>
+<td>Facultatif</td>
+<td>Affiché uniquement dans une session Superadmin. Les autres personnes retrouvent quelqu'un en saisissant son nom dans la zone de recherche.</td>
+<td>Tous les utilisateurs</td>
+</tr>
+<tr id="f-audit-log-audit-log-date-range"><td>Journal d'audit : Plage de dates</td>
+<td>Choix : Aujourd'hui, 7 derniers jours, 30 derniers jours, 90 derniers jours, Période personnalisée</td>
+<td>Facultatif</td>
+<td>Limite exprimée dans le fuseau horaire de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>. Période personnalisée ajoute une date de <strong>début</strong> et une date de <strong>fin</strong> ; la date de fin inclut la journée entière.</td>
+<td>7 derniers jours</td>
+</tr>
+<tr id="f-audit-log-audit-log-search"><td>Journal d'audit : Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Recherche dans le nom de l'événement, le texte de détail, l'utilisateur et l'identifiant du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> (<a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a>), sans tenir compte de la casse.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-log-audit-log-export-csv"><td>Journal d'audit : Exporter en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Nécessite <code>audit:audit-log:export</code>. Voir le guide de vérification. Grisé sans elle.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-timestamp"><td>Journal d'audit : Horodatage</td>
+<td>Colonne, <code>YYYY-MM-DD HH:MM:SS.mmm UTC</code></td>
+<td>Sans objet</td>
+<td>Le moment où l'entrée a été écrite, toujours affiché en <a class="term" href="99-glossary.html#g-utc" title="Temps universel coordonné, la norme de temps dans laquelle les entrées d&#x27;audit sont enregistrées et affichées.">UTC</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-type"><td>Journal d'audit : Type</td>
+<td>Colonne</td>
+<td>Sans objet</td>
+<td>IA, Utilisateur ou Système.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-event"><td>Journal d'audit : Événement</td>
+<td>Colonne</td>
+<td>Sans objet</td>
+<td>Le nom de l'événement, suivi d'une pastille de <a class="term" href="99-glossary.html#g-support-reference" title="Un code aléatoire et non identifiant de la forme `SR-XXXX-XXXX` que le personnel communique au support à la place d&#x27;un numéro de dossier.">référence support</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-detail"><td>Journal d'audit : Détail</td>
+<td>Colonne</td>
+<td>Sans objet</td>
+<td>Texte en anglais, exempt de noms de patients, de dates de naissance, de <a class="term" href="99-glossary.html#g-mrn" title="Numéro de dossier médical (Medical record number), l&#x27;identifiant qu&#x27;un établissement attribue à un patient.">MRN</a> et de valeurs cliniques.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-user"><td>Journal d'audit : Utilisateur</td>
+<td>Colonne</td>
+<td>Sans objet</td>
+<td>Le nom d'affichage de la personne ou de l'acteur système. Les actions automatiques affichent un acteur système tel que <code>SYSTEM</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-audit-log-case"><td>Journal d'audit : Dossier</td>
+<td>Colonne</td>
+<td>Sans objet</td>
+<td>Le numéro d'accession lorsque l'entrée concerne un dossier. Cliquez dessus pour ouvrir le dossier.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p>L'entrée contient aussi une valeur de confiance (pour les entrées d'IA), un identifiant d'établissement et un identifiant de <a class="term" href="99-glossary.html#g-scan-station" title="Une configuration nommée de poste de paillasse, avec ses imprimantes et son écran, qu&#x27;une personne sélectionne afin que les étiquettes et les numérisations aillent au bon endroit.">poste de numérisation</a>. Ils sont conservés et figurent dans le contrat du serveur, mais l'écran n'affiche aucune colonne pour eux et le CSV n'inclut ni l'établissement ni le poste. L'identifiant d'établissement est absent des entrées enregistrées avant son existence ou par du code qui ne le fournit pas.</p>
+<h4>Onglet Journal des erreurs</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-error-log-severity-pills"><td>Journal des erreurs : Pastilles de gravité</td>
+<td>Choix : Toutes, Erreur, Avertissement, Info, avec compteurs</td>
+<td>Facultatif</td>
+<td>Filtre selon la gravité.</td>
+<td>Toutes</td>
+</tr>
+<tr id="f-audit-log-error-log-status"><td>Journal des erreurs : Statut</td>
+<td>Choix : Tous les statuts, Ouvertes uniquement, Résolues uniquement</td>
+<td>Facultatif</td>
+<td>Filtre selon la résolution.</td>
+<td>Tous les statuts</td>
+</tr>
+<tr id="f-audit-log-error-log-search"><td>Journal des erreurs : Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Recherche dans le message, le code et la source.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-log-error-log-resolve"><td>Journal des erreurs : Résoudre</td>
+<td>Bouton sur chaque ligne ouverte</td>
+<td>Sans objet</td>
+<td>Nécessite <code>audit:error:resolve</code>. Enregistre qui l'a résolue et quand ; la ligne affiche ensuite « Résolu par <name>, <time> ».</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-error-log-export-csv"><td>Journal des erreurs : Exporter en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Nécessite <code>audit:error-log:export</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-log-error-log-columns"><td>Journal des erreurs : colonnes</td>
+<td>Horodatage, Gravité, Code, Message, Source, Dossier, Statut</td>
+<td>Sans objet</td>
+<td>La colonne Code contient les codes de l'<a href="#ch9-error-codes">index</a>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong>
+- Ouvrir l'écran : <code>screen:audit-log:open</code>. Les rôles Administrateur, Directeur de laboratoire et Relecteur <a class="term" href="99-glossary.html#g-qa" title="Assurance qualité, la revue du travail pour repérer et corriger les problèmes.">AQ</a> la détiennent par défaut. Le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> Pathologiste ne la détient pas par défaut.
+- Exporter : une <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> par journal, chacune à risque élevé, chacune exigeant <code>screen:audit-log:open</code> : <code>audit:audit-log:export</code>, <code>audit:error-log:export</code>, <code>audit:interface-log:export</code>, <code>audit:qa-log:export</code> et <code>audit:billing-log:export</code>. Les rôles qui ouvrent l'écran reçoivent les cinq par défaut. Chaque export est lui-même audité.
+- Résoudre une erreur : <code>audit:error:resolve</code> (risque élevé).
+- Onglet Liens de consultation : <code>audit:consult-links:view</code>. Tâches du serveur : <code>jobs:server-job:view</code>, et remise en file avec <code>jobs:server-job:requeue</code>.
+- Périmètre à l'écran : les pathologistes voient toutes les entrées qui nomment un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>, plus leurs propres entrées sans dossier. Les événements d'étude de validation (<code>validation_study_created</code>, <code>validation_study_activated</code>, <code>validation_study_closed</code>, <code>validation_study_deleted</code>, <code>validation_report_generated</code> et les trois événements <code>validation_routing_rule_*</code>) sont masqués pour tous, sauf pour Administrateur, Pathologiste-Administrateur et Superadmin.
+- La consultation du journal n'est pas elle-même auditée. Les exports, la résolution d'une erreur et une recherche par <a class="term" href="99-glossary.html#g-support-reference" title="Un code aléatoire et non identifiant de la forme `SR-XXXX-XXXX` que le personnel communique au support à la place d&#x27;un numéro de dossier.">référence support</a> le sont.</p>
+<p><strong>Limites connues.</strong>
+- <strong>Aucune détection de falsification sur le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> principal.</strong> Le journal d'audit principal est en ajout seul par conception (le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> ne comporte aucun appel de modification ni de suppression, et le contrat du serveur n'accorde aucune telle autorisation à l'identifiant de connexion de la base de données de l'application), mais ses entrées ne sont pas chaînées par hachage et rien à l'écran ne les vérifie. Le seul enregistrement chaîné par hachage est l'audit d'<a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a>. Voir le guide de vérification.
+- <strong>La <a class="term" href="99-glossary.html#g-retention" title="La durée pendant laquelle un type de données ou de matériel est conservé. Les durées de conservation sont fixées par juridiction, avec une dérogation facultative.">conservation</a> est un paramètre, non appliqué.</strong> La durée de conservation du journal est définie dans <a href="02-tier1-primary-prerequisites.html#screen-retention">Conservation des données</a>. Aucune tâche de purge ne la lit encore (PS-345) ; rien n'est donc supprimé par ce biais aujourd'hui.
+- <strong>Le <code>detail</code> de l'audit est en anglais par conception.</strong> C'est un artefact de conformité, et non un texte d'interface. Les en-têtes de colonnes, les filtres et les boutons sont traduits ; le texte de détail et le fichier exporté ne le sont pas.
+- <strong>Version de démonstration.</strong> Sans serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>, le journal d'audit est stocké dans le navigateur et commence avec des entrées d'exemple préchargées. L'heure et l'utilisateur agissant proviennent du navigateur. Avec un serveur API, le serveur fixe l'heure et l'acteur à partir du jeton de connexion.
+- <strong>Aucune colonne d'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> ni de poste</strong> à l'écran ou dans le CSV, bien que les deux soient enregistrés (voir ci-dessus).</p>
+<h2 id="ch9-audit-verification"><a class="anchor" href="#ch9-audit-verification" aria-label="Link to this section">#</a> Guide de vérification du journal d'audit</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Guide de l&#x27;administrateur &gt; Annexes &gt; Guide de vérification du journal d&#x27;audit"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Guide de l&#x27;administrateur</span> <span aria-hidden="true">›</span> <span>Annexes</span> <span aria-hidden="true">›</span> <span>Guide de vérification du journal d&#x27;audit</span></nav>
+
+<p><strong>Statut :</strong> Partiel. L'enregistrement, la recherche et l'export sont réalisés. La détection de falsification du <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> principal et la purge automatique selon la <a class="term" href="99-glossary.html#g-retention" title="La durée pendant laquelle un type de données ou de matériel est conservé. Les durées de conservation sont fixées par juridiction, avec une dérogation facultative.">conservation</a> ne sont pas réalisées.</p>
+<p><strong>À qui ce guide s'adresse.</strong> Un administrateur ou un ingénieur des services ForMedrixAI qui doit montrer à un auditeur ou à un inspecteur ce qui a changé, qui l'a changé et quand. Il n'utilise que ce qui existe aujourd'hui.</p>
+<h3 id="ch9-audit-recorded"><a class="anchor" href="#ch9-audit-recorded" aria-label="Link to this section">#</a> Ce qui est enregistré</h3>
+<p>Chaque entrée d'audit contient : un identifiant ; une heure (conservée en <a class="term" href="99-glossary.html#g-utc" title="Temps universel coordonné, la norme de temps dans laquelle les entrées d&#x27;audit sont enregistrées et affichées.">UTC</a>) ; un type (<strong>IA</strong>, <strong>Utilisateur</strong> ou <strong>Système</strong>) ; un nom d'événement ; une phrase de détail en anglais ; le nom d'affichage de l'utilisateur à l'origine de l'action ; un <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a> lorsqu'il y en a un ; une confiance de l'IA lorsqu'elle s'applique ; un identifiant d'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> lorsque le code le fournit ; et le <a class="term" href="99-glossary.html#g-scan-station" title="Une configuration nommée de poste de paillasse, avec ses imprimantes et son écran, qu&#x27;une personne sélectionne afin que les étiquettes et les numérisations aillent au bon endroit.">poste de numérisation</a> où l'action a été réalisée. L'identifiant du poste est ajouté automatiquement à chaque entrée écrite par le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> d'audit.</p>
+<p>Ce qui figure dans le journal :</p>
+<ul>
+<li><strong>Chaque contrôle d'une <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> à risque élevé</strong>, autorisé ou refusé. L'événement est <strong>Capability allowed</strong> ou <strong>Capability refused</strong>. Le détail nomme la clé de la capacité, les rôles qui l'ont accordée ou le motif du refus, le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> de session de la personne et l'établissement. Le <a class="term" href="99-glossary.html#g-capability-catalog" title="La liste complète des capacités, avec le niveau de risque de chacune et toute capacité qu&#x27;elle exige.">catalogue des capacités</a> indique quelles capacités sont à risque élevé. L'enregistrement d'un écran de configuration est l'un de ces contrôles.</li>
+<li><strong>Modifications des rôles et du personnel.</strong> <strong>Role capabilities changed</strong> liste ce qui a été accordé et retiré pour un rôle. <strong>Staff access changed</strong> consigne une modification des rôles, des établissements, de l'accès pédiatrique, de l'accès à l'orchestration ou de l'accès inter-locataires à l'assurance qualité d'une personne, chacune avec l'état avant et après. <strong>Staff credentials changed</strong> consigne les modifications des identifiants.</li>
+<li><strong>Événements de connexion.</strong> <strong>Signed in</strong>, <strong>Sign-in failed</strong> (tentative n sur 5), <strong>Sign-in locked</strong>, <strong>Sign-in refused</strong>, <strong><a class="term" href="99-glossary.html#g-sso" title="Authentification unique. Voir authentification unique.">SSO</a> account linked</strong>, <strong>SSO account unlinked</strong> et <strong>SSO sign-in refused</strong>. Le journal n'enregistre jamais ce qui a été saisi.</li>
+<li><strong>Événements de modification nommés pour certains paramètres.</strong> Par exemple <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> et les quatre événements <strong>Signing-authority facility override</strong> (ajouté, modifié, supprimé, justification mise à jour). Les événements de dérogation d'établissement portent chaque <a class="term" href="99-glossary.html#g-flag" title="Un marqueur placé sur un dossier ou un prélèvement, par exemple pour demander une coloration supplémentaire ou pour suspendre un dossier.">indicateur</a> modifié avec l'état avant et après, ainsi que la justification de l'administrateur ou « Justification: none given ».</li>
+<li><strong>Commandes vocales.</strong> <strong>Voice command executed</strong> et <strong>Voice command refused</strong>. Le détail indique l’identifiant de l’action et l’écran, par exemple <code>Voice command executed: action TABLE_DELETE on screen WORKLIST; confirmed by repeating the phrase</code> ; un refus donne la raison (non disponible sur cet écran, phrase non répétée pour confirmer, ou non répétée à temps). La personne est l’utilisateur qui agit. Le journal n’enregistre jamais ce qui a été dit, et aucune entrée ne désigne un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>.</li>
+<li><strong>Impressions et exports.</strong> <code>DOCUMENT_PRINTED</code>, <code>DOCUMENT_REPRINTED</code>, <code>DOCUMENT_RENDERED</code>, <code>DOCUMENT_EXPORTED</code>, <code>DOCUMENT_FAXED</code> : qui, l'<a class="term" href="99-glossary.html#g-accession" title="L&#x27;acte de réceptionner un prélèvement et de lui attribuer un numéro de dossier permanent ; désigne aussi ce numéro (le numéro d&#x27;accession). Elle relie un dossier au tissu physique et à sa chaîne de conservation.">accession</a>, la destination, le statut et, pour un export, le nombre de lignes.</li>
+<li><strong>Événements de dossier</strong>, tels que la génération du compte rendu <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a>, les mises à jour de champs, la finalisation, la sélection d'un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a>, la détection et la correction de dérive, les corrections de facturation et la gestion des patients (<code>mpi.*</code>).</li>
+<li><strong>Actions automatiques</strong> sous un acteur système.</li>
+</ul>
+<p>Deux limites comptent lorsque vous lisez le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>.</p>
+<ol>
+<li>Une entrée de capacité montre qu'une personne a utilisé une capacité et si elle était autorisée. Pour la plupart des paramètres, elle ne montre <strong>pas</strong> les anciennes et les nouvelles valeurs. Seuls les événements nommés ci-dessus, et quelques autres, portent la modification elle-même.</li>
+<li>Une modification effectuée pendant qu'une session Superadmin agit dans une autre organisation est aussi écrite dans le registre d'<a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a> de cette organisation.</li>
+</ol>
+<p><strong>Le texte de détail est en anglais par conception.</strong> Les enregistrements d'audit sont des artefacts de conformité et non des textes d'interface ; le détail reste donc en anglais littéral dans toutes les langues du produit et dans l'export. Effectuez vos recherches avec le nom d'événement en anglais ou la clé de la capacité.</p>
+<h3 id="ch9-audit-find-setting"><a class="anchor" href="#ch9-audit-find-setting" aria-label="Link to this section">#</a> Comment retrouver la modification d'un paramètre</h3>
+<ol>
+<li>Ouvrez les <a href="#screen-audit-log">Journaux système</a>, onglet <strong>Journal d'audit</strong>.</li>
+<li>Définissez la <strong>Plage de dates</strong>. La valeur par défaut est <strong>7 derniers jours</strong> ; choisissez <strong>Période personnalisée</strong> pour une modification plus ancienne. Les entrées en dehors de la plage sont masquées, et non manquantes.</li>
+<li>Dans <strong>Recherche</strong>, saisissez la clé de la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> de l'écran que vous vérifiez. La capacité de modification de chaque écran de Configuration est nommée dans sa partie <strong>Autorisations</strong> de ce guide (par exemple <code>config:retention-policy:manage</code> pour <a href="02-tier1-primary-prerequisites.html#screen-retention">Conservation des données</a>). La recherche porte sur le texte de détail ; elle trouve donc les entrées <strong>Capability allowed</strong>.</li>
+<li>Lisez les colonnes <strong>Utilisateur</strong> et <strong>Horodatage</strong> pour savoir qui et quand. Le détail nomme le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> qui a accordé la capacité.</li>
+<li>Si l'écran a un événement de modification nommé (voir la liste ci-dessus), recherchez aussi ce nom d'événement. Il contient la modification elle-même, et pas seulement le contrôle d'autorisation.</li>
+<li>Pour écarter le bruit, utilisez les pastilles de <strong>Type</strong> (<strong>Utilisateur</strong> affiche les actions humaines).</li>
+<li>Pour ne voir que les refus, recherchez <code>Capability refused</code>.</li>
+</ol>
+<p>Une entrée qui indique <strong>Capability allowed</strong> montre que la personne avait l'autorisation d'effectuer la modification et que la modification a été tentée. Elle ne prouve pas à elle seule quelle valeur a été enregistrée. Pour un paramètre sans événement de modification propre, comparez avec la valeur actuelle de l'écran et, si le laboratoire en conserve un, avec un export de configuration (voir <strong>Exporter</strong> ci-dessous).</p>
+<h3 id="ch9-audit-find-permission"><a class="anchor" href="#ch9-audit-find-permission" aria-label="Link to this section">#</a> Comment vérifier qui a modifié une autorisation</h3>
+<ol>
+<li>Dans l'onglet <strong>Journal d'audit</strong>, recherchez <code>Role capabilities changed</code>. Chaque entrée se lit <code>Role "&lt;name&gt;": granted &lt;keys&gt;; removed &lt;keys&gt;.</code> La colonne <strong>Utilisateur</strong> indique la personne qui a enregistré le <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a>.</li>
+<li>Pour voir qui a reçu ou perdu un rôle, recherchez <code>Staff access changed</code>. Le détail liste chaque modification avec l'état avant et après (rôles, établissements, accès pédiatrique, accès à l'orchestration, accès inter-locataires à l'assurance qualité).</li>
+<li>Pour voir les modifications d'identifiants, recherchez <code>Staff credentials changed</code>.</li>
+<li>Pour voir si une personne a réellement utilisé une autorisation, recherchez la clé de la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> et lisez les entrées <strong>Capability allowed</strong> et <strong>Capability refused</strong>.</li>
+<li>Pour lister qui peut faire quelque chose aujourd'hui, utilisez <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a> et <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Membres</a> ; le journal montre l'historique, ces écrans montrent l'état présent.</li>
+<li>Pour un rôle que l'hôpital ne peut pas modifier : une modification du rôle Superadmin est refusée dans un hôpital, aucune entrée n'en montrera donc. Superadmin est détenu par le personnel du support ForMedrixAI et est attribué en dehors de l'annuaire du personnel de l'hôpital.</li>
+</ol>
+<p>L'enregistrement d'un rôle est aussi refusé, avant que quoi que ce soit soit écrit, s'il ne laissait aucun rôle capable de gérer les rôles, s'il rompait une paire de <a class="term" href="99-glossary.html#g-separation-of-duties" title="Une règle selon laquelle deux pouvoirs ne doivent pas reposer sur une seule personne, comme modifier les règles de discordance clinique et approuver les instructions de l&#x27;IA.">séparation des tâches</a>, ou s'il accordait une capacité sans celle qu'elle exige. Un enregistrement refusé n'écrit aucune entrée <strong>Role capabilities changed</strong>.</p>
+<h3 id="ch9-audit-integrity"><a class="anchor" href="#ch9-audit-integrity" aria-label="Link to this section">#</a> Comment fonctionnent l'intégrité et la conservation du registre</h3>
+<p><strong>Ajout seul.</strong> Le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> d'audit n'a aucun appel pour modifier ou supprimer une entrée ; il ne peut qu'en écrire de nouvelles et les lire. Le contrat du serveur (<code>STAFF_ADMIN_API.md</code> section 1 ; <code>AUTHORIZATION_API.md</code>) exige que la table d'audit soit en ajout seul : aucun appel de modification ou de suppression n'existe et l'identifiant de connexion de la base de données de l'application n'a aucune telle autorisation. Une erreur résolue est la seule modification permise sur un enregistrement ; elle est consignée sous la forme de qui et quand sur l'entrée d'erreur, et non comme un écrasement du message.</p>
+<p><strong>Qui fixe l'heure et l'acteur.</strong> Avec le serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>, le serveur fixe l'heure et l'utilisateur agissant à partir du jeton porteur. Le navigateur n'envoie que l'événement ; un utilisateur ne peut donc pas choisir le nom qui apparaît. Dans la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a>, c'est le navigateur qui les fixe.</p>
+<p><strong>Identifiants uniques.</strong> Chaque entrée reçoit un identifiant unique. La table du serveur est censée imposer aussi l'unicité.</p>
+<p><strong>Détection de falsification : le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> principal n'en a aucune.</strong> Le journal d'audit principal n'est <strong>pas</strong> chaîné par hachage ni signé. Rien dans l'écran Journaux système ne prouve qu'une entrée n'a pas été altérée par une personne ayant un accès direct à la base de données, et il n'existe aucun bouton « vérifier » pour cela. L'intégrité repose sur la règle d'ajout seul ci-dessus et sur les autorisations de la base de données. Le seul enregistrement chaîné par hachage est l'audit d'<a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a> (voir ci-dessous). Si votre auditeur exige une détection de falsification cryptographique pour le journal principal, dites-le à ForMedrixAI : elle n'est pas réalisée.</p>
+<p><strong>Conservation.</strong> La durée de <a class="term" href="99-glossary.html#g-retention" title="La durée pendant laquelle un type de données ou de matériel est conservé. Les durées de conservation sont fixées par juridiction, avec une dérogation facultative.">conservation</a> du journal d'audit est un paramètre de <a href="02-tier1-primary-prerequisites.html#screen-retention">Conservation des données</a> : le champ <strong>Journaux d'audit</strong>, en jours, de 90 à 3650, 365 par défaut. L'écran indique qu'une modification « prend effet lors du prochain cycle de purge ». <strong>Aucune tâche de purge ne lit encore ce paramètre (PS-345)</strong> ; aujourd'hui, rien n'est donc supprimé par ce biais. Considérez ce nombre comme une politique enregistrée, et non appliquée. Un enregistrement de chaque export (qui, quoi, quand, nombre de lignes et empreinte du fichier) est conservé selon la durée de conservation du journal d'audit.</p>
+<p><strong>Les exports sont des copies de travail.</strong> Le <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a> exporté est une copie de ce qui était affiché à l'écran. Le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> de l'export est l'entrée d'audit.</p>
+<h3 id="ch9-audit-export"><a class="anchor" href="#ch9-audit-export" aria-label="Link to this section">#</a> Comment exporter</h3>
+<ol>
+<li>Dans l'onglet voulu, définissez d'abord les filtres. L'export couvre les lignes que laissent les filtres, et non tout le journal.</li>
+<li>Choisissez <strong>Exporter en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></strong>. Le bouton est grisé, avec une infobulle nommant la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a>, sauf si la personne détient la capacité d'export de cet onglet (voir Autorisations ci-dessus).</li>
+<li>Le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> contrôle la capacité avant de générer le fichier. Un refus ne génère rien.</li>
+<li>Avec un serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>, l'export est généré par le serveur (voir <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Mes exportations</a>) : le fichier est une copie de travail conservée 7 jours par défaut (de 1 à 30), une personne peut avoir 3 exports ouverts, et plus de 1 000 000 de lignes sont refusées. Dans la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a>, le navigateur génère et télécharge le fichier immédiatement.</li>
+<li>Un nom de fichier a la forme <code>pathscribe-audit-log-&lt;date&gt;.csv</code>. Les premières lignes forment un en-tête qui nomme le rapport, la personne qui l'a demandé, les filtres utilisés et le nombre de lignes. Viennent ensuite les colonnes : <strong>ID, Timestamp, Type, Event, Detail, Actioned By, Accession No., AI Confidence</strong>. Les cellules qui commencent par <code>=</code>, <code>+</code>, <code>-</code> ou <code>@</code> sont neutralisées afin qu'un tableur ne les exécute pas comme une formule.</li>
+<li>Chaque export écrit une entrée <code>DOCUMENT_EXPORTED</code> avec la personne, le nom du fichier, le format et le nombre de lignes. Recherchez <code>DOCUMENT_EXPORTED</code> pour voir qui a exporté le journal.</li>
+<li>Le CSV ne contient pas les identifiants d'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> ni de poste. Si un inspecteur en a besoin, dites-le aux services ForMedrixAI : le serveur les conserve.</li>
+<li>Les autres onglets s'exportent de la même manière, chacun avec sa propre capacité et ses propres colonnes : Journal des erreurs (ID, Timestamp, Severity, Code, Message, Source, Accession No., Resolved), Assurance qualité (ID, Group, Date, Case, Specimen, Detail, Status, User), Journal des interfaces et le journal de facturation de l'onglet Facturation.</li>
+</ol>
+<h3 id="ch9-audit-support"><a class="anchor" href="#ch9-audit-support" aria-label="Link to this section">#</a> Comment s'articule l'audit de l'Accès du support</h3>
+<p>Les accès du support ForMedrixAI à vos données sont consignés dans leur propre flux, distinct du <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> principal, et il appartient à votre organisation. Il est documenté dans <a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a>.</p>
+<ul>
+<li><strong>Ce qu'il enregistre.</strong> Les modifications de politique ; les demandes, approbations, rejets, expirations, fins anticipées et révocations ; les ouvertures refusées ; les ouvertures et modifications de dossiers ; chaque liste, recherche ou rapport qui a divulgué vos dossiers (avec les identifiants de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>) ; les noms, jamais les valeurs, des critères de recherche ; et les exports de cet audit. Les propres exports et modifications de configuration d'un agent du support y sont aussi consignés (sous les noms <code>supportExport</code> et <code>supportConfigChange</code>), ainsi que dans le journal d'audit principal.</li>
+<li><strong>Les entrées ne sont jamais supprimées.</strong> Chaque entrée contient un numéro de séquence, l'heure, l'acteur, le ticket, l'action, les identifiants de dossier et un détail en anglais, sans donnée patient.</li>
+<li><strong>Il est chaîné par hachage.</strong> Chaque entrée porte un <a class="term" href="99-glossary.html#g-sha-256" title="Une fonction de hachage cryptographique qui transforme un fichier ou un enregistrement en une empreinte de taille fixe, utilisée pour détecter une modification.">SHA-256</a> calculé sur ses champs et sur le hachage de l'entrée précédente, en partant de 64 zéros. Une entrée modifiée, supprimée ou réordonnée rompt la chaîne. L'écran indique <strong>Registre intact (N entrées)</strong> ou <strong>Registre modifié à l'entrée N</strong>, et l'export <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> contient le contrôle de la chaîne.</li>
+<li><strong>Pour le vérifier.</strong> Ouvrez Accès du support, lisez la ligne de chaîne du panneau d'audit et exportez en JSON pour un contrôle indépendant. Vous avez besoin de <code>config:support-audit:view</code>.</li>
+<li><strong>Formats d'export.</strong> <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a>, JSON et <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, la forme sous laquelle un compte rendu signé est conservé et imprimé.">PDF</a>, avec les colonnes Horodatage, Nom de l'agent du support, IP d'origine, Pays d'origine, ID du ticket, Action effectuée, ID des dossiers, Détail.</li>
+<li><strong>Limites.</strong> L'IP et le pays d'origine ne peuvent être enregistrés de façon fiable que par le serveur, à partir de la requête ; la <a class="term" href="99-glossary.html#g-demonstration-build" title="Une version de PathScribe qui conserve ses données dans le navigateur et comporte des comptes de démonstration. Elle ne se connecte jamais à un véritable serveur API.">version de démonstration</a> les laisse donc vides. Un stockage isolé par locataire dans sa propre table en ajout seul relève du travail côté serveur (PS-358).</li>
+</ul>
+<p>C'est le seul enregistrement du produit doté d'une détection de falsification intégrée. Il ne couvre que les accès du support, et non le journal d'audit principal.</p>
+<h3 id="ch9-audit-routine"><a class="anchor" href="#ch9-audit-routine" aria-label="Link to this section">#</a> Une routine de vérification courte</h3>
+<p>Pour une revue de routine d'une période échantillonnée, suivez ces étapes.</p>
+<ol>
+<li>Définissez la plage de dates du <strong>Journal d'audit</strong> sur la période. Notez le nombre indiqué en pied de page (« Affichage de N sur M événements »).</li>
+<li>Recherchez <code>Role capabilities changed</code>, <code>Staff access changed</code> et <code>Capability refused</code> et lisez chaque entrée.</li>
+<li>Recherchez <code>Sign-in locked</code> et <code>Sign-in refused</code> pour les problèmes de connexion.</li>
+<li>Recherchez <code>DOCUMENT_EXPORTED</code> pour voir qui a extrait des données.</li>
+<li>Ouvrez l'onglet <strong>Journal des erreurs</strong>, filtrez sur <strong>Ouvertes uniquement</strong>, et vérifiez que rien d'important n'est non résolu.</li>
+<li>Ouvrez <a href="02-tier1-primary-prerequisites.html#screen-support_access">Accès du support</a> et confirmez que la ligne de chaîne indique intact ; lisez les entrées de la période.</li>
+<li>Exportez le <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a> du Journal d'audit pour la période et conservez le fichier avec vos notes de revue. L'export est lui-même consigné.</li>
+</ol></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

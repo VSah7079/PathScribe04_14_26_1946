@@ -56,6 +56,7 @@ import {
 } from '../../types/systemConfig';
 import type { Facility, FacilityIdentifierFormatSelection } from '../../services/facilities/IFacilityService';
 import { dateFormatHint } from '../../utils/formatDate';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -125,7 +126,7 @@ const FormatRow: React.FC<{
         <div className="ps-idf-row-right">
           <div
             className={`ps-toggle-track${format.enabled ? ' on' : ' off'}`}
-            onClick={() => onToggle(format.id, !format.enabled)}
+            {...switchable(format.enabled, () => onToggle(format.id, !format.enabled), t('a11y.cellLabel', { column: t('a11y.fields.enabled'), row: format.label }))}
           >
             <div className="ps-toggle-thumb" />
           </div>
@@ -226,7 +227,7 @@ const SimulateScanTool: React.FC = () => {
         <span className="ps-idf-locale-label">{t('identifierFormatsTab.simulateLabel')}</span>
       </div>
       <div className="ps-idf-simulate-row">
-        <input
+        <input aria-label={t('identifierFormatsTab.simulateLabel')}
           className="ps-idf-test-input ps-idf-simulate-input"
           value={value}
           onChange={e => { setValue(e.target.value); setFired(false); }}

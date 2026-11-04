@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/access/
 
 Real, tracked AccessRequest tickets — Pediatric, Pool, and Orchestration
@@ -21,7 +23,11 @@ genuinely new work, not a gap).
   real, three-state lifecycle (`pending` → `granted`/`denied`), with
   `resolvedAt`/`resolvedByUserId` for the real turnaround-time metric.
 - **`mockAccessRequestService.ts`** — the real, currently-active
-  implementation. 10/10 tests in `mockAccessRequestService.test.ts`.
+  implementation. 11 tests in `mockAccessRequestService.test.ts`.
+- **`closeGrantedAccessRequests.ts`** (+ `.test.ts`) — closes pending requests once the access exists (Batch 431).
+- **`accessRequestDecision.ts`** — which permission a deny needs, per request type (Batch 432).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): test count 10 → 11; added the two later files.*
 
 ## How this connects to the rest of the app
 
@@ -31,27 +37,11 @@ genuinely new work, not a gap).
   Review requests — see `services/reports/README.md`). Called from the
   three real request-access UI entry points: `WorklistTable.tsx`
   (Pediatric and Orchestration) and `PoolClaimModal.tsx` (Pool).
-- **Resolution** — also in `utils/accessRequests.ts`:
-  `checkAndResolvePoolAccess` / `checkAndResolveOrchestrationAccess`
-  (single-condition, resolve immediately) and
-  `checkAndResolvePediatricAccess` (genuinely requires BOTH the
-  user-level `canViewPediatric` flag AND the specific facility's own
-  `authorizedPediatricPathologistIds` list — re-checks both real
-  conditions directly rather than assuming the other half just because
-  one call site changed). Wired into every real admin action that could
-  satisfy a request: `StaffTab.tsx` (pool membership, orchestration
-  flag, pediatric flag) and `ClientDictionaryPage.tsx` (the facility's
-  own authorized list).
-- **Admin queue** — `components/Config/Staff/AccessRequestsQueue.tsx`, a
-  new "Access Requests" sub-tab in Staff config. Grant acts on the real,
-  underlying permission directly (and closes the ticket in the same
-  action) rather than sending the admin to a separate screen.
-- **Quality metric** — `ACCESS_REQUEST_RESPONSE`, a real, new TAT type
-  in `TATConfigSection.tsx` (24h system default, not role/client/
-  urgency-scoped — every requester gets the same admin-response target).
-  `computeAccessRequestResponseOutliers` in
-  `Contribution/qualityCalculations.ts` is the real metric, wired into
-  `QualityTab.tsx`.
+- **Resolution** — `closeGrantedAccessRequests.ts`'s `afterAccessMayHaveChanged()` closes a pending request as granted once the access exists. It runs after the service saves that can give access: `mockSubspecialtyService.ts` (pool membership), `mockUserService.ts` (Pediatric/Orchestration flags) and `mockFacilityService.ts` (the facility's authorized pediatric pathologists). Pediatric needs both the user flag and the facility list. See Batch 431 below.
+- **Admin view** — the **Access Requests** tab on the Quality Assurance page (`components/QualityAssurance/AccessRequestResponseTab.tsx`, Operations group). It lists requests with their status and turnaround, shows average turnaround and a monthly trend, exports CSV, and lets an admin **Deny** a pending request with a reason (`accessRequestService.deny`, Batch 432). Granting is done by giving the access itself in Staff or Facility configuration, which then closes the request.
+- **Quality metric** — turnaround (`resolvedAt − requestedAt`) is computed directly in that tab. There is no separate TAT type for access requests in `TATConfigSection.tsx`, and no per-admin metric in `Contribution/qualityCalculations.ts`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): resolution runs through `closeGrantedAccessRequests.ts` (the `checkAndResolve…` helpers, `ClientDictionaryPage.tsx` and `Config/Staff/AccessRequestsQueue.tsx` do not exist); the admin view is the QA Access Requests tab; there is no `ACCESS_REQUEST_RESPONSE` TAT type or `computeAccessRequestResponseOutliers`.*
 
 ## Notes
 
@@ -60,6 +50,24 @@ genuinely new work, not a gap).
   both real conditions are independently confirmed true — never assumed
   from either half alone.
 
+## Batch 431: requests are recorded and closed
+
+- **Recorded.** `utils/accessRequests.ts` `sendAccessRequestToAdmins` now saves an access request record (pool, pediatric or Orchestration) before messaging the admins. Before, nothing created records, so the badges and the QA Access Request Response tab had nothing to read. A second request for the same thing while one is pending reuses it. Pool requests match on the pool, the others on the case.
+- **Closed when access is given.** `closeGrantedAccessRequests.ts` (new) closes a pending request as granted, with the admin and time, once the access exists. It runs after the saves that give access:
+  - a pool member added (subspecialty `assignUser`/`update`);
+  - a person's Pediatric or Orchestration flag (user `update`);
+  - a facility's authorized pediatric pathologists (facility `update`).
+  Pediatric needs both the flag and the facility list. The decision is pure (`isAccessGiven`, `requestsNowGranted`) and tested.
+- **Badges.** The pool, pediatric and Orchestration "access requested" badges come from the person's own pending requests (`pendingAccessRequestsFor`).
+- **Open:** nothing can deny a request yet (no admin action); it stays pending until access is given. *(Since closed: Batch 432 added `deny`, with a Deny button on the QA Access Requests tab — checked in the Batch 496 README audit.)*
+
+## Batch 432
+
+`deny(id, by, name, reason)`: needs the permission that gives that access (`accessRequestDecision.ts`: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`) and a reason; the requester is messaged. Already-resolved requests can't be denied.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+
+Batch 616: server version in `httpAccessRequestService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `accessRequestServiceInstance.ts`. Contract: `docs/architecture/ACCESS_SESSION_API.md`.

@@ -1,12 +1,15 @@
 // src/components/Contribution/QualityTab.tsx
 import React, { useState, useEffect } from "react";
+import ClientSlaPanel from "./ClientSlaPanel";
+import { buildClientSlaRows, type ClientSlaRow } from "@/services/clientSLA/clientSlaRules";
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import {
-  qaActivityRecordService, facilityService, intraoperativeService, amendmentService, informalReviewService,
-  delegationService, tatTargetService,
+  qaActivityRecordService, facilityService, clientSlaService, intraoperativeService, amendmentService, informalReviewService,
+  delegationService, tatTargetService, actionRegistryService,
 } from '@/services';
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { tatTileForAction } from '@/services/quality/tatTileActions';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '@/services/quality/reconciliationRecordMapping';
 import { withPerformingLabs, facilityNamesById, consultationRecords } from '@/services/quality/qualityTatInputs';
@@ -23,6 +26,8 @@ import {
   ReferenceLine, ResponsiveContainer,
 } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
+import { pressable } from '@/utils/a11y/pressable';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -354,6 +359,8 @@ const QualityTab: React.FC = () => {
   const [realConsultResponse, setRealConsultResponse] = useState<RealGenericTatOutlier[]>([]);
   const [realConsultAwaiting, setRealConsultAwaiting] = useState<RealGenericTatOutlier[]>([]);
   const [realTatByClient, setRealTatByClient] = useState<RealClientTatRow[]>([]);
+  // Batch 610 (#164): how each client's cases did against its SLA (set in Configuration → System → Client SLA).
+  const [clientSlaRows, setClientSlaRows] = useState<ClientSlaRow[]>([]);
   // Real, per direct follow-up ("show a frequency of confirmed
   // discordance to all AI flagged") — this modal only ever opens via
   // the real, automatic detection (confirmed directly: no other
@@ -395,7 +402,8 @@ const QualityTab: React.FC = () => {
       delegationService.list(),
       currentUser ? informalReviewService.getAllForUser(currentUser.id) : Promise.resolve({ ok: true as const, data: [] }),
       tatTargetService.getAll(),
-    ]).then(([allCasesRes, clientRes, intraopRes, delegationsRes, informalReviewsRes, tatRes]) => {
+      clientSlaService.getAll(),
+    ]).then(([allCasesRes, clientRes, intraopRes, delegationsRes, informalReviewsRes, tatRes, slaRes]) => {
       if (cancelled) return;
       const allCases = allCasesRes.ok ? allCasesRes.data : [];
       const facilities = clientRes.ok ? clientRes.data : [];
@@ -403,6 +411,7 @@ const QualityTab: React.FC = () => {
         delegationsRes.ok ? delegationsRes.data : [], informalReviewsRes.ok ? informalReviewsRes.data : [],
       );
       const tatEntries = tatRes.ok ? tatRes.data : [];
+      setClientSlaRows(buildClientSlaRows(allCases, slaRes.ok ? slaRes.data : [], facilities, new Date()));
       const clientNameById = facilityNamesById(facilities);
       const casesWithPerformingLab = withPerformingLabs(allCases, facilities);
       setRealTotalTAT(computeTotalCaseTatOutliers(casesWithPerformingLab, tatEntries, clientNameById));
@@ -473,15 +482,11 @@ const QualityTab: React.FC = () => {
   const [metric,        setMetric]        = useState<MetricView>("total");
   const [activeTatTile, setActiveTatTile] = useState<TatTileKey | null>('firstTouch');
 
-  // ── Voice: TAT tile switching ─────────────────────────────────────────────
-  React.useEffect(() => {
-    const handler = (e: Event) => {
-      const key = (e as CustomEvent).detail?.key as TatTileKey;
-      if (key && ENABLED_TAT_TYPES.some(tt => tt.key === key)) setActiveTatTile(key);
-    };
-    window.addEventListener('PATHSCRIBE_TAT_TILE', handler);
-    return () => window.removeEventListener('PATHSCRIBE_TAT_TILE', handler);
-  }, []);
+  // ── Voice: TAT tile switching (Batch 650: choosing the tile is what clicking it does; services/quality/tatTileActions.ts) ──
+  React.useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    const key = tatTileForAction(actionId, ENABLED_TAT_TYPES.map(tt => tt.key));
+    if (key) setActiveTatTile(key);
+  }), []);
 
   // Date-range button/period labels — three fixed values, resolved via t()
   // here so both the range selector buttons and the summary-tile "Last …"
@@ -520,7 +525,7 @@ const QualityTab: React.FC = () => {
             <div
               key={tt.key}
               className={`ps-quality-summary-tile ps-quality-summary-tile--clickable${isActive ? " ps-quality-summary-tile--active" : ""}`}
-              onClick={() => setActiveTatTile(prev => prev === tt.key ? null : tt.key)}
+              {...pressable(() => setActiveTatTile(prev => prev === tt.key ? null : tt.key))}
             >
               <div className="ps-quality-summary-tile__header">
                 <span className="ps-quality-summary-tile__label">{tatLabel}</span>
@@ -575,7 +580,7 @@ const QualityTab: React.FC = () => {
           return (
             <g transform={`translate(${x},${y})`}>
               {isJan && <line y1={-300} y2={0} stroke="rgba(255,255,255,0.08)" strokeWidth={1} />}
-              <text x={0} y={16} textAnchor="middle" fontSize={11} fill="#64748b">{payload.value}</text>
+              <text x={0} y={16} textAnchor="middle" fontSize={11} fill={CHART_TICK_COLOR}>{payload.value}</text>
             </g>
           );
         };
@@ -641,9 +646,9 @@ const QualityTab: React.FC = () => {
               <LineChart data={trendRows} margin={{ top: 8, right: 24, left: 0, bottom: 16 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="month" tick={<YBTick />} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} height={32} />
-                <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false}
+                <YAxis domain={[0, yMax]} tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false}
                   tickFormatter={(v: number) => fmt(v)} width={46} />
-                <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+                <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
                   if (!active || !payload?.length) return null;
                   const val   = payload[0]?.value as number;
                   const cases = trendRows.find(d => d.month === label)?.cases ?? 0;
@@ -922,6 +927,8 @@ const QualityTab: React.FC = () => {
               );
             })}
           </div>
+
+          <ClientSlaPanel rows={clientSlaRows} />
 
           <div className="ps-tat-client__footer">
             <span>{t('qualityTab.byFacility.footerEstimate')}</span>

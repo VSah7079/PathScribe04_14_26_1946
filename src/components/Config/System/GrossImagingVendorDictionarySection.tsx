@@ -15,8 +15,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockGrossImagingVendorService } from '../../../services/imageAssociation/mockGrossImagingVendorService';
+
 import type { GrossImagingVendorEntry, NewGrossImagingVendorEntry } from '../../../services/imageAssociation/IGrossImagingVendorService';
+import { grossImagingVendorService } from '@/services';
+import { linkFieldProblem } from '@/services/links/externalLink';
 
 type Draft = NewGrossImagingVendorEntry;
 
@@ -32,6 +34,8 @@ const VendorModal: React.FC<{
 }> = ({ mode, entry, onSave, onClose }) => {
   const { t } = useTranslation();
   const [draft, setDraft] = useState<Draft>(entry ? { ...entry } : emptyDraft());
+  // Batch 549: the imaging system's address is an https:// link (services/links/externalLink.ts).
+  const urlProblem = linkFieldProblem(draft.baseUrl);
 
   return (
     <div data-capture-hide="true" className="ps-conf-backdrop" onClick={onClose}>
@@ -48,8 +52,9 @@ const VendorModal: React.FC<{
           </select>
 
           <label className="ps-label" htmlFor="gi-url">{t('grossImagingVendorDictionary.baseUrlLabel')}</label>
-          <input id="gi-url" className="ps-conf-input" value={draft.baseUrl} onChange={e => setDraft({ ...draft, baseUrl: e.target.value })}
+          <input id="gi-url" className={`ps-conf-input${urlProblem ? ' ps-conf-input--error' : ''}`} value={draft.baseUrl} onChange={e => setDraft({ ...draft, baseUrl: e.target.value })}
             placeholder={t('grossImagingVendorDictionary.baseUrlPlaceholder')} />
+          {urlProblem && <span className="ps-conf-error-text">{t('links.invalidHttpsLink')}</span>}
 
           <label className="ps-conf-toggle-label-row ps-mt-10">
             <input type="checkbox" checked={draft.supportsTelepathology} onChange={e => setDraft({ ...draft, supportsTelepathology: e.target.checked })} className="ps-conf-radio-input" />
@@ -58,7 +63,7 @@ const VendorModal: React.FC<{
         </div>
         <div className="ps-conf-modal-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="ps-conf-btn-primary" onClick={() => onSave(draft)} disabled={!draft.name.trim()}>{t('common.save')}</button>
+          <button className="ps-conf-btn-primary" onClick={() => onSave(draft)} disabled={!draft.name.trim() || !!urlProblem}>{t('common.save')}</button>
         </div>
       </div>
     </div>
@@ -72,7 +77,7 @@ const GrossImagingVendorDictionarySection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: GrossImagingVendorEntry } | null>(null);
 
   const refresh = () => {
-    mockGrossImagingVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
+    grossImagingVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -81,17 +86,17 @@ const GrossImagingVendorDictionarySection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.entry) {
-      await mockGrossImagingVendorService.update(modal.entry.id, draft);
+      await grossImagingVendorService.update(modal.entry.id, draft);
     } else {
-      await mockGrossImagingVendorService.add(draft);
+      await grossImagingVendorService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: GrossImagingVendorEntry) => {
-    if (e.active) await mockGrossImagingVendorService.deactivate(e.id);
-    else await mockGrossImagingVendorService.reactivate(e.id);
+    if (e.active) await grossImagingVendorService.deactivate(e.id);
+    else await grossImagingVendorService.reactivate(e.id);
     refresh();
   };
 

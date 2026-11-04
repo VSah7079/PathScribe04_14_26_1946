@@ -1,7 +1,8 @@
 // src/pages/ExternalConsultViewPage/ExternalConsultViewPage.tsx
 // ─────────────────────────────────────────────────────────────────────────────
 // PS-290 — External Consult / Second-Opinion Access, the OUTSIDE half.
-// Public, unauthenticated route (`/consult/:token`) — same real,
+// Public, unauthenticated route (`/consult#<token>`; Batch 522 moved the
+// token after `#`, and `/consult/:token` still opens links issued before) — same real,
 // deliberate "Station Identity, not per-user login" posture as
 // /or-suite-dashboard and /facility-ops-dashboard, but for a
 // completely different reason: there IS no PathScribe login for an
@@ -10,14 +11,16 @@
 // own header for the full, load-bearing caveat on what that actually
 // means (NOT real cryptographic security).
 //
-// Deliberately calls caseService.getCase() directly rather than
-// routing through caseRouter.getCase() — caseRouter's own
-// resolveCaseAccess() enforces PathScribe's INTERNAL session/tenant
-// model (services/auth/caseAccessControl.ts), which has no concept of
-// an external, token-bearing guest at all. A valid, Active, unexpired
-// ConsultToken IS the authorization for this one, specific read — that
-// is the entire point of building a token-scoped access path instead of
-// just handing out a normal case URL.
+// Batch 669 (access-11): the patient is shown masked (initials, birth year) unless the issuer opted in;
+// the choice is made in the service (consultIdentityMask.ts), so a masked view never holds the full values.
+//
+// Batch 522: the page no longer reads the case itself. It asks the token
+// service for the consult view (consultTokenService.openConsult), which
+// checks the token, records the view and returns only what the link
+// covers: the accession, the patient, and the specimens and slides in
+// scope (services/consultAccess/consultLinkRules.ts). An opinion is sent
+// with the token, which is checked again, so a link revoked meanwhile
+// takes nothing; once a signed opinion is in, the link takes no more opinions and works for 3 more views or 48 hours (banner).
 //
 // i18n note: this page is a standalone, self-contained shell (its own
 // dark theme, not the normal app chrome — see the "Station Identity"
@@ -29,31 +32,27 @@
 // displayed button label.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import './externalConsultDraft.css';
+import './externalConsultLifetime.css';
 import React, { useEffect, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
-import { useParams } from 'react-router';
-import { caseService } from '@/services';
 import { consultTokenService } from '@/services';
-import type { Case } from '@/types/case/Case';
-import type { ConsultToken, ConsultOpinionSignedStatus } from '@/services/consultAccess/IConsultTokenService';
-
-interface SlideRow { stainOrderId: string; specimenLabel: string; blockLabel: string; stainName: string; }
-
-function flattenSlides(c: Case): SlideRow[] {
-  const out: SlideRow[] = [];
-  for (const sp of c.specimens ?? []) {
-    for (const block of sp.blocks ?? []) {
-      for (const stain of block.stains ?? []) {
-        out.push({ stainOrderId: stain.id, specimenLabel: sp.label, blockLabel: block.label, stainName: stain.stainName });
-      }
-    }
-  }
-  return out;
-}
+import type { ConsultOpinionSignedStatus } from '@/services/consultAccess/IConsultTokenService';
+import { consultSubmitConfirmationKey, type ConsultCaseView } from '@/services/consultAccess/consultLinkRules';
+import { useConsultLinkToken } from '@/hooks/useConsultLinkToken';
+import { formatDateTime } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const SIGNED_STATUS_LABEL_KEY: Record<ConsultOpinionSignedStatus, string> = {
   Draft:  'externalConsultViewPage.status.draft',
   Signed: 'externalConsultViewPage.status.signed',
+};
+
+/** Batch 522: the service's refusal codes, as text. */
+const SUBMIT_ERROR_KEY: Record<string, string> = {
+  OPINION_REQUIRED:       'externalConsultViewPage.requiredOpinionError',
+  OPINION_ALREADY_SIGNED: 'externalConsultViewPage.errors.alreadySigned',
+  CONSULT_LINK_INVALID:   'externalConsultViewPage.errors.linkNoLongerActive',
 };
 
 const DisclosureBanner: React.FC = () => (
@@ -66,65 +65,55 @@ const DisclosureBanner: React.FC = () => (
 );
 
 const ExternalConsultViewPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { token } = useParams<{ token: string }>();
+  const { t, i18n } = useTranslation();
+  const token = useConsultLinkToken();
   const [status, setStatus] = useState<'loading' | 'invalid' | 'ready'>('loading');
-  const [tokenRecord, setTokenRecord] = useState<ConsultToken | null>(null);
-  const [caseRecord, setCaseRecord] = useState<Case | null>(null);
+  const [view, setView] = useState<ConsultCaseView | null>(null);
 
   const [diagnosticCategory, setDiagnosticCategory] = useState('');
   const [signedStatus, setSignedStatus] = useState<ConsultOpinionSignedStatus>('Draft');
   const [opinionText, setOpinionText] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedAs, setSubmittedAs] = useState<ConsultOpinionSignedStatus | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!token) { setStatus('invalid'); return; }
-
-    consultTokenService.resolve(token).then(async res => {
+    // One call: the token is checked, the view recorded, and only the link's scope comes back.
+    consultTokenService.openConsult(token).then(res => {
       if (cancelled) return;
       if (!res.ok) { setStatus('invalid'); return; }
-      const record = (res as { ok: true; data: ConsultToken }).data;
-      setTokenRecord(record);
-
-      const c = await caseService.getCase(record.scope.caseId);
-      if (cancelled) return;
-      if (!c) { setStatus('invalid'); return; }
-      setCaseRecord(c);
+      setView(res.data);
       setStatus('ready');
-      // Recorded once per real page view, not on every resolve() —
-      // see IConsultTokenService.ts's own recordAccess() doc comment.
-      consultTokenService.recordAccess(record.id);
     });
-
     return () => { cancelled = true; };
   }, [token]);
 
   const handleSubmitOpinion = async () => {
-    if (!tokenRecord || !caseRecord) return;
+    if (!token || !view) return;
     if (!opinionText.trim()) { setSubmitError(t('externalConsultViewPage.requiredOpinionError')); return; }
     setSubmitting(true);
     setSubmitError(null);
-    const res = await consultTokenService.submitOpinion({
-      tokenId: tokenRecord.id,
-      caseId: caseRecord.id,
-      consultantIdentifier: tokenRecord.consultantIdentifier,
+    const res = await consultTokenService.submitOpinion(token, {
       diagnosticCategory: diagnosticCategory.trim() || undefined,
       signedStatus,
       opinionText: opinionText.trim(),
     });
     setSubmitting(false);
-    if (!res.ok) { setSubmitError((res as { ok: false; error: string }).error); return; }
-    setSubmitted(true);
+    if (!res.ok) {
+      const error = (res as { ok: false; error: string }).error;
+      setSubmitError(t(SUBMIT_ERROR_KEY[error] ?? 'externalConsultViewPage.errors.failed'));
+      return;
+    }
+    setSubmittedAs(signedStatus);
   };
 
   if (status === 'loading') {
-    return <div className="ps-extconsult-shell"><div className="ps-extconsult-card ps-extconsult-card--loading">{t('externalConsultViewPage.loading')}</div></div>;
+    return <div className="ps-extconsult-shell"><LoadingState variant="inline" className="ps-extconsult-card ps-extconsult-card--loading" label={t('externalConsultViewPage.loading')} /></div>;
   }
 
-  if (status === 'invalid' || !tokenRecord || !caseRecord) {
+  if (status === 'invalid' || !view) {
     return (
       <div className="ps-extconsult-shell">
         <div className="ps-extconsult-card">
@@ -138,11 +127,6 @@ const ExternalConsultViewPage: React.FC = () => {
     );
   }
 
-  const slides = flattenSlides(caseRecord);
-  const scopedSlides = tokenRecord.scope.slideIds?.length
-    ? slides.filter(s => tokenRecord.scope.slideIds!.includes(s.stainOrderId))
-    : slides;
-
   return (
     <div className="ps-extconsult-shell">
       <div className="ps-extconsult-card">
@@ -150,49 +134,72 @@ const ExternalConsultViewPage: React.FC = () => {
 
         <div className="ps-extconsult-section">
           <div className="ps-extconsult-eyebrow">{t('externalConsultViewPage.eyebrow')}</div>
-          <div className="ps-extconsult-accession" data-phi="accession">{caseRecord.accession?.accessionNumber}</div>
+          <div className="ps-extconsult-accession" data-phi="accession">{view.accessionNumber}</div>
+          {/* Batch 669 (access-11): the service already chose the projection; a masked view holds no surname or full date. */}
           <div className="ps-extconsult-patient-line" data-phi="true">
-            {caseRecord.patient?.lastName}, {caseRecord.patient?.firstName}
-            {caseRecord.patient?.dateOfBirth && <> · {t('externalConsultViewPage.dobPrefix', { date: caseRecord.patient.dateOfBirth })}</>}
+            {view.patient.identity === 'full' ? (
+              <>
+                {t('externalConsultViewPage.patientName', { lastName: view.patient.lastName, firstName: view.patient.firstName })}
+                {view.patient.dateOfBirth && <>{t('externalConsultViewPage.separator')}{t('externalConsultViewPage.dobPrefix', { date: view.patient.dateOfBirth })}</>}
+              </>
+            ) : (
+              <>
+                {view.patient.maskedName}
+                {view.patient.birthYearMasked && <>{t('externalConsultViewPage.separator')}{t('externalConsultViewPage.dobPrefix', { date: view.patient.birthYearMasked })}</>}
+              </>
+            )}
           </div>
+          {view.patient.identity === 'masked' && <div className="ps-extconsult-empty-note">{t('externalConsultViewPage.identityMaskedNote')}</div>}
+          {/* Batch 669: after a signed opinion the link stops at the first of 3 views or 48 hours; the server counts both (consultLinkLifetime.ts). */}
+          {view.lifetime && (
+            <div className="ps-extconsult-lifetime-banner" role="status">
+              {t('consultLifetime.banner', {
+                views: t('consultLifetime.views', { count: view.lifetime.remainingViews }),
+                hours: t('consultLifetime.hours', { count: view.lifetime.hoursRemaining }),
+              })}
+            </div>
+          )}
           <div className="ps-extconsult-scope-line">
-            {tokenRecord.scope.slideIds?.length ? t('externalConsultViewPage.scopedAccess', { count: tokenRecord.scope.slideIds.length }) : t('externalConsultViewPage.fullCaseAccess')}
-            {' · '}
-            {t('externalConsultViewPage.linkExpires', { date: new Date(tokenRecord.expiresAt).toLocaleString() })}
+            {view.scopedSlideCount ? t('externalConsultViewPage.scopedAccess', { count: view.scopedSlideCount }) : t('externalConsultViewPage.fullCaseAccess')}
+            {t('externalConsultViewPage.separator')}
+            {t('externalConsultViewPage.linkExpires', { date: formatDateTime(view.expiresAt, i18n.language) })}
           </div>
         </div>
 
         <div className="ps-extconsult-section">
           <div className="ps-extconsult-section-heading">{t('externalConsultViewPage.specimensAndSlides')}</div>
-          {caseRecord.specimens?.map(sp => (
+          {view.specimens.map(sp => (
             <div key={sp.id} className="ps-extconsult-specimen-row">
-              <div className="ps-extconsult-specimen-text">{sp.label} — {sp.description}</div>
+              <div className="ps-extconsult-specimen-text">{t('externalConsultViewPage.specimenLine', { label: sp.label, description: sp.description })}</div>
             </div>
           ))}
           <div className="ps-extconsult-slides-list">
-            {scopedSlides.length === 0 ? (
+            {view.slides.length === 0 ? (
               <div className="ps-extconsult-empty-note">{t('externalConsultViewPage.noSlidesInScope')}</div>
-            ) : scopedSlides.map(s => (
-              <div key={s.stainOrderId} className="ps-extconsult-slide-row">
-                {s.specimenLabel}-{s.blockLabel} · {s.stainName}
-              </div>
+            ) : view.slides.map(s => (
+              <div key={s.id} className="ps-extconsult-slide-row">{s.label}</div>
             ))}
           </div>
         </div>
 
         <div className="ps-extconsult-section-plain">
           <div className="ps-extconsult-section-heading">{t('externalConsultViewPage.yourOpinionHeading')}</div>
-          {submitted ? (
+          {submittedAs === 'Signed' || view.opinionSigned ? (
             <div className="ps-extconsult-submitted-box">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span className="ps-extconsult-submitted-text">{t('externalConsultViewPage.opinionSubmittedConfirmation')}</span>
+              <span className="ps-extconsult-submitted-text">{submittedAs ? t(consultSubmitConfirmationKey(submittedAs)) : t('externalConsultViewPage.errors.alreadySigned')}</span>
             </div>
           ) : (
             <>
+              {submittedAs === 'Draft' && (
+                <div className="ps-extconsult-submitted-box ps-extconsult-submitted-box--draft" role="status">
+                  <span className="ps-extconsult-submitted-text">{t(consultSubmitConfirmationKey('Draft'))}</span>
+                </div>
+              )}
               <div className="ps-extconsult-form-row">
                 <div className="ps-extconsult-field-flex">
                   <label className="ps-extconsult-field-label">{t('externalConsultViewPage.diagnosticCategoryLabel')}</label>
-                  <input type="text" value={diagnosticCategory} onChange={e => setDiagnosticCategory(e.target.value)} placeholder={t('externalConsultViewPage.diagnosticCategoryPlaceholder')}
+                  <input aria-label={t('externalConsultViewPage.diagnosticCategoryLabel')} type="text" value={diagnosticCategory} onChange={e => setDiagnosticCategory(e.target.value)} placeholder={t('externalConsultViewPage.diagnosticCategoryPlaceholder')}
                     className="ps-extconsult-input" />
                 </div>
                 <div>
@@ -209,6 +216,7 @@ const ExternalConsultViewPage: React.FC = () => {
               <textarea value={opinionText} onChange={e => setOpinionText(e.target.value)} rows={5}
                 placeholder={t('externalConsultViewPage.opinionPlaceholder')}
                 className="ps-extconsult-textarea" />
+              {signedStatus === 'Signed' && <div className="ps-extconsult-empty-note">{t('externalConsultViewPage.signedIsFinal')}</div>}
               {submitError && <div className="ps-extconsult-submit-error">{submitError}</div>}
               <div className="ps-extconsult-submit-row">
                 <button onClick={handleSubmitOpinion} disabled={submitting} className="ps-extconsult-submit-btn">

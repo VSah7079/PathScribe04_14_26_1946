@@ -22,10 +22,14 @@ import type { EditorTemplate, EditorField, EditorSection } from '../components/C
 import { resolveReportTemplateAsync, deriveSubspecialtyFromProtocols, type TemplateRoutingResult } from '../services/reportTemplates/TemplateRoutingService';
 import type { ReportTemplate } from '../types/reportPart';
 import type { SectionNode, TemplateNode } from '../types/template';
-import { mockReportTemplateService } from '../services/reportTemplates/mockReportTemplateService';
+import { reportTemplateService } from '../services/reportTemplates/reportTemplateServiceInstance';
 import { getOrgDocumentStyleDefault, getOrgHeaderStyleDefault, getOrgFooterStyleDefault } from '../components/Config/System/documentStyleConfig';
-import { mockReportPartService } from '../services/reportParts/mockReportPartService';
+import { reportPartService as mockReportPartService } from '../services/reportParts/reportPartServiceInstance';
 import { getTemplate } from '../services/templates/templateService';
+import { partGridDisplay, partGridHasAnswer, partGridRowsFromAnswers, partGridRowsOf, synopticFieldAnswered, type PartGridRow } from '../services/templates/partGrid';
+import { mohsReportWords, mohsStagesDisplay } from '../services/templates/mohsStages';
+import { isVisible } from '../services/templates/fieldVisibility';
+import { reportTranslateFor } from '../services/reports/reportTranslate';
 // Plain service module, not a hook/component — can't call useTranslation().
 // Imports the already-initialized i18next instance directly and calls its
 // t() method, same pattern as utils/labels/printLabels.ts and
@@ -199,6 +203,9 @@ export interface TemplateContext {
    *  template hasn't configured one, same "inherit the pre-existing
    *  look" fallback as everywhere else in this resolution chain. */
   documentStyle?: ReportTemplate['documentStyle'];
+  /** Batch 612: the units of the template's font sizes ("pt", or "legacy_px" for a template saved
+   *  before points). A style or label with no units of its own takes this. */
+  fontUnits?: ReportTemplate['fontUnits'];
 }
 
 export interface SignOffContext {
@@ -267,15 +274,43 @@ const safeArr = (v: string[] | null | undefined): string[] =>
 
 export function resolveAnswers(
   rawAnswers: Record<string, string | string[]>,
-  synopticTemplate: EditorTemplate | null
+  synopticTemplate: EditorTemplate | null,
+  /** Batch 461: the case's parts, labelling the rows of a results grid
+   *  question (partGridRowsOf(caseData.specimens)). Without them the rows
+   *  are named by their stored ids. */
+  gridRows?: readonly PartGridRow[],
+  /** Batch 463: the report's language for report text built here (a Mohs
+   *  question's stage lines); the screen language when absent. */
+  reportT?: (key: string, options?: Record<string, unknown>) => string,
 ): ResolvedAnswer[] {
   if (!synopticTemplate || !rawAnswers) return [];
 
-  const allFields: EditorField[] = synopticTemplate.sections.flatMap(
-    (sec: EditorSection) => sec.fields
-  );
+  // Batch 466b: only the questions shown print — a question hidden by its (or its section's) visibility condition
+  // is left out of the report even if an answer is stored (Pete: a partial nephrectomy's report has no renal
+  // vein or ureter margin lines).
+  const allFields: EditorField[] = synopticTemplate.sections
+    .filter((sec: EditorSection) => isVisible(sec.visibleWhen, rawAnswers))
+    .flatMap((sec: EditorSection) => sec.fields)
+    .filter((f: EditorField) => isVisible(f.visibleWhen, rawAnswers));
 
-  return Object.entries(rawAnswers)
+  // Batch 461: a results grid stores one answer per cell (not under its own
+  // id), so it is resolved as a whole: one entry, a line per answered row.
+  const gridAnswers: ResolvedAnswer[] = allFields
+    .filter(f => f.type === 'partGrid' && partGridHasAnswer(f, rawAnswers))
+    .map(f => {
+      const displayValue = partGridDisplay(f, gridRows ?? partGridRowsFromAnswers(f.id, rawAnswers), rawAnswers);
+      return { fieldId: f.id, fieldLabel: f.label, fieldType: f.type, value: displayValue, displayValue };
+    });
+
+  // Batch 463: a Mohs stage question likewise: one entry, a line per stage.
+  const mohsAnswers: ResolvedAnswer[] = allFields
+    .filter(f => f.type === 'spatialStageCanvas' && synopticFieldAnswered(f, rawAnswers))
+    .map(f => {
+      const displayValue = mohsStagesDisplay(f.id, rawAnswers, mohsReportWords(reportT ?? ((k, o) => i18n.t(k, o) as string)));
+      return { fieldId: f.id, fieldLabel: f.label, fieldType: f.type, value: displayValue, displayValue };
+    });
+
+  return [...Object.entries(rawAnswers)
     .map(([fieldId, value]): ResolvedAnswer | null => {
       const field = allFields.find(f => f.id === fieldId);
       if (!field) return null;
@@ -303,7 +338,7 @@ export function resolveAnswers(
         displayValue,
       };
     })
-    .filter((r): r is ResolvedAnswer => r !== null);
+    .filter((r): r is ResolvedAnswer => r !== null), ...gridAnswers, ...mohsAnswers];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -356,7 +391,7 @@ interface ResolvedTemplateSections {
 }
 
 async function resolveTemplateSections(templateId: string): Promise<ResolvedTemplateSections> {
-  const templateRes = await mockReportTemplateService.getById(templateId);
+  const templateRes = await reportTemplateService.getById(templateId);
   if (templateRes.ok === false) {
     const errMsg: string = templateRes.error;
     throw new Error(`Report template '${templateId}' not found: ${errMsg}`);
@@ -490,10 +525,12 @@ async function resolveAllSpecimenSynoptics(
     }
   }
 
+  // Batch 463: report text built from answers (Mohs stage lines) is in the report's language.
+  const reportT = await reportTranslateFor(caseData.order?.facilityId).catch(() => undefined);
   const results = await Promise.all(reports.map(async (report): Promise<SpecimenSynopticContext> => {
     try {
       const detail = await getTemplate(report.templateId);
-      const resolved = resolveAnswers(report.answers ?? {}, detail.template);
+      const resolved = resolveAnswers(report.answers ?? {}, detail.template, partGridRowsOf(caseData.specimens), reportT);
       return {
         specimenId:   report.specimenId,
         instanceId:   report.instanceId,
@@ -749,6 +786,7 @@ export async function buildContext(
       body:   resolved.template?.documentStyle?.body   ?? getOrgDocumentStyleDefault(),
       footer: resolved.template?.documentStyle?.footer ?? getOrgFooterStyleDefault(),
     },
+    fontUnits: resolved.template?.fontUnits,
   };
 
   // ── Sign-off ───────────────────────────────────────────────

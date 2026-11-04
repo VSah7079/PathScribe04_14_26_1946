@@ -21,7 +21,7 @@ import type { PatientHistoryCase } from '../cases/mockCaseService';
 export interface CaseForPatientHistory {
   id: string;
   patient?: { id?: string };
-  order?: { receivedDate?: string };
+  order?: { receivedDate?: string; facilityId?: string };
   diagnostic?: {
     primaryDiagnosis?: string;
     issuedDate?: string;
@@ -41,7 +41,10 @@ export interface CaseForPatientHistory {
  *  fabricated. Fields with no honest, reliable source (comment, tags,
  *  nodes) are left as real, honest empty defaults rather than invented
  *  placeholder text. */
-export function toPatientHistoryCase(c: CaseForPatientHistory): PatientHistoryCase {
+/** Batch 621: a history case with its performing (ordering) facility, so facility settings such as the AI history extraction apply. */
+export type PatientHistoryCaseWithFacility = PatientHistoryCase & { facilityId?: string };
+
+export function toPatientHistoryCase(c: CaseForPatientHistory): PatientHistoryCaseWithFacility {
   const biomarkers = c.diagnostic?.synoptic?.biomarkers;
   const receptorParts = [
     biomarkers?.er ? `ER ${biomarkers.er}` : null,
@@ -64,6 +67,7 @@ export function toPatientHistoryCase(c: CaseForPatientHistory): PatientHistoryCa
     microscopic: c.diagnostic?.microscopicDescription ?? '',
     comment: '', // honest gap: no real, reliable per-case field for this exists yet
     tags: [],
+    ...(c.order?.facilityId ? { facilityId: c.order.facilityId } : {}),
   };
 }
 
@@ -79,7 +83,7 @@ export function queryRealPatientHistory(
   allCases: CaseForPatientHistory[],
   linkedPatientIds: string[],
   excludeCaseId?: string
-): PatientHistoryCase[] {
+): PatientHistoryCaseWithFacility[] {
   const idSet = new Set(linkedPatientIds);
   return allCases
     .filter(c => c.id !== excludeCaseId && c.patient?.id && idSet.has(c.patient.id))

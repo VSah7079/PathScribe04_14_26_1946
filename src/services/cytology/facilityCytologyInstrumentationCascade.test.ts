@@ -6,7 +6,12 @@
 // mockCytologyInstrumentationService.test.ts already covers Tier 1
 // (the Enterprise default) — not re-tested here.
 // ─────────────────────────────────────────────────────────────────────────────
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockFacilityCytologyInstrumentationOverrideService } from './mockFacilityCytologyInstrumentationOverrideService';
 import { resolveEffectiveCytologyInstrumentationModality } from './resolveEffectiveCytologyInstrumentationModality';
 import { DEFAULT_CYTOLOGY_INSTRUMENTATION_CONFIG } from './ICytologyInstrumentationService';

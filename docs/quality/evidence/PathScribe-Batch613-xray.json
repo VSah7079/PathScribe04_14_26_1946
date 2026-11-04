@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 613 \u2014 case search reporting, related cases at sign-out, patient summary print, access to a patient's other cases, reporting feed (Power BI)",
+    "description": "Vitest, 2026-10-18: full suite 1376 files (1369 passed, 4 skipped, 3 failed); 11,249 tests passed, 33 skipped, 1 failed. firestore.rules.test.ts needs the Firestore emulator (not run). Two failures fixed and re-run (sign-out modal i18n mock; loading-state wait). Type-check clean. Python checks 233 and 44 passed. Not run: browser check. Server side not built: scheduled runs, BI reporting API (PS-787), server grant check; functions/ must be redeployed."
+  },
+  "tests": [
+    {
+      "testKey": "PS-790",
+      "start": "2026-10-19T00:00:00Z",
+      "finish": "2026-10-19T02:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/System/BiFeedSection.test.tsx\nPASSED: src/components/RelatedCases/__tests__/RelatedCasePicker.test.tsx\nPASSED: src/components/Search/Report/CaseReportPanel.test.tsx\nPASSED: src/components/Search/Report/ReportSchedulesPanel.test.tsx\nPASSED: src/pages/ReportPreview/__tests__/ReportPreviewRenderer.relatedCases.test.tsx\nPASSED: src/pages/SynopticReportPage/modals/CaseSignOutModal.followUp.test.tsx\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/biFeed/biFeedRules.test.ts\nPASSED: src/services/biFeed/biFeedService.test.ts\nPASSED: src/services/caseReports/savedCaseReports.test.ts\nPASSED: src/services/caseSearch/caseSearchReport.test.ts\nPASSED: src/services/caseSearch/caseSearchReportService.test.ts\nPASSED: src/services/caseSearch/synopticValueCriteria.test.ts\nPASSED: src/services/patientCaseAccess/patientCaseAccess.test.ts\nPASSED: src/services/relatedCases/loadRelatedCandidates.test.ts\nPASSED: src/services/relatedCases/patientSummary.test.ts\nPASSED: src/services/relatedCases/relatedCaseAttachments.test.ts\nPASSED: src/services/relatedCases/relatedCaseRules.test.ts\nPASSED: src/services/scheduledReports/recipientAccess.test.ts\nPASSED: src/services/scheduledReports/scheduledReports.test.ts\nPASSED: src/utils/search/caseReportCsv.test.ts\nPASSED: src/utils/search/caseSearchUtils.test.ts\nPASSED: functions/test_main.py (233 checks)\nPASSED: functions/test_report_delivery.py (44 checks)"
+    }
+  ]
+}

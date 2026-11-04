@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct follow-up: outbound material scan tracking
 // needs to know WHERE the scan physically happened. Deliberately a
-// per-device/per-browser setting (localStorage), not part of any
+// per-device/per-browser setting (utils/workstationSettings.ts), not part of any
 // Case or user record — the real, physical terminal/scanner sitting
 // at "Grossing Station 3" stays configured as that station regardless
 // of which tech logs in and works there during a given shift. A tech
@@ -33,17 +33,19 @@
 // single login just because stationId is still null.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getWorkstationSetting, setWorkstationSetting } from '@/utils/workstationSettings';
 import { useState, useCallback, useEffect } from 'react';
+import { isStationUnavailable, subscribeStationAvailability } from '@/services/scanStations/stationAvailability';
 
 const STORAGE_KEY = 'pathscribe_current_scan_station_id';
 const PROMPTED_KEY = 'pathscribe_scan_station_prompted';
 
 function readStored(): string | null {
-  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  return getWorkstationSetting(STORAGE_KEY);
 }
 
 function readPrompted(): boolean {
-  try { return localStorage.getItem(PROMPTED_KEY) === '1'; } catch { return false; }
+  return getWorkstationSetting(PROMPTED_KEY) === '1';
 }
 
 const subscribers = new Set<(id: string | null) => void>();
@@ -52,6 +54,9 @@ const promptedSubscribers = new Set<(v: boolean) => void>();
 export function useCurrentScanStation() {
   const [stationId, setStationIdState] = useState<string | null>(readStored);
   const [hasBeenPrompted, setHasBeenPromptedState] = useState<boolean>(readPrompted);
+  // Batch 713: re-render when the signed-in user's station access is worked out.
+  const [, setAvailabilityTick] = useState(0);
+  useEffect(() => subscribeStationAvailability(() => setAvailabilityTick(n => n + 1)), []);
 
   useEffect(() => {
     subscribers.add(setStationIdState);
@@ -72,10 +77,7 @@ export function useCurrentScanStation() {
   }, []);
 
   const setStationId = useCallback((id: string | null) => {
-    try {
-      if (id) localStorage.setItem(STORAGE_KEY, id);
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch { /* localStorage unavailable — fail silently, same posture as mockStorage.ts */ }
+    setWorkstationSetting(STORAGE_KEY, id || null);
     subscribers.forEach(fn => fn(id));
   }, []);
 
@@ -83,10 +85,14 @@ export function useCurrentScanStation() {
    *  sticky, and deliberately separate from whether a station was
    *  actually picked (a genuine "skip" is still sticky). */
   const markPrompted = useCallback(() => {
-    try { localStorage.setItem(PROMPTED_KEY, '1'); } catch {}
+    setWorkstationSetting(PROMPTED_KEY, '1');
     promptedSubscribers.forEach(fn => fn(true));
   }, []);
 
-  return { stationId, setStationId, hasBeenPrompted, markPrompted };
+  // Batch 713: a station stored on this computer that belongs to a facility the
+  // signed-in user may not use counts as no station (the stored value is kept
+  // for the next person; see services/scanStations/stationAvailability.ts).
+  const unavailableStationId = isStationUnavailable(stationId) ? stationId : null;
+  return { stationId: unavailableStationId ? null : stationId, unavailableStationId, setStationId, hasBeenPrompted, markPrompted };
 }
 

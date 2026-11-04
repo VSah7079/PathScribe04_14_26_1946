@@ -23,6 +23,7 @@ import {
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { findDuplicate } from '../../../utils/validateUnique';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── Shared type-dictionary tab (Deficiency Types / Resolution Types) ────────
 
@@ -118,7 +119,7 @@ const TypeDictionaryTab: React.FC<{ service: TypeDictService; tabKey: 'deficienc
     if (res.ok && res.data) setItems(prev => prev.map(i => i.id === item.id ? res.data! : i));
   };
 
-  if (loading) return <div className="ps-defic-loading">{t(`deficienciesSection.${tabKey}.loading`)}</div>;
+  if (loading) return <LoadingState label={t(`deficienciesSection.${tabKey}.loading`)} />;
 
   return (
     <div>
@@ -129,7 +130,7 @@ const TypeDictionaryTab: React.FC<{ service: TypeDictService; tabKey: 'deficienc
 
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('deficienciesSection.labFilter.allLabs')}</option>
             <option value="Global">{t('deficienciesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -188,17 +189,17 @@ const TypeDictionaryTab: React.FC<{ service: TypeDictService; tabKey: 'deficienc
             <div className="ps-ms-header">{modal.mode === 'add' ? t(`deficienciesSection.${tabKey}.addLabel`) : t(`deficienciesSection.${tabKey}.editTitle`)}</div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('deficienciesSection.modal.nameLabel')}</label>
-              <input className="ps-ms-input" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder={t('deficienciesSection.modal.namePlaceholder')} />
+              <input aria-label={t('deficienciesSection.modal.nameLabel')} className="ps-ms-input" value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} placeholder={t('deficienciesSection.modal.namePlaceholder')} />
               {nameError && <span className="ps-conf-error-text">{nameError}</span>}
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('deficienciesSection.modal.descriptionLabel')}</label>
-              <textarea className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('deficienciesSection.modal.descriptionPlaceholder')} />
+              <textarea aria-label={t('deficienciesSection.modal.descriptionLabel')} className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('deficienciesSection.modal.descriptionPlaceholder')} />
             </div>
             {showLevel && (
               <div className="ps-ms-field-group">
                 <label className="ps-ms-label">{t('deficienciesSection.modal.levelLabel')}</label>
-                <select className="ps-ms-select" value={draft.level} onChange={e => setDraft(d => ({ ...d, level: e.target.value as 'case' | 'specimen' | 'both' }))}>
+                <select aria-label={t('deficienciesSection.modal.levelLabel')} className="ps-ms-select" value={draft.level} onChange={e => setDraft(d => ({ ...d, level: e.target.value as 'case' | 'specimen' | 'both' }))}>
                   <option value="specimen">{t('deficienciesSection.modal.levelOptions.specimen')}</option>
                   <option value="case">{t('deficienciesSection.modal.levelOptions.case')}</option>
                   <option value="both">{t('deficienciesSection.modal.levelOptions.both')}</option>
@@ -207,14 +208,14 @@ const TypeDictionaryTab: React.FC<{ service: TypeDictService; tabKey: 'deficienc
             )}
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('deficienciesSection.modal.performingLabLabel')}</label>
-              <select className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
+              <select aria-label={t('deficienciesSection.modal.performingLabLabel')} className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
                 <option value="">{t('deficienciesSection.modal.globalOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('deficienciesSection.modal.statusLabel')}</label>
-              <select className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
+              <select aria-label={t('deficienciesSection.modal.statusLabel')} className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
                 <option value="active">{t('common.active')}</option>
                 <option value="inactive">{t('common.inactive')}</option>
               </select>

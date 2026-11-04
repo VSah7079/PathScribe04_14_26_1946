@@ -1,0 +1,16 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 644 — Feature Overview in four voices (documentation only)",
+  "description": "Documentation only; no code or strings changed, so no automated test applies. Record written late (Oct 21, 2026); the batch was delivered on Oct 20 without a Test or Xray file."
+ },
+ "tests": [
+  {
+   "testKey": "PS-867",
+   "start": "2026-10-21T19:10:00Z",
+   "finish": "2026-10-21T19:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (document check, Oct 21): docs/product/FEATURE_OVERVIEW.md has 109 sections carrying all four voices (108 from this batch plus the Batch 646 Administrator Guide section).\nNot tested: marketing and partner wording has not been reviewed by Pete for external use."
+  }
+ ]
+}

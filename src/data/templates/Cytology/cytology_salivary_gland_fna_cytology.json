@@ -9,6 +9,7 @@
         {
             "id": "specimen",
             "title": "Specimen",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "procedure",
@@ -126,7 +127,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Target lesion size: {value} cm."
+                    "narrativeSentenceTemplate": "Target lesion size: {value} cm.",
+                    "options": []
                 },
                 {
                     "id": "rose_performed",
@@ -159,6 +161,7 @@
         {
             "id": "adequacy",
             "title": "Specimen Adequacy",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "adequacy_status",
@@ -236,6 +239,7 @@
         {
             "id": "diagnostic_category",
             "title": "Milan Diagnostic Category",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "milan_category",
@@ -313,13 +317,15 @@
                     "note": "Optional (+) — informational, not a selectable data element: I ~20%, II ~5%, III ~15–20%, IVa <5%, IVb ~35%, V ~60%, VI ~90%. Cite local institutional data where available rather than these alone.",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "cytologic_findings",
             "title": "Cytologic Findings",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cellularity",
@@ -507,6 +513,7 @@
         {
             "id": "ancillary_studies",
             "title": "Ancillary Studies",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cell_block_prepared",
@@ -566,13 +573,15 @@
                     "note": "Optional (+) — most relevant for suspected mucoepidermoid carcinoma (MAML2 rearrangement) or adenoid cystic carcinoma (MYB rearrangement)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "comments",
             "title": "Comment / Correlation",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "radiologic_correlation",
@@ -582,7 +591,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Radiologic correlation: {value}."
+                    "narrativeSentenceTemplate": "Radiologic correlation: {value}.",
+                    "options": []
                 },
                 {
                     "id": "comment",
@@ -591,7 +601,8 @@
                     "required": false,
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         }

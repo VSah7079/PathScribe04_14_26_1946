@@ -49,19 +49,22 @@ import {
   useDraggable, useDroppable, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
 import type { Case, CaseParticipant } from '@/types/case/Case';
-import { caseRouter }                    from '@/services/cases/CaseRouter';
-import { syncPrimaryAssignee }           from '@/services/cases/caseAssignmentSync';
+import { addAssigneeToTeam }             from '@/services/cases/saveCaseTeam';
+import { saveCaseTeam, withAssigneeOnTeam, caseTeamSaveDeps } from '@/services';
 import { userService, roleService, subspecialtyService } from '@/services';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
 import { getStaffSubspecialtyDisplay } from '@/utils/staffSubspecialties';
 import { participationTypeService } from '@/services';
 import type { ParticipationTypeRecord as ParticipationType } from '@/services/participationTypes/IParticipationTypeService';
 import { resolveCaseTeamParticipationTypes } from '@/services/participationTypes/IParticipationTypeService';
+import TechnicalComponentFacilityField from './TechnicalComponentFacilityField';
 import { resolveCasePerformingLabScope } from '@/services/facilities/resolveCasePerformingLabScope';
 import type { StaffUser }                from '@/services/users/IUserService';
 import type { Role }                     from '@/services/roles/IRoleService';
 import { useAuth }                       from '@/contexts/AuthContext';
 import { resolveEligibleParticipationTypeIds } from '@/services/cases/resolveClaimParticipationType';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type DragEligibility = 'eligible' | 'role-ineligible' | 'occupied';
 
@@ -285,7 +288,8 @@ const ReplaceConfirmModal: React.FC<{ state: ReplaceConfirmState; onConfirm: () 
 interface Props {
   caseData:    Case;
   onClose:     () => void;
-  onUpdated:   (updated: Case) => void;
+  /** PS-71 (Batch 458): `version` is the case version the team was saved as, for the page's knownVersionRef. */
+  onUpdated:   (updated: Case, version?: number) => void;
   onDelegate?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }
@@ -327,24 +331,13 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
       const heldTypeIds = new Set((caseData.participants ?? []).filter(p => p.status === 'active').flatMap(p => p.participationTypeIds));
       setAllTypes(resolveCaseTeamParticipationTypes(typesRes.ok ? typesRes.data : [], scope, heldTypeIds));
       setSubspecialties(subsRes.ok ? subsRes.data : []);
-      const existing: CaseParticipant[] = caseData.participants ?? [];
-      const assignedId = caseData.order?.assignedTo;
-      let finalExisting = existing;
-      if (assignedId && !existing.find(p => p.staffId === assignedId && p.status === 'active')) {
-        const staffMember = users.find(u => u.id === assignedId);
-        if (staffMember) {
-          const autoP: CaseParticipant = {
-            staffId: staffMember.id,
-            staffName: `${staffMember.firstName} ${staffMember.lastName}`,
-            externalId: (staffMember as any).gmcNumber || staffMember.npi || undefined,
-            externalIdType: (staffMember as any).gmcNumber ? 'GMC' : staffMember.npi ? 'NPI' : undefined,
-            source: 'system', participationTypeIds: ['primary'],
-            addedBy: 'system', addedAt: caseData.createdAt, status: 'active',
-          };
-          finalExisting = [autoP, ...existing];
-          caseRouter.updateCase(caseData.id, { participants: finalExisting });
-        }
-      }
+      // Batch 441: the assignee joins the team (as cytotechnologist when
+      // they're a cytotech) — services/cases/saveCaseTeam.ts.
+      const withAssignee = withAssigneeOnTeam(caseData, users as any, rolesData);
+      const finalExisting: CaseParticipant[] = withAssignee ?? caseData.participants ?? [];
+      // PS-71 (Batch 458): a versioned write built from the newest case (was:
+      // caseRouter.updateCase with no version, over whatever was there).
+      if (withAssignee) addAssigneeToTeam(caseData.id, users as any, rolesData, caseTeamSaveDeps).catch(err => console.error('[CaseTeam] Failed to add the assignee to the team:', err));
       setParticipants(finalExisting);
       initialParticipantsRef.current = finalExisting;
       setLoading(false);
@@ -536,38 +529,26 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      const final = resolveFinalParticipants();
-
-      // The actual fix for the "split-brain assignment" gap: this modal
-      // used to write participants[] without ever touching
-      // order.assignedTo, so a case whose primary changed here would
-      // still show up under the OLD assignee's listCasesForUser() query
-      // (the real fetch-time filter — see caseAssignmentSync.ts's header
-      // comment) while looking correct in this modal's own roster view.
-      // If the active 'primary' participant changed, run it through
-      // syncPrimaryAssignee against the user's actual edits (`final`,
-      // not the stale caseData.participants) so any other roster changes
-      // made in this same save aren't lost.
-      const newPrimary = final.find(p => p.status === 'active' && p.participationTypeIds.includes('primary'));
-      const primaryChanged = newPrimary && newPrimary.staffId !== caseData.order?.assignedTo;
-
-      let updates: Partial<Case>;
-      if (primaryChanged && newPrimary) {
-        const syncUpdates = syncPrimaryAssignee(
-          { ...caseData, participants: final }, newPrimary.staffId, user?.id ?? 'unknown', newPrimary.staffName,
-        );
-        updates = { ...syncUpdates };
-      } else {
-        updates = { participants: final };
+      // Batch 441: checked (case:team:manage; no cytotech in a pathologist
+      // slot) and written by services/cases/saveCaseTeam.ts, which also
+      // moves order.assignedTo when the primary changed.
+      // PS-71 (Batch 458): versioned; if someone else changed the team since
+      // this modal opened, nothing is saved and the person is asked to reopen.
+      const res = await saveCaseTeam({ caseData, participants: resolveFinalParticipants(), updatedBy: user?.id ?? 'unknown', openedWith: initialParticipantsRef.current }, caseTeamSaveDeps);
+      if (res.ok === false) {
+        showRejection(res.reason === 'notPermitted'
+          ? t('caseTeamModal.rejection.notPermitted')
+          : res.reason === 'cytotechPathologistType'
+            ? t('caseTeamModal.rejection.cytotechPathologistType', { name: res.staffName, type: allTypes.find(pt => pt.id === res.typeId)?.label ?? res.typeId })
+            : t('caseTeamModal.rejection.teamChangedElsewhere'));
+        return;
       }
-
-      await caseRouter.updateCase(caseData.id, updates);
-      onUpdated({ ...caseData, ...updates });
+      onUpdated({ ...caseData, ...res.updates }, res.version);
       onClose();
     } finally {
       setIsSaving(false);
     }
-  }, [resolveFinalParticipants, caseData, onUpdated, onClose, user?.id]);
+  }, [resolveFinalParticipants, caseData, onUpdated, onClose, user?.id, showRejection, t, allTypes]);
 
   const handleClose = useCallback(() => {
     if (isDraftDirty) { setShowDirtyWarn(true); return; }
@@ -597,7 +578,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
                 <span data-phi="name">{caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : ''}</span>
                 {' · '}
                 <span className="ps-ctm-header-subtitle-hint">{t('caseTeamModal.header.subtitleHint')} </span>
-                <span onClick={() => { onDelegate?.(); }} className="ps-ctm-header-subtitle-link">{t('caseTeamModal.header.subtitleDelegateLink')}</span>
+                <span {...pressable(() => { onDelegate?.(); })} className="ps-ctm-header-subtitle-link">{t('caseTeamModal.header.subtitleDelegateLink')}</span>
               </div>
             </div>
             <button className="ps-research-close" onClick={handleClose} aria-label={t('caseTeamModal.header.closeAriaLabel')}>✕</button>
@@ -618,7 +599,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               <div className="fm-left fm-left--caseteam">
                 <div className="fm-eyebrow ps-ctm-types-eyebrow">{t('caseTeamModal.body.typesEyebrow')}</div>
                 {loading ? (
-                  <div className="fm-empty"><span className="fm-empty-heading">{t('caseTeamModal.body.loading')}</span></div>
+                  <div className="fm-empty"><LoadingState variant="inline" className="fm-empty-heading" label={t('caseTeamModal.body.loading')} /></div>
                 ) : visibleTypes.length === 0 ? (
                   <div className="fm-empty">
                     <span className="fm-empty-heading">{t('caseTeamModal.body.noTypesConfigured')}</span>
@@ -638,7 +619,7 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               <div className="fm-right">
                 <div className="ps-ctm-staffdir-head">
                   <div className="fm-eyebrow ps-ctm-staffdir-eyebrow">{t('caseTeamModal.body.staffDirectoryEyebrow')}</div>
-                  <input
+                  <input aria-label={t('caseTeamModal.body.staffDirectoryEyebrow')}
                     value={search} onChange={e => setSearch(e.target.value)}
                     placeholder={t('caseTeamModal.body.searchPlaceholder')}
                     className="fm-search-input ps-ctm-search-input"
@@ -675,6 +656,8 @@ export const CaseTeamModal: React.FC<Props> = ({ caseData, onClose, onUpdated, o
               )}
             </DragOverlay>
           </DndContext>
+
+          <TechnicalComponentFacilityField caseData={caseData} onUpdated={(updated, version) => onUpdated?.(updated, version)} />
 
           {/* Footer — reuses .fm-footer's existing space-between layout and .fm-footer-status's existing .dirty modifier */}
           <div className="fm-footer">

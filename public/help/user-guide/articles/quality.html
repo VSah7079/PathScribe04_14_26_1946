@@ -1,0 +1,333 @@
+<h1 id="top">Quality &amp; Compliance</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Quality &amp; Compliance is where problems found in the laboratory's work are recorded, dealt with and checked. Its main working area is the <strong>Quality Assurance</strong> queue: a list of deficiencies (a specimen or case that did not meet the standard), what was done about each one, and whether the fix worked. It also shows the frozen-to-final diagnosis reconciliation results.</p>
+<p><strong>Intended users.</strong> Quality staff and laboratory managers, who run the queue, and pathologists, who are asked about the cases in it. Which buttons are active depends on your role.</p>
+<p><strong>Where it fits.</strong> The screen opens from the <strong>Quality &amp; Compliance</strong> tile on the Home Dashboard. That first screen is a hub: it shows a tile for each area you are allowed to open. Choose <strong>Quality Assurance</strong> to reach the working queue. Cases in the queue open on their report screen (see <a href="/help/report">Report</a>).</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-overview.png" alt="The Quality Assurance screen with its pillars, tiles and deficiency list"><figcaption>The Quality Assurance screen with its pillars, tiles and deficiency list</figcaption></figure>
+
+<h3 id="the-hub">The hub</h3>
+<p>The hub is titled <strong>Quality &amp; Compliance</strong>. A tile appears only if your role may open it.</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Audit</td>
+<td>The tile reads "Activity logs and audit trail". System activity logs, error and interface exception logs, and the financial audit trail. This is a read-only view of what happened in the system. Only people whose role allows it see the tile. It is not used to change anything.</td>
+</tr>
+<tr>
+<td>Quality Assurance</td>
+<td>The tile reads "Deficiencies and discordance". The working queue described in this article.</td>
+</tr>
+<tr>
+<td>Registry Exceptions</td>
+<td>The tile reads "Held and rejected submissions". Cancer registry submissions that were held, not delivered, rejected or never answered.</td>
+</tr>
+<tr>
+<td>Autopsy Dashboards</td>
+<td>The tile reads "Turnaround, consent, retention". Turnaround, consent, organ retention and cause of death figures.</td>
+</tr>
+<tr>
+<td>Outbound Queue</td>
+<td>The tile reads "Hold, release, retry messages". Hold, release and retry outbound messages, and fix registry rejections.</td>
+</tr>
+</tbody>
+</table>
+<p>Select <strong>← Back to Home</strong> to return to the Home Dashboard.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>In the demonstration version the queue holds demonstration records. Nothing you do there reaches a real quality system.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p>At the top of the Quality Assurance screen is a row of buttons called pillars. Under it is a row of tiles, each with a count.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Operations</td>
+<td>The deficiency list and the clinical quality views: Deficiencies, Follow-up not received, Frozen Linkage, Discordance, Countersign Turnaround, Credentialing Review, Post-Final Drift, Patient Match Review, Patient Management, Access Requests and AI discordance.</td>
+</tr>
+<tr>
+<td>Financials</td>
+<td>Billing and coding deficiencies: Billing Deficiencies, Resolved, Code Review Pool and Charges awaiting approval.</td>
+</tr>
+<tr>
+<td>CAPA Engine</td>
+<td>Corrective-action follow-through: Recommended, Discordance Patterns (only if your role allows), Escalated to CAPA, Closed and Mgmt Reviews.</td>
+</tr>
+<tr>
+<td>Cytology QA, Enterprise Rollup, QA Dashboard, Inspection Mode, Activities</td>
+<td>Reports and evidence views, each a single screen.</td>
+</tr>
+<tr>
+<td>Deficiencies tile</td>
+<td>Number of open deficiencies. A line under it shows how many are overdue.</td>
+</tr>
+<tr>
+<td>Escalated to CAPA tile</td>
+<td>Number of deficiencies waiting for an effectiveness check.</td>
+</tr>
+<tr>
+<td>Closed tile</td>
+<td>Number of closed deficiencies.</td>
+</tr>
+</tbody>
+</table>
+<p>The deficiency list is split into <strong>Case-Level</strong> and <strong>Specimen-Level</strong> groups. Its columns are:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Status</td>
+<td><strong>Open</strong> or <strong>Pending Verification</strong>.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case number. Select it to open the case.</td>
+</tr>
+<tr>
+<td>Specimen</td>
+<td>The specimen, or "Case-level" if the problem is with the whole case.</td>
+</tr>
+<tr>
+<td>Issue</td>
+<td>The type of deficiency. A small ↺ and a number show how many times it was reopened.</td>
+</tr>
+<tr>
+<td>Detail</td>
+<td>What was observed (open items) or the corrective action taken (pending items).</td>
+</tr>
+<tr>
+<td>When</td>
+<td>Who raised it and when (open items), or "Due" with the effectiveness check date (pending items). An overdue date is highlighted.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The buttons for that row.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>More wording on the Quality Assurance screen</strong></p>
+<ul>
+<li><strong>Tile tooltips.</strong> The tile you are on says "Showing: … — click to switch"; the others say what they will show.</li>
+<li><strong>Empty lists.</strong> "No open case-level deficiencies.", "No open specimen-level deficiencies.", "No escalated case-level deficiencies." and "No closed deficiencies yet." mean exactly that for the group you are viewing. Under Financials: "No open billing deficiencies." and "No resolved billing deficiencies." Under CAPA Engine: "No management reviews recorded yet." In the Code Review Pool: "No cases pending code review."</li>
+<li><strong>Code Review Pool</strong> columns are Flagged, Flagged By and Source. Source is <strong>Manual</strong> (someone put the case in the pool) or <strong>Random sample</strong> (the system picked it). <strong>Review</strong> opens the window below.</li>
+<li><strong>Review Code Review Pool Entry.</strong> The first line names the case and why it is in the pool ("flagged by …" or "random sample") with any note. Choose a <strong>Review Outcome</strong>: <strong>No Issue Found</strong>, or <strong>Raise Billing Deficiency</strong>. For a deficiency, choose the type, then the <strong>Charge the deficiency is about</strong> (starting at "— Select a charge —"), or "A charge is missing" when the problem is a charge that was never made. Auditor Notes are required for a deficiency. <strong>Submit Review</strong> records the outcome.</li>
+<li><strong>Management reviews</strong> table: Reviewed, Reviewed By, <strong>Items in Scope</strong> (the closed items the review covered) and <strong>Findings</strong>.</li>
+<li><strong>CAPA owner: …</strong> appears under a deficiency once a corrective action has an owner.</li>
+<li><strong>Closure trend</strong> (CAPA Engine). A line chart of deficiencies closed per month for the last six months; hovering a point shows "Closed: …" and "Reopened at least once: …".</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope switcher</td>
+<td>Chooses which facilities' deficiencies are listed.</td>
+</tr>
+<tr>
+<td>Export</td>
+<td>Saves the list you are looking at as a spreadsheet file. Your role must allow it.</td>
+</tr>
+<tr>
+<td>Raise Deficiency</td>
+<td>Opens a window to record a new deficiency by hand. Shown on the Deficiencies tile.</td>
+</tr>
+<tr>
+<td>Immediate Containment</td>
+<td>On an open row: closes it at once as a quick fix.</td>
+</tr>
+<tr>
+<td>Escalate to CAPA</td>
+<td>On an open row: starts a corrective action that must be checked later.</td>
+</tr>
+<tr>
+<td>Verify Effectiveness</td>
+<td>On a pending row: records whether the corrective action worked.</td>
+</tr>
+<tr>
+<td>Start Management Review</td>
+<td>On the Closed tile: records a review of closed items not yet reviewed. When there is none, the window reads "Nothing closed since the last review."</td>
+</tr>
+</tbody>
+</table>
+<p>Each action needs its own permission. If a button is greyed out, your role does not allow it; ask your manager.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open</td>
+<td>The deficiency has been raised and nobody has acted yet.</td>
+</tr>
+<tr>
+<td>Pending Verification</td>
+<td>A corrective action was taken, and someone must come back and confirm it worked.</td>
+</tr>
+<tr>
+<td>Closed</td>
+<td>Finished. Closed items are never deleted.</td>
+</tr>
+<tr>
+<td>"instant fix, not verified"</td>
+<td>Closed by Immediate Containment; there is no root cause and no later check.</td>
+</tr>
+<tr>
+<td>↺ and a number</td>
+<td>Reopened after a failed effectiveness check.</td>
+</tr>
+<tr>
+<td>Overdue (highlighted date)</td>
+<td>The effectiveness check date has passed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this screen. F1 (View Help) opens this page.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>Raise, then contain or escalate, then verify.</p>
+<ol>
+<li>Open <strong>Quality &amp; Compliance</strong> from Home, then select <strong>Quality Assurance</strong>. The Operations pillar opens on the Deficiencies tile.</li>
+<li>To record a problem, select <strong>Raise Deficiency</strong>. A window opens.</li>
+<li>Type the case number in <strong>Case ID / Accession</strong> and select <strong>Look up</strong>. If the case is not found you see "No case found with that ID."</li>
+<li>Optionally choose a <strong>Specimen</strong>. Leave <strong>— Whole case —</strong> for a case-level problem. Some deficiency types need a specimen to be chosen first.</li>
+<li>Choose the <strong>Deficiency Type</strong>, describe <strong>What was observed</strong>, and select <strong>Raise Deficiency</strong>. The new item appears in the list as Open.</li>
+<li>For a small problem that is fixed on the spot, select <strong>Immediate Containment</strong> on its row. Choose the <strong>Resolution Type</strong>, describe <strong>What was done</strong>, and select <strong>Close — Contained</strong>. The item moves to Closed with no later check.</li>
+<li>For a problem that needs a real fix, select <strong>Escalate to CAPA</strong> on the row. Choose the <strong>Resolution Type</strong>, then fill in <strong>Corrective Action</strong> and <strong>Root Cause</strong> (both required), optionally <strong>Preventive Action</strong>, and set <strong>Effectiveness Check Due</strong> (it starts 14 days ahead). Select <strong>Escalate to CAPA</strong>. The item becomes Pending Verification.</li>
+<li>When the check date comes, select <strong>Verify Effectiveness</strong> on the row. Describe what you checked.</li>
+<li>Select <strong>Effective — Close</strong> if the fix worked. The item moves to Closed. Select <strong>Recurred — Reopen</strong> if it did not. The item returns to Open and its ↺ count goes up.</li>
+<li>Periodically, open <strong>Closed</strong> and select <strong>Start Management Review</strong> to record the review of closed items not yet covered.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To review frozen-section results against the final diagnoses, choose the <strong>Discordance</strong> tile under Operations. This is the Reconciliation view.</li>
+<li>Read the summary tiles: Concordance Rate, Total Reconciliations, High and Medium Severity Discordances, Requiring Escalation and Teaching Cases. A chart shows the monthly concordance rate.</li>
+<li>Read the <strong>Discordant</strong> list (frozen category to final category, delta, severity, root cause) and the <strong>Concordant</strong> list. Select a row to open the case.</li>
+<li>Select <strong>Export</strong> for the full list. The Concordant list shows the first 25 rows only.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Reconciliations are recorded at sign-out</p>
+<p>Reconciliation entries are made on the report screen, when a pathologist signs out a case that had a frozen section. This view only reports them.</p>
+</div>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If the case you want is missing from the list, check the scope switcher; it may be limited to one facility.</li>
+<li>If you need a root cause analysis, do not use Immediate Containment, because it closes the item with no root cause and no check. Use Escalate to CAPA.</li>
+<li>If a window's main button is greyed out, a required field is empty.</li>
+</ol>
+<p>Immediate Containment states "This moves straight to Closed — no root cause, no later verification." Escalate to CAPA states "This moves to Pending Verification in CAPA Engine, not Closed". Both windows quote the deficiency being closed; when it has no detail they say "no additional detail recorded". In <strong>Raise Deficiency</strong>, the box under <strong>What was observed</strong> shows "Describe the specific issue observed".</p>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a message says you do not have permission, your role does not allow that action. Ask your manager.</li>
+<li>If the message reads "The change was not saved. Nothing was changed. Try again, and tell your administrator if it keeps happening," the action did not happen. It appears inside the window, which stays open with what you typed. Select the button again, or Cancel. The same applies when you submit a Management Review.</li>
+<li>If you closed an item by mistake as contained, raise a new deficiency for the case and say so in the description; closed items are not reopened by hand.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Using Immediate Containment for something that needs a root cause. Use Escalate to CAPA.</li>
+<li>Escalating without a realistic Effectiveness Check Due date. The date drives the overdue flag.</li>
+<li>Writing a patient's name in the free-text boxes. Refer to the case number.</li>
+<li>Assuming a "not saved" message was only a warning. The change did not happen.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Select the case number in a row to jump straight to the case.</li>
+<li>Use the Deficiencies tile's overdue line to find what is late.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Work the Deficiencies tile daily, the Escalated to CAPA tile weekly, and hold a Management Review on a regular schedule.</li>
+<li>Pathologists: open the Discordance view after sign-out weeks to see your frozen-section concordance, and compare it with <a href="/help/my-contribution">My Contribution</a>.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/tumor-board">Tumor Board</a>: the previous step in the review workflow.</li>
+<li><a href="/help/report">Report</a>: where reconciliations are recorded and cases are opened.</li>
+<li><a href="/help/worklist">Worklist</a>: where the affected cases are managed.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/my-contribution">My Contribution</a>: your own quality and turnaround figures.</li>
+</ul>
+<p>Detailed articles for the other Quality Assurance screens:</p>
+<ul>
+<li><a href="/help/quality/ai-discordance">AI Discordance</a>: AI products against pathologists, and stalled AI results.</li>
+<li><a href="/help/quality/access-requests">Access Requests</a>: request turnaround, denying requests and revoking access.</li>
+<li><a href="/help/quality/patient-matching">Patient Match and Management</a>: the match review queue, merge, link and move.</li>
+<li><a href="/help/quality/turnaround-and-linkage">Countersign, Linkage and Drift</a>: countersign turnaround, intraoperative linkage and post-final drift.</li>
+<li><a href="/help/quality/fppe-tracking">FPPE Tracking</a>: supervision periods for provisional hires.</li>
+<li><a href="/help/quality/qa-dashboards">QA Dashboards and Inspection</a>: discordance fields, Enterprise Rollup, QA Dashboard and Inspection Mode.</li>
+<li><a href="/help/quality/cytology-qa">Cytology QA</a>: the cytology quality reports and proficiency testing.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Quality &amp; Compliance tile is missing</td>
+<td>Your role does not include it.</td>
+</tr>
+<tr>
+<td>The Audit tile is missing</td>
+<td>Your role does not allow reading the audit logs.</td>
+</tr>
+<tr>
+<td>Raise Deficiency, Escalate to CAPA or another button is greyed out</td>
+<td>Your role does not allow that action.</td>
+</tr>
+<tr>
+<td>"No case found with that ID."</td>
+<td>The case number was mistyped, or you cannot see that facility.</td>
+</tr>
+<tr>
+<td>A deficiency type is not in the list</td>
+<td>Only active types appear, and a type for specimens appears only after you choose a specimen.</td>
+</tr>
+<tr>
+<td>"The change was not saved."</td>
+<td>The action did not complete. Try again.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the case number and the scope switcher.</li>
+<li>Refresh the page and try again.</li>
+<li>Ask your manager to confirm your role allows the action.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when "The change was not saved" keeps appearing, or counts on the tiles do not match the list. Have the case number and the time of the problem ready.</p>

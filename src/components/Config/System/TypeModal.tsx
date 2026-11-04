@@ -25,6 +25,7 @@ import {
 import { findDuplicate } from '../../../utils/validateUnique';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { Jurisdiction } from '../../../types/systemConfig';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -148,8 +149,9 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
   };
 
   const handleSave = () => {
+    const abbreviation = draft.abbreviation ?? ''; // the form seeds it with '', so never actually undefined
     if (!draft.label.trim())        { setError(t('participationTypesSection.modal.errorLabelRequired'));        return; }
-    if (!draft.abbreviation.trim()) { setError(t('participationTypesSection.modal.errorAbbrRequired')); return; }
+    if (!abbreviation.trim()) { setError(t('participationTypesSection.modal.errorAbbrRequired')); return; }
     // PS-73: label AND abbreviation uniqueness — real gap, since
     // abbreviation is displayed as a compact chip in CaseTeamModal.tsx
     // (two types sharing "PRIM" would be genuinely ambiguous there),
@@ -165,7 +167,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
     const excludeId = mode === 'edit' ? type?.id : undefined;
     const labelCollision = findDuplicate(existingEntries, { label: draft.label.trim() }, ['label'], excludeId);
     if (labelCollision) { setError(t('participationTypesSection.modal.errorLabelDuplicate', { label: labelCollision.label })); return; }
-    const abbrCollision = findDuplicate(existingEntries, { abbreviation: draft.abbreviation.trim() }, ['abbreviation'], excludeId);
+    const abbrCollision = findDuplicate(existingEntries, { abbreviation: abbreviation.trim() }, ['abbreviation'], excludeId);
     if (abbrCollision) { setError(t('participationTypesSection.modal.errorAbbrDuplicate', { abbr: abbrCollision.abbreviation, label: abbrCollision.label })); return; }
     setError('');
     onSave(draft, justifications);
@@ -216,7 +218,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
             <label className="ps-sub-label">
               {t('participationTypesSection.modal.labelLabel')} <span className="ps-sub-label-req">*</span>
             </label>
-            <input
+            <input aria-label={t('participationTypesSection.modal.labelLabel')}
               className="ps-sub-input"
               value={draft.label}
               onChange={e => setDraft(d => ({ ...d, label: e.target.value }))}
@@ -229,7 +231,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
             <label className="ps-sub-label">
               {t('participationTypesSection.modal.abbreviationLabel')} <span className="ps-sub-label-req">*</span>
             </label>
-            <input
+            <input aria-label={t('participationTypesSection.modal.abbreviationLabel')}
               className="ps-sub-input"
               value={draft.abbreviation}
               onChange={e => setDraft(d => ({ ...d, abbreviation: e.target.value }))}
@@ -241,7 +243,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
           {/* Description */}
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('participationTypesSection.modal.descriptionLabel')}</label>
-            <input
+            <input aria-label={t('participationTypesSection.modal.descriptionLabel')}
               className="ps-sub-input"
               value={draft.description}
               onChange={e => setDraft(d => ({ ...d, description: e.target.value }))}
@@ -262,7 +264,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
                   title={c}
                 />
               ))}
-              <input
+              <input aria-label={t('a11y.fields.colour')}
                 type="color"
                 value={draft.color}
                 onChange={e => setDraft(d => ({ ...d, color: e.target.value }))}
@@ -381,7 +383,7 @@ const TypeModal: React.FC<TypeModalProps> = ({ mode, type, existingEntries, labs
             <label className="ps-sub-label">{t('participationTypesSection.modal.statusLabel')}</label>
             <div className="ps-sub-toggle-wrap">
               <div
-                onClick={() => setDraft(d => ({ ...d, active: !d.active }))}
+                {...switchable(draft.active, () => setDraft(d => ({ ...d, active: !d.active })), t('a11y.fields.active'))}
                 className={draft.active ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
               >
                 <div className={draft.active ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />

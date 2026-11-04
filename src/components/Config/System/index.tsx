@@ -11,15 +11,30 @@ import StainDictionarySection from './StainDictionarySection';
 import VendorIntegrationsSection from './VendorIntegrationsSection';
 import CytologyQcRulesSection from './CytologyQcRulesSection';
 import OrSuiteTerminalsSection from './OrSuiteTerminalsSection';
+import IntraopCriticalResultsSection from './IntraopCriticalResultsSection';
 import DisplayProfilesSection from './DisplayProfilesSection';
+import SimulatedPrintLogSection from './SimulatedPrintLogSection';
+import SimulatedMailOutboxSection from './SimulatedMailOutboxSection';
+import PerformanceTargetsSection from './PerformanceTargetsSection';
+import ClientSlaSection from './ClientSlaSection';
+import JurisdictionOverviewSection from './JurisdictionOverviewSection';
 import MigrationFieldMappingsSection from './MigrationFieldMappingsSection';
 import CancerRegistrySettingsSection from './CancerRegistrySettingsSection';
 import ProtocolDictionarySection from './ProtocolDictionarySection';
 import PrinterProfilesSection from './PrinterProfilesSection';
+import SiteAgentsSection from './SiteAgentsSection';
+import WorkstationsSection from './WorkstationsSection';
+import BiFeedSection from './BiFeedSection';
+import RequisitionIngestionSection from './RequisitionIngestionSection';
+import StainQcSection from './StainQcSection';
+import ScopeReferenceSection from './ScopeReferenceSection';
 import AssistLisPollingSection from './AssistLisPollingSection';
 import GrossingRouteOverridesSection from './GrossingRouteOverridesSection';
 import DepartmentsSection from './DepartmentsSection';
 import AssetLocationDictionarySection from './AssetLocationDictionarySection';
+import ColdChainSection from './ColdChainSection';
+import ResearchCasesSection from './ResearchCasesSection';
+import SmartCaptureSection from './SmartCaptureSection';
 import ContainerTypesSection from './ContainerTypesSection';
 import ReagentLotsSection from './ReagentLotsSection';
 import WorkstationGroupsSection from './WorkstationGroupsSection';
@@ -29,6 +44,8 @@ import EquipmentSection from './EquipmentSection';
 import GrossingHardwareSection from './GrossingHardwareSection';
 import CassetteRoutingRulesSection from './CassetteRoutingRulesSection';
 import CassetteColorsSection from './CassetteColorsSection';
+import InkColorsSection from './InkColorsSection';
+import InkingValidationModeSection from './InkingValidationModeSection';
 import PrintSettingsSection from './PrintSettingsSection';
 import LabelDesignerPage from '../../../pages/LabelDesignerPage/LabelDesignerPage';
 import SubspecialtiesSection     from './SubspecialtiesSection';
@@ -42,6 +59,7 @@ import NcciEditRulesSection      from './NcciEditRulesSection';
 import MasterPaymentTypeDictionarySection from './MasterPaymentTypeDictionarySection';
 import OutboundMessagePreviewSection from './OutboundMessagePreviewSection';
 import JurisdictionPaymentMappingSection  from './JurisdictionPaymentMappingSection';
+import CodeSystemsSection from './CodeSystemsSection';
 import DftExportPreviewSection   from './DftExportPreviewSection';
 import BillingDictionarySection  from './BillingDictionarySection';
 import PendingApprovalSection from './PendingApprovalSection';
@@ -56,6 +74,12 @@ import FieldRequirementsSection  from './FieldRequirementsSection';
 import ReleaseBufferSection      from './ReleaseBufferSection';
 import ConcordanceReviewSettingsSection from './ConcordanceReviewSettingsSection';
 import DeliveryRulesSection from './DeliveryRulesSection';
+import DeliverySchedulesSection from './DeliverySchedulesSection';
+import BillingReleaseSection from './BillingReleaseSection';
+import UsEpathSection from './UsEpathSection';
+import BatchRegistryFeedSection from './BatchRegistryFeedSection';
+import CosdDestinationSection from './CosdDestinationSection';
+import HistoryExtractionSection from './HistoryExtractionSection';
 import PrintRoutingRuleSection from './PrintRoutingRuleSection';
 import ContributionSettingsSection from './ContributionSettingsSection';
 import ExternalResourcesSection  from './ExternalResourcesSection';
@@ -80,231 +104,33 @@ import PhysiciansSection from './PhysiciansSection';
 import DeficienciesSection from './DeficienciesSection';
 import AbnormalTriggerRulesSection from './AbnormalTriggerRulesSection';
 import QAConfigurationCenterSection from './QAConfigurationCenterSection';
+import BiopsyResectionCorrelationSection from './BiopsyResectionCorrelationSection';
+import TumorBoardRulesSection from './TumorBoardRulesSection';
+import FollowUpTrackingSection from './FollowUpTrackingSection';
+import OrganMapsSection from './OrganMapsSection';
+import QaTrendPolicySection from './QaTrendPolicySection';
+import FeedbackSection from './FeedbackSection';
 import TemplateGovernanceSection from './TemplateGovernanceSection';
 import { resetConfigScroll } from '../../../utils/resetConfigScroll';
+import ConfigSectionGate from '../ConfigSectionGate';
+import { SECTIONS, GROUP_LABEL_KEY, type SystemSection } from './systemSections';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import RevisionReasonsSection from './RevisionReasonsSection';
+import BenchReasonsSection from './BenchReasonsSection';
+import PeerReviewGateSection from './PeerReviewGateSection';
+import ClinicalMismatchRulesSection from './ClinicalMismatchRulesSection';
+import AiInstructionsSection from './AiInstructionsSection';
+import InterfaceDictionarySection from './InterfaceDictionarySection';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { configSectionVisible } from '@/services/screens/configSectionAccess';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
 // ── Section registry ──────────────────────────────────────────────────────────
 
-type SystemSection =
-  | 'flags'
-  | 'subspecialties'
-  | 'specimens'
-  | 'stains'
-  | 'vendor_integrations'
-  | 'cytology_qc_rules'
-  | 'or_suite_terminals'
-  | 'display_profiles'
-  | 'migration_field_mappings'
-  | 'cancer_registry_settings'
-  | 'departments'
-  | 'asset_locations'
-  | 'container_types'
-  | 'reagent_lots'
-  | 'workstation_groups'
-  | 'action_groups'
-  | 'scan_stations'
-  | 'equipment'
-  | 'grossing_hardware'
-  | 'cassette_routing_rules'
-  | 'cassette_colors'
-  | 'fonts'
-  | 'document_style'
-  | 'retention'
-  | 'session_security'
-  | 'support_access'
-  | 'field_requirements'
-  | 'release_buffer'
-  | 'concordance_review_settings'
-  | 'template_governance'
-  | 'delivery_rules'
-  | 'print_routing_rules'
-  | 'contribution_settings'
-  | 'qa_config_center'
-  | 'external_resources'
-  | 'research_feed'
-  | 'protocols'
-  | 'grossing_route_overrides'
-  | 'governing_bodies'
-  | 'delegation_types'
-  | 'rvu_code_map'
-  | 'ncci_edit_rules'
-  | 'master_payment_types'
-  | 'jurisdiction_payment_mappings'
-  | 'outbound_message_preview'
-  | 'dft_export_preview'
-  | 'billing_dictionary'
-  | 'code_import'
-  | 'billing_type_triggers'
-  | 'pending_approvals'
-  | 'modifier_dictionary'
-  | 'participation_types'
-  | 'country_signing_rules'
-  | 'print_settings'
-  | 'label_designer'
-  | 'printer_profiles'
-  | 'terminology'
-  | 'crosswalk'
-  | 'clients'
-  | 'case_mask_config'
-  | 'case_routing'
-  | 'routing_rules'
-  | 'physicians'
-  | 'deficiencies'
-  | 'abnormal_trigger_rules'
-  | 'assist_lis_polling';
+// Batch 431: the section list lives in ./systemSections.ts (shared with the
+// Configuration search).
 
-// Real, per PS-85 (Jira) — every item in this file belonged to
-// exactly one of five real, named groups (Workstation & Hardware,
-// Lab Materials & Workflows, Clinical Lookups, Financial & Revenue
-// Lookups, Administration & Compliance); lis, identifiers,
-// terminology, crosswalk, clients, facility_setup, case_mask_config,
-// case_routing, routing_rules, physicians, and deficiencies moved OUT
-// to their own top-level Integrations tab.
-//
-// Real, per direct follow-up, superseding PS-85's own top-level split:
-// those 11 items are back here now, as a real sixth named group
-// ("Integrations") rather than restored to the old, ungrouped flat
-// list they lived in pre-PS-85. Integrations/index.tsx - which held
-// only this same navigation wiring, no real content of its own - is
-// deleted; nothing else referenced it.
-// labelKey (not label) below — this array lives at module scope, outside
-// any component's render, and can't call useTranslation() itself. Each
-// key is resolved via t() at the one real render site (the sidebar nav
-// button), same labelKey pattern established for GROSSING_TEMPLATES
-// (SpecimenCategoriesSection.tsx, batch 70) and ROUTING_STEPS
-// (CasePoolAssignmentSection.tsx, batch 67). `group` stays a literal,
-// internal identifier (SystemTab's own group-equality checks and the
-// GROUPS derivation below both key off it) — GROUP_LABEL_KEY, just
-// below, maps each one to its own translated display text.
-const SECTIONS: { id: SystemSection; emoji: string; labelKey: string; group: string }[] = [
-  // ── Workstation & Hardware ──
-  // Real, per direct follow-up ("Yes. It should be alpha within the
-  // group"): every group below re-sorted alphabetically by label —
-  // confirmed, via a real search through past sessions, that this was
-  // always the deliberate, actively-maintained convention (one past
-  // session explicitly repositioned an item to preserve alphabetical
-  // order when its label changed; another explicitly built this
-  // array as "15 sidebar items now alphabetical"). The live array had
-  // genuinely drifted from that as new items were added over time
-  // (mostly the newer Financial & Revenue Lookups and Integrations
-  // groups) and simply appended rather than re-sorted. Group order
-  // itself (Workstation & Hardware → ... → Integrations) is
-  // unchanged — only the order of items within each group. (That
-  // alphabetization was by the real English label; it's left as-is
-  // per language rather than re-sorted per locale, same as every
-  // other alphabetized list elsewhere in this app.)
-  { id: 'print_settings',      emoji: '🖨️', labelKey: 'systemTab.sections.printSettings'        , group: 'Workstation & Hardware' },
-  { id: 'label_designer',      emoji: '🏷️', labelKey: 'systemTab.sections.labelDesigner'        , group: 'Workstation & Hardware' },
-  { id: 'printer_profiles',    emoji: '🖨️', labelKey: 'systemTab.sections.printerProfiles'      , group: 'Workstation & Hardware' },
-  { id: 'scan_stations',       emoji: '📍', labelKey: 'systemTab.sections.scanStations'         , group: 'Workstation & Hardware' },
-  // Batch 358: the equipment register (took over Batch 356's Instruments list).
-  { id: 'equipment',           emoji: '🔬', labelKey: 'systemTab.sections.equipment'            , group: 'Workstation & Hardware' },
-  // Batch 359: grossing cameras and scales (settings; the device is in the register).
-  { id: 'grossing_hardware',   emoji: '📷', labelKey: 'systemTab.sections.grossingHardware'     , group: 'Workstation & Hardware' },
 
-  // ── Lab Materials & Workflows ──
-  { id: 'cassette_colors',     emoji: '🎨', labelKey: 'systemTab.sections.cassetteColors'       , group: 'Lab Materials & Workflows' },
-  { id: 'cassette_routing_rules', emoji: '🧊', labelKey: 'systemTab.sections.cassetteRoutingRules', group: 'Lab Materials & Workflows' },
-  { id: 'container_types',     emoji: '🧪', labelKey: 'systemTab.sections.containerTypes'       , group: 'Lab Materials & Workflows' },
-  { id: 'reagent_lots',        emoji: '🧫', labelKey: 'systemTab.sections.reagentLots'          , group: 'Lab Materials & Workflows' },
-  { id: 'workstation_groups',  emoji: '🗺️', labelKey: 'systemTab.sections.workstationGroups'    , group: 'Lab Materials & Workflows' },
-  { id: 'action_groups',       emoji: '⚡', labelKey: 'systemTab.sections.actionGroups'          , group: 'Lab Materials & Workflows' },
-  { id: 'stains',              emoji: '🧪', labelKey: 'systemTab.sections.stains'               , group: 'Lab Materials & Workflows' },
-  // Real, per this module's own DP/AI vendor integration plan's final
-  // remaining item. Placed in the same real group as the diagnostic
-  // catalog above — this is shared, cross-module infrastructure
-  // (surgical pathology + cytology both order AI screenings from it),
-  // never a cytology-only setting.
-  { id: 'vendor_integrations', emoji: '🔌', labelKey: 'systemTab.sections.vendorIntegrations', group: 'Lab Materials & Workflows' },
-  { id: 'cytology_qc_rules', emoji: '🔬', labelKey: 'systemTab.sections.cytologyQcRules', group: 'Lab Materials & Workflows' },
-  // Real, per direct design brief on the RFP-APLIS-2026-GLOBAL
-  // Intraoperative/Frozen Section Dashboard — same real group as the
-  // other lab-hardware/workflow registries.
-  { id: 'or_suite_terminals',  emoji: '🏥', labelKey: 'systemTab.sections.orSuiteTerminals'     , group: 'Lab Materials & Workflows' },
-  // PS-288 — data-only device registry for the five real Facility Ops
-  // Dashboard wall displays. Same real group as OR Suite Terminals,
-  // a genuinely analogous physical-display registry.
-  { id: 'display_profiles',    emoji: '🖥️', labelKey: 'systemTab.sections.displayProfiles', group: 'Lab Materials & Workflows' },
-  // Real, per the RFP-APLIS-2026-GLOBAL Historical Data Migration
-  // Engine gap.
-  { id: 'migration_field_mappings', emoji: '📦', labelKey: 'systemTab.sections.migrationFieldMappings', group: 'Lab Materials & Workflows' },
-  // Real, per the RFP-APLIS-2026-GLOBAL Broader Cancer Registry
-  // Exports gap — genuinely separate from Cytology's own Registry
-  // Reporting subtab, per the RFP's own "Non-Cytology-Scoped" title.
-  { id: 'cancer_registry_settings', emoji: '🏛️', labelKey: 'systemTab.sections.cancerRegistrySettings', group: 'Lab Materials & Workflows' },
-  { id: 'flags',               emoji: '🚩', labelKey: 'systemTab.sections.flags'                 , group: 'Lab Materials & Workflows' },
-  { id: 'grossing_route_overrides', emoji: '🔀', labelKey: 'systemTab.sections.grossingRouteOverrides', group: 'Lab Materials & Workflows' },
-  { id: 'specimens',           emoji: '🔬', labelKey: 'systemTab.sections.specimens'   , group: 'Lab Materials & Workflows' },
-  { id: 'asset_locations',     emoji: '📍', labelKey: 'systemTab.sections.assetLocations', group: 'Lab Materials & Workflows' },
-
-  // ── Clinical Lookups ──
-  { id: 'governing_bodies',    emoji: '📋', labelKey: 'systemTab.sections.governingBodies'      , group: 'Clinical Lookups' },
-  { id: 'abnormal_trigger_rules', emoji: '🚩', labelKey: 'systemTab.sections.abnormalTriggerRules', group: 'Clinical Lookups' },
-  { id: 'participation_types', emoji: '👥', labelKey: 'systemTab.sections.participationTypes'   , group: 'Clinical Lookups' },
-  { id: 'country_signing_rules', emoji: '🌐', labelKey: 'systemTab.sections.countrySigningRules', group: 'Clinical Lookups' },
-  { id: 'protocols',           emoji: '🧬', labelKey: 'systemTab.sections.protocols'   , group: 'Clinical Lookups' },
-  { id: 'departments', emoji: '🗂️', labelKey: 'systemTab.sections.departments'   , group: 'Clinical Lookups' },
-  { id: 'subspecialties',      emoji: '🩺', labelKey: 'systemTab.sections.subspecialties'        , group: 'Clinical Lookups' },
-
-  // ── Financial & Revenue Lookups ──
-  { id: 'billing_dictionary',  emoji: '💲', labelKey: 'systemTab.sections.billingDictionary', group: 'Financial & Revenue Lookups' },
-  { id: 'dft_export_preview',  emoji: '📄', labelKey: 'systemTab.sections.dftExportPreview', group: 'Financial & Revenue Lookups' },
-  { id: 'code_import',         emoji: '📥', labelKey: 'systemTab.sections.codeImport', group: 'Financial & Revenue Lookups' },
-  { id: 'billing_type_triggers', emoji: '🚦', labelKey: 'systemTab.sections.billingTypeTriggers', group: 'Financial & Revenue Lookups' },
-  { id: 'modifier_dictionary', emoji: '🏷️', labelKey: 'systemTab.sections.modifierDictionary', group: 'Financial & Revenue Lookups' },
-  { id: 'jurisdiction_payment_mappings', emoji: '🌍', labelKey: 'systemTab.sections.jurisdictionPaymentMappings', group: 'Financial & Revenue Lookups' },
-  { id: 'master_payment_types', emoji: '💳', labelKey: 'systemTab.sections.masterPaymentTypes', group: 'Financial & Revenue Lookups' },
-  { id: 'ncci_edit_rules',     emoji: '🚫', labelKey: 'systemTab.sections.ncciEditRules', group: 'Financial & Revenue Lookups' },
-  { id: 'pending_approvals', emoji: '✅', labelKey: 'systemTab.sections.pendingApprovals', group: 'Financial & Revenue Lookups' },
-  { id: 'rvu_code_map',        emoji: '📈', labelKey: 'systemTab.sections.rvuCodeMap', group: 'Financial & Revenue Lookups' },
-
-  // ── Administration & Compliance ──
-  { id: 'fonts',               emoji: '🔤', labelKey: 'systemTab.sections.fonts'        , group: 'Administration & Compliance' },
-  { id: 'contribution_settings', emoji: '📊', labelKey: 'systemTab.sections.contributionSettings' , group: 'Administration & Compliance' },
-  { id: 'retention',           emoji: '🗄️', labelKey: 'systemTab.sections.retention'        , group: 'Administration & Compliance' },
-  { id: 'delegation_types',    emoji: '🔀', labelKey: 'systemTab.sections.delegationTypes'      , group: 'Administration & Compliance' },
-  { id: 'document_style',      emoji: '🖋', labelKey: 'systemTab.sections.documentStyle'        , group: 'Administration & Compliance' },
-  { id: 'external_resources',  emoji: '🌐', labelKey: 'systemTab.sections.externalResources'    , group: 'Administration & Compliance' },
-  // PS-359 (Batch 376): which fields each page requires before saving.
-  { id: 'field_requirements',  emoji: '✳', labelKey: 'systemTab.sections.fieldRequirements'    , group: 'Administration & Compliance' },
-  { id: 'release_buffer',      emoji: '⏳', labelKey: 'systemTab.sections.releaseBuffer', group: 'Administration & Compliance' },
-  { id: 'concordance_review_settings', emoji: '⚖', labelKey: 'systemTab.sections.concordanceReviewSettings', group: 'Administration & Compliance' },
-  { id: 'delivery_rules', emoji: '📬', labelKey: 'systemTab.sections.deliveryRules', group: 'Administration & Compliance' },
-  { id: 'print_routing_rules', emoji: '🖨', labelKey: 'systemTab.sections.printRoutingRules', group: 'Administration & Compliance' },
-  { id: 'qa_config_center',    emoji: '✅', labelKey: 'systemTab.sections.qaConfigCenter' , group: 'Administration & Compliance' },
-  { id: 'research_feed',       emoji: '📰', labelKey: 'systemTab.sections.researchFeed'         , group: 'Administration & Compliance' },
-  { id: 'session_security',    emoji: '🔒', labelKey: 'systemTab.sections.sessionSecurity'      , group: 'Administration & Compliance' },
-  // Batch 372: whether ForMedrixAI support may reach this organisation's data, approvals, and the support audit.
-  { id: 'support_access',      emoji: '🛡', labelKey: 'systemTab.sections.supportAccess'        , group: 'Administration & Compliance' },
-  // PS-63: template self-approval and required reviewers.
-  { id: 'template_governance', emoji: '🧾', labelKey: 'systemTab.sections.templateGovernance', group: 'Administration & Compliance' },
-
-  // ── Integrations ──
-  // PS-87: Assist-mode LIS polling (settings, Poll now, activity log).
-  { id: 'assist_lis_polling', emoji: '🔄', labelKey: 'systemTab.sections.assistLisPolling', group: 'Integrations' },
-  { id: 'case_mask_config', emoji: '🔢', labelKey: 'systemTab.sections.caseMaskConfig', group: 'Integrations' },
-  { id: 'case_routing',     emoji: '🔀', labelKey: 'systemTab.sections.caseRouting'           , group: 'Integrations' },
-  { id: 'clients',          emoji: '🏥', labelKey: 'systemTab.sections.clients' , group: 'Integrations' },
-  { id: 'crosswalk',        emoji: '🧩', labelKey: 'systemTab.sections.crosswalk', group: 'Integrations' },
-  { id: 'outbound_message_preview', emoji: '📤', labelKey: 'systemTab.sections.outboundMessagePreview', group: 'Integrations' },
-  { id: 'physicians',       emoji: '🩻', labelKey: 'systemTab.sections.physicians'             , group: 'Integrations' },
-  { id: 'routing_rules',    emoji: '📋', labelKey: 'systemTab.sections.routingRules'          , group: 'Integrations' },
-  { id: 'deficiencies',     emoji: '⚠️', labelKey: 'systemTab.sections.deficiencies'  , group: 'Integrations' },
-  { id: 'terminology',      emoji: '🔌', labelKey: 'systemTab.sections.terminology'   , group: 'Integrations' },
-];
-
-// Data-key-stays-English, label-is-translated: `group` above stays the
-// literal internal identifier (SystemTab's own equality checks key off
-// it directly); only the tab-button text shown for each group is
-// translated, via this map.
-const GROUP_LABEL_KEY: Record<string, string> = {
-  'Workstation & Hardware': 'systemTab.groups.workstationHardware',
-  'Lab Materials & Workflows': 'systemTab.groups.labMaterialsWorkflows',
-  'Clinical Lookups': 'systemTab.groups.clinicalLookups',
-  'Financial & Revenue Lookups': 'systemTab.groups.financialRevenueLookups',
-  'Administration & Compliance': 'systemTab.groups.administrationCompliance',
-  'Integrations': 'systemTab.groups.integrations',
-};
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -319,10 +145,14 @@ const GROUP_LABEL_KEY: Record<string, string> = {
 const GROUPS: string[] = Array.from(new Set(SECTIONS.map(s => s.group)));
 
 const SystemTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
   // Batch 371: the terminology endpoint details are shown to PathScribe
   // support (Superadmin) only; this used to be hard-coded true for everyone.
   const isSuperAdmin = useIsSuperAdmin();
+  // Batch 612: ForMedrixAI-only sections (the Interface Dictionary) are listed only for someone who holds their capability.
+  const { has: holds } = useCapabilities();
   const location = useLocation();
   const [active, setActiveRaw] = useState<SystemSection>(() => {
     const section = new URLSearchParams(location.search).get('section') as SystemSection | null;
@@ -336,6 +166,7 @@ const SystemTab: React.FC = () => {
   // selectSection below is the one real place that ever happens, so
   // none of those four paths can drift out of sync with each other.
   const [activeGroup, setActiveGroup] = useState<string>(() => SECTIONS.find(s => s.id === active)?.group ?? GROUPS[0]);
+  useRegisterConfigHelpSection(active); // Batch 646: the Help button opens this section of the Administrator Guide
 
   // Real, per direct guidance (Workstation & Hardware redesign): one
   // real facility choice, shared across Scan Stations/Printer
@@ -373,7 +204,13 @@ const SystemTab: React.FC = () => {
       case 'vendor_integrations': return <VendorIntegrationsSection />;
       case 'cytology_qc_rules': return <CytologyQcRulesSection />;
       case 'or_suite_terminals':  return <OrSuiteTerminalsSection />;
+      case 'intraop_critical_results': return <IntraopCriticalResultsSection />;
       case 'display_profiles':    return <DisplayProfilesSection />;
+      case 'simulated_print':     return <SimulatedPrintLogSection />;
+      case 'simulated_mail':      return <SimulatedMailOutboxSection />;
+      case 'performance_targets': return <PerformanceTargetsSection />;
+      case 'client_sla':          return <ClientSlaSection />;
+      case 'jurisdiction_overview': return <JurisdictionOverviewSection />;
       case 'migration_field_mappings': return <MigrationFieldMappingsSection />;
       case 'cancer_registry_settings': return <CancerRegistrySettingsSection />;
       case 'protocols':           return <ProtocolDictionarySection />;
@@ -381,15 +218,27 @@ const SystemTab: React.FC = () => {
       case 'grossing_route_overrides': return <GrossingRouteOverridesSection />;
       case 'departments': return <DepartmentsSection />;
       case 'asset_locations': return <AssetLocationDictionarySection />;
+      case 'cold_chain':      return <ColdChainSection />;
+      case 'research_cases':  return <ResearchCasesSection />;
+      case 'smart_capture':   return <SmartCaptureSection />;
+      case 'interface_dictionary': return <InterfaceDictionarySection />;
       case 'container_types': return <ContainerTypesSection />;
       case 'reagent_lots': return <ReagentLotsSection />;
       case 'workstation_groups': return <WorkstationGroupsSection />;
       case 'action_groups': return <ActionGroupsSection />;
       case 'scan_stations': return <ScanStationsSection selectedFacilityId={workstationFacilityId || undefined} />;
+      case 'site_agents': return <SiteAgentsSection selectedFacilityId={workstationFacilityId || undefined} />;
+      case 'workstations': return <WorkstationsSection />;
+      case 'bi_feed': return <BiFeedSection />;
+      case 'requisition_ingestion': return <RequisitionIngestionSection />;
+      case 'scope_reference': return <ScopeReferenceSection />;
       case 'equipment': return <EquipmentSection selectedFacilityId={workstationFacilityId || undefined} />;
+      case 'stain_qc': return <StainQcSection />;
       case 'grossing_hardware': return <GrossingHardwareSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'cassette_routing_rules': return <CassetteRoutingRulesSection />;
       case 'cassette_colors': return <CassetteColorsSection />;
+      case 'ink_colors': return <InkColorsSection />;
+      case 'inking_validation_mode': return <InkingValidationModeSection />;
       case 'print_settings': return <PrintSettingsSection selectedFacilityId={workstationFacilityId || undefined} />;
       case 'label_designer': return <LabelDesignerPage />;
       case 'fonts':               return <FontsSection />;
@@ -410,6 +259,7 @@ const SystemTab: React.FC = () => {
       case 'dft_export_preview':  return <DftExportPreviewSection />;
       case 'participation_types': return <ParticipationTypesSection />;
       case 'country_signing_rules': return <CountrySigningRulesSection />;
+      case 'code_systems':          return <CodeSystemsSection />;
       case 'session_security':    return <SessionSecuritySection />;
       case 'support_access':      return <SupportAccessSection />;
       case 'field_requirements':  return <FieldRequirementsSection />;
@@ -417,6 +267,12 @@ const SystemTab: React.FC = () => {
       case 'concordance_review_settings': return <ConcordanceReviewSettingsSection />;
       case 'template_governance': return <TemplateGovernanceSection />;
       case 'delivery_rules': return <DeliveryRulesSection />;
+      case 'delivery_schedules': return <DeliverySchedulesSection />;
+      case 'billing_release': return <BillingReleaseSection />;
+      case 'us_epath': return <UsEpathSection />;
+      case 'batch_registry_feed': return <BatchRegistryFeedSection />;
+      case 'cosd_destination': return <CosdDestinationSection />;
+      case 'history_extraction': return <HistoryExtractionSection />;
       case 'print_routing_rules': return <PrintRoutingRuleSection />;
       case 'contribution_settings': return <ContributionSettingsSection />;
       case 'external_resources':  return <ExternalResourcesSection />;
@@ -432,6 +288,17 @@ const SystemTab: React.FC = () => {
       case 'abnormal_trigger_rules': return <AbnormalTriggerRulesSection />;
       case 'assist_lis_polling': return <AssistLisPollingSection />;
       case 'qa_config_center': return <QAConfigurationCenterSection />;
+      case 'biopsy_resection_correlation': return <BiopsyResectionCorrelationSection />;
+      case 'tumor_board_rules': return <TumorBoardRulesSection />;
+      case 'follow_up_tracking': return <FollowUpTrackingSection />;
+      case 'organ_maps':         return <OrganMapsSection />;
+      case 'revision_reasons': return <RevisionReasonsSection />;
+      case 'bench_reasons': return <BenchReasonsSection />;
+      case 'peer_review_gate': return <PeerReviewGateSection />;
+      case 'clinical_mismatch_rules': return <ClinicalMismatchRulesSection />;
+      case 'ai_instructions': return <AiInstructionsSection />;
+      case 'qa_trend_policy': return <QaTrendPolicySection />;
+      case 'feedback': return <FeedbackSection />;
       default:                    return null;
     }
   };
@@ -455,12 +322,12 @@ const SystemTab: React.FC = () => {
         {GROUPS.map(g => (
           <button
             key={g}
-            onClick={() => {
+            onClick={() => guardNav(() => {
               setActiveGroup(g);
               const first = SECTIONS.find(s => s.group === g);
               if (first) setActiveRaw(first.id);
               resetConfigScroll();
-            }}
+            })}
             className={`ps-sub-tab-btn${activeGroup === g ? ' active' : ''}`}
           >
             {t(GROUP_LABEL_KEY[g])}
@@ -479,9 +346,10 @@ const SystemTab: React.FC = () => {
         <div className="ps-conf-callout-banner ps-confsys-facility-selector">
           <span className="ps-conf-callout-banner-text">{t('systemTab.facilityLabel')}</span>
           <select
+            aria-label={t('systemTab.facilityLabel')}
             className="ps-conf-select"
             value={workstationFacilityId}
-            onChange={e => setWorkstationFacilityId(e.target.value)}
+            onChange={e => { const next = e.target.value; guardNav(() => setWorkstationFacilityId(next)); }}
           >
             <option value="">{t('systemTab.allFacilitiesOption')}</option>
             {workstationLabs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -495,10 +363,10 @@ const SystemTab: React.FC = () => {
             active group's own items, no more group-header dividers,
             since only one group is ever visible at a time now. ── */}
         <div className="ps-confsys-sidebar">
-          {SECTIONS.filter(s => s.group === activeGroup).map(s => (
+          {SECTIONS.filter(s => s.group === activeGroup && configSectionVisible(s.id, holds)).map(s => (
             <button
               key={s.id}
-              onClick={() => { selectSection(s.id); resetConfigScroll(); }}
+              onClick={() => guardNav(() => { selectSection(s.id); resetConfigScroll(); })}
               className={`ps-confsys-nav-btn${active === s.id ? ' ps-confsys-nav-btn--active' : ''}`}
             >
               {s.emoji} {t(s.labelKey)}
@@ -508,7 +376,8 @@ const SystemTab: React.FC = () => {
 
         {/* ── Section content ── */}
         <div className="ps-confsys-content">
-          {renderSection()}
+          {/* Batch 429: view only for someone who can't change this section. */}
+          <ConfigSectionGate key={active} section={active}>{renderSection()}</ConfigSectionGate>
         </div>
 
       </div>

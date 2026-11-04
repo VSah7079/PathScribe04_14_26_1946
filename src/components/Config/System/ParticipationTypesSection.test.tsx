@@ -13,6 +13,7 @@ import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-li
 import type { ParticipationTypeRecord } from '../../../services/participationTypes/IParticipationTypeService';
 
 vi.mock('react-i18next', () => ({
+  initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
     t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key),
     i18n: { language: 'en-US' },
@@ -31,20 +32,21 @@ const { RESIDENT, update, logEvent } = vi.hoisted(() => ({
   logEvent: vi.fn(),
 }));
 
-vi.mock('../../../services/participationTypes/mockParticipationTypeService', () => ({
-  mockParticipationTypeService: {
-    getAll: vi.fn().mockResolvedValue({ ok: true, data: [RESIDENT] }),
-    update: (...a: unknown[]) => update(...a),
-    add: vi.fn(),
-  },
-}));
 vi.mock('../../../utils/performingLabs', () => ({
   getActivePerformingLabs: vi.fn().mockResolvedValue([{ id: 'lab-au', name: 'Sydney Path Lab', jurisdiction: 'AU', roles: ['performing_lab'] }]),
 }));
 vi.mock('../../../services/auth/caseAccessControl', () => ({
   getSessionUser: () => ({ id: 'u-jane', firstName: 'Jane', lastName: 'Admin' }),
 }));
-vi.mock('../../../services', () => ({ auditService: { logEvent: (...a: unknown[]) => logEvent(...a) } }));
+// Batch 506: the section takes participationTypeService from the services index.
+vi.mock('../../../services', () => ({
+  auditService: { logEvent: (...a: unknown[]) => logEvent(...a) },
+  participationTypeService: {
+    getAll: vi.fn().mockResolvedValue({ ok: true, data: [RESIDENT] }),
+    update: (...a: unknown[]) => update(...a),
+    add: vi.fn(),
+  },
+}));
 
 import ParticipationTypesSection from './ParticipationTypesSection';
 

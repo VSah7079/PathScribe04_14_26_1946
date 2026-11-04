@@ -17,6 +17,7 @@
 const MS_PER_HOUR = 60 * 60 * 1000;
 
 function isWeekendDay(d: Date): boolean {
+  // eslint-disable-next-line no-restricted-properties -- weekends as the sender's own calendar sees them
   const day = d.getDay(); // 0 = Sunday, 6 = Saturday
   return day === 0 || day === 6;
 }

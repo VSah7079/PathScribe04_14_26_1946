@@ -38,17 +38,23 @@ export interface SourceMatchResult {
  * being so lenient that a 1-2 word match becomes a false positive.
  */
 export function matchSourceText(sourceText: string | undefined, caseData: Case | null): SourceMatchResult {
-  if (!sourceText) return { phrase: undefined, found: false };
-  const quoted = sourceText.match(/"([^"]+)"/);
-  const candidate = quoted ? quoted[1] : sourceText;
-
-  const words = candidate.split(/\s+/).filter(Boolean);
   const allText = [
     caseData?.order?.clinicalIndication ?? '',
     caseData?.diagnostic?.grossDescription ?? '',
     caseData?.diagnostic?.microscopicDescription ?? '',
     caseData?.diagnostic?.ancillaryStudies ?? '',
-  ].join(' ').toLowerCase();
+  ].join(' ');
+  return matchSourceInText(sourceText, allText);
+}
+
+/** The same check against any text (Batch 651: the narrative suggestions check their quote against the report's source text). */
+export function matchSourceInText(sourceText: string | undefined, text: string): SourceMatchResult {
+  if (!sourceText) return { phrase: undefined, found: false };
+  const quoted = sourceText.match(/"([^"]+)"/);
+  const candidate = quoted ? quoted[1] : sourceText;
+
+  const words = candidate.split(/\s+/).filter(Boolean);
+  const allText = text.toLowerCase();
 
   for (let len = words.length; len >= 3; len--) {
     const phrase = words.slice(0, len).join(' ');

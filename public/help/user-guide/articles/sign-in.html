@@ -1,0 +1,416 @@
+<h1 id="top">Sign In</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The sign-in screen is where you start a PathScribe session. You sign in either with the email and password your administrator gave you, or with your organisation's single sign-on (Microsoft, Google or your own organisation's sign-in). This article also covers what happens during the session: the "Already signed in elsewhere" question, the inactivity warning, the question "Which bench is this?", choosing a language, and signing out.</p>
+<p>On a live installation you sign in with your organisation's single sign-on only; email-and-password sign-in is part of the demonstration version.</p>
+<p><strong>Intended users.</strong> Everyone who works in PathScribe.</p>
+<p><strong>Where it fits.</strong> Sign-in comes first. After it you land on the page you were trying to open, or on <a href="/help/home">Home</a> if there was none. Every other screen needs you to be signed in. The few pages meant for outside people (a consult link, a critical alert reference) do not.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/sign-in-overview.png" alt="The sign-in screen with email, password and single sign-on buttons"><figcaption>The sign-in screen with email, password and single sign-on buttons</figcaption></figure>
+
+<p>The sign-in card shows the PathScribe logo and the words "Clinical Pathology Reporting". Which parts below it appear depends on how your installation is set up.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Environment badge</td>
+<td>Production, Validation, Training or Development. Shown only when your installation names its environment. Check it before you start: it tells you which system you are signing in to.</td>
+</tr>
+<tr>
+<td>Email</td>
+<td>Your work email address. The cursor starts here.</td>
+</tr>
+<tr>
+<td>Password</td>
+<td>Your password. The eye button beside it shows or hides what you typed ("Show password" / "Hide password").</td>
+</tr>
+<tr>
+<td>Forgot password?</td>
+<td>Opens the "Ask my administrator to reset my password" step (password sign-in only). You cannot reset your password yourself on this screen; your administrators are told and set a new one for you.</td>
+</tr>
+<tr>
+<td>or continue with</td>
+<td>A line above the single sign-on buttons.</td>
+</tr>
+<tr>
+<td>Microsoft, Google, Organisation sign-in</td>
+<td>Single sign-on buttons. Only the ones set up for your installation appear.</td>
+</tr>
+<tr>
+<td>Soon</td>
+<td>On installations with password sign-in but no single sign-on, the Google and Microsoft buttons are greyed out with a <strong>Soon</strong> tag and the tooltip "Single sign-on is not yet available".</td>
+</tr>
+<tr>
+<td>Notice</td>
+<td>"This system contains protected health information. Access is restricted to authorized users and activity is recorded."</td>
+</tr>
+<tr>
+<td>Version</td>
+<td>A small version number at the foot of the card, when known.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ask my administrator to reset my password</strong> (opened by Forgot password?; password sign-in only)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your sign-in email</td>
+<td>The email you sign in with. Filled in from the sign-in form if you had typed it.</td>
+</tr>
+<tr>
+<td>Ask my administrator to reset my password</td>
+<td>Tells your administrators. They receive an urgent message with your name and email and set a new password for you.</td>
+</tr>
+<tr>
+<td>Confirmation</td>
+<td>"If that email belongs to an active account, your administrators have been told and will set a new password for you." It reads the same whether or not the email matches an account, so it never reveals who has one.</td>
+</tr>
+<tr>
+<td>Back to sign in</td>
+<td>Returns to the sign-in form.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Choose your own password</strong> (shown after a first sign-in with a temporary password)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>New password</td>
+<td>At least the stated number of characters, and different from the temporary password.</td>
+</tr>
+<tr>
+<td>Confirm new password</td>
+<td>Type it again.</td>
+</tr>
+<tr>
+<td>Hint</td>
+<td>"At least (n) characters, different from the temporary one. Common, patterned or breached passwords are refused."</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Second factor</strong> (when your organisation requires it on password sign-in)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Set up your second factor</td>
+<td>First time: an account name and a secret key to add to an authenticator app, then the six-digit code it shows.</td>
+</tr>
+<tr>
+<td>Save your recovery codes</td>
+<td>Shown once after set-up. Each works once if you lose your authenticator.</td>
+</tr>
+<tr>
+<td>Second factor</td>
+<td>Later sign-ins: enter the six-digit code, or a recovery code.</td>
+</tr>
+<tr>
+<td>Simulated</td>
+<td>A tag on these screens: in the demonstration the authenticator is a stand-in and protects nothing. With your hospital's identity provider, the provider asks for the second factor instead.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Which bench is this?</strong> (a window after sign-in)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Station list</td>
+<td>"— Select a station —" (no station), then the active stations at the facilities you work for. If your account is not limited to particular facilities, you see them all. Set the real bench or scan station this computer is.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Second-factor step wording</strong></p>
+<ul>
+<li><strong>Six-digit code or recovery code</strong> is the label of the box where you type the code from your authenticator, or one of your saved recovery codes.</li>
+<li><strong>Show demo code (Simulated)</strong> appears only on installations that use the demonstration authenticator. Select it and the line "Demo code: …" shows the current code so you can type it. It is a stand-in for training and protects nothing.</li>
+<li>When a password change fails for a reason the screen does not name, the message reads "That didn't work. Try again."</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign In</td>
+<td>Signs you in with the email and password. Reads "Signing in..." while it works.</td>
+</tr>
+<tr>
+<td>Microsoft / Google / Organisation sign-in</td>
+<td>Sends you to that provider to sign in, then back to PathScribe.</td>
+</tr>
+<tr>
+<td>Save and sign in</td>
+<td>Saves your new password and signs you in.</td>
+</tr>
+<tr>
+<td>Verify / Turn on</td>
+<td>Checks your second-factor code; Turn on finishes set-up.</td>
+</tr>
+<tr>
+<td>I have saved them, continue</td>
+<td>Confirms you have kept your recovery codes.</td>
+</tr>
+<tr>
+<td>Back to sign in</td>
+<td>Leaves the second-factor step.</td>
+</tr>
+<tr>
+<td>Sign In Here</td>
+<td>In the "Already signed in elsewhere" question: sign in on this tab and sign the other one out.</td>
+</tr>
+<tr>
+<td>Set station / Skip, I don't scan here</td>
+<td>In the station window.</td>
+</tr>
+<tr>
+<td>Stay Logged In / Log Out</td>
+<td>In the "Session Expiring Soon" window.</td>
+</tr>
+<tr>
+<td>Sign Out (icon at the top right)</td>
+<td>Ends your session.</td>
+</tr>
+<tr>
+<td>Language button (top right)</td>
+<td>Changes the language of PathScribe's screens.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red message under the form</td>
+<td>A sign-in problem. See Error recovery.</td>
+</tr>
+<tr>
+<td>Eye icon</td>
+<td>Shows or hides the password.</td>
+</tr>
+<tr>
+<td>Finishing sign-in...</td>
+<td>The page you see for a moment after single sign-on, while PathScribe completes it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+L</td>
+<td>Log Out, while signed in.</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>Opens the User Guide in a new tab, once signed in.</td>
+</tr>
+</tbody>
+</table>
+<p>The spoken commands "log out", "logout" and "log me out" also sign you out. On the sign-in screen itself, press Enter to submit the form.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Sign in with email and password</strong></p>
+<ol>
+<li>Open PathScribe's address. If you are not signed in, the sign-in screen appears. If you were trying to open a particular page, PathScribe remembers it.</li>
+<li>Check the environment badge, if there is one.</li>
+<li>Type your email and password. A password manager may fill them in; PathScribe reads what is in the boxes when you select Sign In.</li>
+<li>Select <strong>Sign In</strong> (or press Enter). The button reads "Signing in...".</li>
+<li>You go to the page you were trying to open, or to Home.</li>
+<li>If the window "Which bench is this?" appears, choose your station and select <strong>Set station</strong>.</li>
+</ol>
+<p><strong>Ask your administrator to reset a forgotten password</strong> (password sign-in only)</p>
+<ol>
+<li>Select <strong>Forgot password?</strong> under the password box.</li>
+<li>Check the email, or type the one you sign in with.</li>
+<li>Select <strong>Ask my administrator to reset my password</strong>. The confirmation appears.</li>
+<li>Wait for your administrator to contact you with a temporary password, then sign in and choose your own. You can ask again after 10 minutes; a second request sooner is not sent.</li>
+</ol>
+<p>The request does not reset anything by itself, and nobody is told the new password except the administrator who sets it. Your administrator should confirm it is really you before passing it on.</p>
+<p><strong>Sign in with single sign-on</strong></p>
+<ol>
+<li>Select <strong>Microsoft</strong>, <strong>Google</strong> or <strong>Organisation sign-in</strong>.</li>
+<li>Your browser goes to that provider. Sign in there as you normally do.</li>
+<li>You return to PathScribe on a page that says "Finishing sign-in...". It then takes you to the page you wanted, or to Home.</li>
+</ol>
+<p><strong>Sign out</strong></p>
+<ol>
+<li>Select the <strong>Sign Out</strong> icon at the top right, or press Alt+L.</li>
+<li>If a case or accession has unsaved changes, a window "Unsaved Data" says "You have an active session with unsaved changes. Logging out now will discard your current progress." Select <strong>Return to Page</strong> to save first, or <strong>Log Out &amp; Discard Changes</strong>.</li>
+<li>You return to the sign-in screen.</li>
+</ol>
+<p><strong>Change the language</strong></p>
+<ol>
+<li>Select the language button at the top right (it shows a code such as EN).</li>
+<li>Choose English, French (France or Belgium), German, Dutch (Netherlands or Belgium), Korean or Spanish (Spain).</li>
+<li>The screens change at once. The choice is saved to you, and the sign-in screen later uses the language last used on that computer.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>First sign-in with a temporary password.</strong> Your administrator set a temporary password. After you sign in, the screen says "Your administrator set a temporary password. Choose your own to continue." Enter and confirm a new password, then select <strong>Save and sign in</strong>.</li>
+<li><strong>Second factor.</strong> If your organisation requires one, enter the six-digit code after the password. The first time, add the secret key to an authenticator app, type the code, and save the recovery codes.</li>
+<li><strong>Station set once.</strong> If an administrator has given you a default station, or this computer already has one, you are not asked. The exception: if the station set on this computer belongs to a facility you do not work for, it is not used for you. The window appears again with a note saying so; choose one of your stations, or skip to continue with no station. The computer keeps its setting for the next person.</li>
+<li><strong>Change your station later.</strong> Use the station icon next to your name at the top.</li>
+<li><strong>Touch layout on this computer</strong> (Batch 735). The same station menu sets how the station screens look on this computer: <strong>Auto</strong> (the default: large touch targets on a tablet, the compact layout with a mouse), <strong>Always on</strong> or <strong>Always off</strong>. Under the choice it says which is in use: "Station screens use large touch targets." or "Station screens use the compact layout." The search box at the top always opens the keyboard (you type into it); its results stay above the keyboard and scroll.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Already signed in elsewhere.</strong> The window says "This account is already signed in on another tab or window on this browser. Continuing here will sign that session out. Any unsaved work there will be preserved and offered for review the next time it's opened. Continue?" Select <strong>Sign In Here</strong> to continue, or <strong>Cancel</strong>.</li>
+<li><strong>You were signed out by another sign-in.</strong> On the sign-in screen the notice "Signed out: logged in elsewhere" says the account was signed in on another tab. Unsaved work was preserved. Select <strong>OK</strong>, sign in, and it is offered for review on the case you were working on.</li>
+<li><strong>Inactivity.</strong> After a period set by your laboratory a window "Session Expiring Soon" says you have been inactive and counts down. Select <strong>Stay Logged In</strong> to continue, or <strong>Log Out</strong>. The window warns: "Please save any unsaved work now. Changes are not automatically preserved."</li>
+<li><strong>Your sign-in provider refused you.</strong> You return to the sign-in screen with a message explaining why (see Error recovery).</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"Please enter your email and password." Fill both boxes.</li>
+<li>"Incorrect email or password. Please try again." Check both. Capital letters count in the password.</li>
+<li>"Incorrect email or password. One more failed attempt will lock sign-in for this email for (n) minutes." You have one try left.</li>
+<li>"Too many failed sign-in attempts. Sign-in for this email is locked; try again in (n) minutes." Wait, or select Forgot password? and ask your administrator to set a new password for you.</li>
+<li>Password rules when choosing a new one: "Use at least (n) characters.", "The two passwords don't match.", "That password is too common...", "That password has appeared in a known data breach...", "Choose a password different from the temporary one.", "The password can't be your email address.", "The password can't contain PathScribe, ForMedrixAI or your email address or the name before the @." Choose another.</li>
+<li>"Your session expired. Sign in again with the temporary password." Start again from the first step.</li>
+<li>Second factor: "That code wasn't accepted.", "That code was already used. Wait for the next one.", or "Too many attempts. Second-factor codes are locked until (time)." Wait for the time shown.</li>
+<li>"Your organisation requires a second factor, but none is available for this account. Contact your system administrator."</li>
+<li>Single sign-on messages: "Sign-in was cancelled."; "The sign-in service returned an error. Please try again."; "The sign-in response couldn't be verified. Please try again."; "PathScribe couldn't check your account just now. Please try again."; "This sign-in option isn't set up for this installation."</li>
+<li>"You signed in, but there is no active PathScribe account for you. Ask your system administrator to add you." / "Your PathScribe account is inactive." / "Your PathScribe account doesn't include access to this application." / "More than one PathScribe account matches this sign-in." / "This PathScribe account is already linked to a different sign-in account." These need your administrator.</li>
+<li>"Sign-in isn't set up for this installation. Contact your system administrator." Neither password sign-in nor single sign-on is available.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Always sign out on a shared computer</p>
+<p>PathScribe shows patient information. When you leave a shared workstation, sign out instead of walking away. Activity is recorded under your name.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Unsaved work is not saved for you</p>
+<p>Signing out from the top-right icon discards unsaved case changes if you choose <strong>Log Out &amp; Discard Changes</strong>. After an inactivity timeout, the Session Expiring Soon window says changes are not automatically preserved. Save before you step away. When another sign-in takes over your session, or the session times out, PathScribe keeps your unsaved work and offers it for review the next time you open that case.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Signing in to the wrong environment. Read the badge before you enter anything.</li>
+<li>Using a colleague's account to save time. Everything is recorded under the account that signed in.</li>
+<li>Leaving the Session Expiring Soon window unanswered. The session ends when the countdown reaches zero.</li>
+<li>Typing the password into the email box when a password manager fills in the wrong place. Check both boxes.</li>
+<li>Choosing "Skip" in the station window on a computer where you do scan. Cassette and slide scans are tracked against the station.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use single sign-on if your organisation offers it.</li>
+<li>Let the browser or password manager fill in the form; it works with PathScribe.</li>
+<li>Open the page you need directly. After sign-in PathScribe returns you to it.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Sign in at the start of the shift, set the station once, and sign out when you leave the bench.</li>
+<li>Do not rely on a second tab. A second sign-in in the same browser signs the first one out.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Your administrator creates your account, roles and temporary password.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/home">Home</a>: where you land after signing in.</li>
+<li><a href="/help/help">Help</a>: the User Guide, once you are signed in.</li>
+<li><a href="/help/personal-settings">Personal settings</a>: your own preferences.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The form is blank after a password manager filled it in</td>
+<td>PathScribe reads the boxes at submit; select Sign In again.</td>
+</tr>
+<tr>
+<td>"Forgot password?" does not reset the password</td>
+<td>It lets you ask your administrator to reset it. A person with the right permission still has to set the new password in Staff. If nobody replies, ask in person.</td>
+</tr>
+<tr>
+<td>I asked for a reset and see the same message for any email</td>
+<td>By design. The screen never says whether an email has an account.</td>
+</tr>
+<tr>
+<td>The Microsoft and Google buttons are grey</td>
+<td>Single sign-on is not set up on this installation yet.</td>
+</tr>
+<tr>
+<td>Sign-in works, but I land on Home, not the page I wanted</td>
+<td>The page address was not one PathScribe could return to safely.</td>
+</tr>
+<tr>
+<td>The sign-in screen is in the wrong language</td>
+<td>It uses the last language used on this computer. Sign in and change it with the language button.</td>
+</tr>
+<tr>
+<td>Sign-in is locked</td>
+<td>Five failed attempts in a row lock that email for 15 minutes.</td>
+</tr>
+<tr>
+<td>I was signed out while working</td>
+<td>Inactivity timeout, or the account signed in elsewhere in the same browser.</td>
+</tr>
+<tr>
+<td>A page does not open and sends me to sign in</td>
+<td>You are not signed in, or the session ended.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the red message and follow it.</li>
+<li>Check the environment badge and the email address.</li>
+<li>Wait out a lockout, or ask your administrator to set a new password.</li>
+<li>Close other PathScribe tabs if you are told you are signed in elsewhere.</li>
+<li>Try single sign-on if password sign-in keeps failing, or the reverse.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe administrator for locked accounts, inactive accounts and missing access, and PathScribe support when sign-in fails for everyone or a single sign-on message repeats. Have your email address (never your password) and the time of the problem ready.</p>

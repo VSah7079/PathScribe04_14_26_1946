@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 621 \u2014 AI-read synoptic metadata for historical cases: advisory only, off by default, vendor policy enforced",
+    "description": "Vitest, 2026-10-19: full suite 1661 files (1656 passed, 4 skipped, 1 failed); 14,038 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: a real AI service, server side."
+  },
+  "tests": [
+    {
+      "testKey": "PS-814",
+      "start": "2026-10-19T17:00:00Z",
+      "finish": "2026-10-19T18:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/System/HistoryExtractionSection.test.tsx\nPASSED: src/components/PatientHistory/HistoryExtractionPanel.test.tsx\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/historyExtraction/advisoryOnly.guard.test.ts\nPASSED: src/services/historyExtraction/extractHistoricalSynoptic.test.ts\nPASSED: src/services/historyExtraction/historyExtraction.test.ts\nPASSED: src/services/historyExtraction/httpHistoryExtractionService.test.ts\nPASSED: src/services/historyExtraction/mockHistoryExtractionService.test.ts\nPASSED: src/services/historyExtraction/mockHistoryExtractionSettingsService.test.ts\nPASSED: src/services/historyExtraction/runHistoryExtraction.test.ts\nPASSED: src/services/historyExtraction/synopticFieldsPrompt.test.ts\nPASSED: src/services/patients/patientHistoryQuery.test.ts"
+    }
+  ]
+}

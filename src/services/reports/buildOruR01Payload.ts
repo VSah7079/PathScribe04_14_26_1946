@@ -16,18 +16,24 @@
 // already-existing PDF rendering (reused, not duplicated) for a
 // client that wants ED visual fidelity.
 //
-// Real, deliberate scope: reportingMode === 'orchestrator' only. See
-// OutboundResultQueueEntry.ts's own header for the full account of
-// why an assist-mode case's finalized report is never PathScribe's to
-// send.
+// Real, deliberate scope: reportingMode === 'orchestrator' only. An Assist
+// case's synoptic data goes to the LIS through its own path,
+// dispatchAssistSynopticResult.ts (Batch 426; see OutboundResultQueueEntry.ts).
+// Batch 426: the result also carries the v1.0.0 structured synoptic result
+// and the workup's own PDF (synopticResultPayload.ts, workupPdf.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { markWorkupVersionUnknown } from './oruWorkupVersion';
+import { AUTOPSY_REPORT_INSTANCE_ID, isAutopsyCase } from './resultInstances';
 import { caseRouter } from '../cases/CaseRouter';
 import { getTemplate } from '../templates/templateService';
 import { resolveAnswers, type ResolvedAnswer } from '@/orchestrator/contextBuilder';
+import { buildSynopticResultPayload, workupStatusFor, type SynopticResultPayloadV1 } from './synopticResultPayload';
+import { buildWorkupRenderPayload, renderWorkupPdf } from './workupPdf';
 import { resolveFinalDiagnosisText } from '../reportTemplates/resolveFinalDiagnosisText';
 import type { SynopticReportInstance } from '@/types/case/Case';
 import type { OruResultState } from '@/types/case/OutboundResultQueueEntry';
+import { partGridRowsOf } from '@/services/templates/partGrid';
 
 export interface OruR01Payload {
   messageId: string;
@@ -38,10 +44,11 @@ export interface OruR01Payload {
   instanceId: string;
   accessionNumber?: string;
   patient: {
-    mrn: string;
+    /** Absent when the case has none recorded (sent as-is, never invented). */
+    mrn?: string;
     firstName: string;
     lastName: string;
-    dateOfBirth: string;
+    dateOfBirth?: string;
   };
   /** Real, per the source spec's own Formatted Text (FT) requirement
    *  — narrative sections that don't need any template-assembly
@@ -153,6 +160,20 @@ export interface OruR01Payload {
    *  per real destination, whether to use this (ED) or the narrative
    *  fields above (FT) — never PathScribe's own decision to make. */
   reportPdfBase64?: string;
+  /** Batch 559: the SHA-256 of reportPdfBase64's bytes when PathScribe knows it (a stored report document,
+   *  or a signed version's PDF checked against its hash), so the receiver can check what it got
+   *  (REPORT_DOCUMENT_STORE_API.md §3, "The receiver"). */
+  reportPdfSha256?: string;
+  /** Batch 426: the same v1.0.0 structured synoptic result an Assist case sends (synopticResultPayload.ts):
+   *  codes with system and version, staging, observations, the workup's id and version, the EMR's order
+   *  number (placer) and the accession (filler). No CPT: Orchestration charges go on PathScribe's own
+   *  billing feed. Absent for the autopsy report, which has no synoptic workup. */
+  synopticResult?: SynopticResultPayloadV1;
+  /** Batch 426: this workup's own PDF (one PDF per workup), alongside the full report PDF. Best effort:
+   *  the full report PDF is the one a result is held for; this one is left out, with the reason, if it
+   *  can't be made. */
+  workupPdf?: { documentId: string | null; contentType: 'application/pdf'; base64: string }; // null as in header.pdf_document_id
+  workupPdfError?: string;
 }
 
 /**
@@ -160,13 +181,16 @@ export interface OruR01Payload {
  * real, finalized SynopticReportInstance. Returns null honestly (not
  * a fabricated payload) when the case or instance genuinely doesn't
  * exist, or when the case is not reportingMode 'orchestrator' — an
- * assist-mode case is never this function's to build a payload for.
+ * assist-mode case's synoptic data goes out through dispatchAssistSynopticResult.ts.
  * generatePdf/generateNarrativeText are both real, separate, optional
  * steps (the caller's own choice, not this function's default) —
  * both reuse SynopticReportPage.tsx's own real, existing rendering
  * pipeline (the same external service, requesting PDF vs. plain-text
  * output respectively), never a second, independent implementation.
  */
+/** Batch 559: the workup's version isn't known (oruWorkupVersion.ts); the payload is marked, and the message held. */
+class WorkupVersionUnknownError extends Error {}
+
 export async function buildOruR01Payload(
   caseId: string,
   instanceId: string,
@@ -185,8 +209,15 @@ export async function buildOruR01Payload(
   if (caseData.reportingMode !== 'orchestrator') return null;
 
   const instances = caseData.synopticReports ?? [];
-  const instance = instances.find(i => i.instanceId === instanceId);
-  if (!instance) return null;
+  // Batch 393: an autopsy report is one case-level result (resultInstances.ts);
+  // it needs its signed PAD (preliminary) or FAD (final).
+  const isAutopsyReport = instanceId === AUTOPSY_REPORT_INSTANCE_ID && isAutopsyCase(caseData);
+  const instance = isAutopsyReport ? undefined : instances.find(i => i.instanceId === instanceId);
+  if (!isAutopsyReport && !instance) return null;
+  if (isAutopsyReport) {
+    const autopsy = (caseData as any).autopsy;
+    if (!(resultState === 'PRELIMINARY' ? autopsy?.padSnapshot : autopsy?.fadSnapshot)) return null;
+  }
 
   // Real, per direct guidance: reuses the exact same resolveAnswers()
   // rendering this app's own PDF generator already uses — never a
@@ -206,7 +237,7 @@ export async function buildOruR01Payload(
       .filter((i: SynopticReportInstance) => resultState === 'PRELIMINARY' ? true : i.status === 'finalized')
       .map(async (i: SynopticReportInstance) => {
         const detail = await getTemplate(i.templateId);
-        const resolved = resolveAnswers(i.answers ?? {}, detail?.template ?? null);
+        const resolved = resolveAnswers(i.answers ?? {}, detail?.template ?? null, partGridRowsOf(caseData.specimens));
         return { instanceId: i.instanceId, specimenId: i.specimenId, templateName: i.templateName, answers: resolved };
       })
   );
@@ -216,7 +247,15 @@ export async function buildOruR01Payload(
     generateNarrativeText ? generateNarrativeText() : Promise.resolve(undefined),
   ]);
 
-  return {
+  // Batch 426: the structured synoptic result and the workup's own PDF.
+  // Never allowed to stop the result itself: on any failure the result goes without them, with the reason.
+  const workup = instance && resultState !== 'PRELIMINARY'
+    ? await orchestrationWorkup(caseData, instance, resultState).catch(e => (e instanceof WorkupVersionUnknownError
+      ? { result: undefined, pdf: undefined, pdfError: undefined, versionUnknown: true as const }
+      : { result: undefined, pdf: undefined, pdfError: e instanceof Error ? e.message : String(e) }))
+    : undefined;
+
+  const payload: OruR01Payload = {
     messageId: `oru-${caseId}-${instanceId}-${Date.now().toString(36)}`,
     eventType: 'ORU_R01',
     resultState,
@@ -241,7 +280,7 @@ export async function buildOruR01Payload(
       // whichever field a real template author explicitly designated
       // instead — genuinely absent (undefined) rather than a guessed
       // value when no field was designated.
-      diagnosisComment: await resolveFinalDiagnosisText(instance.templateId, instance.answers ?? {}),
+      diagnosisComment: instance ? await resolveFinalDiagnosisText(instance.templateId, instance.answers ?? {}) : undefined,
       preliminaryImpression: resultState === 'PRELIMINARY' ? (caseData.diagnostic?.preliminaryImpression || undefined) : undefined,
       // Real, per this file's own header comment above: only present
       // when caseData.autopsy genuinely exists, and only from the
@@ -265,5 +304,60 @@ export async function buildOruR01Payload(
     structuredDiagnosisAnswers,
     abnormalFlags: caseData.abnormalDetectionStatus ?? undefined,
     reportPdfBase64: pdfResult?.pdfBase64,
+    ...(workup?.result ? { synopticResult: workup.result } : {}),
+    ...(workup?.pdf ? { workupPdf: workup.pdf } : {}),
+    ...(workup?.pdfError ? { workupPdfError: workup.pdfError } : {}),
+  };
+  if (workup && 'versionUnknown' in workup) markWorkupVersionUnknown(payload);
+  return payload;
+}
+
+/** Batch 426: an Orchestration workup's v1.0.0 result and its own PDF. The version is the number of signed
+ *  versions saved for this workup (1 for the first). */
+async function orchestrationWorkup(caseData: any, instance: SynopticReportInstance, resultState: OruResultState) {
+  const [detail, versions, { userService }, labels] = await Promise.all([
+    getTemplate(instance.templateId).catch(() => null),
+    // Batch 558: with the API server, the server's versions are counted too.
+    import('./reportVersionInstance').then(m => m.reportVersionService.getByCaseId(caseData.id)).catch(() => null),
+    import('../users/userServiceInstance').catch(() => ({ userService: null })),
+    import('./resolveReportLocale').then(m => m.resolveReportLocaleForFacility(caseData.order?.facilityId)).catch(() => null),
+  ]);
+  // Batch 559: with the API server, a list that couldn't be read (or was read only in part) would
+  // number the workup too low; the message is held instead (WORKUP_VERSION_UNKNOWN).
+  if (!versions || versions.ok === false || versions.meta?.partial) throw new WorkupVersionUnknownError('the report versions could not all be read');
+  const count = versions.data.filter((v: any) => v.instanceId === instance.instanceId).length;
+  const signerId: string = caseData.finalizedBy ?? '';
+  const user = signerId && userService ? await userService.getById(signerId).catch(() => null) : null;
+  const signedAt: string = caseData.finalizedAt ?? caseData.releasedAt ?? new Date().toISOString();
+  const { DEPLOYMENT_CODE_SYSTEM_VERSIONS, labConsolidatesPdfs } = await import('./dispatchAssistSynopticResultDeps');
+  // Batch 427: a performing lab whose LIS takes one PDF per accession gets only the full report PDF.
+  const consolidated = await labConsolidatesPdfs(caseData.order?.facilityId);
+  const result = buildSynopticResultPayload({
+    mode: 'orchestrator', caseData, instance, template: (detail?.template as any) ?? null,
+    workup: { status: workupStatusFor(resultState), version: Math.max(1, count) },
+    signer: { id: signerId, npi: user && user.ok ? user.data.npi : undefined, signedAt },
+    codeVersions: DEPLOYMENT_CODE_SYSTEM_VERSIONS,
+    ...(consolidated ? { pdfDocumentId: null } : {}),
+  });
+  if (consolidated) return { result, pdf: undefined, pdfError: undefined };
+  const { surgicalReportLabelsFor, formatReportDateOfBirth } = await import('./surgicalReportLabels');
+  const locale = labels?.locale ?? 'en-US';
+  const pdf = await renderWorkupPdf(buildWorkupRenderPayload({
+    result,
+    caseHeader: {
+      accession: result.header.accession_number,
+      patient: [caseData.patient?.lastName, caseData.patient?.firstName].filter(Boolean).join(', '),
+      mrn: caseData.patient?.mrn ?? '', dob: formatReportDateOfBirth(caseData.patient?.dateOfBirth, locale),
+    },
+    signerName: user && user.ok ? [user.data.firstName, user.data.lastName].filter(Boolean).join(' ') : signerId,
+    signedAtDisplay: signedAt,
+    changes: [],
+    language: labels?.language,
+    labels: labels ? (surgicalReportLabelsFor(labels.language) as any) : undefined,
+  }));
+  return {
+    result,
+    pdf: pdf.pdfBase64 ? { documentId: result.header.pdf_document_id, contentType: 'application/pdf' as const, base64: pdf.pdfBase64 } : undefined,
+    pdfError: pdf.pdfBase64 ? undefined : pdf.generationError,
   };
 }

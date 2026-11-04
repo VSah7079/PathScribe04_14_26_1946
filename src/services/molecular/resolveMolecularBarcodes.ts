@@ -17,6 +17,7 @@ function pad(n: number, width: number): string {
 }
 
 function formatDateYyyymmdd(date: Date): string {
+  // eslint-disable-next-line no-restricted-properties -- the date printed in a new barcode is the bench's own date (an identifier, not a stored event's date)
   return `${date.getFullYear()}${pad(date.getMonth() + 1, 2)}${pad(date.getDate(), 2)}`;
 }
 

@@ -54,6 +54,14 @@ const REAL_LIVE_CONTEXTS = new Set([
   'MESSAGES', // set by the messages drawer, not a page — confirmed separately
   'CYTOLOGY', // set by CytologyScreeningPage.tsx's own useEffect — confirmed directly, same pattern as SynopticReportPage.tsx's own SYNOPTIC context
   'GROSSING', // Batch 378: set by GrossingScreenPage.tsx's own useEffect (Complete grossing)
+  'MICROTOMY', // Batch 388: set by MicrotomyWorkstationPage.tsx's own useEffect (add comment, add stain)
+  'EMBEDDING', // Batch 401: set by EmbeddingStationPage.tsx's own useEffect (confirm embedding, add comment)
+  'SLIDE_DISTRIBUTION', // Batch 402: set by SlideDistributionStationPage.tsx's own useEffect (confirm checkout, confirm scanner)
+  'ADD_ON_ORDER', // Batch 403: set by AddOnOrderPage.tsx's own useEffect (add to order, submit order)
+  'BATCH_MANAGEMENT', // Batch 404: set by BatchManagementPage.tsx's own useEffect (create container)
+  'MOLECULAR', // Batch 405: set by MolecularPlateBuilderPage.tsx's own useEffect (create plate)
+  'REQUISITIONS', // Batch 762: set by RequisitionInboxPage (hooks/useRequisitionActionEvents.ts): run ingestion now
+  'LOCKBOX', // Batch 645: set by LockboxDropOffPage.tsx's own useEffect (focus scan field, mark urgent, switch tabs)
 ]);
 
 describe('mockActionRegistryService — real regression guard against orphaned/colliding actions', () => {
@@ -157,11 +165,15 @@ describe('mockActionRegistryService — real regression guard against orphaned/c
       expect(mockAction!.internalKey).toBe(sysAction!.internalKey);
     }
 
-    const allSysKeys = new Set(Object.values(ACTION_MAP).map(a => a.internalKey));
-    for (const mockId of ['SKIP_FIELD', 'FULL_VIEW', 'TABBED_VIEW']) {
+    // Batch 601: these three are different actions that had only accidentally collided (PS-66, so they were
+    // renumbered). They are open/view commands and now have their own roles-list entries, which they alias.
+    const nowOwn: [string, string][] = [['SKIP_FIELD', 'view.skipField'], ['FULL_VIEW', 'view.fullView'], ['TABBED_VIEW', 'view.tabbedView']];
+    for (const [mockId, sysId] of nowOwn) {
       const mockAction = byId.get(mockId);
       expect(mockAction, `expected mock action ${mockId} to exist`).toBeTruthy();
-      expect(allSysKeys.has(mockAction!.internalKey)).toBe(false);
+      expect(mockAction!.internalKey).toBe(ACTION_MAP[sysId as keyof typeof ACTION_MAP].internalKey);
+      const holders = Object.values(ACTION_MAP).filter(a => a.internalKey === mockAction!.internalKey);
+      expect(holders.map(a => a.id)).toEqual([sysId]);
     }
   });
 });

@@ -17,7 +17,7 @@
 
 import type { FrozenCategory } from '@/types/intraop/IntraoperativeEntry';
 import type { QaActivityRecord, QaDiscordanceDelta, QaDiscordanceRootCause, QaDiscordanceSeverity } from '@/types/quality/QaActivityRecord';
-import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from './mockQaActivityTypeService';
+import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
 import type { ResolvedFieldRequirement } from '../fieldRequirements/fieldRequirementRules';
 import { discordanceMissing, discordanceStage, type DiscordanceForm } from '../fieldRequirements/reportPageChecks';
 

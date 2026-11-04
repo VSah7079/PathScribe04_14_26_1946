@@ -22,7 +22,7 @@ Confirmed genuinely used by 3 real components:
 here reads from real, live data sources (`loadRoutingRules()`,
 localStorage-backed TAT entries) — confirmed it has no relationship to
 the disconnected subspecialty data-source bug found and fixed
-elsewhere in this review (`PRIORITY_FIXES.md` item #31); this file was
+elsewhere in this review (`PRIORITY_FIXES.md` item #31 — that review document is no longer in the repo); this file was
 never affected by that.
 
 **Fixed this review:** removed 3 unnecessary `any` casts
@@ -37,3 +37,7 @@ clean compilation after removing each cast.
 ## Batch 353
 
 TAT entries now come from `mockTatTargetService` (`services/tatConfig/`). This file used to import the storage key from the TAT settings component and read browser storage itself.
+
+## Batch 428: Configuration permissions
+
+Comment updated: `ClientDictionaryPage.tsx` was deleted (the Facility Dictionary is the live screen).

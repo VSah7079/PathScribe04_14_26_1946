@@ -1,3 +1,6 @@
+**Batch 711:** `StaffTab.tsx` opens the staff record named by `?staff=<id>` in the address (the link in a password reset request message); `staffIdFromAddress` is in `services/staffPasswords/passwordResetRequestRules.ts`.
+
+
 # components/Config/Staff/
 
 Staff directory and role/permission dictionary.
@@ -7,7 +10,7 @@ Staff directory and role/permission dictionary.
 
 ## Files
 
-- **`RoleDictionary.tsx`** — Real, substantial (613+ lines) two-panel
+- **`RoleDictionary.tsx`** — Real, substantial (~670 lines) two-panel
   role/permission editor (category groups left, permissions/clients/
   cheat-sheet right). Imports `ACTION_GROUPS`/`DEFAULT_ROLE_PERMISSIONS`
   from `constants/systemActions`.
@@ -42,7 +45,7 @@ Staff directory and role/permission dictionary.
   present in the real file — confirmed directly while making this
   change, corrected from this file's own earlier note.
 
-- **`StaffTab.tsx`** — Real staff directory (496+ lines), wired to
+- **`StaffTab.tsx`** — Real staff directory (~910 lines), wired to
   `userService`. **FIXED this pass:** the "add a role" dropdown (chips +
   add-another pattern) used a native `<select>`, whose *open* option list
   is OS-rendered and can't be restyled via CSS regardless of the
@@ -52,11 +55,16 @@ Staff directory and role/permission dictionary.
   dropdown, first real usage of that component). ~36 other native
   `<select>` elements remain across `Config/System/` — logged in
   `PRIORITY_FIXES.md` as a separate, deliberately deferred item; this
-  fix is the proof-of-concept, not a full sweep.
+  fix is the proof-of-concept, not a full sweep. *(Since decided, PS-62,
+  Batch 323: native selects stay native and share one dark open-list
+  style — see `Common/README.md`. Checked in the Batch 496 README audit.)*
 
   **Also, this is where `FppeAssignmentsSection.tsx` (`Config/System/`)
   actually renders** — as this tab's own "Credentialing Review"
-  sub-tab, alongside "Staff Members" and "Role Dictionary." The file
+  sub-tab, alongside "Staff Members" and "Role Dictionary." The same
+  sub-tab also shows `CytotechCompetencyAssignmentsSection.tsx` (also in
+  `Config/System/`); each is wrapped in `ConfigSectionGate`
+  (`staff:fppe`, `staff:cytotech-competency`). The file
   physically lives in `Config/System/` (it's a real, pre-existing
   filing mismatch relative to where it's actually used), not moved as
   part of any pass here.
@@ -99,16 +107,17 @@ Staff directory and role/permission dictionary.
   An admin who doesn't recall a name's spelling but has an NPI, or is
   looking someone up by phone, no longer comes up empty.
 
-- **`AccessRequestsQueue.tsx`** — real feature, per direct follow-up:
-  "Do we Track the request to gain access? I would think that would be
-  a good quality metric. How long did the Admins take, Do we generate
-  a ticket system that has its own status." A real, actionable admin
-  queue for real Pediatric/Pool/Orchestration access requests, backed
-  by `services/access/`. The department-wide turnaround-time rollup
-  built on the same underlying data lives in
-  `components/QualityAssurance/AccessRequestResponseTab.tsx` — this
-  screen is where an admin actually resolves a request; that one is
-  where a manager reviews aggregate response time.
+- **Access requests** — there is no `AccessRequestsQueue.tsx` in this
+  folder (or anywhere in the repo). Pediatric/Pool/Orchestration access
+  requests (`services/access/`) are listed on the Quality Assurance
+  page's **Access Requests** tab
+  (`components/QualityAssurance/AccessRequestResponseTab.tsx`), which
+  shows turnaround and lets an admin **Deny** a pending request with a
+  reason. A request is granted by giving the access itself here in Staff
+  (or in Facility Configuration), which closes it
+  (`services/access/closeGrantedAccessRequests.ts`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `AccessRequestsQueue.tsx` does not exist; access requests are handled as above. Line counts updated; the Credentialing Review sub-tab's second panel added.*
 
 ## Notes
 
@@ -171,7 +180,7 @@ Staff → edit has a **Spelling language** select (id `staff-spelling-locale`), 
 - **`StaffTab.tsx`**: the staff role picker leaves out roles that can't be assigned (Superadmin).
 - **`roleDictionaryControls.tsx`**: `TriCheckbox` / `DivCheckbox`, moved out of `RoleDictionary.tsx` so both tabs use them.
 - **`RoleDictionary.tsx`** takes `actionRegistryService` and `participationTypeService` from `@/services` and is off the deployment baseline.
-- **Unchanged for phase 2 (PS-356):** the role-level Pediatric Access switch and the Facility Access tab. They still do nothing and still show.
+- **Unchanged for phase 2 (PS-356):** the role-level Pediatric Access switch and the Facility Access tab. They still do nothing and still show. *(Since closed: Batch 370 removed both, below — checked in the Batch 496 README audit.)*
 
 ## Batch 370 (PS-356): who can change roles and staff
 
@@ -193,6 +202,72 @@ Pete: hospital administrators have no control over Superadmin.
 - **Its role editor opens read-only**, with a banner saying it's ForMedrixAI's, that it can't be changed or given to anyone, and that support opening a case is audited. There is no Save.
 - **Hospital roles' Capabilities tabs** don't list the ForMedrixAI platform group. Their capability count excludes it too.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+The FPPE and cytotechnologist competency panels are wrapped in `ConfigSectionGate`.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+`?section=members|roles|credentialing` opens a sub-tab (Configuration search, links).
+
+## Batch 437
+
+The Members / Roles / Credentialing tabs ask before leaving unsaved changes (PS-128).
+
+## Batch 441
+
+`RoleDictionary.tsx`: on the Cytotechnologist role, the pathologist participation types are shown locked. Saving the role with one is refused (`roleDictionary.saveErrors.cytotechPathologistType`).
+
+## Batch 448
+
+`StaffSignInPassword.tsx` is Staff → edit → **Sign-in password**:
+- It shows the state: set (with date), must change at next sign-in, the built-in demo password, or none.
+- It offers Set / Reset password (new + confirm, with "must choose a new password at next sign-in", on by default) and Remove password.
+- Like Unlink beside it, it takes effect at once.
+- The buttons need `config:staff-password:manage`, and the service checks it too.
+- On a single-sign-on-only build it explains that the organisation's identity provider manages passwords.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Role Dictionary Capabilities tab (PS-355): click and prompt decisions moved to `services/authorization/capabilityToggle.ts`; the tab is rendered against the real catalog (grouping, counts, prompts, read-only Superadmin).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `RoleDictionary`: built-in role descriptions show in the user's language while they're still the text PathScribe seeded. Once an admin edits one, it shows exactly as typed (`services/roles/builtInRoleText.ts`). Role names stay as stored. The unused `ROLE_META` is removed.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+`TriCheckbox` is a named tri-state checkbox (`aria-checked` true / mixed / false, `label` prop); the participation-type tiles in `RoleDictionary` are checkboxes.
+
+## Batch 528: required fields come from Field Requirements (PS-359)
+
+The Staff editor's stars and save check come from the organisation's Field Requirements (Configuration → System → Field Requirements, page Staff), through `services/staff/staffFormChecks.ts`. First name, last name and a role are always required. When something is missing, the footer says "Still required: …" with the field names.
+
+## Batch 536 (PS-554)
+
+The Role Dictionary and Staff saves pass the staff and role services so separation of duties is checked; a refusal shows `roleDictionary.saveErrors.separationOfDuties` / `…Staff` or `staffTab.access.separationOfDuties`. The Superadmin capability count uses `SUPERADMIN_CAPABILITY_KEYS`.
+
+## Batch 544
+
+The signature is a link to the image in the hospital's own system (`SignatureLink`), not an uploaded file: Pete, Oct 13, 2026, images and attachments are links only.
+- The check is `services/staff/staffFormChecks.ts`.
+- The preview loads once the field is left.
+- A signature saved earlier as an image opens empty, with a note.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+- Batch 608: `StaffTab.tsx` has a Cytology QC reviewer pools field (`qcReviewerRoles`).
+
+**Batch 614:** the action reference (cheat sheet) tab now lists the always-on commands as well as Worklist and Synoptic Report ones, each with its "Alt+J, then X" route (`goToRouteOf`).

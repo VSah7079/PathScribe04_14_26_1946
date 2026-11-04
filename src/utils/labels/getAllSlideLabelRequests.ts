@@ -9,22 +9,22 @@
 // function's only job is gathering what would be printed.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import type { Case } from '@/types/case/Case';
 import { slideIdentifier } from '@/types/labels/LabelData';
 import type { SlideLabelDispatchRequest } from './dispatchSlideLabel';
 
 export function getAllSlideLabelRequests(caseData: Case): SlideLabelDispatchRequest[] {
-  const fullAccession = caseData.accession.fullAccession;
+  // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+  const fullAccession = caseData.accession.fullAccession ?? caseData.id;
   const requests: SlideLabelDispatchRequest[] = [];
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {
       (block.stains ?? []).forEach((stain, idx) => {
-        // Real, deliberate level numbering — matches the same L1/L2/L3
-        // sequential-per-block scheme MaterialTreePanel.tsx's own
-        // SlideChip already displays (position within this specific
-        // block's own stains array, not a case-wide or specimen-wide
-        // counter).
-        const level = `L${idx + 1}`;
+        // Batch 460: the level fixed in the slide's displayId (its position
+        // only for older slides without one), so a label reprinted after
+        // the slides were reordered still matches its barcode.
+        const level = slideLevelOf(stain, idx);
         requests.push({
           fullAccession,
           specimenLabel: specimen.label,
@@ -32,6 +32,7 @@ export function getAllSlideLabelRequests(caseData: Case): SlideLabelDispatchRequ
           level,
           stainName: stain.stainName,
           slideId: slideIdentifier(fullAccession, specimen.label, block.label, level),
+          slideDesignation: caseData.labelStyle?.slide,
         });
       });
     }

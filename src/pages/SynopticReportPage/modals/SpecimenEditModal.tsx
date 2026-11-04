@@ -32,9 +32,19 @@ import { containerTypeService, actionRegistryService, specimenEditProblems, repo
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
 import { formatList } from '@/utils/formatList';
 import type { ContainerType, ContainerCategory } from '@/services/containerTypes/IContainerTypeService';
-import type { Specimen, SpecimenLisStatus, SpecimenComplexity } from '@/types/case/Specimen';
+import type { Specimen, SpecimenComplexity } from '@/types/case/Specimen';
+import { resolveSpecimenLisSyncState } from '@/services/specimens/resolveSpecimenLisSyncState';
 import { findForeignIdCollision } from '@/utils/foreignIdCollision';
 import type { ForeignIdCollision } from '@/utils/foreignIdCollision';
+import { pressable } from '@/utils/a11y/pressable';
+import CameraCaptureControl from '@/components/GrossingHardware/CameraCaptureControl';
+import { captureGrossWeight, auditGrossWeight } from '@/services/grossingHardware/captureGrossWeight';
+import type { GrossWeightSource } from '@/services/grossingHardware/captureGrossWeight';
+import { getSessionUser } from '@/services/auth/caseAccessControl';
+import { useCodePolicy } from '@/pages/Synoptic/Codes/useCodePolicy';
+import { systemAllowed } from '@/services/coding/codePolicyEnforcement';
+import { CodeSystemOffNote } from '@/components/Coding/CodeSystemOffNote';
+import type { DigitalAsset } from '@/types/case/Material';
 
 // ─── Persisted-value label maps ─────────────────────────────────────────────
 // Laterality and container-category values below are real, stored/matched
@@ -105,11 +115,36 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
   useEffect(() => {
     containerTypeService.getAll().then(res => { if (res.ok) setContainerTypes(res.data.filter(c => c.status === 'Active')); });
   }, []);
+  // Batch 614 (PS-762): the Code Systems setting can switch SNOMED off; the fields then stay as they are, read-only, and are not required.
+  const codePolicy = useCodePolicy();
+  const snomedOff = !systemAllowed('SNOMED', codePolicy.policy, codePolicy.today);
   const [snomedCode,  setSnomedCode]  = useState(specimen?.snomedTypeCode        ?? '');
   const [siteCode,    setSiteCode]    = useState(specimen?.snomedSiteCode        ?? '');
   const [dictSearch,  setDictSearch]  = useState('');
   const [selectedEntry, setSelectedEntry] = useState<string | null>(specimen?.specimenDictionaryEntryId ?? null);
   const [complexity, setComplexity] = useState<SpecimenComplexity | undefined>(specimen?.complexity);
+  // Batch 606 (PS-13): gross weight (typed or captured) and gross photos.
+  const [weightG, setWeightG] = useState(specimen?.grossWeightG !== undefined ? String(specimen.grossWeightG) : '');
+  const [weightSource, setWeightSource] = useState<GrossWeightSource | undefined>(specimen?.grossWeightSource);
+  const [weightMessage, setWeightMessage] = useState<string | null>(null);
+  const [capturingWeight, setCapturingWeight] = useState(false);
+  const [grossAssets, setGrossAssets] = useState<DigitalAsset[]>(specimen?.digitalAssets ?? []);
+  const [capturingPhoto, setCapturingPhoto] = useState(false);
+  const sessionUserName = getSessionUser()?.id ?? 'system';
+
+  const handleCaptureWeight = async () => {
+    setCapturingWeight(true);
+    setWeightMessage(null);
+    const res = await captureGrossWeight(undefined, sessionUserName);
+    setCapturingWeight(false);
+    if (res.ok) {
+      setWeightG(String(res.grams));
+      setWeightSource(res.source);
+      setWeightMessage(res.source === 'simulated_scale' ? t('specimenEditModal.weight.simulated') : t('specimenEditModal.weight.fromScale'));
+    } else {
+      setWeightMessage(t(`specimenEditModal.weight.fail.${res.reason}`));
+    }
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Real feature, per direct follow-up: "Specimen/Decant-level foreign
@@ -186,7 +221,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
     if (problems.label === 'required') e.label = t('specimenEditModal.errors.labelRequired');
     if (problems.label === 'exists') e.label = t('specimenEditModal.errors.labelExists', { label: label.trim().toUpperCase() });
     if (problems.missing.includes('specimenDescription')) e.description = t('specimenEditModal.errors.descriptionRequired');
-    const others = problems.missing.filter(id => id !== 'specimenDescription');
+    const others = problems.missing.filter(id => id !== 'specimenDescription' && !(snomedOff && /snomed/i.test(id)));
     if (others.length) {
       e.other = t('fieldRequirements.stillRequired', { fields: formatList(others.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) });
     }
@@ -197,12 +232,8 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
   // ── Save ─────────────────────────────────────────────────────────────────
   const handleSave = () => {
     if (!validate()) return;
-    // Determine LIS sync status for this specimen
-    const lisStatus: SpecimenLisStatus = isOrchestrationMode
-      ? 'local_only'                                      // O26-: goes out with result message
-      : (specimen?.lisStatus === 'lis_owned' || !specimen) // S26-: edited or new
-        ? 'pending_sync'                                  // needs LIS write-back
-        : specimen.lisStatus;                             // preserve sync_sent/rejected
+    // Batch 512: decided in services/specimens/resolveSpecimenLisSyncState.ts.
+    const lisSyncState = resolveSpecimenLisSyncState(isOrchestrationMode);
 
     const built: Specimen = {
       ...(specimen ?? {}),
@@ -211,7 +242,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
       description: description.trim(),
       displayName: `Specimen ${label.trim().toUpperCase()} — ${description.trim()}`,
       active:      true,
-      lisStatus,
+      lisSyncState,
       // Real fix, found while building specimen complexity: selecting
       // a dictionary entry from the left panel never actually
       // persisted the link - selectedEntry was tracked in local state
@@ -230,6 +261,9 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
         laterality: laterality      || undefined,
       },
       container:   container.trim() ? { type: container.trim() } : specimen?.container,
+      grossWeightG: weightG.trim() !== '' && Number.isFinite(Number(weightG)) ? Number(weightG) : undefined,
+      grossWeightSource: weightG.trim() !== '' ? (weightSource ?? 'manual') : undefined,
+      digitalAssets: grossAssets.length > 0 ? grossAssets : specimen?.digitalAssets,
       snomedTypeCode: snomedCode.trim() || undefined,
       snomedSiteCode: siteCode.trim()   || undefined,
       externalId:       externalId.trim()       || undefined,
@@ -237,6 +271,9 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
       createdAt:   specimen?.createdAt ?? new Date().toISOString(),
       updatedAt:   new Date().toISOString(),
     };
+    if (built.grossWeightG !== undefined && built.grossWeightSource === 'manual' && built.grossWeightG !== specimen?.grossWeightG) {
+      auditGrossWeight('manual', built.grossWeightG, sessionUserName);
+    }
     onSave(built);
   };
 
@@ -294,7 +331,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
                     <div
                       key={e.id}
                       className={`ps-specedit-dict-row${selectedEntry === e.id ? ' ps-specedit-dict-row--active' : ''}`}
-                      onClick={() => applyEntry(e.id)}
+                      {...pressable(() => applyEntry(e.id))}
                     >
                       <span className="ps-specedit-dict-name">{e.name}</span>
                       <span className="ps-specedit-dict-meta">
@@ -341,13 +378,45 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             {/* Description */}
             <div className="ps-specedit-field-group">
               <label className={labelClass('specimenDescription')}>{t('specimenEditModal.fields.description')}</label>
-              <input
+              <input aria-label={t('specimenEditModal.fields.description')}
                 className={`ps-specedit-input${errors.description ? ' ps-specedit-input--error' : ''}`}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder={t('specimenEditModal.fields.descriptionPlaceholder')}
               />
               {errors.description && <span className="ps-specedit-error-msg">{errors.description}</span>}
+            </div>
+
+            {/* Batch 606 (PS-13): gross weight with Capture weight, and gross photos. */}
+            <div className="ps-specedit-field-group">
+              <label className="ps-specedit-label" htmlFor="specedit-weight">{t('specimenEditModal.weight.label')}</label>
+              <div className="ps-flex-row-gap-8">
+                <input id="specedit-weight" className="ps-specedit-input" type="number" min="0" step="0.1"
+                  value={weightG}
+                  onChange={e => { setWeightG(e.target.value); setWeightSource('manual'); }} />
+                <button type="button" className="ps-btn-small" disabled={capturingWeight} onClick={handleCaptureWeight}>
+                  {capturingWeight ? t('specimenEditModal.weight.capturing') : t('specimenEditModal.weight.capture')}
+                </button>
+              </div>
+              {weightSource === 'simulated_scale' && <span className="ps-specedit-hint">{t('specimenEditModal.weight.simulatedBadge')}</span>}
+              {weightMessage && <span className="ps-specedit-hint">{weightMessage}</span>}
+            </div>
+            <div className="ps-specedit-field-group">
+              <label className="ps-specedit-label">{t('specimenEditModal.grossPhoto.label')}</label>
+              <div className="ps-blockstain-photo-thumbs">
+                {grossAssets.filter(a => a.kind === 'gross_photo').map(a => (
+                  <img key={a.id} src={a.url} alt={t('specimenEditModal.grossPhoto.alt')} className="ps-blockstain-photo-thumb" />
+                ))}
+              </div>
+              <button type="button" className="ps-btn-small" onClick={() => setCapturingPhoto(true)}>{t('specimenEditModal.grossPhoto.capture')}</button>
+              {capturingPhoto && (
+                <CameraCaptureControl
+                  kind="gross_photo"
+                  capturedBy={sessionUserName}
+                  onCapture={asset => { setGrossAssets(prev => [...prev, asset]); setCapturingPhoto(false); }}
+                  onClose={() => setCapturingPhoto(false)}
+                />
+              )}
             </div>
 
             {/* Complexity */}
@@ -393,7 +462,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('anatomicSite')}>{t('specimenEditModal.fields.anatomicSite')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.anatomicSite')}
                   className="ps-specedit-input"
                   value={bodySite}
                   onChange={e => setBodySite(e.target.value)}
@@ -402,7 +471,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('laterality')}>{t('specimenEditModal.fields.laterality')}</label>
-                <select
+                <select aria-label={t('specimenEditModal.fields.laterality')}
                   className="ps-specedit-input"
                   value={laterality}
                   onChange={e => setLaterality(e.target.value)}
@@ -419,7 +488,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('collectionMethod')}>{t('specimenEditModal.fields.collectionMethod')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.collectionMethod')}
                   className="ps-specedit-input"
                   value={method}
                   onChange={e => setMethod(e.target.value)}
@@ -428,7 +497,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('containerType')}>{t('specimenEditModal.fields.containerType')}</label>
-                <select
+                <select aria-label={t('specimenEditModal.fields.containerType')}
                   className="ps-specedit-input"
                   value={container}
                   onChange={e => setContainer(e.target.value)}
@@ -450,21 +519,24 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
             </div>
 
             {/* SNOMED codes */}
+            {snomedOff && <CodeSystemOffNote systems={['SNOMED']} />}
             <div className="ps-specedit-row-2col">
               <div className="ps-specedit-field-group">
                 <label className={labelClass('snomedTypeCode')}>{t('specimenEditModal.fields.snomedType')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.snomedType')}
                   className="ps-specedit-input"
                   value={snomedCode}
+                  disabled={snomedOff}
                   onChange={e => setSnomedCode(e.target.value)}
                   placeholder={t('specimenEditModal.fields.snomedTypePlaceholder')}
                 />
               </div>
               <div className="ps-specedit-field-group">
                 <label className={labelClass('snomedSiteCode')}>{t('specimenEditModal.fields.snomedSite')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.snomedSite')}
                   className="ps-specedit-input"
                   value={siteCode}
+                  disabled={snomedOff}
                   onChange={e => setSiteCode(e.target.value)}
                   placeholder={t('specimenEditModal.fields.snomedSitePlaceholder')}
                 />
@@ -491,7 +563,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
                     not ps-conf-select, so it never had that sibling
                     bug's dropdown-chevron/placeholder issue. */}
                 <label className="ps-specedit-label">{t('specimenEditModal.fields.referralClient')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.referralClient')}
                   className="ps-specedit-input"
                   value={externalIdSource}
                   onChange={e => setExternalIdSource(e.target.value)}
@@ -501,7 +573,7 @@ const SpecimenEditModal: React.FC<SpecimenEditModalProps> = ({
               </div>
               <div className="ps-specedit-field-group">
                 <label className="ps-specedit-label">{t('specimenEditModal.fields.referralClientId')}</label>
-                <input
+                <input aria-label={t('specimenEditModal.fields.referralClientId')}
                   className="ps-specedit-input"
                   value={externalId}
                   onChange={e => setExternalId(e.target.value)}

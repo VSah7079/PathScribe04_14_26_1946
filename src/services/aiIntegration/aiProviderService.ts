@@ -8,6 +8,11 @@
 //
 // Proxy config lives in vite.config.ts → server.proxy.
 //
+// Batch 536 (PS-558): every call is checked against the AI vendor policy of
+// the jurisdiction the work belongs to before it is sent (aiCallPolicy.ts),
+// and recorded in the AI audit log with its service, model and hosting
+// region. A refused call throws AiNotAvailableError.
+//
 // Provider builders/parsers below are named for their real request/
 // response protocol shape (structured_messages, chat_completions,
 // model_gateway, structured_content) rather than the vendor, matching
@@ -19,16 +24,24 @@
 
 import {
   resolveAiConfig,
-  isDevMode,
+  aiHostingRegion,
   type AiProviderConfig,
   type AiProviderId,
 } from '@/components/Config/AI/aiProviderConfig';
+import { effectiveMaxTokens } from '../models/modelOverrides';
+import { checkAiCall, defaultAiCallPolicyDeps, recordAiCall, type AiCallContext, type AiCallPolicyDeps } from './aiCallPolicy';
 
 export interface AiCallOptions {
   system: string;
   prompt: string;
   maxTokens?: number;
   configOverride?: Partial<AiProviderConfig>;
+  /** Batch 536 (PS-558): what the call is for and where the work belongs
+   *  (the case or facility, for its jurisdiction's AI vendor policy). Without
+   *  it, the laboratory's own jurisdiction applies. Never sent to the AI. */
+  context?: AiCallContext;
+  /** Tests only: the policy dependencies. */
+  policyDeps?: AiCallPolicyDeps;
 }
 
 export interface AiCallResult {
@@ -70,15 +83,11 @@ function buildChatCompletionsRequest(cfg: AiProviderConfig, opts: AiCallOptions)
 }
 
 function buildChatCompletionsManagedRequest(cfg: AiProviderConfig, opts: AiCallOptions): { url: string; headers: Record<string, string>; body: object } {
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const url = devMode
-    ? `${cfg.managedEndpoint}/openai/deployments/${cfg.managedDeploymentName}/chat/completions?api-version=2024-02-15-preview`
-    : `${cfg.proxyUrl}/azure/chat/completions`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (devMode) headers['api-key'] = cfg.apiKey!;
+  // Batch 444: always through the proxy, which holds the endpoint,
+  // deployment and key. The browser never calls the resource directly.
   return {
-    url,
-    headers,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/azure/chat/completions`,
+    headers: { 'Content-Type': 'application/json' },
     body: {
       max_tokens: opts.maxTokens ?? cfg.maxTokens ?? 1000,
       messages: [
@@ -104,14 +113,10 @@ function buildModelGatewayRequest(cfg: AiProviderConfig, opts: AiCallOptions): {
 }
 
 function buildCustomRequest(cfg: AiProviderConfig, opts: AiCallOptions): { url: string; headers: Record<string, string>; body: object } {
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const base    = cfg.customEndpoint ?? cfg.proxyUrl ?? '/api/ai/custom';
-  const url     = devMode ? `${base}/chat/completions` : `${cfg.proxyUrl}/custom/chat/completions`;
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (devMode && cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+  // Batch 444: always through the proxy, which holds the endpoint and key.
   return {
-    url,
-    headers,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/custom/chat/completions`,
+    headers: { 'Content-Type': 'application/json' },
     body: {
       model:      cfg.modelId,
       max_tokens: opts.maxTokens ?? cfg.maxTokens ?? 1000,
@@ -131,12 +136,9 @@ function buildStructuredContentRequest(cfg: AiProviderConfig, opts: AiCallOption
   // injected - deliberately NOT constructing the colon-bearing URL here,
   // same reasoning as that proxy config's own comment (it confuses
   // Vite's proxy router if built client-side).
-  const devMode = isDevMode() && !!cfg.apiKey;
-  const url = devMode
-    ? `https://generativelanguage.googleapis.com/v1beta/models/${cfg.modelId}:generateContent?key=${cfg.apiKey}`
-    : `${cfg.proxyUrl}/gemini/generate?model=${cfg.modelId}`;
+  // Batch 444: always through the proxy; the key is added server-side.
   return {
-    url,
+    url: `${cfg.proxyUrl ?? '/api/ai'}/gemini/generate?model=${encodeURIComponent(cfg.modelId)}`,
     headers: { 'Content-Type': 'application/json' },
     body: {
       contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
@@ -176,14 +178,23 @@ function parseStructuredContentResponse(data: any): string {
 
 // ─── Main entry point ─────────────────────────────────────────
 
-export async function callAi(opts: AiCallOptions): Promise<AiCallResult> {
+export async function callAi(requested: AiCallOptions): Promise<AiCallResult> {
   const cfg: AiProviderConfig = {
     ...resolveAiConfig(),
-    ...opts.configOverride,
+    ...requested.configOverride,
   };
+  // Batch 609 (#173): a model's maxTokens override (Configuration → Models) is a ceiling on
+  // output length: the lower of it and what the caller asked for.
+  const opts: AiCallOptions = requested.configOverride?.maxTokens !== undefined
+    ? { ...requested, maxTokens: effectiveMaxTokens(requested.maxTokens, { configOverrides: { maxTokens: requested.configOverride.maxTokens } }) }
+    : requested;
 
   let request: { url: string; headers: Record<string, string>; body: object };
   let parseResponse: (data: any) => string;
+  // Batch 536: the service the request actually goes to (the fallback below
+  // sends an unknown or 'mock' setting to structured_messages), which is what
+  // the vendor policy checks and the audit log records.
+  let sentTo: AiProviderId = cfg.providerId;
 
   switch (cfg.providerId) {
     case 'structured_messages':
@@ -226,23 +237,37 @@ export async function callAi(opts: AiCallOptions): Promise<AiCallResult> {
       console.warn(`[PathScribe AI] Unknown provider '${(cfg as any).providerId}' — falling back to structured_messages.`);
       request       = buildStructuredMessagesRequest({ ...cfg, providerId: 'structured_messages' }, opts);
       parseResponse = parseStructuredMessagesResponse;
+      sentTo        = 'structured_messages';
   }
 
-  const response = await fetch(request.url, {
-    method:  'POST',
-    headers: request.headers,
-    body:    JSON.stringify(request.body),
-  });
+  // Batch 536 (PS-558): the jurisdiction's AI vendor policy, before anything
+  // is sent. A refusal throws AiNotAvailableError; there is no fallback to
+  // another service.
+  const policyDeps = opts.policyDeps ?? defaultAiCallPolicyDeps;
+  const target = { providerId: sentTo, modelId: cfg.modelId, region: aiHostingRegion({ ...cfg, providerId: sentTo }) };
+  const where = await checkAiCall(target, opts.context, policyDeps);
+  const started = Date.now();
 
-  if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    throw new Error(
-      `[PathScribe AI] ${cfg.providerId} returned ${response.status}: ${errorBody.slice(0, 200)}`
-    );
+  try {
+    const response = await fetch(request.url, {
+      method:  'POST',
+      headers: request.headers,
+      body:    JSON.stringify(request.body),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      throw new Error(
+        `[PathScribe AI] ${cfg.providerId} returned ${response.status}: ${errorBody.slice(0, 200)}`
+      );
+    }
+
+    const data = await response.json();
+    const text = parseResponse(data);
+    recordAiCall(target, opts.context, where, { status: 'completed', latencyMs: Date.now() - started, text }, policyDeps);
+    return { text, provider: sentTo, model: cfg.modelId };
+  } catch (e) {
+    recordAiCall(target, opts.context, where, { status: 'error', latencyMs: Date.now() - started, error: e instanceof Error ? e.message : String(e) }, policyDeps);
+    throw e;
   }
-
-  const data = await response.json();
-  const text = parseResponse(data);
-
-  return { text, provider: cfg.providerId, model: cfg.modelId };
 }

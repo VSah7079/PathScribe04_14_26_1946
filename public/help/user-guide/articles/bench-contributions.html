@@ -1,0 +1,263 @@
+<h1 id="top">Bench Contributions</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Bench Contributions shows how bench work is going over the last 30 days: how many cases you accessioned, how many items you added to batches, how long batches are waiting, how long specimens take to move from one stage to the next, and how your molecular runs performed on quality control.</p>
+<p><strong>Intended users.</strong> Bench roles such as histotechnologists, pathology assistants and laboratory managers. The tile appears only if your role may open it.</p>
+<p><strong>Where it fits.</strong> Open it from the Home Dashboard when you want to review your work. It is a single page that you scroll; it has no buttons and changes nothing. The work itself is done in the <a href="/help/pathology-workspace">Pathology Workspace</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/bench-contributions-overview.png" alt="The Bench Contributions page with its five tiles"><figcaption>The Bench Contributions page with its five tiles</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">Your figures, and the shared ones</p>
+<p>The page title line shows your name and says which figures are yours and which are laboratory-wide: your accessioning, batch and molecular QC activity, plus laboratory-wide queue aging and turnaround, for the last 30 days. Accessioning Rate, My Batch Throughput and Molecular QC count only your own work. Queue Aging and Stage-to-Stage TAT cover the whole laboratory, not just you.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>Figures are worked out from the cases and batches held in the system. In a demonstration setup these are demonstration cases and batches, so the numbers are not real laboratory results.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p>Every figure uses the last 30 days. Days are counted in your facility's local time, not the time on your device. A figure that cannot be worked out is shown as a dash (—).</p>
+<p><strong>Accessioning Rate</strong> (yours)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cases accessioned</td>
+<td>The number of cases you accessioned in the last 30 days.</td>
+</tr>
+<tr>
+<td>Per active hour</td>
+<td>Cases accessioned divided by the number of different clock hours in which you accessioned at least one case. It is not divided by a full shift, so hours when you accessioned nothing do not count.</td>
+</tr>
+</tbody>
+</table>
+<p>Under the two figures, a <strong>Daily accessioning</strong> chart shows one bar for each day of the window, oldest on the left. A day with no cases has a short grey bar, and pointing at a bar shows the date and the count. The bars are scaled to your busiest day.</p>
+<p>When you accessioned nothing in the window, the tile says "No accessioning activity in this window."</p>
+<p><strong>My Batch Throughput</strong> (yours)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Node name (for example Embedding, Microtome / Sectioning, Staining)</td>
+<td>One box for each processing step where you added items.</td>
+</tr>
+<tr>
+<td>Items added</td>
+<td>How many items (cassettes or slides) you personally added to batches at that step in the last 30 days. It counts who added the item, not who created the batch.</td>
+</tr>
+</tbody>
+</table>
+<p>Steps with no items from you are left out. When there are none, the tile says "No batch activity in this window."</p>
+<p><strong>Queue Aging — All Techs</strong> (the whole laboratory)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open batches</td>
+<td>Batches at that step that are still Active or Reconciling right now.</td>
+</tr>
+<tr>
+<td>Oldest open batch</td>
+<td>How long, in hours, the oldest of those batches has existed since it was created.</td>
+</tr>
+<tr>
+<td>Average age</td>
+<td>The average age, in hours, of all open batches at that step.</td>
+</tr>
+</tbody>
+</table>
+<p>This answers "what is backing up right now". It is not limited to your own batches or to the 30-day window. When nothing is open, the tile says "No open batches at this node."</p>
+<p><strong>Stage-to-Stage TAT</strong> (the whole laboratory)</p>
+<p>Turnaround time (TAT) is the time between two stages for the same cassette or slide. Each box is named <em>group · from stage → to stage</em>.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Surgical</td>
+<td>Accessioning → Embedding, then Embedding → Staining.</td>
+</tr>
+<tr>
+<td>Cytology</td>
+<td>Accessioning → Cytology Processing, then Cytology Processing → Cytology Staining.</td>
+</tr>
+<tr>
+<td>Mean</td>
+<td>The average time in hours between the two stages.</td>
+</tr>
+<tr>
+<td>Median</td>
+<td>The middle time in hours: half of the items were faster, half slower. It is less affected by a few very slow items.</td>
+</tr>
+<tr>
+<td>Samples</td>
+<td>How many items passed through both stages in the window.</td>
+</tr>
+</tbody>
+</table>
+<p>Only these named stage pairs are shown, and only pairs with at least one sample appear. When there are none, the tile says "No specimens passed through both stages in this window." The "Accessioning" time is the moment the case was accessioned, and it counts only if that happened inside the 30-day window.</p>
+<p><strong>Molecular QC</strong> (yours)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batches</td>
+<td>The number of molecular batches you created in the last 30 days.</td>
+</tr>
+<tr>
+<td>Pass rate</td>
+<td>Of the batches whose controls have a recorded result, the share where the controls passed. Batches still waiting for results are left out; they are not counted as failures.</td>
+</tr>
+<tr>
+<td>Controls evaluated</td>
+<td>The number of batches that have a recorded control result, which is the base for the pass rate.</td>
+</tr>
+<tr>
+<td>Rerun rate</td>
+<td>The share of your batches that were later replaced by a rerun.</td>
+</tr>
+</tbody>
+</table>
+<p>When you created no molecular batches in the window, the tile says "No molecular batches in this window."</p>
+<h3 id="toolbar">Toolbar</h3>
+<p>The page has no toolbar and no buttons. Scroll to see all five tiles.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>— (dash)</td>
+<td>There is not enough activity to work out the figure.</td>
+</tr>
+<tr>
+<td>Number followed by h</td>
+<td>A time in hours, rounded to one decimal place.</td>
+</tr>
+<tr>
+<td>Percentage</td>
+<td>A rate, rounded to a whole number.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this page. Alt+H (Go Home) returns to Home, and F1 (View Help) opens this page.</p>
+<div class="admonition note">
+<p class="admonition-title">Not shown today</p>
+<p>The page works out a day-by-day count of your accessioning, but no daily chart is displayed. Only the totals above are shown.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>On the Home Dashboard, select the <strong>Bench Contributions</strong> tile. The page opens and the figures fill in.</li>
+<li>Read <strong>Accessioning Rate</strong> for your cases accessioned and your rate per active hour.</li>
+<li>Read <strong>My Batch Throughput</strong> to see where you added items.</li>
+<li>Read <strong>Queue Aging — All Techs</strong> to see which steps have old open batches.</li>
+<li>Read <strong>Stage-to-Stage TAT</strong> to compare mean and median times between stages.</li>
+<li>Read <strong>Molecular QC</strong> for your pass rate and rerun rate.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Press F1 on this page for this guide page.</li>
+<li>Laboratory managers can use Queue Aging and Stage-to-Stage TAT to decide where to add staff or move work.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a tile says there was no activity, you did not do that kind of work in the last 30 days, or nothing has been recorded yet.</li>
+<li>If a figure is a dash, there is not enough data to work it out.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the figures do not appear, refresh the page.</li>
+<li>If the page is still empty, sign out and sign in again. Your figures depend on being signed in as yourself.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading Queue Aging or Stage-to-Stage TAT as your own performance. They describe the whole laboratory.</li>
+<li>Treating a low Per active hour figure as slow work. It counts only the hours in which you accessioned, so it is a rate for busy hours.</li>
+<li>Reading a pass rate as complete when many batches are still waiting for results.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Compare the median with the mean: a mean much higher than the median means a few items waited very long.</li>
+<li>Check Queue Aging at the start of a shift to see where to help first.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review the page weekly with your supervisor.</li>
+<li>Use a rising rerun rate as a prompt to review controls and instrument checks in the <a href="/help/pathology-workspace">Pathology Workspace</a>.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Home Dashboard: the page opens from its <strong>Bench Contributions</strong> tile.</li>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: the bench work that these figures count.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: act on a backlog.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A tile says there was no activity</td>
+<td>Nothing of that kind in the last 30 days.</td>
+</tr>
+<tr>
+<td>Molecular QC pass rate is a dash</td>
+<td>No batch has a recorded control result yet.</td>
+</tr>
+<tr>
+<td>Stage-to-Stage TAT is empty</td>
+<td>No item passed through both stages inside the window, or the case was accessioned before the window began.</td>
+</tr>
+<tr>
+<td>The Bench Contributions tile is missing</td>
+<td>Your role does not include this page.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Refresh the page.</li>
+<li>Sign out and sign in again.</li>
+<li>Ask your laboratory manager to confirm your access and that your bench work is recorded under your own sign-in.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when figures look wrong for work you know you did, or when the page will not load. Have your name and the time of the problem ready.</p>

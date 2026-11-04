@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/interfaceExceptions/
 
 Real feature, per direct architecture confirmation, originally built
@@ -51,7 +53,7 @@ real exception (`eventType: 'unmapped_order_code'`) from
 Crosswalk has no match in any coding system tried, alongside — not
 instead of — its existing auto-create-and-continue fallback; then a
 new conditional panel in `InterfaceExceptionReviewModal.tsx` below for
-that `eventType`.
+that `eventType`. *(Since done: `mockOrderIntakeService.ts` raises `unmapped_order_code` exceptions, and `InterfaceExceptionReviewModal.tsx` resolves them with Map & Link — see below; checked in the Batch 496 README audit.)*
 
 ## Files
 
@@ -167,3 +169,11 @@ account of both changes.
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 605
+
+`bindPatientManagementException.ts` lets a user bind an unresolved A40, A24 or A47 exception to a patient by hand (merge, link or add identifier), resolves the exception and audits it. The Interface Exception review window has the search-and-apply controls.
+
+## Batch 616 (part E) — server version
+
+API-server version of `InterfaceException` (`httpInterfaceExceptionService.ts`, contract `INTERFACE_EXCEPTIONS_API.md`), picked by `interfaceExceptionServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

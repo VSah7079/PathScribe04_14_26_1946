@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import type { Case } from '@/types/case/Case';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 interface SequencerPanelProps {
   show:                   boolean;
@@ -207,7 +208,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                   onDrop={e => onDropSp(e, row.specimenId)}
                   onDragEnd={() => setDragSrc(null)}
                 >
-                  <div className="ps-seq-specimen-header" onClick={() => toggleExpand(row.specimenId)}>
+                  <div className="ps-seq-specimen-header" {...pressable(() => toggleExpand(row.specimenId))}>
                     <svg width="12" height="14" viewBox="0 0 12 14" fill="#475569" aria-hidden="true" className="ps-seq-drag-handle">
                       <circle cx="3.5" cy="3" r="1.2"/><circle cx="8.5" cy="3" r="1.2"/>
                       <circle cx="3.5" cy="7" r="1.2"/><circle cx="8.5" cy="7" r="1.2"/>
@@ -235,7 +236,7 @@ const SequencerPanel: React.FC<SequencerPanelProps> = ({
                             onDragOver={e => { if (dragSrc?.level === 'synoptic' && dragSrc.parentId === row.specimenId) e.preventDefault(); }}
                             onDrop={e => onDropSyn(e, syn.instanceId, row.specimenId)}
                             onDragEnd={() => setDragSrc(null)}
-                            onClick={() => onSelectReport(syn.instanceId, row.specimenId)}
+                            {...pressable(() => onSelectReport(syn.instanceId, row.specimenId))}
                           >
                             <svg width="10" height="12" viewBox="0 0 12 14" fill="#475569" aria-hidden="true" className="ps-seq-drag-handle">
                               <circle cx="3.5" cy="3" r="1.2"/><circle cx="8.5" cy="3" r="1.2"/>
@@ -344,11 +345,16 @@ const PreviewPane: React.FC<{
               return (
                 <div
                   key={syn.instanceId}
-                  onClick={() => onSelectReport(syn.instanceId, row.specimenId)}
+                  // Batch 567 (axe nested-interactive): the card holds its own "more fields" / "show less" controls, so
+                  // it isn't a button itself; clicking it still opens the report, and its name is the button for the keyboard.
+                  {...clickableContainer(() => onSelectReport(syn.instanceId, row.specimenId))}
                   className={`ps-seq-preview-syn${isActive ? ' ps-seq-preview-syn--active' : ' ps-seq-preview-syn--default'}`}
                 >
                   <div className="ps-seq-preview-syn-title">
-                    {syn.templateName}
+                    <button type="button" className="ps-row-open-btn" aria-current={isActive ? 'true' : undefined}
+                      onClick={e => { e.stopPropagation(); onSelectReport(syn.instanceId, row.specimenId); }}>
+                      {syn.templateName}
+                    </button>
                     {isActive && <span className="ps-seq-syn-active-badge">{t('sequencerPanel.activeBadge')}</span>}
                   </div>
                   {answeredFields.length === 0 ? (
@@ -364,10 +370,10 @@ const PreviewPane: React.FC<{
                   {overflow > 0 && (
                     <div
                       className="ps-seq-overflow-link"
-                      onClick={e => {
+                      {...pressable(e => {
                         e.stopPropagation();
                         setExpandedSynoptics(prev => new Set(prev).add(syn.instanceId));
-                      }}
+                      })}
                     >
                       {t('sequencerPanel.preview.moreFields', { count: overflow })}
                     </div>
@@ -375,10 +381,10 @@ const PreviewPane: React.FC<{
                   {isExpanded && answeredFields.length > 6 && (
                     <div
                       className="ps-seq-collapse-link"
-                      onClick={e => {
+                      {...pressable(e => {
                         e.stopPropagation();
                         setExpandedSynoptics(prev => { const next = new Set(prev); next.delete(syn.instanceId); return next; });
-                      }}
+                      })}
                     >
                       {t('sequencerPanel.preview.showLess')}
                     </div>

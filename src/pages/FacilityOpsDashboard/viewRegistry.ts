@@ -9,13 +9,15 @@ import { computeEmbeddingMicrotomySummary } from '@/services/facilityOpsDashboar
 import { computeStainingIhcSummary } from '@/services/facilityOpsDashboard/computeStainingIhcSummary';
 import { computeSendOutReferenceSummary } from '@/services/facilityOpsDashboard/computeSendOutReferenceSummary';
 import { computeDiagnosticSignOutSummary } from '@/services/facilityOpsDashboard/computeDiagnosticSignOutSummary';
+import { computeStationOverviewSummary } from '@/services/facilityOpsDashboard/computeStationOverviewSummary';
 import type { DashboardViewId } from '@/services/facilityOpsDashboard/IDisplayProfileService';
-import type { DashboardSummary } from '@/services/facilityOpsDashboard/IFacilityOpsDashboardTypes';
+import type { DashboardSummary, DashboardViewOptions } from '@/services/facilityOpsDashboard/IFacilityOpsDashboardTypes';
 
 export interface DashboardViewMeta {
   id: DashboardViewId;
   titleKey: string;
-  compute: (facilityId: string | undefined) => Promise<DashboardSummary>;
+  /** Batch 727: and the profile's options (time X). */
+  compute: (facilityId: string | undefined, options?: DashboardViewOptions) => Promise<DashboardSummary>;
 }
 
 export const DASHBOARD_VIEW_REGISTRY: Record<DashboardViewId, DashboardViewMeta> = {
@@ -24,4 +26,5 @@ export const DASHBOARD_VIEW_REGISTRY: Record<DashboardViewId, DashboardViewMeta>
   staining_ihc: { id: 'staining_ihc', titleKey: 'facilityOpsDashboard.views.stainingIhc', compute: computeStainingIhcSummary },
   sendout_reference: { id: 'sendout_reference', titleKey: 'facilityOpsDashboard.views.sendoutReference', compute: computeSendOutReferenceSummary },
   diagnostic_signout: { id: 'diagnostic_signout', titleKey: 'facilityOpsDashboard.views.diagnosticSignout', compute: computeDiagnosticSignOutSummary },
+  station_overview: { id: 'station_overview', titleKey: 'facilityOpsDashboard.views.stationOverview', compute: computeStationOverviewSummary },
 };

@@ -1,5 +1,10 @@
 // src/services/auth/linkedAccounts.test.ts — Batch 345 (PS-60 follow-up)
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import type { StaffUser } from '../users/IUserService';
 import type { NewAuditLog } from '../auditlog/IAuditService';
 import { describeLinkedAccounts, unlinkExternalIdentity } from './linkedAccounts';

@@ -23,6 +23,12 @@
 
 import type { AbnormalSeverity, SyntheticCodingTerm } from './IAbnormalTriggerRuleService';
 
+/** Batch 652: a term from the TEST- systems is a demonstration code, never a real SNOMED CT or ICD-O-3 code.
+ *  The screen labels it as such. A real licensed term (system 'SNOMED-CT' / 'ICD-O-3') is not. */
+export function isDemonstrationCode(term: { system: string }): boolean {
+  return term.system.startsWith('TEST-');
+}
+
 const SYNTHETIC_MAP: Record<AbnormalSeverity, SyntheticCodingTerm[]> = {
   Abnormal: [
     { system: 'TEST-SNOMED', code: 'TEST-SNOMED-000001', display: '[SYNTHETIC — TEST ONLY] Abnormal finding, architecture test' },

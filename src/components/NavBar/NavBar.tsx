@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
-import { useNavigate } from 'react-router';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import '../../pathscribe.css';
+import '../Touch/touchChrome.css';
+import { useVisibleHeightVar } from '@/hooks/useVisibleHeightVar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMessaging } from '../../contexts/MessagingContext';
 import { EnhancementRequestButton } from '../EnhancementRequest/EnhancementRequestButton';
-import { loadEnhancementConfig } from '../../services/enhancementRequestService';
 import { VoiceToggleButton } from '../Voice/VoiceToggleButton';
+import TopBarHelpButtons from '../Help/TopBarHelpButtons';
 import { NavBarScanStation } from './NavBarScanStation';
 import LanguageSwitcher from './LanguageSwitcher';
 import CaseSearchBar from '../Search/CaseSearchBar';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
+import { useReadyExportCount } from '@/hooks/useMyExports';
 import { VoiceCommandOverlay } from '../Voice/VoiceCommandOverlay';
 import { VoiceMissPrompt } from '../Voice/VoiceMissPrompt';
 import { isConstrainedMobileDevice, hasDesktopViewOverride, clearDesktopViewOverride } from '../../utils/deviceDetection';
 import { useCompanionWindow } from '@hooks/useCompanionWindow';
+import { checkAiProxyStatus, feedbackSettingsService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const VOICE_SHOW_SUCCESS = import.meta.env.DEV;
 
@@ -84,22 +91,24 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
   const [structuredMessagesOk, setStructuredMessagesOk] = useState<boolean | null>(null);
   const [structuredContentOk,   setStructuredContentOk]   = useState<boolean | null>(null);
 
-  const aiProvider = import.meta.env.VITE_AI_PROVIDER   ?? 'structured_messages';
-  const aiModel    = import.meta.env.VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
-  const aiDevMode  = import.meta.env.VITE_AI_DEV_MODE   === 'true';
-  const geminiKey  = import.meta.env.VITE_GEMINI_API_KEY ?? '';
+  const aiProvider = appEnv().VITE_AI_PROVIDER   ?? 'structured_messages';
+  const aiModel    = appEnv().VITE_AI_MODEL       ?? 'claude-sonnet-4-6';
   const envMode    = import.meta.env.MODE ?? 'development';
   const buildDate  = new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' });
 
+  // Batch 444: asks the AI proxy, which holds the keys; the browser sends none.
   useEffect(() => {
-    fetch('https://api.anthropic.com/v1/models', {
-      headers: { 'x-api-key': import.meta.env.VITE_AI_API_KEY ?? '', 'anthropic-version': '2023-06-01' }
-    }).then(r => setStructuredMessagesOk(r.ok)).catch(() => setStructuredMessagesOk(false));
-    setStructuredContentOk(!!geminiKey);
-  }, [geminiKey]);
+    let live = true;
+    void checkAiProxyStatus().then(s => {
+      if (!live) return;
+      setStructuredMessagesOk(s.structuredMessages);
+      setStructuredContentOk(s.structuredContent);
+    });
+    return () => { live = false; };
+  }, []);
 
   const handleCopy = () => {
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
     const text = [
       `PathScribe AI v${__APP_VERSION__} — Support Report`,
       `Generated: ${now}`,
@@ -119,8 +128,8 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
       `AI PROVIDER`,
       `  Provider: ${aiProvider}`,
       `  Model:    ${aiModel}`,
-      `  Mode:     ${aiDevMode ? 'Dev (direct API)' : 'Proxy'}`,
-      `  Voice AI: ${geminiKey ? 'Gemini active' : 'Local only'}`,
+      `  Mode:     Proxy`,
+      `  Voice AI: ${structuredContentOk ? 'Gemini active' : 'Local only'}`,
       ``,
       `SYSTEM`,
       `  Browser:  ${getBrowserInfo()}`,
@@ -130,7 +139,7 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
       ``,
       `API STATUS`,
       `  Anthropic: ${structuredMessagesOk === null ? 'Checking...' : structuredMessagesOk ? '✅ Connected' : '❌ Failed'}`,
-      `  Gemini:    ${structuredContentOk ? '✅ Configured' : '⚠️  Not configured'}`,
+      `  Gemini:    ${structuredContentOk === null ? 'Checking...' : structuredContentOk ? '✅ Configured' : '⚠️  Not configured'}`,
       `─────────────────────────────────────`,
     ].join('\n');
     navigator.clipboard.writeText(text).then(() => {
@@ -184,8 +193,8 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
           <SectionLabel>{t('navBar.systemInfo.sectionAiProvider')}</SectionLabel>
           <Row label={t('navBar.systemInfo.provider')} value={aiProvider} />
           <Row label={t('navBar.systemInfo.model')}    value={<code>{aiModel}</code>} />
-          <Row label={t('navBar.systemInfo.apiMode')} value={aiDevMode ? t('navBar.systemInfo.devDirectApi') : t('navBar.systemInfo.proxy')} />
-          <Row label={t('navBar.systemInfo.voiceAi')} value={geminiKey ? t('navBar.systemInfo.geminiActive') : t('navBar.systemInfo.localOnly')} />
+          <Row label={t('navBar.systemInfo.apiMode')} value={t('navBar.systemInfo.proxy')} />
+          <Row label={t('navBar.systemInfo.voiceAi')} value={structuredContentOk ? t('navBar.systemInfo.geminiActive') : t('navBar.systemInfo.localOnly')} />
 
           <SectionLabel>{t('navBar.systemInfo.sectionBrowserSystem')}</SectionLabel>
           <Row label={t('navBar.systemInfo.browser')}    value={getBrowserInfo()} />
@@ -195,7 +204,7 @@ export const SystemInfoModal: React.FC<SystemInfoModalProps> = ({ onClose }) => 
 
           <SectionLabel>{t('navBar.systemInfo.sectionApiConnectivity')}</SectionLabel>
           <Row label={t('navBar.systemInfo.anthropic')}     value={<><StatusDot ok={structuredMessagesOk} />{structuredMessagesOk === null ? t('navBar.systemInfo.checking') : structuredMessagesOk ? t('navBar.systemInfo.connected') : t('navBar.systemInfo.failed')}</>} />
-          <Row label={t('navBar.systemInfo.gemini')}        value={<><StatusDot ok={structuredContentOk} />{structuredContentOk ? t('navBar.systemInfo.configured') : t('navBar.systemInfo.notConfigured')}</>} />
+          <Row label={t('navBar.systemInfo.gemini')}        value={<><StatusDot ok={structuredContentOk} />{structuredContentOk === null ? t('navBar.systemInfo.checking') : structuredContentOk ? t('navBar.systemInfo.configured') : t('navBar.systemInfo.notConfigured')}</>} />
           <Row label={t('navBar.systemInfo.nlmTerminology')} value={<><StatusDot ok={true} />{t('navBar.systemInfo.available')}</>} />
           <Row label={t('navBar.systemInfo.secureEmail')}    value={<><StatusDot ok={null} />{t('navBar.systemInfo.notWiredStub')}</>} />
         </div>
@@ -238,7 +247,12 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
   const capabilities                               = useCapabilities();
   const { unreadCount, hasUrgent, setPortalOpen } = useMessaging();
   const messagesLabel = unreadCount > 0 ? t('navBar.messagesUnread', { count: unreadCount }) : t('navBar.messages');
+  // Batch 425: registry submissions needing a person (own organisation), for those who can open the worklist.
+  const registryExceptionCount = useRegistryExceptionCount();
+  const myExports = useReadyExportCount();
   const [linksOpen, setLinksOpen]                 = useState(false);
+  // Batch 736: --ps-visible-height follows the on-screen keyboard (the header search's results stay above it).
+  useVisibleHeightVar();
   // Reference material, not patient context: closeOnUnmount is false so
   // navigating to another page doesn't shut a protocol page the user is
   // still reading — same reasoning and same hook as PubMedTicker.tsx's
@@ -268,8 +282,16 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
     });
   };
   const [sysInfoOpen, setSysInfoOpen]             = useState(false);
-  const qaEnabled = loadEnhancementConfig().qaEnabled;
-  const navigate = useNavigate();
+  // Batch 447: Configuration → System → Feedback decides (by default, shown on
+  // a validation instance and hidden in production).
+  const [qaEnabled, setQaEnabled] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void feedbackSettingsService.qaButtonShown().then(shown => { if (live) setQaEnabled(shown); });
+    return () => { live = false; };
+  }, []);
+  // PS-128 (Batch 437): through the unsaved-changes guard, like the logo.
+  const navigate = useGuardedNavigate();
   // Real fix for a genuine, reported gap: setDesktopViewOverride() had no
   // way back. isConstrainedMobileDevice is checked once (the device's own
   // characteristic, not something that changes mid-session, matching the
@@ -347,7 +369,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
             src="/pathscribe-logo-clean.png"
             alt="PathScribe"
             className="ps-nav-logo"
-            onClick={onLogoClick}
+            {...pressable(onLogoClick)}
           />
           <div className="ps-nav-divider" />
           <span data-voice-target="enhancement-request"><EnhancementRequestButton /></span>
@@ -370,7 +392,7 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
             <button
               type="button"
               className="ps-nav-btn nb-focused-mode-btn"
-              onClick={() => { clearDesktopViewOverride(); navigate('/intraop-queue'); }}
+              onClick={() => navigate('/intraop-queue', clearDesktopViewOverride)}
               title={t('navBar.switchBackToFocusedMode')}
             >
               {t('navBar.focusedMode')}
@@ -415,6 +437,9 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
             <VoiceToggleButton />
           </div>
 
+          {/* Help (Batch 668): the User Guide page for this screen, and the Administrator Guide section where there is one */}
+          <TopBarHelpButtons />
+
           {/* Messages */}
           <button type="button" className="ps-nav-btn nb-messages-btn" onMouseDown={e => e.preventDefault()}
             onClick={() => setPortalOpen(true)}
@@ -429,6 +454,39 @@ const NavBar: React.FC<NavBarProps> = ({ onLogoClick, onLogout, onProfileClick }
               {unreadCount > 0 && <div className="ps-nav-badge">{unreadCount}</div>}
             </div>
           </button>
+
+          {/* Batch 425: Registry Exceptions, with the live count. */}
+          {registryExceptionCount !== null && registryExceptionCount > 0 && (
+            <button type="button" className="ps-nav-btn nb-regx-btn" onMouseDown={e => e.preventDefault()}
+              onClick={() => navigate('/registry-exceptions')}
+              aria-label={t('navBar.registryExceptions', { count: registryExceptionCount })}
+              title={t('navBar.registryExceptions', { count: registryExceptionCount })}>
+              <div className="nb-messages-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <div className="ps-nav-badge">{registryExceptionCount}</div>
+              </div>
+            </button>
+          )}
+
+          {/* Batch 550 (PS-539 D7): My exports, with the API server only; the badge counts exports ready to download. */}
+          {myExports.viaServer && (
+            <button type="button" className="ps-nav-btn nb-exports-btn" onMouseDown={e => e.preventDefault()}
+              onClick={() => navigate('/my-exports')}
+              aria-label={myExports.ready > 0 ? t('navBar.myExportsReady', { count: myExports.ready }) : t('navBar.myExports')}
+              title={myExports.ready > 0 ? t('navBar.myExportsReady', { count: myExports.ready }) : t('navBar.myExports')}>
+              <div className="nb-messages-icon-wrap">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                {myExports.ready > 0 && <div className="ps-nav-badge">{myExports.ready}</div>}
+              </div>
+            </button>
+          )}
 
           {/* Clinical Links */}
           <button type="button" className="ps-nav-btn" onMouseDown={e => e.preventDefault()}

@@ -34,6 +34,8 @@ export interface IReferralTrackingService {
   /** Creates the real, initial tracking record the moment a referral
    *  manifest is dispatched — transitStatus starts at 'dispatched'. */
   createOnDispatch(batchId: string): Promise<ServiceResult<ReferralTracking>>;
+  /** Batch 432: set by hand; needs referral:transit-status:update and only
+   *  moves forward to in transit or delivered (referralTransitRules.ts). */
   updateTransitStatus(batchId: string, status: ReferralTransitStatus): Promise<ServiceResult<ReferralTracking>>;
   recordResult(batchId: string, result: { resultType: 'discrete' | 'pdf_attachment'; discreteResult?: string; pdfAttachmentUrl?: string }): Promise<ServiceResult<ReferralTracking>>;
 }

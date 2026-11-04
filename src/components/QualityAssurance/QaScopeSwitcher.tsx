@@ -10,11 +10,13 @@
 // existing exact-text match, so they got new keys.
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockFacilityService, type Facility } from '@/services/facilities/mockFacilityService';
+
 import { listOrganisations } from '@/services/organisation/organisationService';
 import type { Organisation } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import type { QaScope } from './qaReportUtils';
+import { facilityService, type Facility } from '@/services';
+import { qaScopeFacilityOptions } from '@/services/qualityAssurance/qaScopeRows';
 
 interface Props {
   scope: QaScope;
@@ -40,6 +42,12 @@ interface Props {
    * original behavior for any caller that hasn't been updated yet.
    */
   visibleClientIds?: string[];
+  /**
+   * Batch 544: offer facilities only, no organisations, for a report whose
+   * rows carry a facility but no case (FPPE): an organisation can't be told
+   * from a facility (services/qualityAssurance/qaScopeRows.ts).
+   */
+  facilitiesOnly?: boolean;
 }
 
 // Prefixed values disambiguate organisation vs. client selections within
@@ -50,25 +58,23 @@ interface Props {
 const ORG_PREFIX = 'org:';
 const CLIENT_PREFIX = 'client:';
 
-export const QaScopeSwitcher: React.FC<Props> = ({ scope, onChange, visibleClientIds }) => {
+export const QaScopeSwitcher: React.FC<Props> = ({ scope, onChange, visibleClientIds, facilitiesOnly }) => {
   const { t } = useTranslation();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   useEffect(() => {
-    mockFacilityService.getAll().then(res => { if (res.ok) setFacilities(res.data.filter(c => c.status === 'Active')); });
+    facilityService.getAll().then(res => { if (res.ok) setFacilities(res.data.filter(c => c.status === 'Active')); });
     listOrganisations().then(orgs => setOrganisations(orgs.filter(o => o.active)));
   }, []);
 
   const session = getSessionUser();
   const crossTenant = canViewCrossTenantQaData(session);
 
-  const visibleOrganisations = crossTenant
+  const visibleOrganisations = facilitiesOnly ? [] : crossTenant
     ? organisations
     : organisations.filter(o => o.id === session?.organisationId);
 
-  const visibleFacilities = crossTenant || !visibleClientIds
-    ? facilities
-    : facilities.filter(c => visibleClientIds.includes(c.id));
+  const visibleFacilities = qaScopeFacilityOptions(facilities, visibleClientIds, crossTenant, scope);
 
   const currentValue =
     scope.level === 'enterprise' ? 'enterprise' :

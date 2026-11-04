@@ -1,3 +1,20 @@
+**Batch 753:** `mockAmendmentService.ts`: S26-4404's demo amendment keeps the case's answers as first signed (`S26_4404_BIOPSY_ANSWERS_BEFORE_AMENDMENT`), so it shows the 4 corrected answers rather than every answer; its reason is in plain words; `AMENDMENT_VERSION` 8.
+
+**Batch 742:** `surgicalReportLabels.ts` sends four more labels (`imagesTitle`, `imageUnavailable`, `documentAttached`, `documentAttachedNoCaption`) for images placed in report sections.
+
+**Batch 738:** `synopticReviewEntries.ts` (new): what the Review before finalising window shows, with the template's question labels and option labels instead of stored ids (moved out of `useSignOutWorkflow.ts`). Test: `synopticReviewEntries.test.ts`.
+
+**Batch 650:** the report bar's button decision lives here as `bottomBarActions.ts` (`bottomBarVisibility` draws the report bar's Sign Out Case, Finalise, Finalise & Next, Request Amendment, History and Codes buttons; `resolveBottomBarCommand` answers their voice and key commands, ignoring a hidden or greyed button or an open window). Test: `bottomBarActions.test.ts`.
+
+**Batch 649 (Amendment window):** `revisionReleaseCapability.ts` also holds the pure presentation decisions: `revisionReleaseAvailability`, `resolveRevisionKind`, `revisionKindDisabledTitle`, `revisionEntryDisabledTitle` (new string `caseActionPermissions.revisionNone`). Test: `revisionReleaseCapability.ui.test.ts`.
+
+**Batch 649:** `releasePreliminaryReport.ts` is refused without `surgical:preliminary:release` (Pathologist and Fellow by default, not Resident). `revisionReleaseCapability.ts` names the capability for each kind of revision (`surgical:amendment:release`, `surgical:correction:release`, `surgical:addendum:release`); `mockAmendmentService.release` checks it, audited, before anything is written. `publishDirectAddendum.ts`: an addendum released straight from the amendment window was marked released and never sent; it now goes out (Orchestration: ADDENDUM through the release delay; Assist: to the LIS). An addendum with no report instance cannot be sent on its own and the caller is told. `sendReviewRequest.ts` needs `case:informal-review:request`. Tests beside each file.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
+## Batch 613 (part B)
+`intraopDiagnosisForCase.ts`: one read of a case's intraoperative diagnosis for every output path. The render payload now carries it, with `relatedCases`; the outbound narrative and PDF come from that payload.
+
 # services/reports/
 
 The amendment/versioning system — Pete's actively-developed current work as of July 2026. Three tightly-coupled interfaces correctly bundled together (not a templates/-style bundling mistake).
@@ -12,7 +29,7 @@ The amendment/versioning system — Pete's actively-developed current work as of
 
 - **Real, per direct guidance ("we trigger the json packages and the interface engine generates the formatted messages" / "definitely look at results") — the same `mockReportVersionService.create()` choke point is now also the real ORU^R01 outbound hook.** Investigated directly before wiring anything: `useSignOutWorkflow.ts` (3000+ lines, multiple interacting finalization entry points — `finalizeSignOut`, `handleFinalizeConfirm`→`finalizeCase`+`releasePendingAmendmentOrAddendum`) was too large and interconnected to safely scatter new logic across with confidence. Every one of those real paths already funnels through this one, single, narrow `create()` function — hooking there catches all of them, present and future, and comes with `record.mode`/`record.trigger`/`record.pdfBase64` already resolved, no second lookup needed.
   - **Real, confirmed inference** (worked through directly, not guessed): `trigger: 'initial_signout'` → `FINAL`. `trigger: 'amendment'` with a prior `ReportVersionRecord` already existing for the SAME `instanceId` → `CORRECTED` (updating an already-signed result). `trigger: 'amendment'` with no prior record for this `instanceId`, but the case has other real prior versions → `ADDENDUM` (a new result block appended to an already-signed case). `ReportVersionTrigger` only has two real values, not three — this is a real inference layered on top of the existing data model, not a field the model states directly.
-  - **Real, confirmed scope boundaries, both deliberate**: `mode !== 'orchestration'` (i.e. `'assist'`) is never enqueued — an external LIS owns that report, not PathScribe (see `services/patients/README.md`'s own fuller account of this architectural boundary). A record with no `instanceId` — the whole-case PDF snapshot from `finalizeSignOut` — is never enqueued either: a composite summary document isn't a discrete OBR/OBX observation the way one specific synoptic instance's own result is; skipped entirely rather than forced into this per-instance queue.
+  - **Real, confirmed scope boundaries, both deliberate**: `mode !== 'orchestration'` (i.e. `'assist'`) is never enqueued here — an external LIS owns that report. (Batch 426 correction: Assist cases do send their synoptic data to the LIS, the structured result and one PDF per workup, through `dispatchAssistSynopticResult.ts` and the LIS-sync queue, not this one. The pointer that was here to a fuller account in `services/patients/README.md` led nowhere: no such account exists there.) A record with no `instanceId` — the whole-case PDF snapshot from `finalizeSignOut` — is never enqueued either: a composite summary document isn't a discrete OBR/OBX observation the way one specific synoptic instance's own result is; skipped entirely rather than forced into this per-instance queue.
   - Fire-and-forget, same posture as every other real enqueue in this app — resolves the case/patient (for `organisationId`) in a separate, non-blocking async block after `persist()`, and must never block or fail the real sign-out action it's attached to.
   - **5 new real tests** (`mockReportVersionService.test.ts`) — FINAL, CORRECTED, ADDENDUM (using two real, sequential `create()` calls per case to prove the instanceId-presence inference), the assist-mode exclusion, and the no-instanceId exclusion. Real bug caught and fixed in my own test draft, not the implementation: `mockOutboundResultQueueService.enqueue()` has its own internal 80ms `delay()`; my first draft's 20ms wait wasn't long enough to observe the real, already-correct enqueue — caught by the test actually failing, not assumed to work.
   - See `services/patients/README.md`'s own ADT^A08/A40/A47 entry for the sibling architecture (`OutboundResultQueueEntry`/`IOutboundResultQueueService`/`mockOutboundResultQueueService`, `services/reports/buildOruR01Payload.ts`) and `components/Config/System/README.md`'s own `OutboundMessagePreviewSection.tsx` entry for the real, comprehensive tool that previews and exports all four transaction types' real JSON to file.
@@ -49,13 +66,15 @@ Same real posture as this file's own OBX-2 Value Type boundary — PathScribe ha
 
 Real, per direct follow-up on the architectural boundary documented throughout this app ("nothing dispatches this yet, no real HTTP transport exists") — genuinely, partially closed for the first time. Two real, separate pieces:
 
-**The real receiving end**: `receive_interface_message`, a new Firebase Cloud Function alongside `render_report` in the same `functions/main.py` (a separate repository from this frontend — see that file's own header comment for the exact contract). Deliberately never generates HL7 itself — a real stand-in for an interface engine's receiving side (Mirth Connect/NextGen Connect or similar), built specifically to verify PathScribe's own outbound JSON is correct, never a Mirth Connect replacement. Accepts one real, generic envelope shape (`queueEntryId`/`transactionType`/`dispatchedAt`/`payload`) used by every real transaction type, rather than four independently-shaped request bodies — validation deliberately stops at that envelope level rather than deep-validating each of the four real payload shapes field-by-field, since those are already defined and enforced by TypeScript on the sending side. Stores each real received message in Firestore (`received_interface_messages`), the one real piece this function's own tests can't verify end-to-end — this sandbox's network can't reach `storage.googleapis.com` to run the real Firestore emulator, so `firestore.client()` itself is swapped for a small, real, in-file fake in tests; everything the function actually controls (envelope validation, request/response handling, both success and failure paths) is tested for real.
+**The real receiving end**: `receive_interface_message`, a new Firebase Cloud Function alongside `render_report` in the same `functions/main.py` (*corrected in the Batch 496 README audit: `functions/` is in this repo, not a separate repository* — see that file's own header comment for the exact contract). Deliberately never generates HL7 itself — a real stand-in for an interface engine's receiving side (Mirth Connect/NextGen Connect or similar), built specifically to verify PathScribe's own outbound JSON is correct, never a Mirth Connect replacement. Accepts one real, generic envelope shape (`queueEntryId`/`transactionType`/`dispatchedAt`/`payload`) used by every real transaction type, rather than four independently-shaped request bodies — validation deliberately stops at that envelope level rather than deep-validating each of the four real payload shapes field-by-field, since those are already defined and enforced by TypeScript on the sending side. Stores each real received message in Firestore (`received_interface_messages`), the one real piece this function's own tests can't verify end-to-end — this sandbox's network can't reach `storage.googleapis.com` to run the real Firestore emulator, so `firestore.client()` itself is swapped for a small, real, in-file fake in tests; everything the function actually controls (envelope validation, request/response handling, both success and failure paths) is tested for real.
 
 **The real dispatch side**: `services/interfaceDispatch/dispatchInterfaceMessage.ts` — one, single, real, generic dispatch function every real outbound queue calls, rather than one dispatch implementation per transaction type. Wired into `pages/OutboundInterfaceDlqSection.tsx`'s own real "Dispatch Now"/"Retry Dispatch" actions for the patient-ADT and ORU^R01 queues — builds the real payload via the existing real builder functions (`buildAdt08Payload`/`buildAdt40Payload`/`buildAdt47Payload`/`buildOruR01Payload`), POSTs it, and only transitions a queue entry to a genuinely-earned `SENT` on real success, or `FAILED` with the real, actual error otherwise. Simulate Failure stays exactly what it always was — a real, honest testing aid, never confused with a real dispatch attempt.
 
 **Real, honest scope boundary specific to the LIS-sync queue, worked through directly rather than assumed**: its own real payload (`embeddedHeader`/`fullPayloadText`) is built from a real, ephemeral parameter (`payloadBody`) that's never persisted anywhere — unlike the other three transaction types, it genuinely can't be rebuilt later from just the queue entry's own reference fields. `OutboundInterfaceDlqSection.tsx`'s own `buildPayload` is deliberately `null` for this queue type, with a clear, honest UI message rather than silently sending an incomplete payload. Real dispatch for this type instead happens immediately, fire-and-forget, at the one real moment the full payload actually exists — `pages/SynopticReportPage/hooks/useLisIntegration.ts`'s own `sendSynopticReportToLis`, right after the payload is built and the lightweight queue reference is enqueued. Deliberately fire-and-forget, not gating the real sign-out/amendment-release flow it's attached to — a real, external network call must never block a real, time-sensitive clinical action, same real reasoning as the enqueue itself already had.
 
 **A real, found-and-fixed TypeScript gotcha worth remembering for any future work in this codebase**: `dispatchInterfaceMessage`'s own result type was first written as a discriminated union (`{ok: true} | {ok: false, error: string}`), which produced a confusing, hard-to-reproduce compile error (`if (result.ok) {...} else {...}` narrowed the `else` branch to `{ok: true}`, the wrong branch) that isolated repro files couldn't reproduce under `--strict`. Root cause: this project's own `tsconfig.json` has `strictNullChecks: false`, under which TypeScript's control-flow narrowing on a boolean-literal discriminant doesn't reliably work the way it does under strict mode. Fixed by not relying on discrimination at all — `error` is simply optional on both branches (`{ok: boolean; error?: string}`) instead.
+
+*Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.*
 
 **A real, related, fifth outbound transaction type — flagged here as out-of-scope, then addressed as a real, direct follow-up (see `services/interfaceEngine/README.md`'s own account)**: `services/interfaceEngine/`'s own `OrderCreated` (Category E) event, whose own header comment explicitly anticipated this exact moment ("When the real backend exists, only this file's own real implementation swaps"). Genuinely different real shape from the other four preserved, deliberately, rather than forced into matching them — `postOrderCreated(payload)` still takes the full, already-built payload directly (not a lightweight reference re-derived at dispatch time), and still has no `status`/`markFailed`/`retryDispatch`/DLQ visibility. It now genuinely dispatches, via the same real, generic `dispatchInterfaceMessage()`/`receive_interface_message` every other real transaction type uses — `ORDER_CREATED` added to `InterfaceTransactionType` and the backend's own `_VALID_TRANSACTION_TYPES` — with `delivered` finally meaning what its own original doc comment always said it eventually should.
 
@@ -127,6 +146,244 @@ Real, per direct correction ("the system shouldn't be constructing anything... t
 
 **Batch 381:** `startDraft` ids now carry a random suffix; two drafts opened in the same millisecond used to get the same id.
 
+## Batch 391: report language (Pete: "the language of the performing lab")
+
+`reportLanguage.ts`: a report is written in the language of the lab that performs it, not of the person at the screen. `resolveReportLanguage(lab)` is the lab's `reportLanguage` setting, else its jurisdiction's default (Netherlands Dutch, Germany German, France French, Korea Korean, Belgium Belgian Dutch, the English-speaking jurisdictions English). `resolveReportDateLocale` takes dates from the lab's jurisdiction (a UK lab writes 02/04/1988 on a 24-hour clock). Both are stored on the report at sign-out; `reportDateLocale(content)` reads them back. The languages are the app's own (a test keeps them equal to `SUPPORTED_LANGUAGES`). Cytology uses it now; surgical pathology is Batch 392.
+
+## Batch 392: the report PDF with every result sent to the interface engine
+
+Before this, only cytology's ORU^R01 carried its PDF (`reportPdfBase64`). Surgical final, correction, addendum, preliminary and autopsy results went without one: `buildOruR01Payload` could take a PDF, but no dispatcher passed one, and the release event's PDF went only to printing.
+
+- **`resolveOruReportPdf.ts`:** which PDF a result carries: the one made at release (kept in `releasedReportPdfStore.ts` for a retry), else the kept one, else the signed PDF saved with the case's report versions (`pickReportVersionPdf`: the same instance's newest, or for a final the newest whole-case one; never for a preliminary). `generateOnce` renders once per release for printing and every result. `savedReportPdf` supplies the saved signed PDF to a surgical release that brings none (final sign-out, release after the hold period).
+- **`prepareOruR01Dispatch.ts`:** the message with its PDF, or `pdf_unavailable` (Pete: hold and retry). `dispatchCaseInstances`, `dispatchAmendedCaseInstance` and `dispatchPreliminaryCaseInstances` take the release's PDF; a held result is queued and marked failed with the reason (`heldMessage`), so it shows in the failed-messages screen, whose retry uses the same preparer.
+- **`publishReportReleasedEvent.ts`:** makes the PDF once and hands it to printing and the dispatchers. A surgical release without its own PDF now uses the saved signed one, so its print job no longer fails with "No PDF generation available".
+- **`resolveReportLocale.ts`** (moved from `cytology/`): the performing lab behind a facility, its report language and date format. **`surgicalReportLabels.ts`:** the surgical renderer's wording (`surgicalReportPdf.*`) and the date of birth in that language.
+- **Not changed:** assist-mode cases, where the hospital's LIS produces the report and PathScribe sends it synoptic data (LIS sync), not a report.
+
+## Batch 393: autopsy reports, and Pretendard in the report renderer
+
+- **`resultInstances.ts`:** which results a release sends. An autopsy report is one document, so an autopsy case sends one case-level result (`AUTOPSY_REPORT_INSTANCE_ID`, the PAD as preliminary, the FAD as final). Before, an autopsy case without a synoptic report sent nothing, and one with several sent the autopsy report once per synoptic report. `buildOruR01Payload` accepts the case-level id when the signed PAD/FAD exists (no diagnosis comment; the autopsy sections carry the report).
+- **`surgicalReportLabels.ts`:** four more renderer labels (placeholders for missing content), and it serves autopsy reports too (same renderer).
+- **The renderer** (`functions/main.py`) prints a Korean report, or any report containing Hangul, in Pretendard (`functions/fonts/`, unmodified from the npm package, with its licence).
+
+## Batch 426 — the structured synoptic result (v1.0.0), Assist dispatch, one PDF per workup
+
+- `synopticResultPayload.ts` (pure) builds one synoptic workup as the v1.0.0 structured result. It carries:
+  - the header: workup id, version, status, PDF id, placer/filler order numbers, template, signer and NPI;
+  - MRN and encounter;
+  - each part's codes, as lists with system and version;
+  - suggested CPT without modifiers (Assist only);
+  - staging, from template fields tagged pT/pN/pM/FIGO;
+  - one observation per answer, with unit, SNOMED, block and whether the pathologist overrode the AI.
+
+  Contract: `docs/architecture/SYNOPTIC_RESULT_API.md`.
+- `dispatchAssistSynopticResult.ts`: an Assist case's workups to the LIS, on the LIS-sync queue as `LIS_SYNC`:
+  - on Finalize (`dispatchAssistCaseRelease`, from `publishReportReleasedEvent`'s FINAL, so the release buffer applies);
+  - on each correction and addendum (`useLisIntegration.sendSynopticReportToLis`).
+
+  Each message carries the structured result, the workup's own PDF and the text block. No PDF means the message is held. `rebuildAssistSynopticMessage` is the dead-letter screen's retry. Real services are in `dispatchAssistSynopticResultDeps.ts`. **Before Batch 426 an Assist Finalize sent nothing, and a correction sent a placeholder sentence.**
+- `workupPdf.ts`: one workup's PDF from the report renderer (`functions/main.py`, `workup`), with "Changed in this version" for a correction.
+- `buildOruR01Payload.ts`: an Orchestration result also carries `synopticResult` (no CPT) and, best effort, `workupPdf`.
+- `assistFinalize.ts`: Finalize marks the Assist workups it releases as `finalized`; excluded ones stay drafts.
+- `heldMessage.ts`: the held-for-PDF text, shared.
+- Batch 426 corrected this folder's statement that an Assist report "is never PathScribe's to send".
+
+## Batch 427 — one combined PDF per case (per testing facility), workups across parts
+
+- **Combined PDF.** A performing lab can be set (`Facility.consolidateOutboundPdfs`, Facility Dictionary → LIS Integration) to send one PDF per case. Pete: the setting belongs to the testing facility.
+  - `dispatchAssistSynopticResult.ts` then sends each workup's structured result without its own PDF, plus one `case_pdf` message with every finalized workup (`prepareAssistCasePdfMessage`, `dispatchAssistCasePdf`). This happens on each release.
+  - Its id is `PSR-{caseId}-CASE-V{n}`, and each workup's header names it.
+  - Orchestration results then carry only the full report PDF.
+  - The lab is resolved like the report language (`labConsolidatesPdfs`).
+- **`workupPdf.buildCombinedRenderPayload`:** every workup in one render request.
+- **`workupParts.ts`** (pure): a draft workup's parts.
+  - Independent, or combined across further parts (`setWorkupParts`).
+  - A part can't be covered twice by the same protocol (`partCoveredBy`).
+  - Used by the report sidebar's "Parts covered", by the AI's template proposals and by the structured result's `specimen_ids`.
+
+## Batch 438 (PS-146)
+
+`mockAmendmentService.ts`: releasing an amendment or correction whose reason is marked clinically significant recommends a CAPA (linked to a discordance already raised on the case). Addenda never do.
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-318)
+
+`fullPatientReportRows.ts`: the Full Patient Report panel's rows (`buildFullPatientReportRows`, `resolveIntraopDiagnosisText`), moved out of `LeftReportPanel.tsx`: Preliminary and Intraoperative Diagnosis rows in their order.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`mockInformalReviewService.ts` now has seed data: one pending informal review each way between Sarah Johnson and Pete Nimmo (S26-4601, S26-4602).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Releasing a preliminary report merges the attestation into the newest diagnosis.
+
+## Batch 461: organ maps in the report version and the ORU
+
+- `mockReportVersionService.create()` keeps the synoptic's inserted organ-map images (`organMapFigures`, with `svgSha256` / `pngSha256`) and the PDF's SHA-256 (`pdfSha256`) on the version record, so what was signed can be checked later. It never blocks the sign-out. (The `ReportVersionRecord` header's note on where hashes are taken is partly superseded by this.)
+- `buildOruR01Payload.ts` passes the case's parts to `resolveAnswers`, so a results grid question goes out as readable text.
+- Test: `mockReportVersionService.test.ts` (Batch 461 block).
+
+## Batch 462
+
+`synopticResultPayload.ts`: a results grid's observations use the template's own rows when it has them (foci, margins).
+
+## Batch 463
+
+- `mockReportVersionService.create`: at sign-out the version keeps the maps that are always in the report (Mohs) as drawn from the answers then, with their hashes, in place of anything stored for that synoptic.
+- `reportTranslate.ts` (new): `reportTranslateFor(facilityId)`, a translation in the facility's report language, for report text and images built from answers (Mohs stage lines and maps). Light on purpose: the report text builder imports it.
+- `synopticResultPayload.ts`: a Mohs stage question sends an observation per stage (clear / residual tumour) and per positive sector (histology, perineural invasion; `block_id` its block).
+
+`surgicalReportLabels.ts` (Batch 463): label `figureNotDrawn`, the PDF's notice in place of a map that couldn't be drawn.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 495 — revision status on printed reports (PS-283 §4.2.2)
+
+**`resolveReportRevisionStatus.ts`** (new, pure): from a case's `finalizedAt` and its amendment records, the latest released revision's type, how many revisions, the original sign-out date and the latest revision date — or null when nothing has been released. Drafts don't count.
+
+Checked before building, per Pete's checklist: no `@media print` rule hides amendment content, and the assist-mode (CoPilot) print already showed the amended flag, reason and an originally/currently-reported table per section, but no dates in its header. The preview window and the report page's HTML fallback print (`ReportPreviewRenderer`) showed nothing about revisions. Both now draw a header banner from this resolver, as part of the document itself (not screen state). The orchestration PDF payload carries `revisionStatus` alongside the `amendments` it already sent; whether the external `render_report` service draws it can't be verified from here (PS-333).
+
+Original sign-out date = `Case.finalizedAt`; releasing an amendment never rewrites it (checked: `mockAmendmentService.release` writes only the amendment's own `releasedAt`). Tests: `resolveReportRevisionStatus.test.ts` (3).
+
+*Correction (Batch 496 README audit): the surgical/orchestration PDF renderer is not external — it is `render_report` in `functions/main.py` in this repo. It reads only the case header, institution, body parts, sections, synoptic answers, map figures and render scope; it ignores `amendments`, `revisionStatus`, `watermarkText`, `preAnalyticDisclaimerText`, `documentStyle` and the header/footer parts, so none of those appear on the generated PDF yet. That work is in this repo (PS-333), not blocked.*
+
+## Batch 498 — the PDF renderer draws revision status
+
+New pure `buildReportRenderRevision.ts`: the revision block sent to `render_report` (`revision`), from `resolveReportRevisionStatus()` with dates written in the report's locale. Both PDF request builders on the report page send it, with `documentVersion`. `surgicalReportLabels.ts` adds seven PDF labels (revision banner and footer reference) and passes every placeholder (`{{original}}`, `{{latest}}`, `{{accession}}`, `{{version}}`) through for the renderer. The renderer side is in `functions/README.md`. Tests: `buildReportRenderRevision.test.ts` (3), `surgicalReportLabels.test.ts` (placeholders kept).
+
+## Batch 505 (PS-475)
+
+Languages now load on demand, so `resolveReportLocaleForFacility` awaits `loadLanguage()` (from `i18n/config.ts`) for the facility's report language before the report text is built. Without it, a French facility's report printed from an English screen would fall back to English.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`OruR01Payload`'s patient `mrn` and `dateOfBirth` are optional, and `workupPdf.documentId` may be `null`, as the source data already allowed. `dispatchAssistSynopticResult` types its workup list.
+
+## Batch 516 (PS-283): PRELIMINARY watermark
+
+`resolveReportWatermark.ts` (+ test) decides what a rendered report carries:
+- a print before sign-out: **"PRELIMINARY — SUBJECT TO CHANGE"** (Pete's wording), in the report's language;
+- a report in the release buffer: the organisation's buffer text (unchanged);
+- the final snapshot made at sign-out: never the preliminary mark.
+
+It's used by the report page's print (PDF, and the browser-print fallback, which now also prints in the report's language) and by the CoPilot report view's print.
+
+## Batch 520 (PS-280)
+
+`publishReportReleasedEvent.ts` runs the delivery rule's channel plan: primary and secondary channels go at once (electronic, print, e-fax, file drop), and fallback channels go when a primary print, fax or file drop fails or has nowhere to go. The result carries `channelOutcomes` and `fallbackSent`. A rule saved before Batch 520 behaves exactly as before (its plan follows its action).
+
+## Batch 521 (PS-281)
+
+`publishReportReleasedEvent.ts`: a failed print, fax or file drop is scheduled for automatic retry. A primary channel falls back at once only when it has nowhere to go; one that fails falls back when its retries run out (`sendReleaseFallback`, exported for that).
+
+## Batch 532
+
+`publishReportReleasedEvent.ts`: corrected the header note that said cytology wasn't wired to this event. It is; since Batch 532 cytology publishes once per accession, when the case closes (`services/cytology/README.md`).
+
+## Batch 533
+
+`publishReportReleasedEvent.ts`: a PRELIMINARY with source CYTOLOGY goes to `cytology/dispatchCytologyPreliminary.ts` (one specimen's urgent preliminary, named by `instanceId`), never the surgical preliminary dispatch.
+
+## Batch 534
+
+- `releasePreliminaryReport.ts` goes through the release delay (`reportRelease/releaseThroughDelay`). When it is held, it returns `heldUntil`, records the attestation, and can be recalled by the person who released it (Recall clears the attestation).
+- `publishReportReleasedEvent.ts` itself is unchanged: it publishes when called, and the delay is decided before it is called.
+
+## Batch 535
+
+- `publishReleasedRevision.ts` (new) fixes a bug: a correction or addendum released at an Orchestration re-sign-out (`useSignOutWorkflow.finalizeSignOut`) was marked released but never sent. No CORRECTED went out, and the FINAL that followed skipped the instance as already sent. It now goes out as CORRECTED (with what it read before) or ADDENDUM, through the release delay, recallable.
+- `mockAmendmentService.reopen` / `IAmendmentService.reopen` (new): a released record goes back to draft when its release is recalled. `AmendmentRecord.recalls` keeps each recall.
+
+Tests: `publishReleasedRevision.test.ts` (3), `mockAmendmentService.test.ts` (+2).
+
+## Batch 538 (PS-539 D2): one stored document per release
+
+- `publishReportReleasedEvent.ts`: `releaseDocument(event)` makes the release's PDF once, stores it as a report document (`services/reportDocuments/`) before any channel runs, and gives every channel and every retry or fallback its id (`event.documentId`, `DeliveryReleaseContext.documentId`). A held report keeps its PDF on the hold; when the delay ends, its event brings those bytes and they are stored then. `sendReleaseFallback` sends the release's document; a release from before Batch 538 (no document id) keeps the old non-storing path.
+- `resolveOruReportPdf.ts` / `prepareOruR01Dispatch.ts`: a retry with the entry's `reportDocumentId` sends that document. Before, it sent the PDF kept for the instance, which a later correction of the same instance overwrote. The dispatchers record `reportDocumentId` and `pdfSha256` on the queue entry.
+- `GenerateReportPdf` returns `ReportPdf` (with the document id and hash).
+- `resolveOruReportPdf`: a release whose stored document can't be read, or fails its hash check, is held; no other PDF is sent in its place. A release with a document doesn't keep a second copy in `releasedReportPdfStore`, and a fresh release whose PDF failed doesn't take a kept PDF (for a second preliminary of the same instance, that was the first preliminary's).
+- `savedReportPdf`: the newest saved version only. When that version has no PDF, it reports the error rather than sending an older signed PDF.
+- `dispatchAssistSynopticResult.ts`: the Assist structured result (LIS sync and ORU) stores its PDF as a report document; queue entries record it, and a rebuild for a retry reads it. Still open: its signed time is the time the message is built, not the sign-out time.
+
+## Batch 539
+
+- `reportRenderer.ts` (new): the report renderer's address (`VITE_REPORT_PDF_ENDPOINT`), `postReportRender` and `bytesToBase64`, shared by the report page, `workupPdf.ts` and the cytology report (each had its own copy of the setting).
+- `publishReportReleasedEvent.ts`: a cytology release's document is `producedBy: 'report-renderer'` (the renderer has the cytology template).
+
+## Batch 540
+
+- `resolveReportWatermark.ts`: a released PDF (`final-snapshot`) never carries the release-buffer watermark, even when made during the delay; only a print does (Pete). Before, a revision released during the buffer sent a file marked "pending release".
+- `mockAmendmentService.startDraft`: refused while the report is still in its release delay (`reportRelease/revisionDuringDelay.ts`).
+
+## Batch 546
+
+`publishReportReleasedEvent.ts`: a print that can't be retried (`retriable: false`, finding F3) is scheduled that way, so the release goes straight to its fallback channels.
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `dispatchAssistSynopticResult.ts`: an Assist case release now carries the time the case was signed out (`finalizedAt`), not the time the message was built. A correction signed on the page still uses the time of sending. Open since Batch 538.
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: the release event, Assist and the ORU resolver store and read documents through `reportDocuments/reportDocumentInstance.ts`.
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- `reportVersionPdf.ts` (new): the one reader of a signed version's PDF, checked against `pdfSha256`; a version the API server holds is read through it.
+- `httpReportVersionService.ts` (new): `GET /api/cases/{caseId}/report-versions` and `…/{versionNumber}/pdf`; `createServerBackedReportVersionService` lists the server's versions with this browser's and numbers a new one after both.
+- `reportVersionInstance.ts` (new): `reportVersionService` and `reportVersionPdfReader` for the barrel.
+- `IReportVersionService.create` takes `priorVersions`; `mockReportVersionService` counts them (numbering, CORRECTED vs ADDENDUM) and hashes the PDF's bytes.
+- `resolveOruReportPdf.ts`: a saved version's PDF read through the reader (purpose `send`); a failed check holds the result.
+- `buildOruR01Payload.ts`: the workup version counts the server's versions too.
+- Tests: `reportVersionPdf.test.ts`, `httpReportVersionService.test.ts` (new); `mockReportVersionService.test.ts`.
+
+## Batch 559 (PS-539 phase 2d: Batch 558's open items)
+
+- `oruWorkupVersion.ts` (new): a payload whose workup version isn't known is marked; `prepareOruR01Dispatch` holds it (`version_unknown`). `buildOruR01Payload.ts` raises it when the report versions couldn't all be read, and carries `reportPdfSha256`.
+- The PDF hash of a signed version goes on the queue entry; `IOutboundResultQueueService.recordPdfSha256` for retries.
+- `httpReportVersionService.ts`: a list this browser couldn't read is partial too.
+- Tests: `oruWorkupVersion.test.ts` (new), `prepareOruR01Dispatch.test.ts`, `dispatchAmendedCaseInstance.test.ts`.
+
+## Batch 561 (PS-539 phase 2d)
+
+- Test: `oruQueueEntryHash.test.ts` (the FINAL and PRELIMINARY dispatchers record the PDF's hash on the queue entry).
+
+Batch 616 (part A, PS-483): `httpReportServices.ts` (amendments, informal reviews, LIS amendment notices), `httpOutboundQueueServices.ts` (LIS sync and result queues), `reportServicesInstance.ts` (the five as `@/services` exports; mock without an API address). Contract `docs/architecture/REPORTS_API.md`. Report versions keep `reportVersionInstance.ts`. The dispatchers here still import the mock queues directly (server work in production).
+
+## Batch 618 (PS-336)
+
+`surgicalReportLabels.ts` gains the `technicalComponentAt` label (the line the renderer prints for a split case's technical lab).
+
+## Batch 634
+
+`dispatchCaseInstances.ts` and `dispatchAmendedCaseInstance.ts` find the organisation through `interfaceDispatch/resolveDispatchOrganisation.ts` (the live patient index, with an audit entry on a skip) instead of reading the demo's index directly; `dispatchAssistSynopticResultDeps.ts` uses `patientIndexService`. They still queue through the mock outbound result queue (separate work).
+
+## Batch 658 — `bottomBarActions.ts`: Sign Out Case no longer waits for every report to be finalized (nothing finalized Orchestration reports, so it never showed); it shows when grossing is done, the case is not a pool case, Assist mode is off and the case is not in its recall window.
+
+- `reportOpenCommands.ts` (Batch 661): decides what the voice commands Add Case Comment, Add Specimen Comment, Add Synoptic Report and Select Specimen do on the report screen.
+
+- Batch 663: `reportOpenCommands.ts` also answers Maximise, Minimise, Preview, Internal Note and Skip Field (`OPEN_INTERNAL_NOTES_FLAG`); `addendumCommand.ts` decides when "Add Addendum" may open the amendment window (finalized case, nothing in front, revision permission).
+
+- Batch 664: `signOutAndNext.ts` (pure): Orchestration "Sign Out and Next" arms on the button, then moves to the next case in the queue only once the case's status shows it signed out (`signOutDone`); a refused check or cancelled signature window disarms it. `bottomBarActions.ts`: new command `signOutAndNext` (shown with Sign Out Case); `SIGNOUT_NEXT` means Finalise & Next in Assist and Sign Out and Next in Orchestration.
+
+- Batch 665: `signOutAndNext.ts` arming no longer depends on the sign-out window (a parked check closes it and resumes later): it ends on completion, a plain button press, a different case, or after ten minutes. It now also serves Assist Finalise & Next.
+
+## Batch 728
+
+- `dispatchPreliminaryCaseInstances.ts` and `mockReportVersionService.ts`: no result message for a research case (the final and amended paths go through `resolveDispatchOrganisation`).
+
+## Batch 751
+
+`dispatchAssistSynopticResult.ts`: with the performing lab's organ map delivery on, each Assist result carries `organMap` (the lines, and the file's name and SHA-256) and the lines in `fullPayloadText`; the file follows as its own `LIS_SYNC` message of kind `organ_map` (`dispatchOrganMapFile`), retried by `rebuildOrganMapFileMessage`, audited, never touching the result's outcome. `isWorkupMessage`: map files and the case PDF are not workup versions. `dispatchAssistSynopticResultDeps.ts`: the setting, the drawing (`drawOrganMapFile`: PNG, or a one-page PDF) and the audit. `organMapDeliveryDemoQueue.ts` (new): the demo's delivered and failed map files, the mock queue's starting data. Test: `dispatchAssistOrganMap.test.ts`.

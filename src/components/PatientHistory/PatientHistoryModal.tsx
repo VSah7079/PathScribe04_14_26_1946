@@ -5,18 +5,21 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useDirtyState } from '@/contexts/DirtyStateContext';
-import { mockMessageService } from '@/services/messages/mockMessageService';
+
 import { useAuth } from '@/contexts/AuthContext';
-import { mockUserService } from '@/services/users/mockUserService';
-import {
-  PatientHistoryCase,
-  AiMatchedCase,
-  findSimilarCases,
-} from '@/services/cases/mockCaseService';
+
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+
 import type { MasterPatientRecord } from '@/services/patients/IPatientIndexService';
-import { queryRealPatientHistory } from '@/services/patients/patientHistoryQuery';
+import { queryRealPatientHistory, type PatientHistoryCaseWithFacility } from '@/services/patients/patientHistoryQuery';
+import { actionRegistryService, messageService, userService, type PatientHistoryCase, type AiMatchedCase, findSimilarCases, patientIndexService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { getPatientCaseAccess } from '@/services/patientCaseAccess/patientCaseAccessService';
+import { RestrictedCasesNotice } from './RestrictedCasesNotice';
+import { PatientSummaryPanel } from '@/components/RelatedCases/PatientSummaryPanel';
+// Batch 621: what the AI read from a historical report's text (advisory only, labelled, flaggable).
+import { HistoryExtractionPanel } from './HistoryExtractionPanel';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +61,7 @@ function isAiCase(item: ReportItem): item is AiMatchedCase {
 // clinical data, not chrome authored in this file — and stay
 // untranslated throughout, same posture as every other case-content
 // field elsewhere in this codebase. The outbound message `subject`/
-// `body` sent via mockMessageService.send() is a message body to
+// `body` sent via messageService.send() is a message body to
 // another user and stays English per established convention. Field
 // *labels* ("Case ID", "Site", "Gross Description", etc.) are UI
 // chrome and are translated below.
@@ -66,21 +69,17 @@ function isAiCase(item: ReportItem): item is AiMatchedCase {
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function CaseCard({ item, onClick }: { item: ReportItem; onClick: () => void }) {
-  const { t } = useTranslation();
   const ai = isAiCase(item);
 
   return (
     <div
       className="ps-ph-card"
-      onClick={onClick}
+      {...pressable(onClick)}
     >
       <div className="ps-ph-card-top">
         <span className="ps-ph-card-date">{item.date}</span>
         <span className="ps-ph-card-id" data-phi="accession">
           {ai ? (item as AiMatchedCase).accession : (item as PatientHistoryCase).id}
-          {ai && (
-            <span className="ps-ph-match-badge">{t('patientHistoryModal.card.matchPct', { pct: (item as AiMatchedCase).matchPct })}</span>
-          )}
         </span>
       </div>
       <div className="ps-ph-card-diagnosis" data-phi="diagnosis">{item.diagnosis}</div>
@@ -104,6 +103,7 @@ function ReportField({ label, value, phi }: { label: string; value: string | num
 
 function FullReport({ item }: { item: ReportItem }) {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const ai = isAiCase(item);
   const a = item as AiMatchedCase;
   const h = item as PatientHistoryCase;
@@ -121,7 +121,6 @@ function FullReport({ item }: { item: ReportItem }) {
         <ReportField label={t('patientHistoryModal.field.ki67')}          value={ai ? a.ki67 : h.ki67} />
         <ReportField label={t('patientHistoryModal.field.margins')}       value={ai ? a.margins : h.margins} />
         <ReportField label={t('patientHistoryModal.field.lymphNodes')}    value={ai ? a.nodes : h.nodes} />
-        {ai && <ReportField label={t('patientHistoryModal.field.aiMatchScore')} value={`${a.matchPct}%`} />}
       </div>
       <div className="ps-ph-divider" />
       <div className="ps-ph-grid-2col">
@@ -134,6 +133,7 @@ function FullReport({ item }: { item: ReportItem }) {
           <div className="ps-ph-field-value ps-ph-field-value--loose">{ai ? a.microscopic : h.microscopic}</div>
         </div>
       </div>
+      {!ai && <HistoryExtractionPanel item={{ id: h.id, diagnosis: h.diagnosis, microscopic: h.microscopic, facilityId: (h as PatientHistoryCaseWithFacility).facilityId }} userName={user?.name ?? ''} />}
       {ai && a.ancillaryStudies && (
         <div className="ps-ph-field-mb">
           <div className="ps-ph-field-label">{t('patientHistoryModal.field.ancillaryStudies')}</div>
@@ -163,6 +163,8 @@ function FullReport({ item }: { item: ReportItem }) {
 
 export default function PatientHistoryModal({ patientName: initialPatientName, mrn: initialMrn, dateOfBirth: initialDateOfBirth, patientId: initialPatientId, currentCaseId, onClose }: PatientHistoryModalProps) {
   const { t } = useTranslation();
+  // Batch 650: "close history" (Alt+Shift+H) is the Close button while this window is open.
+  useEffect(() => actionRegistryService.onAction((actionId: string) => { if (actionId === 'CLOSE_HISTORY') onClose(); }), [onClose]);
   // Real, per direct guidance ("Molecular testing across siblings"):
   // a real, distinct person shown under "Related Patients" below is
   // exactly who a reviewer would want to actually navigate to — e.g.
@@ -203,8 +205,9 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   // separate limitation of the demo data layer — this gate is what a
   // real patient-master-index lookup would also need to enforce before
   // ever considering an MRN a safe match; see
-  // backend-requirements-concurrency-security.md for the production
-  // version of this requirement.
+  // the API server's patient-matching rules for the production version of
+  // this requirement (docs/architecture/CASE_PRIVACY_MODEL.md, PS-345; the
+  // backend-requirements document once cited here was never written, PS-40).
   //
   // Real fix: also requires a real patientId now - without one, there's
   // no real MPI identity to query real history by at all. Cases created
@@ -213,12 +216,16 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   const hasSufficientIdentifiers = !!mrn && !!dateOfBirth && !!patientId;
   const [history, setHistory] = useState<PatientHistoryCase[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  // Batch 613: the patient's other cases this person may not open (a count, never which) and how many are shown only through a grant.
+  const [hiddenCount, setHiddenCount] = useState(0);
+  const [viaGrantCount, setViaGrantCount] = useState(0);
   // Real, per direct guidance: a genuinely separate list from history
   // above — 'family_relation' linked patients (e.g. newborn/mother,
   // or siblings for cascade molecular testing)
   // are distinct real people, shown as their own cross-reference, not
   // merged case history.
   const [familyRelatedPatients, setFamilyRelatedPatients] = useState<MasterPatientRecord[]>([]);
+  const { user } = useAuth();
 
   // Real fix, from a direct question about how case-searching actually
   // worked: this used to read MOCK_PRIOR_PATHOLOGY[mrn], a hardcoded
@@ -239,12 +246,20 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
       // distinct
       // real people; merging their histories together here would be
       // a real, clinically wrong outcome, not a cosmetic one.
-      mockPatientIndexService.getLinkedPatientIds(patientId, 'same_person'),
+      patientIndexService.getLinkedPatientIds(patientId, 'same_person'),
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
+      // Batch 613: which of those the signed-in person may open (their own access, plus any grant). Without a session, none.
+      user ? getPatientCaseAccess().splitPatientHistory(patientId, { id: user.id, name: user.name, role: user.role, organisationId: user.organisationId }, effectiveCurrentCaseId) : null,
     ])
-      .then(([linkedIds, casesRes]) => {
+      .then(([linkedIds, casesRes, split]) => {
         if (!casesRes.ok) { setHistory([]); return; }
-        setHistory(queryRealPatientHistory(casesRes.data as any[], linkedIds, effectiveCurrentCaseId));
+        const all = queryRealPatientHistory(casesRes.data as any[], linkedIds, effectiveCurrentCaseId);
+        setHistory(all.filter(h => split?.visibleIds.has(h.id)));
+        setHiddenCount(split ? split.restrictedCount : all.length);
+        setViaGrantCount(split?.viaGrantCount ?? 0);
+        if (user && split && split.viaGrantCount > 0) {
+          void getPatientCaseAccess().recordGrantedView(patientId, { id: user.id, name: user.name, role: user.role, organisationId: user.organisationId }, effectiveCurrentCaseId);
+        }
       })
       .finally(() => setHistoryLoading(false));
 
@@ -252,15 +267,15 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
     // genuinely distinct real people, shown as its own, separate
     // cross-reference below, never folded into the case-history list
     // above.
-    mockPatientIndexService.getLinkedPatientIds(patientId, 'family_relation')
+    patientIndexService.getLinkedPatientIds(patientId, 'family_relation')
       .then(async ids => {
         const relatedIds = ids.filter(id => id !== patientId);
         if (relatedIds.length === 0) { setFamilyRelatedPatients([]); return; }
-        const records = await Promise.all(relatedIds.map(id => mockPatientIndexService.getById(id)));
+        const records = await Promise.all(relatedIds.map(id => patientIndexService.getById(id)));
         setFamilyRelatedPatients(records.filter((r): r is MasterPatientRecord => !!r));
       })
       .catch(() => setFamilyRelatedPatients([]));
-  }, [patientId, hasSufficientIdentifiers, effectiveCurrentCaseId]);
+  }, [patientId, hasSufficientIdentifiers, effectiveCurrentCaseId, user]);
 
   const [showCompose, setShowCompose] = useState(false);
   const [composeNote, setComposeNote]  = useState('');
@@ -271,7 +286,6 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
   // every message sent from this modal was actually addressed back to
   // the sender, never to the physician shown on screen. The comment
   // "in real app: look up physician ID" acknowledged this was a stub.
-  const { user } = useAuth();
   const [sent, setSent]                = useState(false);
 
   const physicianName = selectedItem
@@ -296,13 +310,13 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
     // anywhere in this data yet. Strips a leading "Dr." before matching
     // since physicianName typically includes it but the directory's
     // firstName/lastName fields don't.
-    const usersResult = await mockUserService.getAll();
+    const usersResult = await userService.getAll();
     const normalizedTarget = (physicianName ?? '').replace(/^dr\.?\s*/i, '').trim().toLowerCase();
     const matchedPhysician = usersResult.ok
       ? usersResult.data.find(u => `${u.firstName} ${u.lastName}`.trim().toLowerCase() === normalizedTarget)
       : undefined;
 
-    await mockMessageService.send({
+    await messageService.send({
       senderId: user?.id ?? '',
       senderName: user?.name ?? 'Unknown',
       recipientId: matchedPhysician?.id ?? '',
@@ -399,12 +413,15 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
             {/* Left: Prior Pathology */}
             <div className="ps-ph-panel ps-ph-panel--bordered">
               <div className="ps-ph-panel-title">{t('patientHistoryModal.panel.priorPathology')}</div>
+              {hasSufficientIdentifiers && patientId && <RestrictedCasesNotice patientId={patientId} caseId={effectiveCurrentCaseId ?? ''} />}
+              {hasSufficientIdentifiers && patientId && <PatientSummaryPanel patientId={patientId} patientName={patientName} mrn={mrn} dateOfBirth={dateOfBirth} currentCaseId={effectiveCurrentCaseId} />}
+              {viaGrantCount > 0 && <div className="ps-pca-banner">{t('patientCaseAccess.history.grantBanner', { count: viaGrantCount })}</div>}
               {!hasSufficientIdentifiers ? (
                 <div className="ps-ph-empty-state">
                   {t('patientHistoryModal.insufficientId.body', { missing: t(missingIdentifierKey) })}
                 </div>
               ) : historyLoading ? (
-                <div className="ps-ph-empty-state">{t('patientHistoryModal.panel.loadingHistory')}</div>
+                <LoadingState variant="inline" className="ps-ph-empty-state" label={t('patientHistoryModal.panel.loadingHistory')} />
               ) : history.length === 0 ? (
                 <div className="ps-ph-empty-state">{t('patientHistoryModal.panel.noHistory')}</div>
               ) : (
@@ -412,6 +429,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
                   <CaseCard key={item.id} item={item} onClick={() => openReport(item, 'history')} />
                 ))
               )}
+              {hiddenCount > 0 && !historyLoading && <div className="ps-pca-banner">{t('patientCaseAccess.history.hiddenNote', { count: hiddenCount })}</div>}
 
               {/* Real, per direct guidance: a genuinely separate
                   section from the case-history list above — real,
@@ -427,7 +445,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
                     <div
                       key={r.id}
                       className="ps-ph-empty-state ps-ph-related-patient-row"
-                      onClick={() => { setViewingRelatedPatient({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mrn: r.mrn, dateOfBirth: r.dateOfBirth }); setView('list'); }}
+                      {...pressable(() => { setViewingRelatedPatient({ id: r.id, name: `${r.lastName}, ${r.firstName}`, mrn: r.mrn, dateOfBirth: r.dateOfBirth }); setView('list'); })}
                       data-phi="true"
                     >
                       {t('patientHistoryModal.relatedPatient.row', { firstName: r.firstName, lastName: r.lastName, mrn: r.mrn, dob: new Date(r.dateOfBirth).toLocaleDateString() })} →
@@ -437,7 +455,7 @@ export default function PatientHistoryModal({ patientName: initialPatientName, m
               )}
             </div>
 
-            {/* Right: AI Matched Cases — populated by findSimilarCases() */}
+            {/* Right: Similar Cases (Demonstration) — populated by findSimilarCases() */}
             <div className="ps-ph-panel">
               <div className="ps-ph-panel-title">
                 <span className="ps-ph-accent-text">★</span>

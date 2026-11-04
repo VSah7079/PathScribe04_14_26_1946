@@ -1,0 +1,10 @@
+/* Batch 621: the AI-extracted synoptic fields beside a historical report in the history view. */
+.ps-hx-panel { margin-top: 16px; padding: 12px 16px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 8px; }
+.ps-hx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ps-hx-label { font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.04em; }
+.ps-hx-note, .ps-hx-meta { margin: 6px 0; font-size: 12px; opacity: 0.8; }
+.ps-hx-fields { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.ps-hx-field { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ps-hx-field-label { min-width: 160px; opacity: 0.8; }
+.ps-hx-field-value { font-weight: 500; }
+.ps-hx-conf { font-size: 12px; opacity: 0.7; }

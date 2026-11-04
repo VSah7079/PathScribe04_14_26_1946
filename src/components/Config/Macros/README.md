@@ -45,6 +45,26 @@ Pete: "dark text is hard to read; admins should see all macros sorted by type; u
 - **Enterprise only for administrators:** the visibility list offers Enterprise only to them. Anyone else opening an Enterprise macro, or another user's personal macro, sees it read only: a note, no Delete, Save disabled; the save also refuses it.
 - The decisions live in `services/macros/macroAccess.ts`; `__tests__/MacroPanel.test.tsx` gained 4 tests for this.
 
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 437
+
+Batch 309's `setDirty` still works; it is one report among many now (PS-128).
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `MacroPanel`: the empty-state sentence is translated; its link now uses a named `<cta>` tag. Korean `macroPanel.*` said "매크" instead of "매크로" in 14 places; fixed.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

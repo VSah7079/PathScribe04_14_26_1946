@@ -97,8 +97,8 @@ export interface TemplateRoutingResult {
 
 // ── Synoptic protocol → Case Report Template ─────────────────────────────
 // Key = synopticReports[].templateId value in real case data — these MUST
-// match the IDs actually seeded in templateService.ts's editorStore
-// (editorStore.set('breast_invasive', ...) etc.) — NOT an invented naming
+// match the seed template ids in templateService.ts
+// (SEED_TEMPLATE_LOADERS / SEED_TEMPLATE_IDS: 'breast_invasive' etc.) — NOT an invented naming
 // convention. Previously this map used fictitious 'cap-xxx-resection' style
 // keys that didn't match any real protocol ID anywhere in the codebase,
 // which meant Pass 1 (the most specific, highest-priority match) could
@@ -143,7 +143,12 @@ const PROTOCOL_TO_REPORT: Record<string, string> = {
 
   // Dermatopathology — no dedicated derm template exists yet
   'skin_melanoma_bx':                          'tmpl-gold-standard',
+  'mohs_micrographic_surgery':                 'tmpl-gold-standard',
   'skin_invasive_melanoma_biopsy':             'tmpl-gold-standard',
+
+  // Head and neck (Batch 465) — no dedicated head and neck template exists yet
+  'oral_cavity_resection':                     'tmpl-gold-standard',
+  'neck_dissection':                           'tmpl-gold-standard',
 };
 
 // ── Subspecialty → Case Report Template fallback ─────────────────────────────
@@ -190,7 +195,9 @@ const PROTOCOL_TO_SUBSPECIALTY: Record<string, string> = {
   'wilms_resection':                          'uro',
   'wilms_biopsy':                             'uro',
   'skin_melanoma_bx':                         'derm',
+  'mohs_micrographic_surgery':                'derm',
   'skin_invasive_melanoma_biopsy':            'derm',
+  // Batch 465: the head and neck synoptics have no subspecialty here (none exists yet); they route by protocol above.
 };
 
 /**
@@ -438,9 +445,9 @@ export async function resolveReportTemplateAsync(
     let enterpriseFacilityId: string | undefined;
     let performingLabFacilityId: string | undefined;
     if (input.performingFacilityId) {
-      const { mockFacilityService } = await import('../facilities/mockFacilityService');
+      const { facilityService } = await import('../facilities/facilityServiceInstance');
       const { resolvePerformingLabFacilityId } = await import('../facilities/IFacilityService');
-      const facilityRes = await mockFacilityService.getById(input.performingFacilityId);
+      const facilityRes = await facilityService.getById(input.performingFacilityId);
       if (facilityRes.ok) {
         if (!facilityRes.data.isEnterprise && facilityRes.data.parentId) {
           enterpriseFacilityId = facilityRes.data.parentId;
@@ -449,11 +456,11 @@ export async function resolveReportTemplateAsync(
       }
     }
 
-    const { mockRoutingRuleService } = await import('../routingRules/mockRoutingRuleService');
+    const { routingRuleService } = await import('../routingRules/routingRuleServiceInstance');
     const [facilityMapResult, physicianMapResult, protocolMapResult] = await Promise.all([
-      mockRoutingRuleService.getFacilityMap(performingLabFacilityId),
-      mockRoutingRuleService.getPhysicianMap(performingLabFacilityId),
-      mockRoutingRuleService.getProtocolMap(performingLabFacilityId),
+      routingRuleService.getFacilityMap(performingLabFacilityId),
+      routingRuleService.getPhysicianMap(performingLabFacilityId),
+      routingRuleService.getProtocolMap(performingLabFacilityId),
     ]);
     const facilityOverrides      = (facilityMapResult as any).ok ? (facilityMapResult as any).data : {};
     const physicianOverrides   = (physicianMapResult as any).ok ? (physicianMapResult as any).data : {};

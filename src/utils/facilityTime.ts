@@ -183,6 +183,20 @@ export function getFacilityMidnightUtc(year: number, month: number, day: number,
   return new Date(approxGuess.getTime() - offsetMs);
 }
 
+/** Batch 493 (Tumor Board / MDT meeting-time field): the same real
+ *  facility-local date+time as a UTC instant, built on
+ *  getFacilityMidnightUtc above plus a time-of-day offset — a DST change
+ *  exactly at the facility's own local midnight on the given day would
+ *  make the time-of-day component off by an hour, a real but vanishingly
+ *  rare edge case (US DST transitions happen at 2am local, not midnight)
+ *  not worth a second Intl resolution pass for. Used to decide whether a
+ *  scheduled meeting is still in the future (facility time) and as the
+ *  calendar invite's own DTSTART. */
+export function getFacilityDateTimeUtc(year: number, month: number, day: number, hour: number, minute: number, timezone: string): Date {
+  const midnightUtc = getFacilityMidnightUtc(year, month, day, timezone);
+  return new Date(midnightUtc.getTime() + (hour * 60 + minute) * 60000);
+}
+
 /** Real, signed HL7-style UTC offset string ("+0530"/"-0700") for the
  *  real, configured facility timezone at a given real instant - per
  *  Pete's direct HL7 v2.x guidance: a TS field's offset must reflect the

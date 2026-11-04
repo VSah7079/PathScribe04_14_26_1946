@@ -1,0 +1,8 @@
+/* Batch 758: the block lockout, inline above the bench. */
+.ps-block-lockout { margin: 6px 0; padding: 10px 12px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.55); color: #fde68a; display: flex; flex-direction: column; gap: 6px; }
+.ps-block-lockout-title { margin: 0; font-size: 15px; font-weight: 700; }
+.ps-block-lockout-text { margin: 0; font-size: 13px; color: #fcd34d; }
+.ps-block-lockout-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ps-block-lockout-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ps-block-lockout-slide { font-family: monospace; min-inline-size: 190px; }
+.ps-block-lockout-actions { display: flex; flex-wrap: wrap; gap: 8px; }

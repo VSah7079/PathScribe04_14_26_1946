@@ -186,21 +186,25 @@ const InstanceMatrix: React.FC<{ group: InstanceGroup; liveAnswers: Record<strin
   );
 };
 
-export const AmendmentStatusBanner: React.FC<{ caseId?: string; synopticReports?: any[]; specimens?: { id: string; label: string; description?: string }[] }> = ({ caseId, synopticReports, specimens }) => {
+/** Batch 577: `refreshKey` changes when the page takes up someone else's saved version, so the lists are read again. */
+export const AmendmentStatusBanner: React.FC<{ caseId?: string; synopticReports?: any[]; specimens?: { id: string; label: string; description?: string }[]; refreshKey?: number }> = ({ caseId, synopticReports, specimens, refreshKey = 0 }) => {
   const { t } = useTranslation();
   const [amendments, setAmendments] = useState<AmendmentRecord[]>([]);
   const [versions, setVersions] = useState<ReportVersionRecord[]>([]);
 
   useEffect(() => {
     if (!caseId) { setAmendments([]); setVersions([]); return; }
+    let live = true;
     Promise.all([
       amendmentService.getByCaseId(caseId),
       reportVersionService.getByCaseId(caseId),
     ]).then(([amendRes, versionRes]) => {
+      if (!live) return;
       if (amendRes.ok) setAmendments(amendRes.data.filter(r => r.status === 'released' && r.type === 'amendment'));
       if (versionRes.ok) setVersions(versionRes.data);
     });
-  }, [caseId]);
+    return () => { live = false; };
+  }, [caseId, refreshKey]);
 
   if (amendments.length === 0) return null;
 

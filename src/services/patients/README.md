@@ -1,3 +1,17 @@
+**Batch 749:** `demoCytologyPatients.ts`: PAT-CYT-032 to 042 (cases/demoCytologyVolumeCases.ts).
+
+**Batch 748:** `demoSurgicalPatients.ts`: PAT-B5401 to B5403 (the block-type cases).
+
+**Batch 747:** `demoSurgicalPatients.ts`: PAT-W5301 to W5341 and PAT-W2101 to W2106 (the wall-volume cases).
+
+**Batch 746:** `demoSurgicalPatients.ts`: PAT-M5201 to M5216 (the molecular cases).
+
+**Batch 745:** `demoSurgicalPatients.ts`: PAT-D665 to D667 (the new autopsy cases).
+
+**Batch 744:** `demoCytologyPatients.ts`: PAT-CYT-024 to 031, the S14 fluid, FNA and Pap patients.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/patients/
 
 Real Master Patient Index (MPI) — the missing piece found while tracing
@@ -227,8 +241,47 @@ Real, per direct guidance ("we can setup just the receiving end for now and look
 
 Real, honest scope note carried over from the queue entries this touches: `'SENT'` was declared on the `status` type from the very start but never once actually produced anywhere in this app — `markSent()`, now added to all three real outbound queue services (this folder's own patient-ADT queue, plus `services/reports/`'s result and LIS-sync queues), is the first real code in this whole app that ever calls it.
 
+## Batch 417: national identifiers in the MPI
+
+`PatientIdentifier` rows can now be national identifiers: `system` (the format id), `verificationStatus` and `verifiedAt`. `recordNationalIdentifier(patientId, identifier)` keeps one row per system (the assigning authority is the system id, so `resolveByIdentifier('mrn_nhs', value)` finds a patient by NHS number); `listNationalIdentifiers(patientId)` returns them. Written by `services/patientIdentifiers/recordNationalPatientIdentifier.ts` and `services/hl7/processAdtMessage.ts`.
+
+## Batch 418
+
+`MasterPatientRecord.registryConsent` and `setRegistryConsent(patientId, consent | undefined)`: the patient's registry opt-outs, mirrored from the case that recorded them (`services/registryConsent/`).
+
+## Batch 425 — patient registry details (`patientRegistryDetails.ts`)
+
+- **Intake** from the hospital's system, as the interface engine's JSON (it reads the HL7, PS-331).
+  - `ingestNationalIdentifierEvent` takes `DEMOGRAPHICS_UPDATED` with `nationalIdentifiers[]`. Each value's check digit is run, and one that fails is kept as `failedChecksum`.
+  - `ingestRegistryConsentEvent` takes `REGISTRY_CONSENT_UPDATED`. No research consent.
+
+  Both find the patient in the MPI by the identifier given. They apply to the MPI and every case of the patient, and the newest `updatedAt` wins. Audited without identifier values. No A08 goes back.
+- **Prefill:** `prefillPatientRegistryDetails` gives the Accession page the MPI's identifiers and opt-outs when a known patient is picked.
+- **Editing after accessioning:** `saveCaseRegistryDetails` saves only what changed, through `recordNationalPatientIdentifier` (with `announce`, so an A08 is queued) and `recordPatientRegistryConsent`.
+- **Badge:** `registryOptOutBadge` decides the badge on a case's patient card.
+- `mockPatientIndexService.removeNationalIdentifier`: a removal now comes off the MPI too.
+- Real services: `patientRegistryDetailsDeps.ts`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Registry details are saved per case, versioned; conflicts are counted and audited. The editor reports a conflict (`patientRegistryDetails.conflict`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
 
 **New, real consumer (Sep 2026)**: `services/migration/processLegacyRecordImport.ts` (RFP-APLIS-2026-GLOBAL Historical Data Migration Engine) calls `resolveOrCreatePatient()` directly for real MPI dedup during legacy import — a genuine ambiguous match found during migration lands in the exact same `listPendingReview()`/`PatientMatchReviewSection.tsx` queue a live accession's own ambiguous match would, confirmed directly before building on top of it. No changes made to this folder itself; noted here since it's a genuinely new real caller.
+
+Batch 616 (part A, PS-503): `httpPatientIndexService.ts`, `httpOutboundPatientAdtQueueService.ts`, `patientServicesInstance.ts`. Nothing that identifies a person is in a URL; matching, merging and moving a case are the server's, and a refusal throws a fixed code. The HL7 processing and dispatchers still import the mock directly (server work in production). Contract `docs/architecture/PATIENTS_API.md`.
+
+## Batch 634
+
+`demoCytologyPatients.ts` (+ test): the 23 demo cytology patients (PAT-CYT-001 to 023, matching the seed cases). `mockPatientIndexService.getById` adds one to the index the first time it is asked for, so a seeded cytology case can queue its result message. Birth dates are fixed (age in 2026), so they can drift from the seed cases' relative dates in later years.
+
+## Batch 638
+
+New `demoSurgicalPatients.ts` (+ test): the demo's surgical (and three extra cytology) seed patients are registered in the index on first lookup, so releasing a seeded surgical result queues its message instead of recording SURGICAL_DISPATCH_SKIPPED.
+
+- `patientSexAtBirth.ts` (Batch 662): sex at birth as words (locale keys, and English for printed reports) and the NHS phenotypic sex code (M 1, F 2, I 9, U X). `patientNhsNumberStatus.ts`: what the banner shows for the NHS number (verified only with status indicator 01; check-digit valid; invalid; not checked).

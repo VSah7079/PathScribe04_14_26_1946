@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 627 — Spanish voice commands: Castilian phrases for all 257 commands, added at registry load (Spain, PS-811)",
+    "description": "Vitest, 2026-10-19: full suite 1671 files (1666 passed, 4 skipped, 1 failed); 14,114 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. Not run: native-speaker review of the AI-made Spanish phrases."
+  },
+  "tests": [
+    {
+      "testKey": "PS-827",
+      "start": "2026-10-19T22:00:00Z",
+      "finish": "2026-10-19T22:20:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/spanishVoiceTriggers.test.ts\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/services/actionRegistry/findActionByTrigger.language.test.ts\nPASSED: src/services/actionRegistry/voiceTriggerPool.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nNot tested: native-speaker review of the Spanish phrases."
+    }
+  ]
+}

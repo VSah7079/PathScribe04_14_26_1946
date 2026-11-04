@@ -2,6 +2,7 @@
 import { ISubspecialtyService, Subspecialty } from './ISubspecialtyService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_SUBSPECIALTIES: Subspecialty[] = [
   {
@@ -137,7 +138,30 @@ const migrate = (s: any): Subspecialty => ({
   active:       s.active       ?? (s.status === 'Active'),
 });
 
-const load    = () => storageGet<Subspecialty[]>('pathscribe_subspecialties', SEED_SUBSPECIALTIES).map(migrate);
+// Batch 455 (demo baseline): every surgical pool refused everyone who can sign
+// in, because members were only the seeded staff without sign-ins. The demo
+// pathologists and the fellow join each subspecialty pool. Added to a stored
+// list once (DEMO_POOL_MEMBERS_VERSION), without wiping an administrator's
+// own changes; a Full Reset starts from the seed, which includes them.
+export const DEMO_POOL_MEMBERS: readonly string[] = [
+  'PATH-001', 'PATH-SJ-001', 'PATH-MN-001', 'PATH-RB-001', 'FEL-001',
+  'PATH-UK-001', 'PATH-UK-002', 'PATH-US-001', 'PATH-US-002',
+];
+const DEMO_POOLS = ['gi', 'breast', 'derm', 'neuro', 'heme', 'gyn', 'uro', 'oncology-pool'];
+const DEMO_POOL_MEMBERS_VERSION = '1';
+const withDemoMembers = (s: Subspecialty): Subspecialty =>
+  DEMO_POOLS.includes(s.id) ? { ...s, userIds: [...s.userIds, ...DEMO_POOL_MEMBERS.filter(id => !s.userIds.includes(id))] } : s;
+const SEEDED = SEED_SUBSPECIALTIES.map(withDemoMembers);
+
+const load = () => {
+  const stored = storageGet<Subspecialty[] | null>('pathscribe_subspecialties', null);
+  if (!stored) return SEEDED.map(migrate);
+  if (storageGet<string>('pathscribe_subspecialties_demo_members', '') === DEMO_POOL_MEMBERS_VERSION) return stored.map(migrate);
+  const updated = stored.map(withDemoMembers);
+  storageSet('pathscribe_subspecialties', updated);
+  storageSet('pathscribe_subspecialties_demo_members', DEMO_POOL_MEMBERS_VERSION);
+  return updated.map(migrate);
+};
 const persist = (data: Subspecialty[]) => storageSet('pathscribe_subspecialties', data);
 let MOCK_SUBSPECIALTIES: Subspecialty[] = load();
 
@@ -154,7 +178,7 @@ const findAndUpdate = (id: ID, fn: (s: Subspecialty) => Subspecialty): ServiceRe
   return ok({ ...updated });
 };
 
-export const mockSubspecialtyService: ISubspecialtyService = {
+export const subspecialtyServiceUnchecked: ISubspecialtyService = {
   async getAll() { await delay(); return ok([...MOCK_SUBSPECIALTIES]); },
 
   async getById(id) {
@@ -180,7 +204,12 @@ export const mockSubspecialtyService: ISubspecialtyService = {
 
   async update(id, changes) {
     await delay();
-    return findAndUpdate(id, s => ({ ...s, ...changes }));
+    const res = await findAndUpdate(id, s => ({ ...s, ...changes }));
+    // Batch 431: adding members closes their open pool access requests.
+    if (res.ok && 'userIds' in changes) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
+    return res;
   },
 
   async deactivate(id) {
@@ -195,9 +224,14 @@ export const mockSubspecialtyService: ISubspecialtyService = {
 
   async assignUser(subspecialtyId, userId) {
     await delay();
-    return findAndUpdate(subspecialtyId, s => ({
+    const res = await findAndUpdate(subspecialtyId, s => ({
       ...s, userIds: s.userIds.includes(userId) ? s.userIds : [...s.userIds, userId],
     }));
+    // Batch 431: closes the person's open access request for this pool.
+    if (res.ok) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
+    return res;
   },
 
   async removeUser(subspecialtyId, userId) {
@@ -217,3 +251,10 @@ export const mockSubspecialtyService: ISubspecialtyService = {
     return findAndUpdate(subspecialtyId, s => ({ ...s, specimenIds: s.specimenIds.filter(id => id !== specimenId) }));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSubspecialtyService: ISubspecialtyService = guardConfigWrites(subspecialtyServiceUnchecked, [
+  ['config:subspecialties:manage', ['add', 'update', 'deactivate', 'reactivate']],
+  // Who belongs to a subspecialty is part of the staff record (Staff → Edit).
+  ['config:staff:edit', ['assignUser', 'removeUser']],
+]);

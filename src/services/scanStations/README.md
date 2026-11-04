@@ -1,3 +1,11 @@
+**Batch 740:** stage `Cytology Preparation` (key `cytologyPreparation`); seed `station-cytoprep-1` (CYTOPREP-01).
+
+**Batch 738:** every seeded histology station (grossing, embedding, microtome, staining, processor, slide distribution) prints through `printer-zt411-example`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/scanStations/
 
 Registry of physical scan/work stations — where a tech actually scans a specimen at the bench — facility-scoped, with an Active/Inactive/Unverified lifecycle and a real workflow-stage mapping. A genuinely different real entity from `services/locations/` (which tracks where a *patient* is physically placed, ward/room/bed, HL7 PV1) and from `services/hardwareContainers/` (a reusable rack that moves between stations, not a fixed station itself).
@@ -31,6 +39,34 @@ Registry of physical scan/work stations — where a tech actually scans a specim
 
 The seeded Panthers now live in the equipment register (`services/equipment/`), still at `station-molecular-1`.
 
+## Batch 428: Configuration permissions
+
+- `mockScanStationService`: `create`, `update`, `deactivate`, `reactivate` need `config:scan-stations:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 444
+
+- `scanStationList.ts` (new, tested):
+  - `filterScanStations` (search, status, facility);
+  - `activeScanStations`;
+  - `workflowStageKey` (the locale key for a suggested stage; an admin's own wording is shown as typed).
+- `validateScanStationDraft.ts` returns codes (`nameRequired`, `barcodeRequired`, `facilityRequired`, `printerProfileRequired`) that the screen translates, instead of English text.
+- These helpers are exported from `@/services`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of ScanStationService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.
+
+## Batch 713: stations offered only to the people who may use them
+
+- **`stationsForUser.ts`** (+ `.test.ts`): `stationsForUser(stations, facilityIds)` is the rule: Active stations whose `facilityId` is in the user's `StaffUser.facilityIds`; an empty or absent list (no restriction, which is how a Superadmin support session resolves) gets every Active station. `canUseStation` and `unavailableStationIds` are the same rule for one station or a list of ids. "No station" is not a station and is always offered by the screens.
+- **`stationAvailability.ts`**: in-memory list of the station ids (stored on this computer, or the user's default) that this user may not use. `useCurrentScanStation` and `utils/effectiveScanStation` treat them as "no station", so nothing is scanned against them; the stored value is kept for the next person.
+- **Used by:** `hooks/useSelectableScanStations.ts` (sign-in prompt, header station list) and `hooks/useGlobalStationSwitch.ts` (a `STATION:` barcode for another facility is refused). The OR terminal picker binds a Location, not a scan station, so it is unaffected. No Configuration screen picks "my station" today; `EquipmentSection` and `GrossingHardwareSection` list all stations because they are admin screens.
+- **Not built:** server-side enforcement. The API server must apply the same rule when it records a scan against a station.
+
+## Batch 726
+
+Workflow stages gained Decal / Special Processing, Slide Distribution, Checkout, External Referral and the three cytology steps (spec 7.2), with their labels in six languages (`scanStationsSection.stages.*`). Two demo stations: `station-proc-1` (Tissue Processor 1, Processing) and `station-slidedist-1` (Slide Distribution — Desk 1). Which carriers a stage works on: `services/batches/stationCarrierRules.ts`.

@@ -1,0 +1,768 @@
+<h1 id="top">Screening Case</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Screening Case page is where one cytology specimen is screened, reviewed and signed out. You enter your finding in the lab's reporting system (Bethesda, the UK BSCC/RCPath terms, the German München III groups, the French SFCC wording, or the Dutch CISOE-A six-axis score), see the earlier reviews, the HPV result and the patient's history, take part in QC and peer review, and finally sign the report out.</p>
+<p><strong>Intended users.</strong> Cytotechnologists record the first screen and QC rescreens. Pathologists and fellows review, choose the final diagnosis and sign out whatever a cytotechnologist may not sign out. The page works out your part in the case by itself.</p>
+<p><strong>Where it fits.</strong> You get here by selecting a case on the <a href="/help/cytology">Cytology Worklist</a> (or, as a pathologist, from the Cytology Review tile in the <a href="/help/worklist">Worklist</a>). After sign-out, the report is released (see <a href="/help/report/sign-out-and-release">Sign-out and release</a>). The cases that need a later quality step then show on the QA &amp; Compliance tiles of the Cytology Worklist.</p>
+<div class="admonition note">
+<p class="admonition-title">Orchestration cases only</p>
+<p>The page works only for cases that PathScribe manages itself. A case managed by an outside laboratory system shows "This case is managed by an external LIS (assist mode)..." and a <strong>Back to Worklist</strong> button. A case with no cytology specimen shows "No qualifying cytology specimen found on this case."</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/cytology-screening-case-overview.png" alt="The Screening Case page with the review history on the left and the review form on the right"><figcaption>The Screening Case page with the review history on the left and the review form on the right</figcaption></figure>
+
+<p>The page has a header (case, patient and a row of buttons), several bars and banners that appear only when they apply, and two columns. The left column holds context: your role, the workload, Mandatory QC, HPV, patient history and the review history. The right column holds the form where you record your review.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>The HPV results, scans and AI triage come from the demonstration cases. The molecular platform, the registers and the scanner are not connected to a real site yet. The sample dictionary shown here is the demonstration dictionary; your laboratory manager sets the real one.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Header</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case <em>number</em></td>
+<td>The case reference.</td>
+</tr>
+<tr>
+<td>Vial type, slides</td>
+<td>Batch 760 (Cytology Workspace spec): the screen shows no patient name, date of birth or MRN, so nothing of the patient is readable on an open screening monitor. Under the case number it shows each specimen's vial type and description and up to three slide ids, for example "A: ThinPrep – Cervical · Slides …". A badge shows the patient's registry opt-outs when there are any. <strong>Ask a Colleague</strong> names the case by its accession.</td>
+</tr>
+<tr>
+<td>LMP</td>
+<td>Last menstrual period. Type or pick a date; it saves when you leave the box. Required (marked *) on a GYN specimen if your laboratory requires it for the review.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Specimen tabs</strong></p>
+<p>When the case has more than one cytology specimen, a tab for each appears ("Specimen A" and its description) with its status: Draft, Revision requested or Signed out. Each specimen is reviewed and signed out on its own. "<em>N</em> of <em>M</em> specimens signed out" shows the progress. The case report goes out when the last specimen is signed (see "Finalize the case early" below).</p>
+<p><strong>Left column</strong></p>
+<table>
+<thead>
+<tr>
+<th>Card</th>
+<th>What it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your Role for This Review</td>
+<td>Your role, set automatically. See the table of roles below. "Determined automatically from review history and your account role." If you already reviewed the case it says "You already reviewed this case - editing your own review below."</td>
+</tr>
+<tr>
+<td>Review Mode (cytotechnologists only)</td>
+<td>How you screened this pass, which sets the weight toward your workload limit: Full Manual Screen (1.0 SCU), Liquid-Based Non-Gyn (0.5 SCU), FOV-Assisted, No Rescreen (0.5 SCU), FOV + Full Manual Rescreen (1.5 SCU). A pathologist's review does not count toward the limit. The small hint beside the title reads "(CLIA workload weight)".</td>
+</tr>
+<tr>
+<td>Your workload (last 24 hours)</td>
+<td>The same counter as on the worklist, and a banner when you approach or reach the limit.</td>
+</tr>
+<tr>
+<td>Mandatory QC</td>
+<td>Whether the specimen is flagged for QC (see "QC rescreen").</td>
+</tr>
+<tr>
+<td>HPV Co-Testing</td>
+<td>The HPV result that arrived from the molecular platform. Read-only; the hint beside the title says "(upstream molecular result — read-only)". It lists "Co-test ordered" (Yes or No), the reason, the result and its flag, the "Reference range" the laboratory sent, and the "Genotype" (for example 16 or 18). When no result has arrived it says so.</td>
+</tr>
+<tr>
+<td>Liquid-based platform, HPV assay (name), Action on the positive HPV result</td>
+<td>Details you can record. See "HPV and reflex testing". When the action is Colposcopy referral, two dates appear: <strong>Referred on</strong> and <strong>Response received on</strong>. The UK failsafe report counts the referral and flags it if no response is recorded after 28 days.</td>
+</tr>
+<tr>
+<td>Patient Cyto/Histo History</td>
+<td>The hint beside the title reads "(prior cases for this patient)". Two lists: "Prior Pap Smears" with the final result (a smear that was never finalized reads "no final diagnosis on record"), and "Prior Surgical Biopsies", each biopsy with a <strong>View Case</strong> button.</td>
+</tr>
+<tr>
+<td>5-Year Retrospective Lookback</td>
+<td>Shown when the diagnosis you are entering is high grade: the patient's earlier negative or low-grade Paps in the last five years, with <strong>View Case</strong>.</td>
+</tr>
+<tr>
+<td>Review History</td>
+<td>Every review recorded on this specimen, newest information in each card (see below). Before anyone has saved a review it reads "No reviews recorded yet."</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Roles the page assigns</strong></p>
+<table>
+<thead>
+<tr>
+<th>Role shown</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Primary Screener</td>
+<td>You are not a pathologist and nobody has reviewed this specimen yet.</td>
+</tr>
+<tr>
+<td>Secondary Reviewer</td>
+<td>You are not a pathologist and a review already exists.</td>
+</tr>
+<tr>
+<td>QC - Random Selection / QC - Targeted High-Risk</td>
+<td>The specimen carries a QC flag that no matching rescreen has cleared.</td>
+</tr>
+<tr>
+<td>Pathologist Review</td>
+<td>You are a pathologist.</td>
+</tr>
+<tr>
+<td>Post-Sign-Out Peer Review - Random Selection / Targeted High-Risk</td>
+<td>You are a pathologist other than the signer, and the signed-out specimen was picked for peer review.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A card in Review History</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Badge INITIAL REVIEW or the role</td>
+<td>The type of review.</td>
+</tr>
+<tr>
+<td>FINAL DIAGNOSIS</td>
+<td>The review chosen as the final diagnosis.</td>
+</tr>
+<tr>
+<td>CT-ELIGIBLE / PATHOLOGIST REQUIRED</td>
+<td>Whether a cytotechnologist may sign out on this review. Hover to see the reasons.</td>
+</tr>
+<tr>
+<td>Name and date</td>
+<td>Who recorded it and when.</td>
+</tr>
+<tr>
+<td>Adequacy, General Categorization, Primary, Additional, Recommendations</td>
+<td>The review's content.</td>
+</tr>
+<tr>
+<td>Agreement with the initial review</td>
+<td>On every later review: exact, minor discrepancy or major discrepancy (with false negative, false positive or high-grade skip), and "Adequacy differs from the initial review."</td>
+</tr>
+<tr>
+<td>Quoted notes</td>
+<td>The review's notes.</td>
+</tr>
+<tr>
+<td>Notes from other reviewers</td>
+<td>Notes with a section, a status (Open, Acknowledged, Revised, Resolved by pathologist) and the person and date.</td>
+</tr>
+<tr>
+<td>Clone, Revise and sign out, Set as Final</td>
+<td>Buttons, described under Toolbar.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Right column: the review form (Bethesda-style systems)</strong></p>
+<p>The title is <strong>Record a New Review</strong>, or <strong>Edit Your Review</strong> when you already have one.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>General Categorization</td>
+<td>The broad group, for example Negative for Intraepithelial Lesion or Malignancy. One choice.</td>
+</tr>
+<tr>
+<td>Specimen Adequacy</td>
+<td>One or more choices; each can carry a comment. Type in the box that reads "Search adequacy…" to narrow the list.</td>
+</tr>
+<tr>
+<td>Primary Interpretation</td>
+<td>Exactly one; it can carry a comment ("(exactly one; may carry a comment)" beside the title). Always required. Type in "Search primary interpretation…" to narrow the list.</td>
+</tr>
+<tr>
+<td>Additional Interpretations</td>
+<td>Any number, each with a comment if needed. The one you chose as primary is not offered again. The search box reads "Search additional interpretations…".</td>
+</tr>
+<tr>
+<td>Recommendations</td>
+<td>Any number, each with a comment if needed. The search box reads "Search recommendations…".</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td>Free text with spell check.</td>
+</tr>
+</tbody>
+</table>
+<p>Which of these are required is set by your laboratory (Field Requirements, page Cytology). The primary interpretation is always required. When something is missing, the line "Still required: ..." names it and <strong>Save</strong> stays off.</p>
+<p><strong>Right column: the CISOE-A form</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C - Composition</td>
+<td>Score 0 to 9 ("(0-9)" beside each axis name), with a comment.</td>
+</tr>
+<tr>
+<td>I - Inflammation</td>
+<td>Score 0 to 9, with a comment.</td>
+</tr>
+<tr>
+<td>S - Squamous Epithelium</td>
+<td>Score 0 to 9, with a comment.</td>
+</tr>
+<tr>
+<td>O - Other / Endometrium</td>
+<td>Score 0 to 9, with a comment.</td>
+</tr>
+<tr>
+<td>E - Endocervical Epithelium</td>
+<td>Score 0 to 9, with a comment.</td>
+</tr>
+<tr>
+<td>A - Adequacy</td>
+<td>Satisfactory, Suboptimal or Unsatisfactory.</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td>Free text.</td>
+</tr>
+</tbody>
+</table>
+<p>The form is headed "Record a New CISOE-A Review", or "Edit Your CISOE-A Review" when you already have one. All six components are required. Comments and notes are required only if your lab says so (the comment box then reads "Comment (required)").</p>
+<h3 id="toolbar">Toolbar</h3>
+<p><strong>Header buttons</strong></p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Spelling language</td>
+<td>Sets the spelling language of the case.</td>
+</tr>
+<tr>
+<td>Open EMR</td>
+<td>Opens the patient's record from the hospital system in a second window, or in a side drawer if the browser blocks the window.</td>
+</tr>
+<tr>
+<td>Print</td>
+<td>Opens the PDF of this specimen's report. Before sign-out it is a preview; after sign-out it is the report as signed.</td>
+</tr>
+<tr>
+<td>Attachments (n) / Add Attachments</td>
+<td>Opens the Attachments window for the case's photos, files and links; images placed in the cytology report print after its pages. Greyed out without permission.</td>
+</tr>
+<tr>
+<td>Print case report</td>
+<td>Only after the case report was released and the case has more than one specimen. Opens the consolidated report.</td>
+</tr>
+<tr>
+<td>Synoptic</td>
+<td>Non-GYN only, for a pathologist or a CT holding an advanced sign-out credential, and never at a CISOE-A laboratory. Opens the <strong>Synoptic Reporting</strong> drawer: choose a template, answer the fields, <strong>Save Synoptic</strong>, or <strong>Insert into Notes</strong> for the generated narrative. The first box reads "Select Synoptic Template". A warning headed "Unvalidated Clinical Terms" lists clinical terms that have no validated translation in your language; tick the acknowledgment to continue.</td>
+</tr>
+<tr>
+<td>Material</td>
+<td>Opens the material drawer: the decants on this specimen, <strong>Add Residual Fluid</strong>, <strong>Add Cell Block</strong>, and the stains for each. A specimen with no decants says "No decants recorded for this specimen." Batch 739: each decant is named with its type, "D1 — Cell Block"; a portion set aside for a test is an aliquot named by its purpose, "D1 — Aliquot for HPV testing".</td>
+</tr>
+<tr>
+<td>ROSE</td>
+<td>Non-GYN only. Rapid on-site evaluation: location (Clinic, Operating Room, Radiology or Other), one or more passes each with adequacy (Adequate, Inadequate, Indeterminate) and a preliminary impression, and <strong>Save Evaluation</strong>. Earlier evaluations are listed under "Prior ROSE Evaluations"; the form for a new one is headed "Record New Evaluation", and <strong>Add Pass</strong> adds a further pass to it.</td>
+</tr>
+<tr>
+<td>Codes</td>
+<td>Opens the code window to add ICD, SNOMED, ICD-O or CPT codes to the specimen.</td>
+</tr>
+<tr>
+<td>Billing</td>
+<td>Opens the billing review drawer: review, approve or correct the case's billing codes. Each change is charged or credited and audited.</td>
+</tr>
+<tr>
+<td>Flags</td>
+<td>Opens the case flags window. This is not the high-risk QC flag; it is the general case flag.</td>
+</tr>
+<tr>
+<td>Team</td>
+<td>Opens the case team window.</td>
+</tr>
+<tr>
+<td>Delegate</td>
+<td>Opens the delegate window.</td>
+</tr>
+<tr>
+<td>Req. Review</td>
+<td>Opens the request-review window to ask a colleague to look at the case.</td>
+</tr>
+<tr>
+<td>Slide preview</td>
+<td>Appears only when your laboratory screens on whole-slide images: a small reference preview ("Reference preview. Not for diagnosis."), or <strong>Open slide</strong>. Selecting it opens the slide in your laboratory's digital pathology application (see <a href="/help/wsi-viewer">Slide Images</a>).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Other buttons</strong></p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Back to Worklist</td>
+<td>Returns to the worklist (or to the queue you came from). If you have unsaved changes you are asked "You have unsaved changes to this review. Leave without saving?"</td>
+</tr>
+<tr>
+<td>Save as <em>role</em> / Update Review</td>
+<td>Saves your review.</td>
+</tr>
+<tr>
+<td>Request Peer Review</td>
+<td>Opens the request-review window.</td>
+</tr>
+<tr>
+<td>Clone</td>
+<td>Copies another review into your form, as a start.</td>
+</tr>
+<tr>
+<td>Revise and sign out</td>
+<td>For a pathologist, on another person's review before sign-out (not at a CISOE-A laboratory): loads that review into your form as your own. Saving makes it the final diagnosis and opens the signature. A banner above the form says whose review you are revising, and <strong>Stop revising</strong> drops the loaded review and returns you to a blank form.</td>
+</tr>
+<tr>
+<td>Set as Final</td>
+<td>Makes that review the specimen's final diagnosis.</td>
+</tr>
+<tr>
+<td>Flag High-Risk QC / Remove Flag</td>
+<td>Adds or removes the specimen's QC flag.</td>
+</tr>
+<tr>
+<td>Add note, Acknowledge, <em>N</em> earlier versions, Load into form</td>
+<td>On the review cards (see the procedure for notes).</td>
+</tr>
+<tr>
+<td>Sign Out</td>
+<td>Signs out the specimen.</td>
+</tr>
+<tr>
+<td>Correct diagnosis, Add addendum</td>
+<td>After sign-out.</td>
+</tr>
+<tr>
+<td>Send urgent preliminary</td>
+<td>Sends an early, marked preliminary report before sign-out.</td>
+</tr>
+<tr>
+<td>Finalize case now</td>
+<td>Appears when some specimens are signed out and some are not.</td>
+</tr>
+<tr>
+<td>Return to Trainee</td>
+<td>Appears for an attending when a trainee's specimen was released for countersign.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What you need to be allowed to do each thing</strong></p>
+<p>Your laboratory manager gives these permissions by role. A button without its permission is greyed out; if you still get a refusal, a message names it.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Permission in plain words</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open this page</td>
+<td>Open the Cytology Workspace.</td>
+</tr>
+<tr>
+<td>Save or update a review</td>
+<td>Record cytology reviews.</td>
+</tr>
+<tr>
+<td>Set as Final</td>
+<td>Choose the final diagnosis.</td>
+</tr>
+<tr>
+<td>Sign Out</td>
+<td>Sign out cytology reports (pathologist track); a cytotechnologist also needs the cytotechnologist sign-out permission.</td>
+</tr>
+<tr>
+<td>Remove Flag</td>
+<td>Remove QC flags. Adding a flag needs no permission.</td>
+</tr>
+<tr>
+<td>Complete Review (5-year lookback)</td>
+<td>Record retrospective reviews.</td>
+</tr>
+<tr>
+<td>Confirm &amp; Record, Record (correlation)</td>
+<td>Record cyto-histologic correlations.</td>
+</tr>
+<tr>
+<td>Finalize case now</td>
+<td>Finalize a cytology case early.</td>
+</tr>
+<tr>
+<td>Correct diagnosis / Add addendum</td>
+<td>Correct a cytology report / add an addendum to one.</td>
+</tr>
+<tr>
+<td>Send urgent preliminary</td>
+<td>Send a cytology preliminary report.</td>
+</tr>
+<tr>
+<td>Attachments</td>
+<td>Place images in a report; attach, link or remove case files.</td>
+</tr>
+<tr>
+<td>Record Concurrence, Record Discrepancy (QC bar)</td>
+<td>Record cytology QC reviews.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Green "Ready to sign out."</td>
+<td>The specimen can be signed out by you.</td>
+</tr>
+<tr>
+<td>"Pathologist sign-out required: ..."</td>
+<td>A cytotechnologist may not sign out; the reasons follow: non-GYN specimen, needs pathologist review, unsatisfactory adequacy, flagged for QC, unvalidated synoptic translation, revision requested from the author.</td>
+</tr>
+<tr>
+<td>"Select a Final Diagnosis below before this case can be signed out."</td>
+<td>Choose one review with <strong>Set as Final</strong> first.</td>
+</tr>
+<tr>
+<td>"Signed out by … on …." (the name, then the date and time)</td>
+<td>The specimen is signed. The form is replaced by correction and addendum actions.</td>
+</tr>
+<tr>
+<td>Amber banner: Approaching your prorated CLIA screening limit...</td>
+<td>Your workload limit is near.</td>
+</tr>
+<tr>
+<td>Suggested: Abnormal / Malignant / Critical</td>
+<td>Advice from the highest severity of the Bethesda interpretation you are entering. It does not block sign-out.</td>
+</tr>
+<tr>
+<td>Violet card edge on HPV</td>
+<td>The HPV result is Positive.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>These keys work while the Screening Case page is open. Their spoken phrases are in brackets.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ctrl+Alt+Shift+A</td>
+<td>Save Cytology Review ("save review"). Does the same as Save, with the same checks.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+B</td>
+<td>Save CISOE-A Review ("save CISOE-A review").</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+C</td>
+<td>Complete Retrospective Review ("complete retrospective review"), when that banner is showing.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+D</td>
+<td>Record Cyto-Histologic Correlation ("record correlation"), for the first correlation banner on screen.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+E</td>
+<td>Open Material.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+H</td>
+<td>Add Residual Fluid.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+I</td>
+<td>Add Cell Block.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+J</td>
+<td>Open the Cytology Synoptic drawer.</td>
+</tr>
+</tbody>
+</table>
+<p>Sign-out has no key or spoken command on purpose, so a misheard command cannot sign a report.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Screen a GYN case as a cytotechnologist.</strong></p>
+<ol>
+<li>Select the case on the Cytology Worklist. The page opens. Check the accession and the slide id against the slide label.</li>
+<li>Read the left column. Note the HPV card, the patient history and any banner above the columns.</li>
+<li>Choose your <strong>Review Mode</strong> if you are a cytotechnologist and it is not "Full Manual Screen".</li>
+<li>In the form, choose the <strong>Specimen Adequacy</strong>. If it is unsatisfactory, a cytotechnologist cannot sign out this specimen.</li>
+<li>Choose the <strong>General Categorization</strong> and the <strong>Primary Interpretation</strong>. Add <strong>Additional Interpretations</strong> and <strong>Recommendations</strong> as needed. Add comments where they help the reader.</li>
+<li>Add <strong>Notes</strong>, then check that no "Still required: ..." line is left.</li>
+<li>Select <strong>Save as Primary Screener</strong> (the button shows your role). A review card appears in Review History under INITIAL REVIEW. If the patient is high risk, a warning toast says "This case was flagged for mandatory QC review - the patient meets one or more standard high-risk criteria." If the case was picked at random, a toast says "This case was randomly selected for mandatory QC review."</li>
+<li>If the slide had a completed AI result, a window titled "AI Screening Concordance" asks whether your finding agrees with it. It states the AI result (for example "Review Recommended", with its group out of five, or the number of AI-flagged fields of view). Select <strong>Agree</strong> or <strong>Disagree</strong>. It is asked once, after your finding is saved, so it cannot bias your finding.</li>
+<li>If the review needs a pathologist (an abnormal result, for example), the case waits for one. If the result is negative and nothing blocks it, go on to sign-out.</li>
+</ol>
+<p><strong>Sign out a specimen.</strong></p>
+<ol>
+<li>On the review you want to report, select <strong>Set as Final</strong>. A FINAL DIAGNOSIS tag appears on that card. A cytotechnologist can set a review as final only when a cytotechnologist may sign it out; otherwise the button is greyed out and the message says only a pathologist may select it.</li>
+<li>Check the row above the columns. It must say "Ready to sign out."</li>
+<li>Select <strong>Sign Out</strong>. If the clinical mismatch check finds a mismatch with the clinical history, a window shows it first; decide there, then continue.</li>
+<li>The signature window opens ("Confirm your signature to sign out this case"). Confirm your signature.</li>
+<li>The banner "Signed out by … on …." appears, with the name of the signer and the date. If this is the last specimen the toast says "Report signed out."; if not, it says how many specimens remain. If you are a trainee, the toast reads "Case … released for countersign" (with the case number) and an attending now reviews it.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p><strong>Enter a Dutch CISOE-A review.</strong> This is the form shown at a laboratory whose reporting system is CISOE-A (PALGA).</p>
+<ol>
+<li>Score each of the five axes from 0 to 9: C (Composition), I (Inflammation), S (Squamous), O (Other / Endometrium) and E (Endocervical). Add a comment where useful.</li>
+<li>Choose <strong>A - Adequacy</strong>: Satisfactory, Suboptimal or Unsatisfactory.</li>
+<li>Watch the blue suggestion: if the highest of S, O and E is 5 or more it says "Suggested: refer for colposcopy (moderate dyskaryosis or worse)."; from 2 to 4 it says "Suggested: recommend HPV genotyping (16/18 vs. other high-risk) to guide colposcopy vs. repeat cytology." It is advice. You still decide the recommendations.</li>
+<li>Select <strong>Save</strong>. Red messages list what is missing or out of range. An amber warning appears when adequacy is Unsatisfactory but S or E is above 1: the finding is kept and flagged for review, not discarded.</li>
+<li>The page also saves the Bethesda equivalents so reports, QC and sign-out rules work. The most severe axis becomes the primary interpretation; any other abnormal axis becomes an additional interpretation. S: 0-1 negative, 2-3 ASC-US, 4 LSIL, 5-7 HSIL, 8-9 squamous carcinoma. O and E: up to 2 negative, 3 atypical (not otherwise specified), 4-5 atypical (favor neoplastic), 6-7 adenocarcinoma in situ, 8-9 adenocarcinoma. ASC-H is never assigned. Suboptimal adequacy is treated as satisfactory; Unsatisfactory is treated as insufficient and blocks a cytotechnologist's sign-out.</li>
+</ol>
+<p><strong>Report in the UK, German or French terms.</strong> The form is the same as the Bethesda-style form; only the choices change.</p>
+<table>
+<thead>
+<tr>
+<th>System</th>
+<th>Adequacy</th>
+<th>Interpretation choices (examples)</th>
+<th>Recommendation choices (examples)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bethesda</td>
+<td>Satisfactory for Evaluation; two Unsatisfactory choices</td>
+<td>Reactive changes, ASC-US, ASC-H, LSIL, HSIL, squamous cell carcinoma, atypical glandular, AIS, adenocarcinoma</td>
+<td>Routine screening interval, repeat cytology, refer for colposcopy, HPV genotyping</td>
+</tr>
+<tr>
+<td>BSCC / RCPath (UK)</td>
+<td>Satisfactory; Unsatisfactory / Inadequate</td>
+<td>Negative, Borderline Changes in Squamous Cells, Low-Grade Dyskaryosis, High-Grade Dyskaryosis (Moderate or Severe), ?Glandular Neoplasia</td>
+<td>Return to Routine Recall, Direct Referral to Colposcopy, Urgent (2-Week) Colposcopy Referral, 62-Day Suspected Cancer Pathway Referral</td>
+</tr>
+<tr>
+<td>München III (Germany)</td>
+<td>Adequate / Inadequate for Evaluation</td>
+<td>Group I, IIa, II-p, II-g, II-e, III, IIID1, IIID2, IVa, IVb, V (squamous, glandular, endometrial)</td>
+<td>Return to Routine Screening, hrHPV Triage, Repeat Co-Testing in 12 months, Colposcopy / Excision Biopsy</td>
+</tr>
+<tr>
+<td>SFCC (France)</td>
+<td>As Bethesda, in French</td>
+<td>As Bethesda, in French</td>
+<td>As Bethesda, in French</td>
+</tr>
+</tbody>
+</table>
+<p>SFCC is not a separate set of categories: it is the Bethesda list shown with French wording. Your laboratory manager picks the system for your facility. The ranks and rules of each system are its own; the systems are not converted into one another on screen.</p>
+<p><strong>Do a QC rescreen</strong> (a cytotechnologist).</p>
+<ol>
+<li>On the Cytology Worklist, open a slide from <strong>QC / Rescreen</strong> that you did not screen first.</li>
+<li>The card "Your Role for This Review" says QC - Random Selection or QC - Targeted High-Risk. The card <strong>Mandatory QC</strong> says who flagged it and when.</li>
+<li>Screen it independently and save with <strong>Save as QC - ...</strong>. The slide leaves the QC / Rescreen tile, and the page stores how your review agrees with the first screen (exact, minor or major discrepancy). Your rescreen is also recorded as a secondary-screening quality entry, marked concordant or discordant against the first screen.</li>
+<li>If you did the first screen yourself, the save is refused: "You did the primary screen on this specimen, so another screener must do the QC rescreen. Use "Ask a colleague" on the QC / Rescreen tile."</li>
+</ol>
+<p><strong>Add a note to someone else's review.</strong></p>
+<ol>
+<li>On the review card, select <strong>Add note</strong>. A small form opens.</li>
+<li>Choose the section the note is about: Adequacy, General categorization, Primary interpretation, Secondary interpretations, Recommendations or Notes.</li>
+<li>Type the note. Tick <strong>Requires revision (a cytotechnologist can't sign out until it's revised)</strong> only if the author must change the review before sign-out.</li>
+<li>Select <strong>Save note</strong>. The author sees it as Open. The author selects <strong>Acknowledge</strong>, edits the review and saves; the note becomes Revised. A pathologist's own review closes an open revision request as "Resolved by <em>name</em>'s pathologist review."</li>
+<li>You cannot leave a note on your own review.</li>
+</ol>
+<p><strong>Record a cyto-histologic correlation.</strong> The banner "Cyto-Histologic Correlation Candidate" appears when a later case for the same patient may be the biopsy of an abnormal cytology result.</p>
+<ol>
+<li>If the banner shows "Cytology: ... - Histology (from SNOMED coding): ... - Outcome: ...", check it against the biopsy case and select <strong>Confirm &amp; Record</strong>.</li>
+<li>If the banner says the histology diagnosis could not be read from the coding, type the <strong>Histology Diagnosis</strong> (the box shows the example "e.g. CIN III on biopsy") and choose the <strong>Outcome</strong>, Concordant or Discordant, then select <strong>Record</strong>.</li>
+<li>If the later case is not the right biopsy, select <strong>Not Relevant</strong>. The banner goes away.</li>
+<li>The toast "Cyto-histologic correlation recorded." confirms it.</li>
+</ol>
+<p><strong>Complete a 5-year retrospective review.</strong> The banner "5-Year Retrospective Review Required" appears on a prior negative result of a patient who now has a high-grade, in-situ or malignant diagnosis.</p>
+<ol>
+<li>Re-examine the earlier slide.</li>
+<li>Choose the <strong>Outcome</strong>: Confirmed Negative, Interpretation Error, Sampling Error or Screening Error.</li>
+<li>Type the <strong>Corrective Action</strong> (needed if the outcome is not Confirmed Negative, when your lab requires it).</li>
+<li>Select <strong>Complete Review</strong>. The toast "5-year retrospective review recorded." appears.</li>
+</ol>
+<p><strong>Send an urgent preliminary report.</strong> Available once a final diagnosis is chosen and before sign-out.</p>
+<ol>
+<li>Select <strong>Send urgent preliminary</strong>.</li>
+<li>Choose the <strong>Reason</strong>: Clinician request, Critical finding or Urgent clinical management. Add a <strong>Note</strong> if useful.</li>
+<li>Select <strong>Send</strong> (or <strong>Sign and send</strong> if your lab requires a signature, which opens a window headed "Sign the urgent preliminary report"). The toast "Urgent preliminary report sent." appears and the history line shows who sent it. If a preliminary report was recalled before it reached the clinician, its history line ends "(recalled, not sent)". The case report follows at sign-out.</li>
+</ol>
+<p><strong>Correct or add to a signed-out report.</strong></p>
+<ol>
+<li>After sign-out, select <strong>Correct diagnosis</strong> (the signed diagnosis is replaced; the original stays on file) or <strong>Add addendum</strong> (the diagnosis stands; text is added).</li>
+<li>A correction opens "Correct the signed-out diagnosis" with the line "Currently reported as: …" (the diagnosis now on the report) and the same search boxes as the review form; an addendum opens "Add an addendum". Give the "Reason for correction" or "Reason for addendum" (and the addendum text). Select <strong>Release correction</strong> or <strong>Release addendum</strong>, and confirm your signature.</li>
+<li>"Changes since sign-out" lists each correction and addendum with who, when and why.</li>
+</ol>
+<p><strong>Finalize the case early.</strong> When some specimens are signed out and others will not be:</p>
+<ol>
+<li>Select <strong>Finalize case now</strong>.</li>
+<li>Type why. The label reads "Why finalize now? <em>N</em> specimens aren't signed out yet."</li>
+<li>Select <strong>Finalize case</strong>. The unsigned specimens are recorded as not reported, with your reason, and the case report is released.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The case is flagged for pathologist review.</strong> An abnormal interpretation, an unsatisfactory adequacy, a flagged-for-QC specimen or any open revision request means a cytotechnologist cannot sign out. Pathologists find these cases on the Cytology Review tile in the <a href="/help/worklist">Worklist</a>. They take the case, review it and sign out here.</li>
+<li><strong>An advanced-certified cytotechnologist.</strong> In some countries a cytotechnologist holding the right credential may sign out abnormal GYN cases. This works only if the country allows it and the credential is current; it never applies to non-GYN specimens, unsatisfactory adequacy or QC-flagged specimens.</li>
+<li><strong>You reach your CLIA workload limit while saving.</strong> A new review is not saved. The case and your other pending cases are handed to colleagues with room or back to the pool, you return to the worklist, and a message lists where they went. If you were only escalating a review already saved (for example from FOV-assisted to a full manual rescreen), the save goes through and a note explains it.</li>
+<li><strong>A pathologist wants to change a cytotechnologist's review.</strong> Use <strong>Revise and sign out</strong>. The cytotechnologist's review stays as recorded.</li>
+<li><strong>A revision was requested.</strong> The row says "revision requested from the author" and the cytotechnologist cannot sign out until the author acknowledges and saves a revised review.</li>
+<li><strong>A laboratory without the workload limit.</strong> The counter and banner do not appear (the limit is on for US laboratories by default and off elsewhere).</li>
+<li><strong>Another session changed the material.</strong> If a decant change fails because someone else changed the case, the page reloads and says so; repeat the change.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>"You don't have permission to record cytology reviews."</strong> You lack the permission to record reviews. Ask your laboratory manager.</li>
+<li><strong>"The review couldn't be saved. Try again."</strong> Save again. If it keeps failing, note the time and contact support.</li>
+<li><strong>"You don't have permission to choose the final diagnosis."</strong>, <strong>"...to remove QC flags."</strong>, <strong>"...to record cyto-histologic correlations."</strong>, <strong>"...to record retrospective reviews."</strong> Each is a separate permission.</li>
+<li><strong>"You don't have permission to sign out cytology reports as a cytotechnologist. A pathologist must sign this one out."</strong> Hand the case to a pathologist.</li>
+<li><strong>"The sign-out couldn't be saved. Try again."</strong> Try once more; do not sign twice. Check the banner "Signed out by..." to see if it went through.</li>
+<li><strong>You loaded another review by mistake.</strong> Load an earlier version or clone again; nothing is lost until you save, and a saved edit keeps the earlier one as a version (select "<em>N</em> earlier versions" then <strong>Load into form</strong>).</li>
+<li><strong>Unsaved changes.</strong> The browser or the page asks before you leave or switch specimens. Save first, or confirm that you want to discard them.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Sign-out is a legal act</p>
+<p>Signing out issues the report to the clinician. Check the patient, the specimen, the final diagnosis and the adequacy before you confirm the signature. A wrong report needs a correction, which is sent as a correction. Signing out cannot be taken back.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">A CISOE-A score cannot be undone by the mapping</p>
+<p>The Bethesda equivalents of a CISOE-A score are filled in for you and drive the sign-out rules. Check S, O and E again before you save: a wrong digit can change who is allowed to sign out.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Not reading the HPV card before choosing recommendations. The card is above the history; a positive result changes the recommendation.</li>
+<li>Choosing "Set as Final" on the wrong review. Check the FINAL DIAGNOSIS tag on the card before you sign.</li>
+<li>Leaving a comment out of an additional interpretation when it explains a finding.</li>
+<li>Treating the suggested severity or the CISOE-A suggestion as a decision. Both are advice.</li>
+<li>Doing the QC rescreen from your own primary screen. It is refused by design.</li>
+<li>Using the general <strong>Flags</strong> button when you meant the QC flag, or the other way round.</li>
+<li>Putting patient details in a note that goes to a supervisor, such as a screening hours note.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the keys for saving: Ctrl+Alt+Shift+A saves a Bethesda-style review and Ctrl+Alt+Shift+B a CISOE-A review. They do the same as the button and are stopped by the same "Still required" check.</li>
+<li>Use <strong>Clone</strong> to start from an earlier review of the same kind when a case repeats.</li>
+<li>If you already reviewed this specimen, your own review opens in the form for editing, so you do not retype it.</li>
+<li>Use the specimen tabs on multi-specimen cases instead of opening the same case again.</li>
+<li>Spell check in the Notes box follows the case's spelling language; change it with the spelling language control in the header.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Save the screen first, then Set as Final, then Sign Out. Sign-out is one decision made on one saved review.</li>
+<li>Record the HPV assay, platform and the action on a positive result when you see it; the laboratory's HPV and failsafe reports read these.</li>
+<li>Close retrospective reviews and correlations soon after the banner appears. The tiles on the Cytology Worklist count them.</li>
+<li>Send a preliminary report only for an urgent finding. It is marked preliminary on the report.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/cytology">Cytology Worklist</a>, where you choose the case.</li>
+<li><a href="/help/accession">Accession</a>, where the specimen, clinical history and prior cervical procedure are recorded.</li>
+<li><a href="/help/molecular">Molecular</a>, where the HPV result is produced.</li>
+<li><a href="/help/add-on-orders">Add-on Orders</a>, for tests added after the first screen.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report/sign-out-and-release">Sign-out and release</a> for how a signed report is released.</li>
+<li><a href="/help/report/case-team">Case team</a> and <a href="/help/case-flags">Case flags</a> for the Team and Flags windows.</li>
+<li><a href="/help/wsi-viewer">Slide Images</a>: the slide's reference preview and opening it in your laboratory's digital pathology application.</li>
+<li><a href="/help/quality">Quality</a>, for follow-up tracking and QA reports, including the cytology QC compliance report.</li>
+<li><a href="/help/messaging">Messaging</a>, for the "Ask a colleague" message.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Save</strong> is greyed out</td>
+<td>A required field is empty. Read the "Still required: ..." line.</td>
+</tr>
+<tr>
+<td><strong>Set as Final</strong> is greyed out</td>
+<td>The review needs a pathologist, and you are not one; or you lack the permission to choose the final diagnosis.</td>
+</tr>
+<tr>
+<td><strong>Sign Out</strong> is greyed out</td>
+<td>No final diagnosis chosen, the review is not one you may sign, or you lack the sign-out permission. The row above names the reasons.</td>
+</tr>
+<tr>
+<td>No <strong>Synoptic</strong> or <strong>ROSE</strong> button</td>
+<td>These are for Non-GYN specimens (ROSE), and for a pathologist or an advanced-certified CT at a laboratory not using CISOE-A (Synoptic).</td>
+</tr>
+<tr>
+<td>No slide preview</td>
+<td>Your laboratory does not screen this case on whole-slide images.</td>
+</tr>
+<tr>
+<td>No Mandatory QC choice to remove</td>
+<td>Only a flagged specimen has <strong>Remove Flag</strong>; otherwise <strong>Flag High-Risk QC</strong> is offered.</td>
+</tr>
+<tr>
+<td>The HPV card says "No co-test on record."</td>
+<td>No co-test was ordered, or its result has not arrived from the platform.</td>
+</tr>
+<tr>
+<td>English error messages on the CISOE-A form</td>
+<td>The range and completeness messages from the score check are shown in English in every language.</td>
+</tr>
+<tr>
+<td>The page says "Assist mode"</td>
+<td>The case is managed by an outside system.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the line above the form and the row above the columns. They name what is missing or blocked.</li>
+<li>Reload the page if the specimen tabs or the review list look out of date. Unsaved changes are kept only if you save first.</li>
+<li>Check your role's permissions with your laboratory manager.</li>
+<li>Use the case's <strong>Back to Worklist</strong> and open the case again if the page stays on "Loading...".</li>
+<li>Try the action once more. Do not repeat a sign-out until you have checked for the "Signed out by..." banner.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a signed-out report shows the wrong content, when a save or sign-out fails twice, or when a message appears that this article does not explain. Have the case number and the time of the problem ready.</p>

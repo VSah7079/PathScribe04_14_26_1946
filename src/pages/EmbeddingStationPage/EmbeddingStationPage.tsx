@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-285 — "Embedding Station: a dedicated, bench-scoped
 // workstation for cassette scan/verify, mold selection, and
-// discrepancy flagging." Sibling workstation to PS-284's Microtomy
+// discrepancy flagging." Sibling workstation to PS-284's Microtome
 // Workstation — reached by scanning a cassette barcode at a real
 // 'Embedding' ScanStation, deliberately NOT a case-scoped route like
 // GrossingScreenPage/SynopticReportPage, for the identical reason
@@ -39,13 +39,21 @@
 // cassette workspace with no real queue/next-item navigation to
 // advance (confirmed directly, not assumed); wiring a pedal to a
 // feature that doesn't exist yet would be dishonest.
+//
+// Batch 401 (PS-359): Field Requirements (page "embedding"). The page has its
+// own voice context (EMBEDDING: "confirm count", "add comment"); Confirm, the
+// comment drawer and the reprint dialog (CassetteReprintModal) each star what
+// is required, say what is still missing, and stay off until it is filled; the
+// hook checks the same rules, so the foot pedal is held to them too.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
+import { blockStatusLabelKey, hasOpenEmbeddingDiscrepancy } from '@/utils/embeddingOperations';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { printSettingsService, printerProfileService } from '@/services';
+import { printSettingsService, printerProfileService, actionRegistryService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import type { CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
@@ -56,7 +64,18 @@ import { useEmbeddingStation } from './hooks/useEmbeddingStation';
 import EmbeddingCenterPanel from './components/EmbeddingCenterPanel';
 import CassettePrintPanel from './components/CassettePrintPanel';
 import CommentDrawer from './components/CommentDrawer';
-import { CASSETTE_REPRINT_REASONS } from '@/utils/embeddingOperations';
+import CassetteReprintModal from './components/CassetteReprintModal';
+// Batch 726 (Lab Workflow & Batch spec, Decision 1): carriers at this workstation.
+import { useStationCarrier } from '@/hooks/useStationCarrier';
+import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import { ForeignIdTag, TypedEntryCheck } from '@/components/Workstation/BenchIdentity';
+import { useTypedEntryCheck } from '@/hooks/useTypedEntryCheck';
+import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
+import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
+import { blockForOutputTray } from '@/services/batches/stationCarrierRules';
+import { cassetteIdentifier } from '@/types/labels/LabelData';
 import '../../pathscribe.css';
 
 const EmbeddingStationPage: React.FC = () => {
@@ -66,6 +85,20 @@ const EmbeddingStationPage: React.FC = () => {
   useEffect(() => { pushCrumb(t('embeddingStation.pageTitle'), '/workstations/embedding'); }, [pushCrumb, t]);
 
   const w = useEmbeddingStation();
+  const carrier = useStationCarrier('embedding');
+  // Batch 759 (spec §2.2, §3): after a typed entry, the identifiers to check against the cassette.
+  const typedEntry = useTypedEntryCheck([w.workItem?.caseData.accession?.fullAccession, w.workItem?.caseData.id]);
+
+  // Batch 757 (Pete): an embedded block goes straight into the Microtome tray set as this bench's output tray.
+  const wi = w.workItem;
+  const trayBlock = blockForOutputTray(wi ? { displayId: wi.block.displayId ?? cassetteIdentifier(wi.caseData.accession?.fullAccession ?? wi.caseData.id, wi.specimen.label, wi.block.label), status: wi.block.status } : null, carrier.output);
+  useEffect(() => { if (trayBlock) void carrier.addBlockToOutput(trayBlock); }, [trayBlock]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Batch 401: this page has its own voice/keyboard context ("confirm count", "add comment").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.EMBEDDING);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
 
   // Real, per PS-285's own named "hands-free triggers for piece-count
   // confirmation" — Pedal 1, same real hook/binding already working
@@ -84,13 +117,15 @@ const EmbeddingStationPage: React.FC = () => {
     actions: {
       pedal1_pushToTalk: () => {
         const block = w.workItem?.block;
-        if (!block || block.pieceCount == null || block.status === 'Embedded') return;
-        w.handleConfirmPieceCount(block.pieceCount);
+        if (!block || block.pieceCount == null || block.status === 'Embedded' || hasOpenEmbeddingDiscrepancy(block)) return;
+        // Batch 401: the hook checks Field Requirements, so a pedal press
+        // can't confirm a block the organisation still needs a mold size or
+        // orientation for; the panel shows what is still required.
+        void w.handleConfirmPieceCount(block.pieceCount);
       },
     },
   });
 
-  const [scanInput, setScanInput] = useState('');
   const [labelLayout, setLabelLayout] = useState<CassetteLabelLayoutConfig>(DEFAULT_CASSETTE_LABEL_LAYOUT);
   const [printer, setPrinter] = useState<PrinterProfile | null>(null);
   const [printerError, setPrinterError] = useState<string | null>(null);
@@ -125,18 +160,14 @@ const EmbeddingStationPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<{ raw: string }>).detail;
       if (!scanEvent?.raw || scanEvent.raw.trim().toUpperCase().startsWith('STATION:')) return;
-      w.resolveScan(scanEvent.raw);
+      void carrier.route(scanEvent.raw, w.resolveScan);
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [w]);
+  }, [w, carrier]);
 
-  const handleScanSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanInput.trim()) return;
-    await w.resolveScan(scanInput.trim());
-    setScanInput('');
-  }, [scanInput, w]);
+  // Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept) hands the scan in here.
+  const handleScan = useCallback(async (raw: string) => { await carrier.route(raw, w.resolveScan); }, [w, carrier]);
 
   const handleToggleAlertFlag = useCallback((flag: 'tinyTissue' | 'fragile' | 'requiresDecal') => {
     if (!w.workItem) return;
@@ -153,7 +184,9 @@ const EmbeddingStationPage: React.FC = () => {
     setReprintFeedback(null);
     const result = await w.handleReprintCassette(reason);
     setReprintInFlight(false);
-    if (!result.ok) setReprintFeedback(result.message ?? t('embeddingStation.hardware.reprintFailed'));
+    if (result.ok) return;
+    setReprintFeedback(result.printerMessage
+      ?? (result.message ? t(result.message.key, result.message.values) : t('embeddingStation.hardware.reprintFailed')));
   }, [w, t]);
 
   return (
@@ -163,34 +196,44 @@ const EmbeddingStationPage: React.FC = () => {
         <h1 className="ps-embedding-title">🧊 {t('embeddingStation.pageTitle')}</h1>
       </div>
 
+      <StationCarrierPanel carrier={carrier} onCheckOff={(id, reason) => carrier.checkOffByHand(id, reason, w.resolveScan)} />
+      {/* Batch 729 (spec §7.4): the case's station scan trail. */}
+      {w.workItem && <ScanTrailPanel caseAccession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} />}
+
       {!w.workItem ? (
         <div className="ps-embedding-panel">
           <p className="ps-embedding-panel-title">{t('embeddingStation.scanPrompt')}</p>
-          <form className="ps-embedding-scan-row" onSubmit={handleScanSubmit}>
-            <input
-              type="text" className="ps-embedding-scan-input" autoFocus
-              value={scanInput} onChange={e => setScanInput(e.target.value)}
-              placeholder={t('embeddingStation.scanPlaceholder') ?? ''}
-            />
-            <button type="submit" className="ps-btn-primary">{t('embeddingStation.scanSubmit')}</button>
-          </form>
-          {w.scanError && <div className="ps-embedding-scan-error">{w.scanError}</div>}
+          <StationScanField onScan={handleScan} placeholder={t('embeddingStation.scanPlaceholder') ?? ''} submitLabel={t('embeddingStation.scanSubmit')} />
+          {w.scanError && <div className="ps-embedding-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
         </div>
       ) : (
         <>
           <div className="ps-embedding-context-bar">
             <span>{t('embeddingStation.context.accession')} <strong data-phi="accession">{w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id}</strong></span>
-            <span>{t('embeddingStation.context.patient')} <strong data-phi="name">{`${w.workItem.caseData.patient?.givenNames ?? ''} ${w.workItem.caseData.patient?.familyNames ?? ''}`.trim() || '—'}</strong></span>
-            <span>{t('embeddingStation.context.dob')} <strong data-phi="dob">{w.workItem.caseData.patient?.dateOfBirth ?? '—'}</strong></span>
+            {/* Batch 759 (Patient Verification spec §1): no patient name, date of birth or MRN at the bench; an outside case shows its Foreign Identifier. */}
+            <ForeignIdTag order={w.workItem.caseData.order} items={[w.workItem.matrixBlock ?? w.workItem.block, w.workItem.matrixBlock ? null : w.workItem.specimen]} />
             <span>
               {t('embeddingStation.context.specimenBlock')}{' '}
               <strong>{w.workItem.specimen.label}{w.workItem.block.label}</strong>
             </span>
-            <span>{t('embeddingStation.context.specimenType')} <strong>{w.workItem.specimen.description ?? '—'}</strong></span>
-            <button type="button" className="ps-embedding-row-btn ps-ml-auto" onClick={() => { setScanInput(''); w.clearWorkItem(); }}>
+            {w.matrixSpecimens !== null
+              ? <span>{t('embeddingStation.context.matrixBlockOf', { specimens: w.matrixSpecimens || '—' })}</span>
+              : <span>{t('embeddingStation.context.specimenType')} <strong>{w.workItem.specimen.description ?? '—'}</strong></span>}
+            <span className="ps-ml-auto"><StationScanField compact onScan={handleScan} placeholder={t('embeddingStation.scanPlaceholder') ?? ''} submitLabel={t('embeddingStation.scanSubmit')} /></span>
+            <button type="button" className="ps-embedding-row-btn" onClick={() => w.clearWorkItem()}>
               {t('embeddingStation.context.scanNext')}
             </button>
           </div>
+
+          {typedEntry && <TypedEntryCheck accession={w.workItem.caseData.accession?.fullAccession ?? w.workItem.caseData.id} source={t('benchIdentity.specimenSource', { label: w.workItem.specimen.label, description: w.workItem.specimen.description ?? '—' })} />}
+          {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
+          {/* Batch 731 (spec §10.6): an exhausted block's warning; mark it re-embedded to release the orders waiting for it. */}
+          <ExhaustedBlockBanner specimen={w.workItem.specimen} block={w.workItem.block} onReembedded={w.workItem.matrixBlock ? undefined : w.handleReembedded} />
+          {/* Batch 732 (spec §11): block type, slide size and piece map. */}
+          {w.pieceView && <BlockPieceMapPanel blockType={w.pieceView.blockType} slideSize={w.pieceView.slideSize} pieces={w.pieceView.pieces} />}
+          {w.discrepancyNotice && (w.discrepancyNotice.kind === 'failed'
+            ? <div className="ps-workstation-save-error" role="alert">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>
+            : <div className="ps-embedding-split-banner ps-embedding-split-banner--complete" role="status">{t(w.discrepancyNotice.key, w.discrepancyNotice.values)}</div>)}
 
           <div className="ps-embedding-layout">
             {/* Left: Specimen block summary */}
@@ -199,7 +242,7 @@ const EmbeddingStationPage: React.FC = () => {
               <ul className="ps-embedding-comment-list">
                 {(w.workItem.specimen.blocks ?? []).map(b => (
                   <li key={b.id} className="ps-embedding-comment-item">
-                    <strong>{w.workItem!.specimen.label}{b.label}</strong> — {b.status}
+                    <strong>{w.workItem!.specimen.label}{b.label}</strong> — {t(blockStatusLabelKey(b.status))}
                     {b.id === w.workItem!.block.id && <span> ({t('embeddingStation.specimenSummary.current')})</span>}
                   </li>
                 ))}
@@ -208,13 +251,17 @@ const EmbeddingStationPage: React.FC = () => {
 
             {/* Center: Piece Count / Mold & Orientation / Discrepancy / Split-Block */}
             <EmbeddingCenterPanel
+              key={w.workItem.block.id}
+              requirements={w.requirements}
               specimen={w.workItem.specimen}
               block={w.workItem.block}
               alertBadges={w.alertBadges}
               splitBlockGroupStatus={w.splitBlockGroupStatus}
               onToggleAlertFlag={handleToggleAlertFlag}
-              onConfirmPieceCount={w.handleConfirmPieceCount}
+              onConfirmPieceCount={(count, orientation) => { void w.handleConfirmPieceCount(count, orientation); }}
+              flaggerName={w.flaggerName}
               onFlagDiscrepancy={w.handleFlagDiscrepancy}
+              onClearDiscrepancy={() => { void w.handleClearDiscrepancy(); }}
               onSetMoldAndOrientation={w.handleSetMoldAndOrientation}
               onGroupSplitBlocks={w.handleGroupSplitBlocks}
               onOpenComments={() => setCommentsOpen(true)}
@@ -238,21 +285,11 @@ const EmbeddingStationPage: React.FC = () => {
       )}
 
       {pendingReprint && (
-        <div className="ps-overlay" onClick={() => setPendingReprint(false)}>
-          <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
-            <div className="ps-batch-modal-header"><div className="ps-batch-modal-title">{t('embeddingStation.reprintReason.title')}</div></div>
-            <div className="ps-batch-modal-body">
-              <p>{t('embeddingStation.reprintReason.body')}</p>
-              <select className="ps-embedding-field-select" defaultValue="" onChange={e => { if (e.target.value) handleConfirmReprint(e.target.value as CassetteReprintReason); }}>
-                <option value="" disabled>{t('embeddingStation.reprintReason.select')}</option>
-                {CASSETTE_REPRINT_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-            <div className="ps-batch-modal-footer">
-              <button className="ps-btn-secondary" onClick={() => setPendingReprint(false)}>{t('common.cancel')}</button>
-            </div>
-          </div>
-        </div>
+        <CassetteReprintModal
+          requirements={w.requirements}
+          onReprint={reason => { void handleConfirmReprint(reason); }}
+          onCancel={() => setPendingReprint(false)}
+        />
       )}
 
       {commentsOpen && w.workItem && (
@@ -260,7 +297,8 @@ const EmbeddingStationPage: React.FC = () => {
           title={t('embeddingStation.context.blockComments')}
           comments={w.workItem.block.comments ?? []}
           onClose={() => setCommentsOpen(false)}
-          onSubmit={text => w.handleAddComment(text)}
+          onSubmit={text => { void w.handleAddComment(text); }}
+          requirements={w.requirements}
         />
       )}
     </div>

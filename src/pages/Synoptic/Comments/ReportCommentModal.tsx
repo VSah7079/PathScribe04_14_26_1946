@@ -11,6 +11,7 @@ import PathScribeEditor from '../../../components/Editor/PathScribeEditor';
 import { CommentModalShell } from './CommentModalShell';
 import { OriginBadge } from './OriginBadge';
 import type { CaseComment } from '../../../types/case/CaseComment';
+import { sanitizeRichHtml } from '@/services/security/sanitizeHtml';
 
 interface ReportCommentModalProps {
   specimenName: string;     // full breadcrumb string, e.g. "Left Breast Mastectomy › Breast — Invasive Carcinoma"
@@ -102,7 +103,7 @@ const ReportCommentModal: React.FC<ReportCommentModalProps> = ({
               <span className="ps-cmnt-thread-timestamp">{formatTimestamp(c.createdAt)}</span>
               <OriginBadge comment={c} />
             </div>
-            <div className="ps-cmnt-thread-text" dangerouslySetInnerHTML={{ __html: c.text }} />
+            <div className="ps-cmnt-thread-text" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(c.text) }} />
           </div>
         ))}
       </div>

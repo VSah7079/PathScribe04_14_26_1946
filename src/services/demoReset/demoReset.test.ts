@@ -29,4 +29,27 @@ describe('resetAllDemoData (PS-356)', () => {
     expect(keptThroughReset('ps_ai_audit_log_v1')).toBe(true);
     expect(keptThroughReset('pathscribe_mock_cases')).toBe(false);
   });
+  it('clears every screen display preference (Batch 508), and still keeps the companion-window positions', async () => {
+    for (const k of ['ps_ui_worklistFilters', 'ps_ui_pageSize', 'ps_ui_editorTheme', 'ps_ui_worklist_pool_collapse_u1', 'ps_ui_reportTabWidth']) localStorage.setItem(k, '1');
+    localStorage.setItem('ps-companion-window-geometry-user-guide', '{"left":1}');
+    const res = await resetAllDemoData({ authorization: { enforce: async (c: string) => ({ capability: c, allowed: true, grantedBy: [], missingRequirements: [], context: {} }) } });
+    expect(res.ok).toBe(true);
+    expect(Object.keys(localStorage).filter(k => k.startsWith('ps_ui_'))).toEqual([]);
+    expect(localStorage.getItem('ps-companion-window-geometry-user-guide')).toBe('{"left":1}');
+  });
+  it('clears the workstation setup (scan station, OR terminal, display profile, foot pedal) and keeps only the guide-window positions', async () => {
+    const workstation = {
+      pathscribe_current_scan_station_id: 'SS-1',
+      pathscribe_scan_station_prompted: '1',
+      pathscribe_current_or_terminal_id: 'OR-3',
+      pathscribe_current_display_profile_id: 'DP-2',
+      pathscribe_footpedal_bindings: '{"left":"next"}',
+    };
+    for (const [k, v] of Object.entries(workstation)) localStorage.setItem(k, v);
+    localStorage.setItem('ps-companion-window-geometry-admin-guide', '{"left":40,"top":40,"width":900,"height":700}');
+    const res = await resetAllDemoData({ authorization: { enforce: async (c: string) => ({ capability: c, allowed: true, grantedBy: [], missingRequirements: [], context: {} }) } });
+    expect(res.ok).toBe(true);
+    for (const k of Object.keys(workstation)) expect(localStorage.getItem(k), k).toBeNull();
+    expect(localStorage.getItem('ps-companion-window-geometry-admin-guide')).toBe('{"left":40,"top":40,"width":900,"height":700}');
+  });
 });

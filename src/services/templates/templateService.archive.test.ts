@@ -9,12 +9,19 @@ beforeAll(() => {
     removeItem: (k: string) => { delete store[k]; },
     clear: () => { for (const k of Object.keys(store)) delete store[k]; },
   };
-  // Drafting needs Template Author or Admin (PS-63, Batch 329).
-  store['pathscribe-user'] = JSON.stringify({ id: 'author-archive-test', role: 'admin' });
+  // Batch 428: drafting, retiring and publishing are capabilities held through
+  // staff roles. Staff record 3 is an Admin; 2 is given Template Approver below.
+  store['pathscribe-user'] = JSON.stringify({ id: '3', role: 'admin' });
 });
+
+async function giveRoles(id: string, roles: string[]) {
+  const { mockUserService } = await import('../users/mockUserService');
+  await mockUserService.update(id, { roles });
+}
 
 describe('templateService — archive, restore, and publishing a new version', () => {
   it('archive takes a protocol out of status-filtered lists; restore brings it back as a draft', async () => {
+    await giveRoles('3', ['Admin']);
     const svc = await import('./templateService');
     const { PROTOCOL_REGISTRY } = await import('@/components/Config/Protocols/protocolShared');
     const target = PROTOCOL_REGISTRY.find(p => p.status === 'published')!;
@@ -28,12 +35,10 @@ describe('templateService — archive, restore, and publishing a new version', (
     expect((await svc.listTemplatesCached('published')).some(p => p.id === target.id)).toBe(false);
     await expect(svc.archiveTemplate(target.id)).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
 
-    // The reviewer page's cached state must not survive a restore, or the
-    // restored draft would still show as 'published' there.
-    localStorage.setItem(`ps_state_${target.id}`, 'published');
+    // Batch 431: the reviewer page reads the registry's status only (no
+    // browser copy of the state), so a restored draft shows as a draft.
     await svc.restoreTemplate(target.id);
     expect(PROTOCOL_REGISTRY.find(p => p.id === target.id)!.status).toBe('draft');
-    expect(localStorage.getItem(`ps_state_${target.id}`)).toBeNull();
     await expect(svc.restoreTemplate(target.id)).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
   });
 
@@ -49,10 +54,12 @@ describe('templateService — archive, restore, and publishing a new version', (
     expect(PROTOCOL_REGISTRY.find(p => p.id === v1.id)!.status).toBe('published'); // still live until v2 is published
 
     // PS-63: publishing needs an approver's independent approval.
-    localStorage.setItem('pathscribe-user', JSON.stringify({ id: 'reviewer-archive-test', role: 'admin' }));
+    await giveRoles('3', ['Admin']);
+    await giveRoles('2', ['Template Approver']);
+    localStorage.setItem('pathscribe-user', JSON.stringify({ id: '2', role: 'pathologist' }));
     await svc.approveTemplate('v2-test', undefined, 'Reviewer');
     await svc.publishTemplate('v2-test');
-    localStorage.setItem('pathscribe-user', JSON.stringify({ id: 'author-archive-test', role: 'admin' }));
+    localStorage.setItem('pathscribe-user', JSON.stringify({ id: '3', role: 'admin' }));
     expect(PROTOCOL_REGISTRY.find(p => p.id === 'v2-test')!.status).toBe('published');
     expect(PROTOCOL_REGISTRY.find(p => p.id === v1.id)!.status).toBe('archived');
   });

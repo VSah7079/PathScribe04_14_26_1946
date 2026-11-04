@@ -1,0 +1,15 @@
+{
+  "VITE_API_BASE_URL": "https://pathscribe.hospital.example",
+  "VITE_APP_ENV": "production",
+  "VITE_AUTH_MODE": "sso",
+  "VITE_AUTH_MICROSOFT_AUTHORITY": "https://login.microsoftonline.com/00000000-0000-0000-0000-000000000000",
+  "VITE_AUTH_MICROSOFT_CLIENT_ID": "00000000-0000-0000-0000-000000000000",
+  "VITE_AUTH_MICROSOFT_API_SCOPE": "api://pathscribe/access",
+  "VITE_LIVE_UPDATES_HUB_URL": "https://pathscribe.hospital.example/hubs/live",
+  "VITE_REPORT_PDF_ENDPOINT": "https://pathscribe.hospital.example/render",
+  "VITE_AI_PROXY_URL": "/api/ai",
+  "VITE_AI_HOSTING_REGION": "UK South",
+  "VITE_CPT_PROXY_URL": "/api/terminology/cpt",
+  "VITE_ICD10_PROXY_URL": "/api/terminology/icd10",
+  "VITE_SERVER_JOBS": ""
+}

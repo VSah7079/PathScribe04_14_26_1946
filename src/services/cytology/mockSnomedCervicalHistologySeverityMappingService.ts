@@ -25,6 +25,7 @@ import type {
   ISnomedCervicalHistologySeverityMappingService,
   SnomedCervicalHistologySeverityMappingEntry,
 } from './ISnomedCervicalHistologySeverityMappingService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORE_KEY = 'snomed_cervical_histology_severity_mapping';
 const ok = <T>(data: T) => ({ ok: true as const, data });
@@ -42,7 +43,7 @@ const SEED: SnomedCervicalHistologySeverityMappingEntry[] = [
 const load = (): SnomedCervicalHistologySeverityMappingEntry[] => storageGet(STORE_KEY, SEED);
 const persist = (data: SnomedCervicalHistologySeverityMappingEntry[]) => storageSet(STORE_KEY, data);
 
-export const mockSnomedCervicalHistologySeverityMappingService: ISnomedCervicalHistologySeverityMappingService = {
+const snomedCervicalHistologySeverityMappingServiceUnchecked: ISnomedCervicalHistologySeverityMappingService = {
   async getAll() {
     await delay();
     return ok(load());
@@ -81,3 +82,8 @@ export const mockSnomedCervicalHistologySeverityMappingService: ISnomedCervicalH
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSnomedCervicalHistologySeverityMappingService: ISnomedCervicalHistologySeverityMappingService = guardConfigWrites(snomedCervicalHistologySeverityMappingServiceUnchecked, [
+  ['config:cytology-severity-mapping:manage', ['add', 'update', 'remove']],
+]);

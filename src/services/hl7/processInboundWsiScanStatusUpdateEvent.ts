@@ -9,7 +9,7 @@
 // never a silent swallow.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockWsiScanBatchService } from '../digitalPathology/mockWsiScanBatchService';
+import { wsiScanBatchService as mockWsiScanBatchService } from '../digitalPathology/wsiScanBatchServiceInstance';
 import type { WsiScanStatusUpdateEventPayload } from '@/types/events/WsiScanStatusUpdateEventPayload';
 
 export interface ProcessInboundWsiScanStatusUpdateEventResult {

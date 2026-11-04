@@ -6,7 +6,11 @@
 // rather than a duplicated, driftable copy.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { csvQuoted } from './csv';
+import { captureDownload } from './downloadCapture';
+
 export function downloadCSV(csvContent: string, filename: string) {
+  if (captureDownload({ filename, content: csvContent, mime: 'text/csv;charset=utf-8;' })) return; // Batch 611: the simulated export server keeps it
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -28,7 +32,7 @@ export function buildMetaHeader(
   rowCount: number,
   containsPatientIdentifiers: boolean = false,
 ): string {
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const esc = csvQuoted; // Batch 543 (F8)
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
   const filterStr = Object.entries(filters)
     .filter(([, v]) => v && v !== 'all')

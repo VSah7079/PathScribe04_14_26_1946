@@ -1,0 +1,730 @@
+<h1 id="top">Microscopic and Material</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This article covers the parts of the Report screen that surround the diagnosis: the <strong>Microscopic Description</strong> entry panel, the <strong>Material</strong> tab (the case's specimens, blocks and slides, with cassette and label printing and the grossing triage checklist), the clinical history line, the <strong>History</strong> window (prior and related cases), report images, frozen section findings, the version and change history, case and specimen comments, internal notes, and the spell checker with your personal dictionary.</p>
+<p><strong>Intended users.</strong> Pathologists, fellows and residents write the microscopic description and read the history. Pathology assistants and histotechnologists use the Material tab to see block and slide status and to print labels.</p>
+<p><strong>Where it fits.</strong> These are the supporting tools on the <a href="/help/report">Report</a> screen. The structured checklist is in <a href="/help/report/synoptic-reporting">Synoptic Reporting</a>; signing the case is in <a href="/help/report/sign-out-and-release">Sign Out and Release</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">What is demonstration only</p>
+<ul>
+<li>The <strong>Similar Cases</strong> list in the History window is marked "(Demonstration)" and its similarity score is a demonstration figure.</li>
+<li>Frozen section code suggestions are unconfirmed: accepting one records your decision but does not post a charge.</li>
+<li>Label printing needs a workstation with a connected label printer. Without one, the print actions are not able to produce a physical label.</li>
+</ul>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-microscopic-and-material-overview.png" alt="The Report screen with the left panel on the Material tab and the Microscopic Description panel on the right"><figcaption>The Report screen with the left panel on the Material tab and the Microscopic Description panel on the right</figcaption></figure>
+
+<p>The left side of the Report screen shows the <strong>Full Patient Report</strong> (read-only text of the case) and the <strong>Material</strong> tab. The panel on the right changes with what you select: the synoptic checklist, the billing review, or, when you choose a specimen's microscopic entry in the side list, the <strong>Microscopic Description</strong> panel.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Full Patient Report (left panel)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case / Patient / MRN / DOB</td>
+<td>Identifiers for the case. A value that was never recorded shows "(not recorded)".</td>
+</tr>
+<tr>
+<td>Clinical History</td>
+<td>The history supplied with the request.</td>
+</tr>
+<tr>
+<td>Gross Description</td>
+<td>The grossing text.</td>
+</tr>
+<tr>
+<td>Intraoperative Diagnosis</td>
+<td>The frozen section diagnosis recorded for the case, when there is one (see "Frozen section and intraoperative findings").</td>
+</tr>
+<tr>
+<td>Microscopic Findings</td>
+<td>The microscopic text.</td>
+</tr>
+<tr>
+<td>Preliminary Diagnosis, Ancillary Studies</td>
+<td>Further sections of the case.</td>
+</tr>
+<tr>
+<td>Received from LIS, read-only</td>
+<td>A notice when the content came from the LIS and cannot be changed here.</td>
+</tr>
+<tr>
+<td>Internal Notes</td>
+<td>A button; shows <strong>Review Ready</strong> when a colleague has published an informal review ("(name) published an informal review, click to view").</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Microscopic Description panel</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title and subtitle</td>
+<td>"Microscopic Description" and the specimen it applies to.</td>
+</tr>
+<tr>
+<td>Hint</td>
+<td>Explains that you can type or dictate (press the microphone with this field focused), or insert the standard attestation and add detail only when clinically indicated. The text is optional when the specimen's synoptic template has its own required fields complete. It also says that saving the narrative re-checks whether a different protocol fits better.</td>
+</tr>
+<tr>
+<td><strong>+ Insert "Microscopic examination performed."</strong></td>
+<td>Puts that standard sentence into the text.</td>
+</tr>
+<tr>
+<td>Spelling</td>
+<td>A small control that sets the spelling language for this report (see "Spell check and your personal dictionary").</td>
+</tr>
+<tr>
+<td>Editor</td>
+<td>A rich-text box with the placeholder "Type the microscopic description, or press the mic with this field focused to dictate...". Fonts offered: Arial, Times New Roman, Calibri, Courier New. A light or dark appearance can be toggled.</td>
+</tr>
+<tr>
+<td>Dictating indicator</td>
+<td>"Dictating into this field..." while the microphone is feeding the box.</td>
+</tr>
+<tr>
+<td><strong>Save</strong></td>
+<td>Saves the text (shown as the check mark and Save). Greyed out when nothing has changed.</td>
+</tr>
+<tr>
+<td><strong>Clear</strong></td>
+<td>Empties the box and saves it as left blank. Shown only when there is text.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>One of: "Unsaved changes", "Saved", "Deliberately left blank" (saved with no text), or "Not started".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Side list status for a specimen's microscopic entry:</strong> "Draft, unsaved", "Saved", "Saved, left blank", "No narrative text yet", plus a character count.</p>
+<p><strong>Material tab</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimen rows</td>
+<td>One block of rows per specimen, with its blocks and the slides cut from each. "No specimens on this case yet." when empty; "No blocks or decants recorded yet." when a specimen has nothing.</td>
+</tr>
+<tr>
+<td>Block chip</td>
+<td>The block name and status. Hover to see "(block), (status)", or the reason for a cancelled block.</td>
+</tr>
+<tr>
+<td>Slide stain list</td>
+<td>Stains for the block, shown as stained or "held, unstained". "no slides yet" appears when none are cut; click it to edit.</td>
+</tr>
+<tr>
+<td><strong>Add specimen</strong>, <strong>Add decant/fluid</strong>, <strong>Request block/recut</strong>, <strong>Create Biopsy Array</strong></td>
+<td>Buttons to add material. In an Assist case, new specimens are accessioned in the LIS: the panel says "New specimens are accessioned in the LIS" and only recuts and additional blocks on an existing specimen remain. A new specimen or block takes the next label in the case's style (letters or numbers, as chosen when the case was accessioned), never one already used on that specimen.</td>
+</tr>
+<tr>
+<td><strong>Assign Code</strong></td>
+<td>Assigns the specimen's base CPT code. A specimen without one shows the badge <strong>Pending Base Code</strong>.</td>
+</tr>
+<tr>
+<td><strong>View Tracking History</strong></td>
+<td>Opens the tracking history for the material.</td>
+</tr>
+<tr>
+<td>Suggested: Template / Suggested: Narrative</td>
+<td>A hint, from the specimen's CPT code, of which way to start reporting (structured fields or narrative). Both remain available.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Manage Reprints</strong> (bottom bar)</td>
+<td>Opens the Manage Reprints window for requisition, container, cassette and slide labels.</td>
+</tr>
+<tr>
+<td><strong>Attachments (n)</strong> or <strong>Add Attachments</strong> (bottom bar)</td>
+<td>Opens the <strong>Attachments</strong> window; the number counts the case's photos, files and links. Hover text: "Photos, files and links for this case, and what is placed in its report".</td>
+</tr>
+<tr>
+<td><strong>History</strong> (bottom bar)</td>
+<td>Opens the History window with prior pathology, similar cases and related patients.</td>
+</tr>
+<tr>
+<td><strong>Codes</strong> (bottom bar)</td>
+<td>Opens the Codes window (see <a href="/help/report/synoptic-reporting">Synoptic Reporting</a>).</td>
+</tr>
+<tr>
+<td><strong>Save Draft</strong></td>
+<td>Saves the report draft, including the microscopic text.</td>
+</tr>
+<tr>
+<td>Header chips</td>
+<td>"n signed version(s), click to view history", "n recorded save(s), click to view change history", "n signature(s) recorded, click to view history". Each chip opens the matching window and appears only when there is something to show.</td>
+</tr>
+<tr>
+<td><strong>Add-on order</strong> (header)</td>
+<td>Order recuts, special stains, IHC or molecular tests on the case's blocks.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Manage Reprints window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Columns</td>
+<td><strong>Specimen</strong>, <strong>Block</strong>, <strong>Slides</strong>, <strong>Requisition</strong>. Tick a specimen to see its blocks, tick a block to see its slides.</td>
+</tr>
+<tr>
+<td>Prompts</td>
+<td>"Check a specimen to see its blocks.", "Check a block to see its slides.", "No slides generated for this block yet."</td>
+</tr>
+<tr>
+<td>Badges</td>
+<td>Damaged, Entirely Submitted, Exhausted, Lost, Recut. A damaged block says "Tissue structure damaged. Re-embedding required before recuts."; a lost block is "Not available for selection until located"; an exhausted block is "Not available for new slide requests".</td>
+</tr>
+<tr>
+<td><strong>Select All</strong></td>
+<td>Ticks everything in the column.</td>
+</tr>
+<tr>
+<td>Footer buttons</td>
+<td><strong>Print Req (n)</strong>, <strong>Print Spec (n)</strong>, <strong>Print Blk (n)</strong>, <strong>Print Sld (n)</strong>, each with the number selected. While sending it says "Printing...".</td>
+</tr>
+<tr>
+<td>Disabled batch printing</td>
+<td>If the laboratory forces printing one at a time, the footer says "Batch printing is disabled, this lab enforces on-demand cassette printing" (or slide printing).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<p><strong>Block status:</strong> Pending, Grossed, Embedded, Exhausted, Damaged, Lost, Cancelled, Deleted, Invalidated. After sign-out an affected block can be flagged <strong>Superseded</strong> or <strong>Invalidated</strong>; the tooltip says why, who and when, and that the block is not deleted.</p>
+<p><strong>Slide (stain) status:</strong> Pending Cut, Cut &amp; Placed, Staining, Coverslipped, Ready for Review, Recut Requested, QC Failed, Cancelled.</p>
+<p><strong>Badges on a block or specimen:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Badge</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Awaiting Scan</td>
+<td>The cassette has not been scanned yet.</td>
+</tr>
+<tr>
+<td>Pending LIS</td>
+<td>Sent to the LIS, awaiting confirmation.</td>
+</tr>
+<tr>
+<td>LIS Rejected</td>
+<td>The LIS refused the request; follow up with histology.</td>
+</tr>
+<tr>
+<td>Entirely Submitted</td>
+<td>All tissue was used during grossing; nothing remains.</td>
+</tr>
+<tr>
+<td>Partial submission</td>
+<td>Some grossed tissue remains in wet storage.</td>
+</tr>
+<tr>
+<td>Tissue Discrepancy</td>
+<td>The number of pieces recorded at grossing differs from the number seen at embedding.</td>
+</tr>
+<tr>
+<td>Exhausted, Damaged, Lost</td>
+<td>As above. Damaged blocks need re-embedding before any recut.</td>
+</tr>
+<tr>
+<td>n pcs</td>
+<td>Pieces grossed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Keyboard</th>
+<th>Voice phrases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Print Current Cassette</td>
+<td>Alt+Shift+O</td>
+<td>"print current cassette", "print this cassette", "print cassette"</td>
+</tr>
+<tr>
+<td>Batch Print Case Slides</td>
+<td>Alt+Shift+P</td>
+<td>"batch print case slides", "print all cassettes", "print all cassettes for case"</td>
+</tr>
+<tr>
+<td>Confirm Triage</td>
+<td>Alt+Shift+T</td>
+<td>"confirm triage", "triage complete", "triage confirmed"</td>
+</tr>
+<tr>
+<td>Next Block / Previous Block</td>
+<td>Alt+. / Alt+,</td>
+<td>"next block", "go to next block" / "previous block", "prior block"</td>
+</tr>
+<tr>
+<td>Mark Block Grossed</td>
+<td>Alt+G</td>
+<td>"mark grossed", "block grossed", "block complete", "grossing complete"</td>
+</tr>
+<tr>
+<td>Open History / Close History</td>
+<td>Alt+H / Alt+Shift+H</td>
+<td>"open history", "show history", "prior cases", "similar cases" / "close history", "close prior cases"</td>
+</tr>
+<tr>
+<td>Case Comment</td>
+<td>Ctrl+Alt+C</td>
+<td>"case comment", "open case comment", "add case comment", "dictate case comment"</td>
+</tr>
+<tr>
+<td>Specimen Comment</td>
+<td>Ctrl+Alt+S</td>
+<td>"specimen comment", "open specimen comment", "add specimen comment"</td>
+</tr>
+<tr>
+<td>Internal Note</td>
+<td>Alt+I</td>
+<td>"internal note", "open internal note", "open notes"</td>
+</tr>
+<tr>
+<td>Add Note</td>
+<td>Ctrl+Alt+Shift+N</td>
+<td>see the registry</td>
+</tr>
+<tr>
+<td>Enter Microscopic Description</td>
+<td>Alt+Shift+G</td>
+<td>"enter micro", "start micro", "dictate micro", "microscopic description"</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>Ctrl+Alt+J</td>
+<td>"cancel"</td>
+</tr>
+</tbody>
+</table>
+<p>Next Block, Previous Block, Mark Block Grossed and Confirm Triage act on the <strong>focused block</strong> of the case, so choose a block on the Material tab first. Print Current Cassette prints the focused block's cassette.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Write the microscopic description</strong></p>
+<ol>
+<li>In the side list choose the specimen and its microscopic entry, or press Alt+Shift+G (or say "enter micro"). The <strong>Microscopic Description</strong> panel opens with the specimen named under the title.</li>
+<li>If the specimen needs only the standard statement, select <strong>+ Insert "Microscopic examination performed."</strong>. The sentence is added to the box.</li>
+<li>Otherwise type in the box, or click in the box and press the microphone. The "Dictating into this field..." indicator and a blue frame show that speech is going into this box.</li>
+<li>Check the spelling. Words underlined by the spell checker can be corrected from the right-click menu.</li>
+<li>Select <strong>Save</strong>. The status changes to "Saved" and the side list shows "Saved" with a character count. If the text is empty and you save, the status reads "Deliberately left blank".</li>
+<li>If the specimen has a synoptic protocol, saving re-checks whether a different protocol fits better. If one does, the "Protocol adjustments proposed" window opens (see <a href="/help/report/synoptic-reporting">Synoptic Reporting</a>).</li>
+</ol>
+<p><strong>Review the material and print labels</strong></p>
+<ol>
+<li>Select the <strong>Material</strong> tab. Each specimen lists its blocks. Hover a block to read its status.</li>
+<li>To print one cassette, select the block and press Alt+Shift+O, say "print current cassette", or use the print icon on the block. Printing a cassette uses the same function whichever block you pick.</li>
+<li>To print all cassettes for the case, press Alt+Shift+P or say "batch print case slides".</li>
+<li>For requisition, container, cassette or slide labels in any combination, select <strong>Manage Reprints</strong>, tick the specimens, blocks and slides, and select <strong>Print Req</strong>, <strong>Print Spec</strong>, <strong>Print Blk</strong> or <strong>Print Sld</strong>.</li>
+<li>A block that is Lost, Exhausted or Damaged cannot be selected for new slides. Damaged blocks need re-embedding first.</li>
+</ol>
+<p><strong>Confirm the triage checklist</strong></p>
+<p>Some specimens require a triage checklist at grossing before cassettes are released.</p>
+<ol>
+<li>In the grossing release area for the specimen, the heading reads "Triage required before release". The checklist items are listed; tick each one.</li>
+<li>When every item is confirmed the heading changes to "Triage confirmed" and a line such as "2 cassettes resolved, ready to release" appears.</li>
+<li>Select <strong>Release &amp; Print All</strong> to release the cassettes and print them.</li>
+<li>Faster: with the specimen's block focused, press Alt+Shift+T (or say "confirm triage"). That ticks every checklist item at once and records who completed it and when.</li>
+</ol>
+<p><strong>Read the history</strong></p>
+<ol>
+<li>Select <strong>History</strong> (or press Alt+H, or say "open history"). The History window opens.</li>
+<li><strong>Prior Pathology</strong> lists this patient's earlier cases; <strong>Related Patients</strong> lists linked records (name, MRN, date of birth); <strong>Similar Cases (Demonstration)</strong> lists AI-matched cases with the reason each was matched (no match percentage is shown).</li>
+<li>Open a case from the list to read its procedure, site, margins, lymph nodes, receptor status, Ki-67, gross and microscopic descriptions, ancillary studies, pathologist comment and tags.</li>
+<li>To ask the other pathologist a question, select the case, type in "Message to pathologist" and select <strong>Send</strong>. Do not include patient identifiers: the box warns "Do not include patient identifiers".</li>
+<li>Close with Alt+Shift+H (or "close history"). A breadcrumb at the top lets you go back to the Case Report, Case Search or Home.</li>
+</ol>
+<p><strong>Place photos and files in the report (Attachments)</strong></p>
+<ol>
+<li>Select <strong>Attachments (n)</strong> (or <strong>Add Attachments</strong> when the case has none). The <strong>Attachments</strong> window opens, showing the case number and four groups: <strong>Gross photos</strong>, <strong>Intraoperative and consultation captures</strong>, <strong>Microscopic and slide regions</strong> (filled from the slide viewer once it exists) and <strong>External files and links</strong>.</li>
+<li>To add a file, select <strong>Attach External File…</strong> and choose a PDF, JPG or PNG from your computer or a network drive. A Word document must be saved as PDF first. A file over 25 MB asks first: select <strong>Attach anyway</strong> or <strong>Cancel</strong>. The file goes to your hospital's own storage; the window says "File attached. It is kept in your hospital’s storage."</li>
+<li>To add a link instead, type it under <strong>Link (https)</strong> (for example https://imaging.hospital.org/…) and select <strong>Add link</strong>.</li>
+<li>Tick each item that belongs in the report. A <strong>Caption (optional)</strong> box appears under it ("Printed under it in the report"); the caption prints under the image. Gross photos also appear with the alternative text "Gross specimen" where a screen shows them.</li>
+<li>Under <strong>Insert into</strong>, choose the report section (the section you are working in is chosen for you, then the last one you used). <strong>End of the report text</strong> prints it after the report's own text.</li>
+<li>Select <strong>Insert into Report (n)</strong>. Each item now says "In the report: …" with its section, and appears under <strong>In the report</strong>. Up to 12 items per report.</li>
+<li>Select <strong>Done</strong>. The badge shows the new count, and the report preview shows the images under their sections.</li>
+</ol>
+<p><strong>On an Assist case</strong> (your LIS writes the report) the window keeps references only: you can attach, link, open and remove files and look at the case's photos, but there are no tick boxes, sections or <strong>Insert into Report</strong>. The window says: "On an Assist case your LIS writes the report. Attachments here are references for this case, to open while you work; nothing here is added to the LIS report."</p>
+<p>An image prints right under its section, no larger than 300 DPI allows and at most the page width. An attached PDF is named in its section ("Attached document: … Its pages follow the report.") and its pages follow the report.</p>
+<p><strong>Add a comment</strong></p>
+<ol>
+<li>Press Ctrl+Alt+C (case comment) or Ctrl+Alt+S (specimen comment), or use the comment icon beside a specimen in the side list ("View / add comment"). The <strong>Case Comment</strong> window says it applies to the entire case and is visible to everyone who opens the case.</li>
+<li>Type the comment and post it. The window shows "n comments on this case". A specimen comment window shows "n comments" for that specimen, with the note "Sent to LIS on finalization".</li>
+<li>Internal Notes (Alt+I) are working notes between colleagues; use them for questions that should not go on the report.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ul>
+<li><strong>Dictate the whole section.</strong> Say "enter micro" to start dictation into the microscopic text, speak, then say "done" or press Ctrl+Alt+J to stop.</li>
+<li><strong>Skip the narrative.</strong> When the synoptic protocol's required fields are complete the narrative is optional, so you may save a deliberately blank description. Some procedures still require a narrative (see Exception handling).</li>
+<li><strong>Work from the synoptic first.</strong> In Orchestration mode you can complete the synoptic and let PathScribe write the narrative, then edit the Microscopic text.</li>
+</ul>
+<h3 id="exception-handling">Exception handling</h3>
+<ul>
+<li><strong>Sign-out stops on the microscopic description.</strong> The finalise check can say: "This specimen has no Microscopic Description and no synoptic template, add documentation before finalizing."; "A Microscopic Description narrative is required for this procedure."; "This specimen's Microscopic Description is an unsaved draft, save or discard it before finalizing."; or "This specimen's synoptic template has required fields that are still incomplete." Fix the named item and try again.</li>
+<li><strong>Could not save.</strong> The toast "Could not save the Microscopic Description, please try again." means the save did not go through. Your text is still in the box; select <strong>Save</strong> again.</li>
+<li><strong>History is blocked.</strong> "Cannot safely retrieve patient history, this patient record is missing (a date of birth / an MRN / an MRN and date of birth). A minimum of two patient identifiers is required before surfacing prior case history." Complete the patient identifiers in the LIS or at accessioning.</li>
+<li><strong>History is empty.</strong> "No prior pathology cases on record." or "No matched cases found for the current context." are normal results.</li>
+<li><strong>File or link refused.</strong> "This is a Word document. Save it as PDF, then attach the PDF.", "Only PDF, JPG and PNG files can be attached.", "This file is larger than your hospital’s storage accepts.", "Attachment storage is not set up for this site. Ask your administrator.", "Your hospital’s storage refused this file.", "The upload took too long. Try again.", "Enter an https:// link to a named server (no user name or password in it).", "That link is already attached to this case."</li>
+<li><strong>Cannot place or take out.</strong> "This report is signed. Start an amendment or addendum first." (the window also says so at the top and greys out the tick boxes), "A report can hold at most 12 images and documents.", "Tick at least one item.", "You do not have permission to do that.", and, for anything else, "That could not be done. Try again."</li>
+<li><strong>Clinical history cannot be recorded.</strong> Messages: "You don't have permission to record clinical history.", "The case is signed out; a change now needs an amendment.", "The case changed while saving; try again.", "The case could not be found."</li>
+<li><strong>The case is signed out.</strong> Comments become read-only ("Finalized, read only"). Text sections are locked; use an amendment (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>).</li>
+<li><strong>A label does not print.</strong> Printer messages include "The label printer is out of labels.", "out of ribbon.", "The label printer head is open.", "The label printer is not responding.", and "The PathScribe Agent is not running on this workstation, or its security certificate is not trusted". Fix the printer or ask your administrator to start the agent, then print again. If a pop-up blocker stops a label window: "Please allow pop-ups for this site to print labels."</li>
+</ul>
+<h3 id="error-recovery">Error recovery</h3>
+<ul>
+<li><strong>Wrong text saved.</strong> Edit and <strong>Save</strong> again. Every save is recorded in the change history.</li>
+<li><strong>Cleared by mistake.</strong> <strong>Clear</strong> saves a blank description. Retype the text and save, or dictate again. Nothing restores the old text except retyping, so check before you clear.</li>
+<li><strong>Triage confirmed too early.</strong> If the checklist was confirmed in error, tell the grossing staff; an override requires a reason ("Reason for overriding triage...").</li>
+<li><strong>Wrong image in the report.</strong> Open <strong>Attachments</strong> and select <strong>Take out of report</strong> under <strong>In the report</strong>. On a signed report, start an amendment or addendum first.</li>
+<li><strong>Wrong file attached.</strong> Take it out of the report first ("It is placed in the report. Take it out of the report first."), then select <strong>Remove from case</strong>. The file stays in the hospital's storage; only the link is removed.</li>
+<li><strong>"Image unavailable" printed.</strong> The image could not be fetched when the report was made (for a file, its storage could not be reached). Check the link or attach the file again, then make the report again.</li>
+<li><strong>Printed the wrong label.</strong> Print the right one from <strong>Manage Reprints</strong>.</li>
+</ul>
+<h2 id="clinical-history-frozen-section-and-history-windows">Clinical history, frozen section and history windows</h2>
+<p><strong>Clinical history line.</strong> Above the report, one line shows either "Clinical history: n coded entries.", "Clinical history: clinical indication only, no coded entries.", or, when nothing was provided, "Mismatch check deferred: no clinical information provided. Add the clinical history when you have it." Select <strong>Add clinical history</strong> (or <strong>Edit clinical history</strong>) to open the coded picker used at accessioning, and <strong>Save clinical history</strong> to record it. Recording needs the permission to record clinical history; it is refused once the case is signed out. Adding history lets the clinical mismatch check at sign-out work.</p>
+<p><strong>Frozen section and intraoperative findings.</strong></p>
+<ul>
+<li>The <strong>Intraoperative Diagnosis</strong> row of the Full Patient Report shows the frozen section diagnosis recorded in the Intraoperative queue for the case's specimen(s) (see <a href="/help/intraop-queue">Intraoperative Queue</a>).</li>
+<li>In the billing review, "Frozen section codes (suggested)" lists suggested CPT codes (for example "88331: specimen A, frozen block 1"). The first block on a specimen is counted as 88331 and each further block as 88332. They are marked "Unconfirmed". Select <strong>Accept</strong> or <strong>Dismiss</strong>; the row then reads "Accepted" or "Dismissed". Accepting records your decision; it does not post a charge.</li>
+<li>At sign-out the frozen-to-permanent comparison is a review check (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>).</li>
+</ul>
+<p><strong>Version history, change history, signatures.</strong></p>
+<ul>
+<li><strong>Version History</strong> ("n versions recorded for this case, signed and archived, read-only") lists each signed version with who signed it and whether it was the Initial Sign-Out or an Amendment, plus the patient and encounter details at sign-out. <strong>View signed PDF</strong> opens the stored PDF. If the PDF no longer matches its stored fingerprint, it is not shown and the window says to report it to your administrator.</li>
+<li><strong>Released documents</strong> lists each sent report (Final, Preliminary, Corrected or Addendum) with the date released; <strong>View as sent</strong> opens exactly what was sent.</li>
+<li><strong>Change history</strong> ("n saves recorded for this case") shows each save with who saved, when, from which workstation, and every field that changed (Added, Changed, Removed). Filter by <strong>Show changes to</strong>: All, Case details, Codes, Narrative, Specimens and blocks, Synoptic answers. <strong>Export CSV</strong> saves the list.</li>
+<li>The signature history lists the signatures recorded for the case.</li>
+</ul>
+<h2 id="spell-check-and-your-personal-dictionary">Spell check and your personal dictionary</h2>
+<ul>
+<li><strong>Underlines.</strong> Misspelled words are marked in the microscopic editor, the Report Draft editor and long-text synoptic fields.</li>
+<li><strong>Right-click a word.</strong> The menu "Spelling suggestions for (word)" offers suggestions ("Finding suggestions..." while it looks, "No suggestions" if none), <strong>Add to my dictionary</strong>, <strong>Add to the (facility) dictionary</strong>, and <strong>Ignore for this session</strong>. Adding to the facility dictionary needs permission: "Couldn't add the word to the facility dictionary. You may not have permission." If the word is correct in another regional spelling, the menu says "Other spelling convention (this report uses (language))".</li>
+<li><strong>Spelling language.</strong> The <strong>Spelling</strong> control shows the language in use and where it came from (chosen for this case, pathologist's preference, facility default, or platform default). Choose <strong>Default</strong> to go back. Offered languages: English (United States), English (United Kingdom), English (Canada), English (Australia and New Zealand), French (France), German (Germany), Spanish (Spain), Dutch (Netherlands and Belgium) and Korean. A language that is not ready shows "(choice) isn't available yet".</li>
+<li><strong>My dictionary.</strong> Open it from your profile menu (<strong>My dictionary</strong>). It lists words you added; the spell checker accepts them in your reports only. Add a word with <strong>Add</strong>, remove one with its remove button. Refusals: "Enter a word.", "Only a single word can be added.", "That word is too long."</li>
+<li><strong>Accepting a section.</strong> In Orchestration mode <strong>Accept</strong> on a Report Draft section checks the spelling and accepts the section.</li>
+</ul>
+<h3 id="how-spell-check-decides">How spell check decides</h3>
+<p>When you stop typing for a moment (about a third of a second), the spell checker looks at each paragraph you changed. It checks every word against several lists, in this order, and the first list that accepts the word wins:</p>
+<ol>
+<li><strong>My dictionary.</strong> Words you added yourself.</li>
+<li><strong>The facility dictionary.</strong> Words your laboratory added, such as local abbreviations and shorthand.</li>
+<li><strong>The spelling convention.</strong> A word spelled the other regional way is underlined, and the menu offers this report's form. For example, "hematology" in a report set to English (United Kingdom) is underlined with "haematology" suggested.</li>
+<li><strong>The pathology word list.</strong> PathScribe's own list of pathology terms.</li>
+<li><strong>The language's standard dictionary.</strong></li>
+</ol>
+<p><strong>What is never underlined.</strong> Anything with a digit in it (accession numbers, measurements, stage and grade codes such as Gleason scores, antibody names such as Ki-67), short capital-letter abbreviations of up to six letters, web and e-mail addresses, and dotted abbreviations. A hyphenated word is checked one part at a time.</p>
+<p><strong>Which language is used.</strong> The checker takes the first of these that applies: the language chosen on this case, then your own preference on your profile, then your facility's country, then English (United States). English (Australia and New Zealand) uses one dictionary for both countries. A language that is not ready is skipped and the next one in this list is used; the <strong>Spelling</strong> control says "isn't available yet" if you pick it.</p>
+<p><strong>What an underline means, and does not mean.</strong> An underline says the word is not in any list the checker uses. It does not say the word is wrong. The pathology word lists for French, German, Dutch, Spanish and Korean are starter lists, so a correct specialist term in those languages may be underlined; use <strong>Add to my dictionary</strong> or ask your administrator to add it to the facility dictionary. Likewise, a word that is not underlined is only known to be in a list, not confirmed clinically correct. Read the report before you sign it.</p>
+<p><strong>Your words stay yours.</strong> Words in <strong>My dictionary</strong> apply only to your own reports. Words added to the facility dictionary apply to everyone at that laboratory, and each addition or removal is recorded in the audit log. <strong>Ignore for this session</strong> hides the underline until you leave the case and is never saved.</p>
+<h2 id="material-windows-in-detail">Material windows in detail</h2>
+<h3 id="material-tab-tree">Material tab tree</h3>
+<ul>
+<li>A block that has no stains shows <strong>no slides yet — click to edit</strong>; clicking opens the Blocks &amp; Stains window.</li>
+<li>A specimen that has ancillary codes but no base code shows an assign button with the tooltip <strong>Assign this specimen's base CPT code</strong>.</li>
+<li>A location badge shows the last place the item was scanned. Hover for <strong>Reported by {{source}} on {{date}}</strong>.</li>
+<li>A lost block shows a "Lost" badge with the tooltip <strong>Block reported lost</strong>. A damaged block shows a "Damaged" badge and the tooltip adds <strong>Re-embedding required before any recut.</strong></li>
+<li>Under a residual fluid decant you can add <strong>Cell block from (decant name)</strong>.</li>
+<li>The <strong>Biopsy Arrays</strong> heading lists each array. Its <strong>Edit</strong> button has the tooltip <strong>Edit Biopsy Array (label)</strong>.</li>
+</ul>
+<h3 id="blocks-stains-window">Blocks &amp; Stains window</h3>
+<p>The <strong>Blocks &amp; Stains</strong> window is where you manage each block and its stains. When there are no blocks it says "No blocks on this case yet."</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Priority</td>
+<td>Set a block's priority. <strong>Inherit from case (priority)</strong> keeps the case priority.</td>
+</tr>
+<tr>
+<td>Pieces Grossed</td>
+<td>Number of tissue pieces, for example 3. When your laboratory requires it, a note under the box reads "Needed before grossing can be completed." until it is filled in.</td>
+</tr>
+<tr>
+<td>Piece description</td>
+<td>For example "2 core fragments, 1 tiny dust piece". The same note appears under it when your laboratory requires it.</td>
+</tr>
+<tr>
+<td>Damage / re-embed details</td>
+<td>For a damaged block; for a lost block the field reads <strong>Missing / incident details</strong>.</td>
+</tr>
+<tr>
+<td>Block Face Photos, <strong>📷 Add Photo</strong></td>
+<td>Attach photographs of the block face. A window headed "Capture Block Face Photo" shows the camera; its buttons and messages are the same as in the <a href="/help/intraop-queue">Intraop Queue</a> photo window (see its Error recovery).</td>
+</tr>
+<tr>
+<td>Foreign (outside) identifiers</td>
+<td>Source and identifier fields for material from another laboratory, for example "Riverside Medical Center" and "the id already on the container". The decant fields have the same layout.</td>
+</tr>
+<tr>
+<td><strong>Search stains to add — name or category…</strong></td>
+<td>Search the stain list and add stains to the block.</td>
+</tr>
+<tr>
+<td><strong>🩹 Unstained (spare slide)</strong></td>
+<td>A choice in that list meaning "No stain yet — cut and ready". The slide then shows as <strong>🩹 Unstained (spare)</strong>.</td>
+</tr>
+<tr>
+<td><strong>+ Create Spare Slide</strong></td>
+<td>Cuts an unstained spare slide.</td>
+</tr>
+<tr>
+<td><strong>Placing stain order…</strong></td>
+<td>Shown briefly while an order is being placed.</td>
+</tr>
+<tr>
+<td>Number of targets button (<strong>Edit targets for this order</strong>)</td>
+<td>Opens <strong>Targets for (stain name)</strong> where you search targets such as TP53 or MYC with <strong>Search targets to add (e.g. TP53, MYC)…</strong>.</td>
+</tr>
+<tr>
+<td>Billing suggestion</td>
+<td>The block can show <strong>Applied ancillary codes:</strong> and <strong>Suggested from this block's stains:</strong> with an <strong>Apply</strong> button.</td>
+</tr>
+<tr>
+<td><strong>🔁 Order Restain</strong></td>
+<td>Choose the <strong>Stain</strong> and a <strong>Reason for restain (required)</strong>, then <strong>Confirm Restain Order</strong>. <strong>Never mind</strong> closes it.</td>
+</tr>
+<tr>
+<td><strong>🚫 Cancel this block</strong></td>
+<td>Pick a <strong>Reason for cancellation (required)</strong> (or describe it in <strong>Describe the reason…</strong>) and choose <strong>Confirm Cancellation</strong>.</td>
+</tr>
+<tr>
+<td><strong>🖨️ Print Container Label</strong></td>
+<td>Prints the container label for a decant.</td>
+</tr>
+<tr>
+<td><strong>Decant Comments</strong></td>
+<td>Comments on a decant.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="deleting-or-flagging-a-block">Deleting or flagging a block</h3>
+<ul>
+<li>Delete a block in process with <strong>Delete this block</strong>: choose a <strong>Reason for deleting</strong>, add a note (required for Other) and choose <strong>Delete block</strong>. <strong>Never mind</strong> backs out. The window records who did it and when, and lists <strong>Billing codes released: (codes)</strong>, or "No billing codes were applied to this block."</li>
+<li>On a signed-out case the block is invalidated instead. On an amended report you may use <strong>Flag on amended report</strong>: choose <strong>Flag as</strong> Invalidated or Superseded, a <strong>Reason</strong>, then <strong>Flag block</strong>. This only marks the block; it is not deleted.</li>
+</ul>
+<h3 id="biopsy-arrays">Biopsy arrays</h3>
+<ul>
+<li><strong>Create Biopsy Array</strong> selects two or more specimens that share one cassette. Type the <strong>Cassette Label</strong> (for example A1). It cannot be changed after the array is created.</li>
+<li><strong>Edit Biopsy Array — (id)</strong> adds or removes specimens. An array needs at least two specimens.</li>
+<li><strong>Dissolve Array</strong>, then <strong>Confirm Dissolve</strong>, cannot be undone.</li>
+<li>The array editor has two tabs, <strong>Details</strong> and <strong>Biopsy Array / Matrix Mapping</strong>. On Details you set the pieces grossed, the piece description, <strong>Edit membership</strong>, and <strong>Reprint Cassette Label</strong>. The <strong>Array Mapper</strong> lets you choose the core or cores an ancillary stain is for; under <strong>Ancillary Stains on This Block</strong> each stain shows the cores targeted, or <strong>no core targeted yet</strong>. Search stains with <strong>Search stains (e.g. Ki-67, P53, PIN-4)…</strong>. Choosing cores targets the order only; billing counts a core only when a pathologist confirms it was evaluated.</li>
+<li>The small diagram of an array labels each position as "pos (number)".</li>
+</ul>
+<h3 id="add-orders">Add Orders</h3>
+<p><strong>Add Orders</strong> adds work after grossing. Its heading reads <strong>Grossing in progress</strong> or <strong>Microscopic review</strong>. Tabs:</p>
+<ul>
+<li><strong>Blocks / Recut</strong>: choose the specimen (<strong>Select the specimen this is from…</strong>) and type the <strong>Cassette / block label</strong> (for example A2, A3). The window shows <strong>Will append: "(sentence)"</strong>, the sentence that is added to the gross description.</li>
+<li><strong>Specimens</strong>: for a genuinely new container. <strong>Continue to new specimen intake →</strong> opens the full intake form.</li>
+<li><strong>Stains / Sectioning</strong>: <strong>Continue to Flag Manager →</strong> opens the flag manager to order a level or stain.</li>
+</ul>
+<h3 id="specimen-details">Specimen details</h3>
+<p><strong>Edit Specimen (label)</strong> (or Add Specimen) holds: the specimen label (hint: Letter or short code (A, B, 1, 1A…)), a description (for example "Left breast mastectomy"), <strong>Search specimen dictionary…</strong> (with "No matches" or "No specimens in dictionary" messages), container type (<strong>Select container type…</strong>), <strong>Collection Method</strong> (for example Core biopsy, Excision), anatomic site (for example Breast), <strong>SNOMED Specimen Type</strong> and <strong>SNOMED Anatomic Site</strong> codes (for example 122643008 and 80248007), the referring client and its identifier, <strong>Complexity</strong>, <strong>Gross weight (g)</strong> with <strong>Capture weight</strong> (the window shows <strong>Reading the scale…</strong>, then <strong>Weight read from the scale.</strong>, or <strong>Simulated scale reading</strong> in the demonstration) and <strong>Gross photos</strong>. Errors read "Specimen label is required" and "Description is required".</p>
+<h3 id="manage-reprints">Manage Reprints</h3>
+<p>The window lists "No specimens yet." when empty. The requisition card is described as <strong>Full-page requisition label</strong>. Hover over a lost or damaged block for the explanatory tooltip.</p>
+<h3 id="hierarchy-scan-audit-log">Hierarchy &amp; Scan Audit Log</h3>
+<p><strong>Hierarchy &amp; Scan Audit Log</strong> shows every scan of each specimen, block, slide and aliquot. Select an item on the left to see its history. Items with no scan show <strong>No events yet</strong>. Searching with no result shows "No matches for (search text)." and an empty history says <strong>No tracking events yet for this item.</strong> The printout says <strong>No tracking events yet</strong> under such an item.</p>
+<h3 id="cassette-colour">Cassette colour</h3>
+<p>A cassette colour that the rules have not worked out shows <strong>Not yet resolved</strong>. Choose one yourself from <strong>— Select a color —</strong>.</p>
+<h3 id="parts-covered-synoptic-workups">Parts covered (synoptic workups)</h3>
+<p><strong>Parts covered</strong> chooses which parts of a case a synoptic workup reports on. Choose Combined (one protocol across the parts ticked) or Independent (this part only), then <strong>Apply</strong>. If the case has only one part the window says <strong>This case has no other parts.</strong> The AI is told which parts the workup covers and does not propose a second workup of the same protocol for them.</p>
+<h3 id="change-history-and-version-history">Change history and version history</h3>
+<ul>
+<li><strong>Change history</strong> says "No changes recorded yet." until the first save.</li>
+<li><strong>Version History</strong> shows a <strong>Patient / Encounter at Sign-Out</strong> box that records the encounter as it stood at sign-out (for example <strong>Encounter Class</strong> and encounter status). If a version's PDF cannot be opened the window says "Could not open this version's PDF."</li>
+</ul>
+<h2 id="the-report-text-editor-toolbar">The report text editor toolbar</h2>
+<p>The Microscopic, narrative and comment boxes share one editing toolbar. Hover over a button to see its name. The editor shows <strong>Loading editor…</strong> for a moment when it opens, and an empty narrative shows "Begin narrative report…".</p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Undo (Ctrl+Z), Redo (Ctrl+Shift+Z)</td>
+<td>Step back or forward through your edits.</td>
+</tr>
+<tr>
+<td>Bold (Ctrl+B), Italic (Ctrl+I), Underline (Ctrl+U), Strikethrough</td>
+<td>Character styles.</td>
+</tr>
+<tr>
+<td>Subscript, Superscript</td>
+<td>Lower or raise the selected text.</td>
+</tr>
+<tr>
+<td>Font Color, Text Highlight Color</td>
+<td>Colour the selected text or its background. <strong>No Color</strong> removes the colour.</td>
+</tr>
+<tr>
+<td>Paragraph Shading, Borders</td>
+<td>Shade or border the paragraph.</td>
+</tr>
+<tr>
+<td>Align Left, Align Center, Align Right, Justify</td>
+<td>Paragraph alignment.</td>
+</tr>
+<tr>
+<td>Heading 1, Heading 2, Heading 3</td>
+<td>Heading styles.</td>
+</tr>
+<tr>
+<td>Line &amp; Paragraph Spacing</td>
+<td>A menu with <strong>Line Spacing</strong> and <strong>Paragraph Spacing</strong> (<strong>Add Space Before Paragraph</strong>, <strong>Add Space After Paragraph</strong>). Known limit: today these choices only close the menu and do not change the text (see below).</td>
+</tr>
+<tr>
+<td>Table</td>
+<td>A size grid (<strong>Select table size</strong>) inserts a table. When the cursor is in a table, buttons appear for <strong>Add Column After</strong>, <strong>Add Row After</strong>, <strong>Delete Column</strong>, <strong>Delete Row</strong>, <strong>Merge Cells</strong>, <strong>Split Cell</strong> and <strong>Delete Table</strong>.</td>
+</tr>
+<tr>
+<td>Insert Macro (or type trigger + Space)</td>
+<td>Opens the macro list; a search with no match says <strong>No macros found</strong>. Typing a macro's trigger word followed by a space inserts it without opening the list.</td>
+</tr>
+<tr>
+<td>Find &amp; Replace (Ctrl+F)</td>
+<td>Opens the find box. <strong>Find Next</strong> moves to the next match; in replace mode <strong>Replace All</strong> changes every match.</td>
+</tr>
+<tr>
+<td>Signature line</td>
+<td>Inserts a line with the <strong>Pathologist Signature</strong> caption and a date.</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Known limit: spacing choices</p>
+<p>In the current version, the choices in the <strong>Line &amp; Paragraph Spacing</strong> menu do not change the spacing of your text. The other toolbar buttons work as described.</p>
+</div>
+<p>When you right-click a misspelled word, the menu offers <strong>Add to my dictionary</strong>, and, if you have permission, <strong>Add to the {{facility}} dictionary</strong>, so every colleague at the laboratory stops seeing it flagged. If that is refused the menu says "Couldn't add the word to the facility dictionary. You may not have permission."</p>
+<h2 id="report-preview">Report preview</h2>
+<p>The report preview shows the report as it will print. Sections that have no text say <strong>Not yet generated</strong> (the AI draft has not run), <strong>No content</strong>, or <strong>⚠ Required — not yet completed</strong> for a required section. A synoptic with no answers says "No synoptic data recorded." With no sections at all the preview says <strong>No report sections yet</strong> and tells you to generate the report in the draft editor. The footer reads <strong>CONFIDENTIAL — PATHOLOGY REPORT</strong>.</p>
+<h2 id="attachments-messages">Attachments: messages</h2>
+<p>The <strong>Attachments</strong> window says at the top: "PathScribe keeps only a link to each item. A file you attach is sent to your hospital’s own storage, and a link to it is kept on the case." Empty groups say "No gross or block-face photos on this case.", "No intraoperative or consultation photos on this case.", "No files or links attached yet." and, for slide regions, "Regions saved with Add to report in the slide viewer appear here. The slide viewer is not built yet." A PDF row says "PDF document: named in its section, its pages follow the report". <strong>In the report</strong> says "Nothing is placed in the report yet." until you insert something. On a report whose images print after its pages (cytology) the window says "This report prints images after its own pages." instead of offering sections.</p>
+<h2 id="internal-notes-history-and-related-cases-in-detail">Internal notes, history and related cases in detail</h2>
+<h3 id="internal-notes-drawer">Internal Notes drawer</h3>
+<ul>
+<li><strong>Add Internal Note</strong> starts a note. Choose the <strong>Note Type</strong>, write the note and save.</li>
+<li>While the notes load the drawer says <strong>Loading notes...</strong>; with none it says "No internal notes yet for this case".</li>
+<li>A note that came from a message conversation shows <strong>Linked to message thread</strong>.</li>
+<li>The bin button (<strong>Delete note</strong>) opens <strong>Delete Note</strong>: "Delete this note? This cannot be undone."</li>
+</ul>
+<h3 id="history-window">History window</h3>
+<ul>
+<li>While the window looks for earlier cases it shows <strong>Loading prior pathology…</strong>, or <strong>Searching case corpus…</strong> for the similar-case search.</li>
+<li>In the similar-case view each match shows <strong>Similarity Score (Demonstration)</strong>. The score is demonstration data, not a validated measure.</li>
+<li><strong>Refine search</strong> reruns the similar-case search with your changes.</li>
+<li><strong>Message Pathologist</strong> (or "Message (name)" when the reporting pathologist is known) starts a message about the case you are viewing.</li>
+<li>Under the prior report, the panel <strong>AI-extracted synoptic fields</strong> shows what the AI read from an earlier narrative report. It is labelled "AI-extracted, not verified", is for you to look at only, and is never used in reports, printing, registries, billing, rules or exports. <strong>Check again</strong> reads the report again; <strong>Flag as wrong</strong> and <strong>Flag all as wrong</strong> record that a value is wrong ("Flagged"). If the flag cannot be saved the panel says <strong>Could not record the flag.</strong> While it works it says <strong>The AI is reading this report…</strong>.</li>
+</ul>
+<h3 id="other-cases-for-this-patient">Other cases for this patient</h3>
+<p>When some of a patient's other cases cannot be opened with your access, a notice under <strong>Other cases for this patient</strong> says how many. You can:</p>
+<ol>
+<li>Choose <strong>Request access</strong> (or <strong>Request again</strong> after a refusal). Pick a <strong>Reason for the request</strong> and, for Other, write in the note box <strong>Say why you need these cases</strong>.</li>
+<li>Wait. The assigned pathologist or an administrator decides.</li>
+</ol>
+<p>If you are the person deciding, the notice lists <strong>Requests waiting for your decision</strong> with <strong>Approve</strong> and <strong>Decline</strong>. Declining asks for a reason, then <strong>Decline request</strong>. A second list, <strong>Access you can revoke</strong>, shows "(name) has had access since (date)." with <strong>Revoke</strong>, then <strong>Revoke access</strong>. If no reason was given it shows <strong>Not stated</strong>.</p>
+<h3 id="related-cases-and-the-patient-summary">Related cases and the patient summary</h3>
+<ul>
+<li>The related cases picker says <strong>Looking for related cases…</strong> while it searches. A case with no diagnosis shows <strong>(none recorded)</strong>.</li>
+<li><strong>Print summary</strong> prints a <strong>Patient summary</strong> sheet of the cases you chose, footed "Compiled {{when}} by {{name}}".</li>
+</ul>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Pressing Alt+Shift+O with no block focused, expecting every cassette to print. Use Alt+Shift+P for all.</li>
+<li>Clearing a microscopic description to "start again" without noting the old text.</li>
+<li>Leaving the description as an unsaved draft: sign-out will stop.</li>
+<li>Putting patient identifiers in a message to another pathologist from the History window.</li>
+<li>Treating the Similar Cases list as validated. It is a demonstration.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use Alt+Shift+T to confirm triage in one step, then <strong>Release &amp; Print All</strong>.</li>
+<li>Use the Insert attestation button for routine specimens.</li>
+<li>Learn Ctrl+Alt+C and Ctrl+Alt+S for comments; Alt+H and Alt+Shift+H for history.</li>
+<li>Add unusual terms to My dictionary once rather than ignoring them each time.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Add the clinical history early so the mismatch check at sign-out has something to compare.</li>
+<li>Check the Material tab before signing: a pending recut, QC failed slide or Awaiting Scan cassette means the case may not be ready.</li>
+<li>Place images before signing out: afterwards a change needs an amendment or addendum.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Grossing creates the specimens, blocks and triage: <a href="/help/grossing">Grossing</a>.</li>
+<li>Frozen sections come from <a href="/help/intraop-queue">Intraoperative Queue</a>.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li>Checklist answers and codes: <a href="/help/report/synoptic-reporting">Synoptic Reporting</a>.</li>
+<li>Review checks and sign-out: <a href="/help/report/sign-out-and-release">Sign Out and Release</a>.</li>
+<li>Slide previews and opening a slide in your laboratory's digital pathology application: <a href="/help/wsi-viewer">Slide Images</a>.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<ul>
+<li><strong>Save is greyed out.</strong> Nothing has changed since the last save.</li>
+<li><strong>Mic does not type into the box.</strong> Click in the box first so it has focus, then press the microphone. Check the voice button state (see <a href="/help/voice-and-keyboard">Voice and Keyboard</a>).</li>
+<li><strong>Alt+H opens History, not Home.</strong> On the Report screen Alt+H is History. Use Alt+J then H to go home.</li>
+<li><strong>Alt+I opens Internal Note, not Messages.</strong> On the Report screen Alt+I is Internal Note.</li>
+<li><strong>A block cannot be selected for slides.</strong> It is Lost, Exhausted or Damaged.</li>
+<li><strong>The Clear button is missing.</strong> It only appears when there is text.</li>
+<li><strong>Version chip missing.</strong> It appears only when at least one version has been signed.</li>
+</ul>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the exact message or badge.</li>
+<li>Match it against the lists above.</li>
+<li>Fix the named item (save the draft, complete the field, correct the link, fix the printer).</li>
+<li>Try the action again.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact support if a label printer agent will not connect, a signed PDF fails its fingerprint check, a save keeps failing, or a language you need for spell check is unavailable.</p>

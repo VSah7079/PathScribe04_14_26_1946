@@ -1,0 +1,15 @@
+/* Batch 729: the station scan trail (ScanTrailPanel.tsx). Logical properties only. */
+.ps-scan-trail { margin-block: 8px 12px; }
+.ps-scan-trail-toggle { background: transparent; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 8px; padding: 6px 12px; color: inherit; font-size: 13px; cursor: pointer; }
+.ps-scan-trail-toggle:focus-visible { outline: 2px solid var(--ps-conf-teal, #14b8a6); outline-offset: 2px; }
+.ps-scan-trail-body { margin-block-start: 8px; overflow-x: auto; }
+.ps-scan-trail-note { margin: 0; font-size: 13px; color: var(--ps-text-dim); }
+.ps-scan-trail-table { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
+.ps-scan-trail-table th { text-align: start; font-weight: 600; padding-block: 4px; padding-inline: 6px; border-block-end: 1px solid rgba(148, 163, 184, 0.3); }
+.ps-scan-trail-table td { padding-block: 4px; padding-inline: 6px; vertical-align: top; border-block-end: 1px solid rgba(148, 163, 184, 0.12); }
+.ps-scan-trail-row--flag td { background: rgba(245, 158, 11, 0.1); }
+.ps-scan-trail-sub { display: block; font-size: 12px; color: var(--ps-text-dim); }
+/* The wrong-case warning (WrongCaseScanBanner.tsx, spec §7.3). */
+.ps-wrong-case-banner { margin-block: 8px; padding-block: 10px; padding-inline: 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.12); }
+.ps-wrong-case-text { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.ps-wrong-case-actions { display: flex; flex-wrap: wrap; gap: 8px; }

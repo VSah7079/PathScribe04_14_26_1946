@@ -34,6 +34,8 @@ import type { ServiceResult, ID } from '../types';
 import type { ReportPart, PartLibraryFilter, ReportPartType, ReportPartStatus } from '../../types/reportPart';
 import type { TemplateNode } from '../../types/template';
 import type { IReportPartService } from './IReportPartService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage, storageKeys } from '../browserData/dataStorage';
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -48,7 +50,7 @@ const err = <T>(message: string, _code = 'ERROR'): ServiceResult<T> =>
 // ── Change events ──────────────────────────────────────────────
 
 const CHANGE_EVENT = 'PATHSCRIBE_REPORT_PARTS_CHANGED';
-const notifyChanged = () => window.dispatchEvent(new Event(CHANGE_EVENT));
+export const notifyChanged = () => window.dispatchEvent(new Event(CHANGE_EVENT));
 
 export function onReportPartsChanged(handler: () => void): () => void {
   window.addEventListener(CHANGE_EVENT, handler);
@@ -59,11 +61,11 @@ export function onReportPartsChanged(handler: () => void): () => void {
 
 const LS = 'ps_rpart_';
 const lsLoad  = (id: string): ReportPart | null => {
-  try { const r = localStorage.getItem(LS + id); return r ? JSON.parse(r) : null; } catch { return null; }
+  try { const r = dataStorage.getItem(LS + id); return r ? JSON.parse(r) : null; } catch { return null; }
 };
-const lsSave  = (p: ReportPart) => localStorage.setItem(LS + p.id, JSON.stringify(p));
-const lsDel   = (id: string) => localStorage.removeItem(LS + id);
-const lsAllIds = () => Object.keys(localStorage).filter(k => k.startsWith(LS)).map(k => k.slice(LS.length));
+const lsSave  = (p: ReportPart) => dataStorage.setItem(LS + p.id, JSON.stringify(p));
+const lsDel   = (id: string) => dataStorage.removeItem(LS + id);
+const lsAllIds = () => storageKeys(dataStorage).filter(k => k.startsWith(LS)).map(k => k.slice(LS.length));
 
 // ── In-memory store ────────────────────────────────────────────
 
@@ -228,7 +230,7 @@ const demoPart = part(DEMO_ID, 'Patient & Order Demographics', 'body', [
       e('Patient name',     '{{patient.name}}',                           '—',         12),
       e('Date of birth',    '{{patient.dob}}',                            '—',         12),
       e('Age',              '{{patient.age}} years',                      '—',         12),
-      e('Sex',              '{{patient.sex}}',                            '—',         12),
+      e('Sex at birth',    '{{patient.sexAtBirth}}',                          '—',         12),
       e('MRN',              '{{patient.mrn}}',                            '—',         12),
       // Right column: order info
       e('Requesting provider', '{{order.requestingProvider}}',            '—',         12),
@@ -775,4 +777,10 @@ class MockReportPartService implements IReportPartService {
   }
 }
 
-export const mockReportPartService: IReportPartService = new MockReportPartService();
+const reportPartServiceUnchecked: IReportPartService = new MockReportPartService();
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportPartService: IReportPartService = guardConfigWrites(reportPartServiceUnchecked, [
+  ['config:report-template:manage', ['create', 'save', 'archive', 'clone', 'remove']],
+  ['config:report-template:publish', ['publish']],
+]);

@@ -1,0 +1,10 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 659B — Collaborating Cases label and registry note, release sweep decisions recorded",
+    "description": "Vitest, 2026-10-23: action registry, constants and style-rule tests, 27 files, 205 passed. Docs-only changes for the release sweep decisions. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {"testInfo":{"summary":"Action registry: Collaborating Cases label is consistent and its unwired note is accepted","type":"Generic","projectKey":"PS"},"start":"2026-10-23T20:30:00Z","finish":"2026-10-23T20:45:00Z","status":"PASSED","comment":"PASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/services/actionRegistry (all files, 27 files, 205 tests)"}
+  ]
+}

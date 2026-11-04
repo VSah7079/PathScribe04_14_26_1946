@@ -13,6 +13,7 @@ beforeEach(() => {
 describe('processInboundTelemetryReadingEvent — real, per the RFP-APLIS-2026-GLOBAL Cold-Chain gap', () => {
   it('real, a genuine excursion on a smart container checked out to an active batch sets the batch\'s own real hold AND raises a real, open deficiency for the real case represented', async () => {
     const { mockHardwareContainerRegistryService } = await import('../hardwareContainers/mockHardwareContainerRegistryService');
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { mockSpecimenDeficiencyService } = await import('../deficiencies/mockSpecimenDeficiencyService');
     const { processInboundTelemetryReadingEvent, _resetProcessedTelemetryReadingMessageIdsForTests } = await import('./processInboundTelemetryReadingEvent');
@@ -62,6 +63,7 @@ describe('processInboundTelemetryReadingEvent — real, per the RFP-APLIS-2026-G
 
   it('real, a genuine excursion on a batch that DOES have a real item scanned into it raises a real, open deficiency for that item\'s own real case', async () => {
     const { mockHardwareContainerRegistryService } = await import('../hardwareContainers/mockHardwareContainerRegistryService');
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { mockSpecimenDeficiencyService } = await import('../deficiencies/mockSpecimenDeficiencyService');
     const { storageGet, storageSet } = await import('../mockStorage');
@@ -105,6 +107,7 @@ describe('processInboundTelemetryReadingEvent — real, per the RFP-APLIS-2026-G
 
   it('real, a non-excursion reading never sets a hold and never raises a deficiency', async () => {
     const { mockHardwareContainerRegistryService } = await import('../hardwareContainers/mockHardwareContainerRegistryService');
+    await import('../batches/batchServiceInstance'); // load order: the instance first, because the mock reaches @/services and so the instance
     const { mockBatchService } = await import('../batches/mockBatchService');
     const { processInboundTelemetryReadingEvent, _resetProcessedTelemetryReadingMessageIdsForTests } = await import('./processInboundTelemetryReadingEvent');
     _resetProcessedTelemetryReadingMessageIdsForTests();

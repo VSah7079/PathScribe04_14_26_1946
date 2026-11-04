@@ -3,15 +3,16 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { LisAmendmentNotice } from '@/types/reports/LisAmendmentNotice';
 import type { ILisAmendmentNoticeService } from './ILisAmendmentNoticeService';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'lis_amendment_notices';
 const NOTICE_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_lis_notice_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== NOTICE_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, NOTICE_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, NOTICE_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 

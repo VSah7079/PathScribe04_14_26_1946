@@ -6,12 +6,13 @@
 // display, bound once to a real DisplayProfile, that must keep
 // showing the right facility/view after a browser reload or restart
 // without any per-user login.
+import { getWorkstationSetting, setWorkstationSetting } from '@/utils/workstationSettings';
 import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'pathscribe_current_display_profile_id';
 
 function readStored(): string | null {
-  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+  return getWorkstationSetting(STORAGE_KEY);
 }
 
 const subscribers = new Set<(id: string | null) => void>();
@@ -28,10 +29,7 @@ export function useCurrentDisplayProfile() {
   }, []);
 
   const setProfileId = useCallback((id: string | null) => {
-    try {
-      if (id) localStorage.setItem(STORAGE_KEY, id);
-      else localStorage.removeItem(STORAGE_KEY);
-    } catch { /* real, honest no-op — private browsing simply doesn't persist across reloads */ }
+    setWorkstationSetting(STORAGE_KEY, id || null);
     subscribers.forEach(fn => fn(id));
   }, []);
 

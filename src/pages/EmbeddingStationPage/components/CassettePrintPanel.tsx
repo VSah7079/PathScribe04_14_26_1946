@@ -9,10 +9,14 @@
 // for the cassette printer.
 //
 // The mandatory reason prompt itself is a real ps-overlay/ps-modal-dark
-// modal, owned by the parent page (EmbeddingStationPage.tsx) — this
+// modal (CassetteReprintModal.tsx, Batch 401), owned by the parent page
+// (EmbeddingStationPage.tsx) — this
 // panel only requests it (onRequestReprint), same "child requests,
 // parent owns the modal" shape as MicrotomyWorkstationPage.tsx's own
 // pendingRemoval flow.
+//
+// Batch 401: the last reprint reason is shown in the user's language (it is
+// stored in English for the audit record).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
@@ -20,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type { CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { CassetteReprintReason } from '@/types/case/Specimen';
+import { CASSETTE_REPRINT_REASON_KEYS } from '@/utils/embeddingOperations';
 
 export interface CassettePrintPanelProps {
   printer: PrinterProfile | null;
@@ -62,7 +67,7 @@ const CassettePrintPanel: React.FC<CassettePrintPanelProps> = ({
         {typeof cassetteReprintCount === 'number' && cassetteReprintCount > 0 && (
           <div className="ps-embedding-context-field ps-mt-8">
             {t('embeddingStation.hardware.reprintCount', { count: cassetteReprintCount })}
-            {lastCassetteReprintReason && <strong>{lastCassetteReprintReason}</strong>}
+            {lastCassetteReprintReason && <strong>{CASSETTE_REPRINT_REASON_KEYS[lastCassetteReprintReason] ? t(`embeddingStation.reprintReason.reason.${CASSETTE_REPRINT_REASON_KEYS[lastCassetteReprintReason]}`) : lastCassetteReprintReason}</strong>}
           </div>
         )}
         {reprintFeedback && <div className="ps-embedding-scan-error">{reprintFeedback}</div>}

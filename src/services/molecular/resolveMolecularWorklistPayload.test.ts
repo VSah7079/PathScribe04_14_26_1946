@@ -78,4 +78,10 @@ describe('resolveMolecularWorklistPayload — real, per the given specification\
     expect(payload.well_mappings.find(w => w.well_position === 'A04')).toBeUndefined();
     expect(payload.well_mappings).toHaveLength(3);
   });
+
+  it('Batch 467b: a well holding an in-house order carries its order id (spec wellBindingContract), others none', () => {
+    const payload = resolveMolecularWorklistPayload({ ...SEEDED_BATCH, wells: SEEDED_BATCH.wells.map(w => (w.wellPosition === 'A03' ? { ...w, orderId: 'MO-2026-0467-01' } : w)) });
+    expect(payload.well_mappings.find(w => w.well_position === 'A03')!.order_id).toBe('MO-2026-0467-01');
+    expect(payload.well_mappings.find(w => w.well_position === 'A01')).not.toHaveProperty('order_id');
+  });
 });

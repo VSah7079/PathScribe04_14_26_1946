@@ -48,21 +48,27 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
+import { conditionAnswers, conditionMode, conditionTooComplex, isConditionComplete, withAlternative, withAlternativeAdded, withAlternativeRemoved, withConditionAnswerToggled, withConditionField, withConditionMode, type ConditionMode } from '@/services/templates/conditionEdits';
+import { gridSumChoices, numericColumns, numericFieldChoices, valueSourceOf, withColumnRule, withNodeCount, withSumColumn, withSumGrid, withSumPartToggled, withValueSource, type ValueSource } from '@/services/templates/templateCountRules';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { PROTOCOL_REGISTRY } from './protocolShared';
-import { saveDraft, submitForReview, getTemplate, canCurrentUserDraftTemplates } from '../../../services/templates/templateService';
-import { bumpVersion, prepareProtocolCopy, findProtocolNameConflict, editorUrlAfterSave, type ProtocolCopyKind } from '@/services/templates/protocolLifecycle';
+import { PROTOCOL_REGISTRY } from './protocolShared'; import { useEditorStartingTemplate } from '@/hooks/useEditorStartingTemplate'; import { DemoChecklistCopyRefused } from './DemoChecklistCopyRefused';
+import { saveDraft, submitForReview, canCurrentUserDraftTemplates } from '../../../services/templates/templateService';
+import { bumpVersion, findProtocolNameConflict, editorUrlAfterSave, type ProtocolCopyKind } from '@/services/templates/protocolLifecycle';
 import { formatDateTime } from '@/utils/formatDate';
 import { TerminologyAlertBanner } from './TerminologyAlertBanner';
 import { useTerminologyAlerts } from '../../../hooks/useTerminologyAlerts';
 import { calcTemplateCoverage, SNOMED_PUBLISH_THRESHOLD } from '../../../services/templates/templatePublishingRules';
+import { SYNOPTIC_REPORTING_ROLES, type SynopticReportingRole } from '@/services/reports/synopticResultPayload';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type FieldType = 'dropdown' | 'radio' | 'checkboxes' | 'numeric' | 'text' | 'longtext';
+// Batch 461: 'partGrid' = one row per part of the case with fixed columns
+// (services/templates/partGrid.ts); PathScribe-authored, not offered as a new type in the picker.
+// Batch 463: 'spatialStageCanvas' = the Mohs stage map (services/templates/mohsStages.ts).
+export type FieldType = 'dropdown' | 'radio' | 'checkboxes' | 'numeric' | 'text' | 'longtext' | 'partGrid' | 'spatialStageCanvas';
 
 /** Real, per direct guidance's own confirmed decision (PS-272): extended
  *  for real, multi-value OR-logic (e.g. a real section revealed for
@@ -72,7 +78,16 @@ export type FieldType = 'dropdown' | 'radio' | 'checkboxes' | 'numeric' | 'text'
  *  it. Kept additive: answerIds is optional and checked first when
  *  present; every real, existing single-value condition (answerId
  *  alone) keeps working completely unchanged. */
-export interface VisibilityCondition { fieldId: string; answerId: string; answerIds?: string[]; }
+import { isVisible, type VisibilityCondition } from '@/services/templates/fieldVisibility';
+import type { PartGridColumn, PartGridRowSpec, SumOfSpec } from '@/services/templates/partGrid';
+import { mohsHistologySourceProblem } from '@/services/templates/mohsStages';
+import type { MolecularResultBinding } from '@/services/templates/molecularResultBinding';
+import { MolecularResultBindingEditor } from './MolecularResultBindingEditor';
+import { authorsNarrative, narrativeSentenceMissesValue, narrativeText, SYNOPTIC_CLINICAL_TIERS, withNarrativeSentence } from '@/services/templates/narrativeAuthoring';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+export { isVisible };
+export type { VisibilityCondition };
 
 /** Real, per direct guidance's own confirmed decision (PS-272):
  *  `lexiconTermKey` added alongside — never replacing — the real,
@@ -83,11 +98,39 @@ export interface VisibilityCondition { fieldId: string; answerId: string; answer
  *  clinical term warranting the Managed Pathology Lexicon's own
  *  narrative/validation treatment — undefined for every real option
  *  that doesn't. */
-export interface FieldOption { id: string; label: string; snomed: string; icd: string; lexiconTermKey?: string; }
+export interface FieldOption {
+  id: string; label: string; snomed: string; icd: string; lexiconTermKey?: string;
+  /** Batch 519 (PS-273, from the Cytology model): a translation key for the label (migration seam; unused today). */
+  labelKey?: string;
+  /** Batch 519 (PS-273): the phrase this answer puts into the compiled narrative (Cytology:
+   *  services/cytology/compileCytologySynopticNarrative.ts). Absent: the answer adds nothing. */
+  narrativePhrase?: string;
+}
+
+/** Batch 519 (PS-273): Tier 1 diagnostic category (its answers carry lexicon terms) or Tier 2 descriptive. */
+export type SynopticClinicalTier = 'tier_1_diagnostic_category' | 'tier_2_descriptive';
 
 export interface EditorField {
   id: string; label: string; type: FieldType; required: boolean;
   snomed: string; icd: string; options: FieldOption[];
+  /** Batch 461: the columns of a 'partGrid' question. */
+  columns?: PartGridColumn[];
+  /** Batch 462: a grid's own rows (numbered foci, fixed margins); the case's parts when absent. */
+  rows?: PartGridRowSpec;
+  /** Batch 463 (Mohs stages): the question whose answer is the default histology of a positive sector. */
+  defaultHistologyFieldId?: string;
+  /** Batch 465b: a numeric question that is a grid column's total (calculated, or hand-entered with `override`). */
+  sumOf?: SumOfSpec;
+  /** Batch 466: a count — a whole number, 0 or more (a negative or decimal value stops save and sign-out). */
+  wholeNumber?: boolean;
+  /** Batch 466b (Pete: Max_Value_Ref): a numeric question this one can't exceed (nodes positive ≤ nodes examined). */
+  notMoreThan?: string;
+  /** Batch 519 (PS-494): a free-text node count (a whole number, "cannot be determined" or "at least N"). */
+  nodeCount?: boolean;
+  /** Batch 519 (PS-494): the counts this total can't be below the sum of (Breast: total examined ≥ A + B + C). */
+  atLeastSumOf?: string[];
+  /** Batch 467: the in-house molecular test whose result answers this choice question (services/templates/molecularResultBinding.ts). */
+  molecularResult?: MolecularResultBinding;
   hint?: string; visibleWhen?: VisibilityCondition;
   /** Real, per direct guidance's own confirmed tiered-validation
    *  architecture: "Tier 2: Conditional Requirements... Make
@@ -110,11 +153,28 @@ export interface EditorField {
    *  the field's own label if unset, so older/untagged templates still
    *  degrade gracefully rather than breaking. */
   markerGroup?: string;
+  /** Batch 426: the unit a numeric answer is in (e.g. "cm"), sent with it to the LIS. */
+  unit?: string;
+  /** Batch 426: what this field reports, for the structured result
+   *  (services/reports/synopticResultPayload.ts): pT, pN, pM, FIGO stage,
+   *  or a block identifier (e.g. the block used for HER2). */
+  reportingRole?: SynopticReportingRole;
+  /** Batch 519 (PS-273, from the Cytology model): a translation key for the label (migration seam; unused today). */
+  labelKey?: string;
+  /** Batch 519 (PS-273): Tier 1 / Tier 2 (services/cytology/resolveSynopticTemplateClinicalTierConsistency.ts). */
+  clinicalTier?: SynopticClinicalTier;
+  /** Batch 519 (PS-273): the sentence this question adds to the compiled narrative; `{value}` is the answer's
+   *  narrative phrase(s), or a free-text answer itself. Absent: the question adds no sentence. */
+  narrativeSentenceTemplate?: string;
+  /** Batch 519 (PS-273): a translation key for that sentence (migration seam). */
+  narrativeSentenceTemplateKey?: string;
 }
 
 export interface EditorSection {
   id: string; title: string; fields: EditorField[];
   collapsed: boolean; visibleWhen?: VisibilityCondition;
+  /** Batch 519 (PS-273, from the Cytology model): a translation key for the title (migration seam; unused today). */
+  titleKey?: string;
 }
 
 export interface EditorTemplate {
@@ -127,6 +187,11 @@ export interface EditorTemplate {
    *  The first save inherits that protocol's registry-only attributes
    *  (isDiagnostic, type, group), which this editor doesn't show. */
   copiedFromId?: string;
+  /** Batch 426: the staging edition the protocol follows (e.g. "AJCC 8th"), sent with the staging. */
+  ajccEdition?: string;
+  /** Batch 519 (PS-273, from the Cytology model): the reporting system the protocol follows (e.g. "The Bethesda
+   *  System for Reporting Thyroid Cytopathology, 3rd edition"). */
+  standard?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -151,14 +216,18 @@ const blankTemplate = (): EditorTemplate => ({
 // are the translation-key indirection for its display, same XXX_LABEL_KEY
 // pattern used throughout this sweep; `value` itself is untouched data.
 // Each type's badge colour is .ps-syned-ftype--<value> in pathscribe.css.
-const FIELD_TYPES: { value: FieldType; labelKey: string; abbrKey: string; hasOptions: boolean }[] = [
+const FIELD_TYPES: { value: FieldType; labelKey: string; abbrKey: string; hasOptions: boolean; builtIn?: boolean }[] = [
   { value: 'dropdown',   labelKey: 'synopticEditor.fieldType.dropdown.label',   abbrKey: 'synopticEditor.fieldType.dropdown.abbr',   hasOptions: true  },
   { value: 'radio',      labelKey: 'synopticEditor.fieldType.radio.label',     abbrKey: 'synopticEditor.fieldType.radio.abbr',      hasOptions: true  },
   { value: 'checkboxes', labelKey: 'synopticEditor.fieldType.checkboxes.label',abbrKey: 'synopticEditor.fieldType.checkboxes.abbr', hasOptions: true  },
   { value: 'numeric',    labelKey: 'synopticEditor.fieldType.numeric.label',   abbrKey: 'synopticEditor.fieldType.numeric.abbr',    hasOptions: false },
   { value: 'text',       labelKey: 'synopticEditor.fieldType.text.label',      abbrKey: 'synopticEditor.fieldType.text.abbr',       hasOptions: false },
   { value: 'longtext',   labelKey: 'synopticEditor.fieldType.longtext.label',  abbrKey: 'synopticEditor.fieldType.longtext.abbr',   hasOptions: false },
+  // Batch 461: shown for PathScribe's grid questions; not offered as a type to change to.
+  { value: 'partGrid',   labelKey: 'synopticEditor.fieldType.partGrid.label',  abbrKey: 'synopticEditor.fieldType.partGrid.abbr',   hasOptions: false, builtIn: true },
+  { value: 'spatialStageCanvas', labelKey: 'synopticEditor.fieldType.spatialStageCanvas.label', abbrKey: 'synopticEditor.fieldType.spatialStageCanvas.abbr', hasOptions: false, builtIn: true },
 ];
+const PICKABLE_FIELD_TYPES = FIELD_TYPES.filter(ft => !ft.builtIn);
 
 // Standardized pathology governing-body abbreviations (College of American
 // Pathologists / Royal College of Pathologists / International
@@ -173,9 +242,11 @@ const SOURCE_OPTIONS = ['CAP', 'RCPath', 'ICCR', 'RCPA', 'Custom'];
 // template.category is a real persisted enum — CATEGORY_LABEL_KEY is the
 // translation-key indirection for its pill display, same XXX_LABEL_KEY
 // pattern used throughout this sweep.
-const CATEGORY_OPTIONS = ['BREAST', 'COLON', 'PROSTATE', 'LUNG', 'LIVER', 'KIDNEY', 'PLACENTA', 'SKIN', 'OTHER'];
+// Batch 465: HEAD_NECK for PathScribe's oral cavity and neck dissection synoptics.
+const CATEGORY_OPTIONS = ['BREAST', 'COLON', 'PROSTATE', 'LUNG', 'LIVER', 'KIDNEY', 'PLACENTA', 'SKIN', 'HEAD_NECK', 'CYTOLOGY_NONGYN', 'OTHER'];
 const CATEGORY_LABEL_KEY: Record<string, string> = {
   BREAST:   'synopticEditor.category.breast',
+  CYTOLOGY_NONGYN: 'synopticEditor.category.cytologyNonGyn',
   COLON:    'synopticEditor.category.colon',
   PROSTATE: 'synopticEditor.category.prostate',
   LUNG:     'synopticEditor.category.lung',
@@ -183,6 +254,7 @@ const CATEGORY_LABEL_KEY: Record<string, string> = {
   KIDNEY:   'synopticEditor.category.kidney',
   PLACENTA: 'synopticEditor.category.placenta',
   SKIN:     'synopticEditor.category.skin',
+  HEAD_NECK: 'synopticEditor.category.headNeck',
   OTHER:    'synopticEditor.category.other',
 };
 
@@ -224,7 +296,7 @@ const CodingInput: React.FC<{ label: string; value: string; onChange: (v: string
   return (
     <div className={`ps-flex-1 ps-syned-coding--${system}`}>
       <div className="ps-syned-coding-input-label">{label}</div>
-      <input
+      <input aria-label={label}
         value={value} onChange={e => onChange(e.target.value)} placeholder={t(placeholderKey)}
         className="ps-syned-coding-input"
       />
@@ -236,9 +308,11 @@ const CodingInput: React.FC<{ label: string; value: string; onChange: (v: string
 
 const OptionRow: React.FC<{
   option: FieldOption; index: number; total: number;
+  /** Batch 519 (PS-273): show the answer's narrative phrase (cytology protocols). */
+  narrative?: boolean;
   onChange: (patch: Partial<FieldOption>) => void;
   onRemove: () => void; onMove: (dir: -1 | 1) => void;
-}> = ({ option, index, total, onChange, onRemove, onMove }) => {
+}> = ({ option, index, total, narrative, onChange, onRemove, onMove }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   return (
@@ -265,6 +339,14 @@ const OptionRow: React.FC<{
           <CodingInput label="ICD-10/11" value={option.icd} onChange={v => onChange({ icd: v })} system="icd" placeholderKey="synopticEditor.coding.optionIcdPlaceholder" />
         </div>
       )}
+      {expanded && narrative && (
+        <div className="ps-syned-option-narrative">
+          <label className="ps-syned-label">{t('synopticEditor.narrative.phraseLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+          <input aria-label={t('synopticEditor.narrative.phraseLabel')} value={option.narrativePhrase ?? ''} onChange={e => onChange({ narrativePhrase: narrativeText(e.target.value) })}
+            placeholder={t('synopticEditor.narrative.phrasePlaceholder')} className="ps-syned-input" />
+          <div className="ps-syned-condition-hint">{t('synopticEditor.narrative.phraseHint')}</div>
+        </div>
+      )}
     </div>
   );
 };
@@ -273,7 +355,7 @@ const CHOICE_TYPES = ['dropdown', 'radio', 'checkboxes'];
 
 // ─── FieldCard ────────────────────────────────────────────────────────────────
 
-const FieldCard: React.FC<{
+export const FieldCard: React.FC<{
   field: EditorField; index: number; total: number; template: EditorTemplate;
   onChange: (patch: Partial<EditorField>) => void;
   onRemove: () => void; onMove: (dir: -1 | 1) => void;
@@ -295,6 +377,7 @@ const FieldCard: React.FC<{
   };
 
   const hasCode = field.snomed || field.icd;
+  const narrative = authorsNarrative(template);
 
   return (
     <div className="ps-mb-8">
@@ -311,7 +394,7 @@ const FieldCard: React.FC<{
           </button>
           {typeOpen && (
             <div onClick={e => e.stopPropagation()} className="ps-syned-type-menu">
-              {FIELD_TYPES.map(ft => (
+              {PICKABLE_FIELD_TYPES.map(ft => (
                 <button
                   key={ft.value}
                   onClick={() => { onChange({ type: ft.value, options: [] }); setTypeOpen(false); }}
@@ -359,14 +442,32 @@ const FieldCard: React.FC<{
           <div className="ps-syned-field-row">
             <div className="ps-syned-field-type-wrap">
               <label className="ps-syned-label">{t('synopticEditor.field.fieldTypeLabel')}</label>
-              <select value={field.type} onChange={e => onChange({ type: e.target.value as FieldType, options: [] })} className="ps-syned-input ps-syned-select">
-                {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t(ft.abbrKey)} — {t(ft.labelKey)}</option>)}
+              <select aria-label={t('synopticEditor.field.fieldTypeLabel')} value={field.type} onChange={e => onChange({ type: e.target.value as FieldType, options: [] })} className="ps-syned-input ps-syned-select">
+                {(field.type === 'partGrid' || field.type === 'spatialStageCanvas' ? FIELD_TYPES : PICKABLE_FIELD_TYPES).map(ft => <option key={ft.value} value={ft.value}>{t(ft.abbrKey)} — {t(ft.labelKey)}</option>)}
               </select>
             </div>
             <div className="ps-flex-1">
               <label className="ps-syned-label">{t('synopticEditor.field.hintLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
-              <input value={field.hint ?? ''} onChange={e => onChange({ hint: e.target.value })} placeholder={t('synopticEditor.field.hintPlaceholder')} className="ps-syned-input" />
+              <input aria-label={t('synopticEditor.field.hintLabel')} value={field.hint ?? ''} onChange={e => onChange({ hint: e.target.value })} placeholder={t('synopticEditor.field.hintPlaceholder')} className="ps-syned-input" />
             </div>
+          </div>
+
+          {/* Batch 426: what the field reports in the structured result to the LIS, and its unit. */}
+          <div className="ps-syned-field-row">
+            <div className="ps-syned-field-type-wrap">
+              <label className="ps-syned-label">{t('synopticEditor.field.reportingRoleLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+              <select aria-label={t('synopticEditor.field.reportingRoleLabel')} value={field.reportingRole ?? ''} title={t('synopticEditor.field.reportingRoleHint')}
+                onChange={e => onChange({ reportingRole: (e.target.value || undefined) as SynopticReportingRole | undefined })} className="ps-syned-input ps-syned-select">
+                <option value="">{t('synopticEditor.field.reportingRoles.none')}</option>
+                {SYNOPTIC_REPORTING_ROLES.map(r => <option key={r} value={r}>{t(`synopticEditor.field.reportingRoles.${r}`)}</option>)}
+              </select>
+            </div>
+            {field.type === 'numeric' && (
+              <div className="ps-flex-1">
+                <label className="ps-syned-label">{t('synopticEditor.field.unitLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <input aria-label={t('synopticEditor.field.unitLabel')} value={field.unit ?? ''} onChange={e => onChange({ unit: e.target.value || undefined })} placeholder={t('synopticEditor.field.unitPlaceholder')} className="ps-syned-input" />
+              </div>
+            )}
           </div>
 
           <div className="ps-mb-14">
@@ -385,8 +486,150 @@ const FieldCard: React.FC<{
               </div>
               {field.options.length === 0 && <div className="ps-syned-empty-note">{t('synopticEditor.field.noOptionsYet')}</div>}
               {field.options.map((opt, oi) => (
-                <OptionRow key={opt.id} option={opt} index={oi} total={field.options.length} onChange={patch => updateOption(opt.id, patch)} onRemove={() => removeOption(opt.id)} onMove={dir => moveOption(opt.id, dir)} />
+                <OptionRow key={opt.id} option={opt} index={oi} total={field.options.length} narrative={narrative} onChange={patch => updateOption(opt.id, patch)} onRemove={() => removeOption(opt.id)} onMove={dir => moveOption(opt.id, dir)} />
               ))}
+            </div>
+          )}
+          {/* Batch 519 (PS-273): the cytology narrative — the sentence this question adds and its clinical tier. */}
+          {narrative && (
+            <div className="ps-syned-field-row ps-syned-narrative">
+              <div className="ps-flex-1">
+                <label className="ps-syned-label">{t('synopticEditor.narrative.sentenceLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <input aria-label={t('synopticEditor.narrative.sentenceLabel')} value={field.narrativeSentenceTemplate ?? ''} onChange={e => onChange(withNarrativeSentence(e.target.value))}
+                  placeholder={t('synopticEditor.narrative.sentencePlaceholder')} className="ps-syned-input" />
+                <div className="ps-syned-condition-hint">{t('synopticEditor.narrative.sentenceHint')}</div>
+                {narrativeSentenceMissesValue(field) && <div className="ps-syned-condition-hint ps-syned-narrative-warning" role="status">{t('synopticEditor.narrative.noValueWarning')}</div>}
+              </div>
+              <div className="ps-syned-field-type-wrap">
+                <label className="ps-syned-label">{t('synopticEditor.narrative.tierLabel')}</label>
+                <select aria-label={t('synopticEditor.narrative.tierLabel')} value={field.clinicalTier ?? ''} title={t('synopticEditor.narrative.tierHint')}
+                  onChange={e => onChange({ clinicalTier: (e.target.value || undefined) as EditorField['clinicalTier'] })} className="ps-syned-input ps-syned-select">
+                  <option value="">{t('synopticEditor.narrative.tiers.none')}</option>
+                  {SYNOPTIC_CLINICAL_TIERS.map(tier => <option key={tier} value={tier}>{t(`synopticEditor.narrative.tiers.${tier}`)}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+          {/* Batch 467: a choice question an in-house molecular test answers. */}
+          {CHOICE_TYPES.includes(field.type) && <MolecularResultBindingEditor field={field} onChange={onChange} />}
+          {/* Batch 519 (PS-494): a free-text node count — whether it is one, the count it can't exceed, and the counts it
+              must cover. */}
+          {field.type === 'text' && (
+            <div className="ps-syned-field-row ps-syned-node-count">
+              <label className="ps-syned-label ps-syned-node-count-toggle">
+                <input type="checkbox" checked={!!field.nodeCount} onChange={e => { const n = withNodeCount(field, e.target.checked); onChange({ nodeCount: n.nodeCount, notMoreThan: n.notMoreThan, atLeastSumOf: n.atLeastSumOf }); }} />
+                {' '}{t('synopticEditor.field.count.nodeCount')}
+              </label>
+              {field.nodeCount && (
+                <>
+                  <div className="ps-syned-field-type-wrap">
+                    <label className="ps-syned-label">{t('synopticEditor.field.count.notMoreThan')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                    <select aria-label={t('synopticEditor.field.count.notMoreThan')} value={field.notMoreThan ?? ''} onChange={e => onChange({ notMoreThan: e.target.value || undefined })} className="ps-syned-input ps-syned-select">
+                      <option value="">{t('synopticEditor.field.count.noLimit')}</option>
+                      {numericFieldChoices(template, field.id).map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="ps-syned-field-type-wrap">
+                    <span className="ps-syned-label">{t('synopticEditor.field.count.atLeastSumOf')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></span>
+                    <div className="ps-syned-condition-answers" role="group" aria-label={t('synopticEditor.field.count.atLeastSumOf')}>
+                      {numericFieldChoices(template, field.id).map(f => (
+                        <label key={f.id} className="ps-syned-condition-answer">
+                          <input type="checkbox" checked={(field.atLeastSumOf ?? []).includes(f.id)} onChange={() => onChange({ atLeastSumOf: withSumPartToggled(field, f.id).atLeastSumOf })} />
+                          {' '}{f.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="ps-syned-condition-hint">{t('synopticEditor.field.count.nodeCountHint')}</div>
+                </>
+              )}
+            </div>
+          )}
+          {/* Batch 466b (Pete): count settings — number type, the question it can't exceed, and the value's source. */}
+          {field.type === 'numeric' && (
+            <div className="ps-syned-field-row">
+              <div className="ps-syned-field-type-wrap">
+                <label className="ps-syned-label">{t('synopticEditor.field.count.numberType')}</label>
+                <select aria-label={t('synopticEditor.field.count.numberType')} value={field.wholeNumber ? 'whole' : 'decimal'} onChange={e => onChange({ wholeNumber: e.target.value === 'whole' ? true : undefined })} className="ps-syned-input ps-syned-select">
+                  <option value="decimal">{t('synopticEditor.field.count.decimal')}</option>
+                  <option value="whole">{t('synopticEditor.field.count.whole')}</option>
+                </select>
+              </div>
+              <div className="ps-syned-field-type-wrap">
+                <label className="ps-syned-label">{t('synopticEditor.field.count.notMoreThan')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <select aria-label={t('synopticEditor.field.count.notMoreThan')} value={field.notMoreThan ?? ''} onChange={e => onChange({ notMoreThan: e.target.value || undefined })} className="ps-syned-input ps-syned-select">
+                  <option value="">{t('synopticEditor.field.count.noLimit')}</option>
+                  {numericFieldChoices(template, field.id).map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                </select>
+              </div>
+              <div className="ps-syned-field-type-wrap">
+                <label className="ps-syned-label">{t('synopticEditor.field.count.valueSource')}</label>
+                <select aria-label={t('synopticEditor.field.count.valueSource')} value={valueSourceOf(field)} onChange={e => onChange(withValueSource(field, e.target.value as ValueSource, template))} className="ps-syned-input ps-syned-select">
+                  <option value="manual">{t('synopticEditor.field.count.manual')}</option>
+                  {(gridSumChoices(template).length > 0 || field.sumOf) && <option value="gridSum">{t('synopticEditor.field.count.gridSum')}</option>}
+                  {(gridSumChoices(template).length > 0 || field.sumOf) && <option value="gridSumChecked">{t('synopticEditor.field.count.gridSumChecked')}</option>}
+                </select>
+              </div>
+              {field.sumOf && (
+                <>
+                  <div className="ps-syned-field-type-wrap">
+                    <label className="ps-syned-label">{t('synopticEditor.field.count.sumGrid')}</label>
+                    <select aria-label={t('synopticEditor.field.count.sumGrid')} value={field.sumOf.fieldId} onChange={e => onChange(withSumGrid(field, e.target.value, template))} className="ps-syned-input ps-syned-select">
+                      {gridSumChoices(template).map(g => <option key={g.id} value={g.id}>{g.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="ps-syned-field-type-wrap">
+                    <label className="ps-syned-label">{t('synopticEditor.field.count.sumColumn')}</label>
+                    <select aria-label={t('synopticEditor.field.count.sumColumn')} value={field.sumOf.columnId} onChange={e => onChange(withSumColumn(field, e.target.value))} className="ps-syned-input ps-syned-select">
+                      {(gridSumChoices(template).find(g => g.id === field.sumOf!.fieldId)?.columns ?? []).map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {field.type === 'partGrid' && numericColumns(field).length > 0 && (
+            <div className="ps-mb-14">
+              <label className="ps-syned-label">{t('synopticEditor.field.count.gridRules')}</label>
+              <table className="ps-syned-count-table">
+                <thead><tr><th>{t('synopticEditor.field.count.column')}</th><th>{t('synopticEditor.field.count.numberType')}</th><th>{t('synopticEditor.field.count.notMoreThan')}</th></tr></thead>
+                <tbody>
+                  {numericColumns(field).map(c => (
+                    <tr key={c.id}>
+                      <td>{c.label}</td>
+                      <td>
+                        <select aria-label={t('synopticEditor.field.count.numberType')} value={c.wholeNumber ? 'whole' : 'decimal'} onChange={e => onChange(withColumnRule(field, c.id, { wholeNumber: e.target.value === 'whole' }))} className="ps-syned-input ps-syned-select">
+                          <option value="decimal">{t('synopticEditor.field.count.decimal')}</option>
+                          <option value="whole">{t('synopticEditor.field.count.whole')}</option>
+                        </select>
+                      </td>
+                      <td>
+                        <select aria-label={t('synopticEditor.field.count.notMoreThan')} value={c.notMoreThan ?? ''} onChange={e => onChange(withColumnRule(field, c.id, { notMoreThan: e.target.value }))} className="ps-syned-input ps-syned-select">
+                          <option value="">{t('synopticEditor.field.count.noLimit')}</option>
+                          {numericColumns(field).filter(o => o.id !== c.id).map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {/* Batch 463b: which question gives a newly positive Mohs sector its histology. */}
+          {field.type === 'spatialStageCanvas' && (
+            <div className="ps-mb-14">
+              <label className="ps-syned-label">{t('synopticEditor.field.defaultHistologyLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+              <select aria-label={t('synopticEditor.field.defaultHistologyLabel')} value={field.defaultHistologyFieldId ?? ''} title={t('synopticEditor.field.defaultHistologyHint')}
+                onChange={e => onChange({ defaultHistologyFieldId: e.target.value || undefined })} className="ps-syned-input ps-syned-select">
+                <option value="">{t('synopticEditor.field.defaultHistologyNone')}</option>
+                {allChoiceFields(template).map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                {field.defaultHistologyFieldId && !allChoiceFields(template).some(f => f.id === field.defaultHistologyFieldId) && (
+                  <option value={field.defaultHistologyFieldId}>{t(mohsHistologySourceProblem(template, field) === 'missing' ? 'synopticEditor.field.defaultHistologyDeleted' : 'synopticEditor.field.defaultHistologyUnusable')}</option>
+                )}
+              </select>
+              {mohsHistologySourceProblem(template, field) && (
+                <div className="ps-syned-condition-warning ps-syned-condition-warning--error" role="alert">{t(`synopticEditor.field.defaultHistologyProblem.${mohsHistologySourceProblem(template, field)}`)}</div>
+              )}
             </div>
           )}
           <ConditionPicker condition={field.visibleWhen} template={template} excludeFieldId={field.id} onChange={c => onChange({ visibleWhen: c })} />
@@ -464,32 +707,66 @@ function allChoiceFields(template: EditorTemplate): { id: string; label: string;
   );
 }
 
-export function isVisible(condition: VisibilityCondition | undefined, answers: Record<string, string | string[]>): boolean {
-  if (!condition) return true;
-  const val = answers[condition.fieldId];
-  if (!val) return false;
-  // Real, per PS-272's own confirmed multi-value extension — checked
-  // first, before falling back to the original, real single-value
-  // answerId check below, so every real, existing condition keeps
-  // working completely unchanged.
-  if (condition.answerIds && condition.answerIds.length > 0) {
-    if (Array.isArray(val)) return val.some(v => condition.answerIds!.includes(v));
-    return condition.answerIds.includes(val);
-  }
-  if (Array.isArray(val)) return val.includes(condition.answerId);
-  return val === condition.answerId;
-}
+// Batch 437: isVisible lives in services/templates/fieldVisibility.ts
+// (re-exported at the top of this file).
 
 // ─── ConditionPicker ──────────────────────────────────────────────────────────
 
-const ConditionPicker: React.FC<{
+export const ConditionPicker: React.FC<{
   condition: VisibilityCondition | undefined; template: EditorTemplate;
   excludeFieldId?: string; onChange: (c: VisibilityCondition | undefined) => void;
 }> = ({ condition, template, excludeFieldId, onChange }) => {
   const { t }     = useTranslation();
   const choices   = allChoiceFields(template).filter(f => f.id !== excludeFieldId);
   const enabled   = !!condition;
-  const srcField  = choices.find(f => f.id === condition?.fieldId);
+  // Batch 466c (Pete): "shown when … is" or "shown unless … is", and "or also when …" alternatives — every
+  // condition the engine reads is built here (conditionEdits.ts holds the edits).
+  // Batch 519 (PS-493): several answers per question ("is any of" / "unless any of"), and "unless" on each
+  // alternative too. Only nested alternatives stay read-only ("Custom condition").
+  const mode      = conditionMode(condition);
+  const answers   = conditionAnswers(condition);
+  const fieldSelect = (value: string, onPick: (id: string) => void) => (
+    <select aria-label={t('synopticEditor.condition.pickFieldOption')} value={value} onChange={e => onPick(e.target.value)}
+      className={`ps-syned-input ps-syned-select ps-syned-select--condition${value ? '' : ' ps-syned-select--needs-value'}`}>
+      <option value="">{t('synopticEditor.condition.pickFieldOption')}</option>
+      {choices.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+    </select>
+  );
+  const modeSelect = (value: ConditionMode, onPick: (m: ConditionMode) => void) => (
+    <select value={value} onChange={e => onPick(e.target.value as ConditionMode)} className="ps-syned-input ps-syned-select ps-syned-select--condition"
+      aria-label={t('synopticEditor.condition.modeLabel')}>
+      <option value="is">{t('synopticEditor.condition.modeIs')}</option>
+      <option value="isNot">{t('synopticEditor.condition.modeIsNot')}</option>
+    </select>
+  );
+  /** The question's answers as tick boxes: one or more may be chosen. */
+  const answerPicker = (fieldId: string, chosen: string[], onToggle: (id: string) => void) => {
+    const src = choices.find(f => f.id === fieldId);
+    if (!src) return <div className="ps-syned-condition-hint">{t('synopticEditor.condition.pickFieldFirst')}</div>;
+    return (
+      <div className={`ps-syned-condition-answers${chosen.length ? '' : ' ps-syned-condition-answers--needs-value'}`} role="group" aria-label={t('synopticEditor.condition.answerLabel')}>
+        {src.options.map(o => (
+          <label key={o.id} className="ps-syned-condition-answer">
+            <input type="checkbox" checked={chosen.includes(o.id)} onChange={() => onToggle(o.id)} />
+            {' '}{o.label || t('synopticEditor.condition.unlabelledOption')}
+          </label>
+        ))}
+      </div>
+    );
+  };
+
+  if (condition && conditionTooComplex(condition)) {
+    return (
+      <div className="ps-syned-condition-picker ps-syned-condition-picker--enabled">
+        <div className="ps-syned-condition-toggle-row ps-syned-condition-toggle-row--expanded">
+          <button onClick={() => onChange(undefined)} className="ps-syned-condition-toggle ps-syned-condition-toggle--on" aria-label={t('synopticEditor.condition.removeCustom')}>
+            <span className="ps-syned-condition-toggle-knob" />
+          </button>
+          <span className="ps-syned-condition-status ps-syned-condition-status--on">{t('synopticEditor.condition.custom')}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`ps-syned-condition-picker${enabled ? ' ps-syned-condition-picker--enabled' : ''}`}>
@@ -498,38 +775,55 @@ const ConditionPicker: React.FC<{
           <span className="ps-syned-condition-toggle-knob" />
         </button>
         <span className={`ps-syned-condition-status${enabled ? ' ps-syned-condition-status--on' : ''}`}>
-          {enabled ? t('synopticEditor.condition.shownOnlyWhen') : t('synopticEditor.condition.alwaysVisible')}
+          {enabled ? t(mode === 'isNot' ? 'synopticEditor.condition.shownUnless' : 'synopticEditor.condition.shownOnlyWhen') : t('synopticEditor.condition.alwaysVisible')}
         </span>
         {!enabled && choices.length === 0 && <span className="ps-syned-condition-hint">{t('synopticEditor.condition.addFieldFirstHint')}</span>}
       </div>
 
-      {enabled && (
-        <div className="ps-syned-condition-fields-row">
-          <div className="ps-flex-1">
-            <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.whenFieldLabel')}</label>
-            <select
-              value={condition?.fieldId ?? ''} onChange={e => onChange({ fieldId: e.target.value, answerId: '' })}
-              className={`ps-syned-input ps-syned-select ps-syned-select--condition${condition?.fieldId ? '' : ' ps-syned-select--needs-value'}`}
-            >
-              <option value="">{t('synopticEditor.condition.pickFieldOption')}</option>
-              {choices.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-            </select>
+      {enabled && condition && (
+        <>
+          <div className="ps-syned-condition-fields-row">
+            <div className="ps-flex-1">
+              <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.whenFieldLabel')}</label>
+              {fieldSelect(condition.fieldId, id => onChange(withConditionField(condition, id)))}
+            </div>
+            <div className="ps-syned-condition-mode">
+              <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.modeLabel')}</label>
+              {modeSelect(mode, m => onChange(withConditionMode(condition, m)))}
+            </div>
           </div>
-          <div className="ps-flex-1">
-            <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.answerIsLabel')}</label>
-            <select
-              value={condition?.answerId ?? ''} onChange={e => onChange({ ...condition!, answerId: e.target.value })} disabled={!srcField}
-              className={`ps-syned-input ps-syned-select ps-syned-select--condition${!condition?.answerId && srcField ? ' ps-syned-select--needs-value' : ''}`}
-            >
-              <option value="">{t('synopticEditor.condition.pickAnswerOption')}</option>
-              {srcField?.options.map(o => <option key={o.id} value={o.id}>{o.label || t('synopticEditor.condition.unlabelledOption')}</option>)}
-            </select>
+          <div className="ps-syned-condition-answers-row">
+            <label className="ps-syned-label ps-syned-label--amber">{t(answers.length > 1 ? 'synopticEditor.condition.answersAnyLabel' : 'synopticEditor.condition.answerLabel')}</label>
+            {answerPicker(condition.fieldId, answers, id => onChange(withConditionAnswerToggled(condition, id)))}
           </div>
-        </div>
+          {mode === 'isNot' && <div className="ps-syned-condition-hint">{t('synopticEditor.condition.unlessHint')}</div>}
+          {(condition.or ?? []).map((alt, i) => (
+            <div key={i} className="ps-syned-condition-alternative">
+              <div className="ps-syned-condition-fields-row">
+                <div className="ps-flex-1">
+                  <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.orWhenLabel')}</label>
+                  {fieldSelect(alt.fieldId, id => onChange(withAlternative(condition, i, withConditionField(alt, id))))}
+                </div>
+                <div className="ps-syned-condition-mode">
+                  <label className="ps-syned-label ps-syned-label--amber">{t('synopticEditor.condition.modeLabel')}</label>
+                  {modeSelect(conditionMode(alt), m => onChange(withAlternative(condition, i, withConditionMode(alt, m))))}
+                </div>
+                <button type="button" onClick={() => onChange(withAlternativeRemoved(condition, i))} className="ps-syned-add-option-btn">{t('synopticEditor.condition.removeAlternative')}</button>
+              </div>
+              <div className="ps-syned-condition-answers-row">
+                <label className="ps-syned-label ps-syned-label--amber">{t(conditionAnswers(alt).length > 1 ? 'synopticEditor.condition.answersAnyLabel' : 'synopticEditor.condition.answerIsLabel')}</label>
+                {answerPicker(alt.fieldId, conditionAnswers(alt), id => onChange(withAlternative(condition, i, withConditionAnswerToggled(alt, id))))}
+              </div>
+              {conditionMode(alt) === 'isNot' && <div className="ps-syned-condition-hint">{t('synopticEditor.condition.unlessHint')}</div>}
+            </div>
+          ))}
+          <button type="button" onClick={() => onChange(withAlternativeAdded(condition))} className="ps-syned-add-option-btn" disabled={choices.length === 0}>{t('synopticEditor.condition.addAlternative')}</button>
+        </>
       )}
 
-      {enabled && condition?.fieldId && !condition?.answerId && <div className="ps-syned-condition-warning">{t('synopticEditor.condition.selectAnswerWarning')}</div>}
+      {enabled && condition?.fieldId && answers.length === 0 && <div className="ps-syned-condition-warning">{t('synopticEditor.condition.selectAnswerWarning')}</div>}
       {enabled && !condition?.fieldId && choices.length > 0  && <div className="ps-syned-condition-warning">{t('synopticEditor.condition.selectFieldWarning')}</div>}
+      {enabled && (condition?.or ?? []).some(a => !isConditionComplete(a)) && <div className="ps-syned-condition-warning">{t('synopticEditor.condition.alternativeIncomplete')}</div>}
       {enabled && choices.length === 0 && <div className="ps-syned-condition-warning ps-syned-condition-warning--error">{t('synopticEditor.condition.noChoiceFieldsWarning')}</div>}
     </div>
   );
@@ -596,12 +890,14 @@ const PreviewModal: React.FC<{ template: EditorTemplate; onClose: () => void }> 
                         {f.hint && <div className="ps-syned-preview-field-hint">{f.hint}</div>}
                       </div>
                       <div className="ps-flex-1">
-                        {f.type === 'dropdown' && <select value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-select"><option value="">{t('synopticEditor.preview.selectPlaceholder')}</option>{f.options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}</select>}
+                        {f.type === 'dropdown' && <select aria-label={f.label} value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-select"><option value="">{t('synopticEditor.preview.selectPlaceholder')}</option>{f.options.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}</select>}
                         {f.type === 'radio' && <div className="ps-syned-preview-choice-col">{f.options.map(o => <label key={o.id} className="ps-syned-preview-choice-label"><input type="radio" name={f.id} value={o.id} checked={answers[f.id] === o.id} onChange={() => setAnswer(f.id, o.id)} className="ps-syned-preview-choice-input" />{o.label}</label>)}</div>}
                         {f.type === 'checkboxes' && <div className="ps-syned-preview-choice-col">{f.options.map(o => { const cur = (answers[f.id] as string[]) ?? []; return <label key={o.id} className="ps-syned-preview-choice-label"><input type="checkbox" value={o.id} checked={cur.includes(o.id)} onChange={() => setAnswer(f.id, cur.includes(o.id) ? cur.filter(x => x !== o.id) : [...cur, o.id])} className="ps-syned-preview-choice-input" />{o.label}</label>; })}</div>}
-                        {f.type === 'numeric'  && <input type="number" value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-input--numeric" />}
-                        {f.type === 'text'     && <input type="text"   value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input" />}
-                        {f.type === 'longtext' && <textarea rows={3}   value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-input--longtext" />}
+                        {f.type === 'numeric'  && <input aria-label={f.label} type="number" value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-input--numeric" />}
+                        {f.type === 'text'     && <input aria-label={f.label} type="text"   value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input" />}
+                        {f.type === 'longtext' && <textarea aria-label={f.label} rows={3}   value={(answers[f.id] as string) ?? ''} onChange={e => setAnswer(f.id, e.target.value)} className="ps-syned-preview-input ps-syned-preview-input--longtext" />}
+                        {f.type === 'spatialStageCanvas' && <div className="ps-syned-preview-field-hint">{t('synopticEditor.preview.stageCanvas')}</div>}
+                        {f.type === 'partGrid' && <div className="ps-syned-preview-field-hint">{t('synopticEditor.preview.partGridColumns', { columns: (f.columns ?? []).map(c => c.label).join(', ') })}</div>}
                       </div>
                     </div>
                   );
@@ -632,32 +928,7 @@ const SynopticEditor: React.FC = () => {
   const backTarget   = fromSection === 'review' ? '/configuration?tab=protocols&section=review' : '/configuration?tab=protocols';
   const isNew        = !templateId || templateId === 'new';
 
-  const [template, setTemplate]           = useState<EditorTemplate>(blankTemplate);
-  const [templateLoading, setTemplateLoading] = useState(!isNew);
-  const [registryEntry, setRegistryEntry] = useState<import('./protocolShared').Protocol | null>(null);
-
-  React.useEffect(() => {
-    if (isNew || !templateId) return;
-    setTemplateLoading(true);
-    // A copy is a new protocol: the source's review state/notes don't apply to it.
-    const entry = copyKind ? null : PROTOCOL_REGISTRY.find(p => p.id === templateId) ?? null;
-    setRegistryEntry(entry);
-    // Duplicate / New Version: the editor opens a COPY with a new id; the
-    // source is never edited. What changes on the copy (name, version,
-    // lineage) is decided in services/templates/protocolLifecycle.ts.
-    const asCopy = (loaded: EditorTemplate) =>
-      copyKind ? prepareProtocolCopy(loaded, copyKind, { copyName: name => t('common.copyOfName', { name }), newId: uid }) : loaded;
-    getTemplate(templateId)
-      .then(detail => setTemplate(asCopy(detail.template)))
-      .catch(() => {
-        const source = PROTOCOL_REGISTRY.find(p => p.id === templateId);
-        if (source) {
-          setTemplate(asCopy({ id: source.id, name: source.name, source: source.source, version: source.version, category: source.category, sections: [blankSection()] }));
-        }
-      })
-      .finally(() => setTemplateLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templateId, isNew, copyKind]);
+  const { template, setTemplate, templateLoading, registryEntry, copyRefused, sourceName } = useEditorStartingTemplate(templateId, isNew, copyKind, { blankTemplate, blankSection, newId: uid });
 
   const [showPreview, setShowPreview]             = useState(false);
   const [isDirty, setIsDirty]                     = useState(false);
@@ -678,7 +949,10 @@ const SynopticEditor: React.FC = () => {
   /** The message for a failed save or submit; a refused drafting check has
    *  its own translated text. */
   const saveFailureMessage = (err: any, fallbackKey: string) =>
-    err?.code === 'NOT_TEMPLATE_AUTHOR' ? t('synopticEditor.errors.notTemplateAuthor') : (err?.message ?? t(fallbackKey));
+    err?.code === 'NOT_TEMPLATE_AUTHOR' ? t('synopticEditor.errors.notTemplateAuthor')
+      // Batch 463b: refused by templateService (a Mohs question's default-histology source is missing or not a choice question).
+      : err?.code === 'MOHS_HISTOLOGY_SOURCE' ? t('synopticEditor.errors.mohsHistologySource') : err?.code === 'DEMO_CHECKLIST_COPY' ? t('demoChecklists.copyRefusedShort')
+      : (err?.message ?? t(fallbackKey));
 
   const guardedNavigate = (target: string) => { if (isDirty) { setPendingNavTarget(target); setShowDiscardConfirm(true); } else { navigate(target); } };
 
@@ -747,12 +1021,13 @@ const SynopticEditor: React.FC = () => {
     { label: `SNOMED ≥ ${SNOMED_PUBLISH_THRESHOLD}%`, ok: cov.snomed >= SNOMED_PUBLISH_THRESHOLD },
   ];
 
+  if (copyRefused) return <DemoChecklistCopyRefused name={sourceName} onBack={() => navigate(backTarget)} />;
   if (templateLoading) {
     return (
       <div className="ps-syned-loading-screen">
         <div className="ps-syned-loading-inner">
           <div className="ps-syned-loading-icon">⏳</div>
-          <div className="ps-syned-loading-text">{t('synopticEditor.loading')}</div>
+          <LoadingState variant="inline" className="ps-syned-loading-text" label={t('synopticEditor.loading')} />
         </div>
       </div>
     );
@@ -766,7 +1041,7 @@ const SynopticEditor: React.FC = () => {
         <div className="ps-syned-nav-left">
           <button onClick={() => guardedNavigate(backTarget)} className="ps-syned-back-btn">{t('synopticEditor.nav.back')}</button>
           <div className="ps-syned-breadcrumb">
-            <span onClick={() => guardedNavigate(backTarget)} className="ps-syned-breadcrumb-link">{t('synopticEditor.nav.breadcrumbProtocols')}</span>
+            <span {...pressable(() => guardedNavigate(backTarget))} className="ps-syned-breadcrumb-link">{t('synopticEditor.nav.breadcrumbProtocols')}</span>
             <span className="ps-syned-breadcrumb-sep">›</span>
             <span className="ps-syned-breadcrumb-current">
               {isDuplicate
@@ -853,7 +1128,7 @@ const SynopticEditor: React.FC = () => {
             <div className="ps-syned-metadata-grid">
               <div className="ps-syned-metadata-full">
                 <label className="ps-syned-label">{t('synopticEditor.metadata.nameLabel')}</label>
-                <input
+                <input aria-label={t('synopticEditor.metadata.nameLabel')}
                   value={template.name} onChange={e => { update({ name: e.target.value }); setSaveError(null); }}
                   placeholder={t('synopticEditor.metadata.namePlaceholder')}
                   className={`ps-syned-input ps-syned-template-name-input${nameError && template.name ? ' ps-syned-input--error' : ''}`}
@@ -891,6 +1166,20 @@ const SynopticEditor: React.FC = () => {
                   </div>
                 </div>
               </div>
+              {/* Batch 426: the staging edition, sent with pT/pN/pM in the structured result. */}
+              <div className="ps-syned-metadata-full">
+                <label className="ps-syned-label">{t('synopticEditor.metadata.stagingEditionLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                <input aria-label={t('synopticEditor.metadata.stagingEditionLabel')} value={template.ajccEdition ?? ''} onChange={e => update({ ajccEdition: e.target.value || undefined })}
+                  placeholder={t('synopticEditor.metadata.stagingEditionPlaceholder')} className="ps-syned-input" />
+              </div>
+              {/* Batch 519 (PS-273): the reporting system a cytology protocol follows (Bethesda, Milan, Paris…). */}
+              {authorsNarrative(template) && (
+                <div className="ps-syned-metadata-full">
+                  <label className="ps-syned-label">{t('synopticEditor.metadata.standardLabel')} <span className="ps-syned-label-note">{t('synopticEditor.field.optionalTag')}</span></label>
+                  <input aria-label={t('synopticEditor.metadata.standardLabel')} value={template.standard ?? ''} onChange={e => update({ standard: e.target.value || undefined })}
+                    placeholder={t('synopticEditor.metadata.standardPlaceholder')} className="ps-syned-input" />
+                </div>
+              )}
               <div className="ps-syned-metadata-full">
                 <label className="ps-syned-label">{t('synopticEditor.metadata.categoryLabel')}</label>
                 <div className="ps-syned-pill-row">

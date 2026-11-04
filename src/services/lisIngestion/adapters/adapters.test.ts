@@ -19,12 +19,13 @@ describe('hl7v2StatusAdapter', () => {
     expect(res).toEqual({ ok: true, updates: [{
       accession: 'F1', lisStatus: 'MICRO_COMPLETE', updatedAt: '2026-09-24T22:10:00.000Z',
       grossText: 'Line one\nline two', microscopicText: 'Invasive carcinoma & LVI', diagnosisText: 'Adenocarcinoma',
+      placerOrderNumber: 'P1', fillerOrderNumber: 'F1', // Batch 426: ORC-2 / ORC-3
     }] });
   });
 
   it('falls back to OBR-25 for the status, OBR-2 for the accession and MSH-7 for the time', () => {
     const res = hl7v2StatusAdapter.normalize(msg('OBR|1|P9||88305|||||||||||||||||||||P'));
-    expect(res).toEqual({ ok: true, updates: [{ accession: 'P9', lisStatus: 'P', updatedAt: '2026-09-24T15:05:00.000Z' }] });
+    expect(res).toEqual({ ok: true, updates: [{ accession: 'P9', lisStatus: 'P', updatedAt: '2026-09-24T15:05:00.000Z', placerOrderNumber: 'P9' }] });
   });
 
   it('can be set to read the status from OBR-25 first', () => {
@@ -67,6 +68,11 @@ describe('webhookJsonAdapter', () => {
       { accession: 'B', status: 'Y', updatedAt: '2026-09-24T02:00:00Z', diagnosisText: 'dx' },
     ]));
     expect(many.ok === true && many.updates.map(x => x.accession)).toEqual(['A', 'B']);
+  });
+
+  it('Batch 426: carries the placer and filler order numbers', () => {
+    const r = webhookJsonAdapter.normalize(JSON.stringify({ accession: 'A', status: 'X', updatedAt: '2026-09-24T01:00:00Z', placerOrderNumber: ' ORD-1 ', fillerOrderNumber: 'LIS-9' }));
+    expect(r.ok === true && r.updates[0]).toMatchObject({ placerOrderNumber: 'ORD-1', fillerOrderNumber: 'LIS-9' });
   });
 
   it('refuses invalid bodies with a code', () => {

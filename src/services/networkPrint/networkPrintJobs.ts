@@ -46,7 +46,7 @@ export interface NetworkPrintJob {
   accessionNumber: string;
   /** The block or slide id printed on the label. */
   labelId: string;
-  labelType: 'CASSETTE' | 'SLIDE';
+  labelType: 'CASSETTE' | 'SLIDE' | 'VIAL' | 'RACK';
   state: NetworkPrintJobState;
   /** The engine's error, when failed. */
   errorCode: Exclude<PrintJobStatusCode, 'PRINT_SUCCESS'> | null;
@@ -156,7 +156,7 @@ export function createNetworkPrintJobTracker(deps: NetworkPrintJobDeps): Network
         event: printed ? 'Network Print Succeeded' : 'Network Print Failed',
         detail: `eventId=${event.jobId} idempotencyKey=${event.idempotencyKey} attempt=${job.attempt} status=${event.status} printerResponse="${event.printerResponse ?? ''}" durationMs=${event.durationMs ?? ''} printerId=${job.printerId}`,
         user: 'system',
-        caseId: job.accessionNumber,
+        caseId: job.accessionNumber || null,
         confidence: null,
       }).catch(err => console.error('[networkPrint] could not audit the print result:', err));
       clearJobTimer(job.jobId);
@@ -185,7 +185,7 @@ export function createNetworkPrintJobTracker(deps: NetworkPrintJobDeps): Network
         event: 'Network Print Retried',
         detail: `Retried label ${job.labelId} on printer ${job.printerId} (previous eventId=${job.jobId}, ${job.state === 'failed' ? `failed with ${job.errorCode}` : 'no reply from the interface engine'}); new eventId=${payload.eventId} idempotencyKey=${job.idempotencyKey} attempt=${attempt}.`,
         user: deps.currentUserName(),
-        caseId: job.accessionNumber,
+        caseId: job.accessionNumber || null,
         confidence: null,
       }).catch(err => console.error('[networkPrint] could not audit the retry:', err));
       await track(payload, job.jobId);

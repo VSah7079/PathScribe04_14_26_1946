@@ -1,0 +1,31 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 654 — Release Hold Print Policy (allow, warn, supervisor override, block) and session organisation on scan events",
+    "description": "Vitest, 2026-10-23: 7 test files, 58 tests, all passed. Type-check clean. Tests are created by this import (testInfo): no Jira Test keys assigned yet. Full suite: 14,823 passed, 5 failed (since fixed, affected files re-run), one environment error (Firestore emulator not running)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "Release Hold Print Policy decides allow, warn, supervisor override or block; an old on/off setting migrates; every printed copy keeps its watermark",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reportRelease/heldPrintPolicy.test.ts (9)\nPASSED: src/services/reportRelease/mockReportReleaseService.test.ts (21)\nPASSED: src/services/printing/planReportPrintHold.test.ts (4)\nPASSED: src/services/printing/documentOutputAudit.test.ts (7)\nPASSED: src/services/printing/printExportAuditPaths.test.ts (10)\nNot tested or not built: Per-facility override and second-person credential approval are not built."
+    },
+    {
+      "testInfo": {
+        "summary": "Scan events carry the signed-in session's organisation and are not dispatched when it is unknown",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/scanStations/scanEventOrganisation.test.ts (2)\nPASSED: src/hooks/useGlobalMaterialScanTracking.test.ts (5)\nNot tested or not built: Real scanner hardware not tested."
+    }
+  ]
+}

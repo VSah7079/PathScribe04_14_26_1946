@@ -59,7 +59,7 @@ const SEED_NOTES: InternalNote[] = [
     timestamp: new Date(Date.now() - 1000 * 60 * 20),
   },
 
-  // ── MFT UK cases — Paul Carter (PATH-UK-001) ──────────────────────────────
+  // ── MFT UK cases — Imogen Hartley (PATH-UK-001) ──────────────────────────────
   // Notes authored by colleagues (not PATH-UK-001) will trigger the amber badge
 
   // MFT26-8801-CR-RES — Hartley, William — Anterior resection
@@ -77,7 +77,7 @@ const SEED_NOTES: InternalNote[] = [
     id: 'mft-cn2',
     accession: 'MFT26-8801-CR-RES',
     authorId: 'PATH-UK-001',
-    authorName: 'Paul Carter',
+    authorName: 'Imogen Hartley',
     type: 'other',
     body: 'Personal note: discuss KRAS G12V result implications with Dr. Marsden before MDT. Anti-EGFR therapy not indicated.',
     visibility: 'private',
@@ -123,7 +123,7 @@ const SEED_NOTES: InternalNote[] = [
     id: 'mft-cn6',
     accession: 'MFT26-8804-PR-RP',
     authorId: 'PATH-UK-001',
-    authorName: 'Paul Carter',
+    authorName: 'Imogen Hartley',
     type: 'other',
     body: 'Reminder: include pT3a staging explicitly and note EPE at right posterolateral apex. RT planning team needs exact margin location.',
     visibility: 'private',

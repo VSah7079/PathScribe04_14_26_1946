@@ -23,11 +23,13 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCsv, toCsv, downloadCsv, isCsvFile, readFileAsText } from '@/utils/csv';
 import '../../../pathscribe.css';
-import { mockRvuCodeMapService } from '@/services/billing/mockRvuCodeMapService';
+
 import type { RvuTableVersion, BillingDictionaryEntry } from '@/services/billing/RvuTableVersion';
 import { parseRvuUploadRows, validateCodeLevel, inferLevelFromDescription, BILLING_TYPE_LABEL, type ParsedRvuUploadRow } from '@/services/billing/codeMapTable';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { formatDateLong } from '@/utils/formatDate';
+import { rvuCodeMapService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Real fix, per direct guidance's own follow-up on dictionary
 // licensing: this previously embedded what reads as real, verbatim
@@ -119,20 +121,20 @@ const EntryModal: React.FC<EntryModalProps> = ({ seed, onSave, onClose, busy }) 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.codeLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={code} onChange={e => setCode(e.target.value)} disabled={isEdit} placeholder={t('rvuCodeMapSection.entryModal.codePlaceholder')} />
+              <input aria-label={t('rvuCodeMapSection.entryModal.codeLabel')} className="ps-conf-input" value={code} onChange={e => setCode(e.target.value)} disabled={isEdit} placeholder={t('rvuCodeMapSection.entryModal.codePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.billingCodeLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={billingCode} onChange={e => setBillingCode(e.target.value)} disabled={isEdit} placeholder={t('rvuCodeMapSection.entryModal.billingCodePlaceholder')} />
+              <input aria-label={t('rvuCodeMapSection.entryModal.billingCodeLabel')} className="ps-conf-input" value={billingCode} onChange={e => setBillingCode(e.target.value)} disabled={isEdit} placeholder={t('rvuCodeMapSection.entryModal.billingCodePlaceholder')} />
             </div>
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.descriptionLabel')}</label>
-            <input className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.descriptionPlaceholder')} />
+            <input aria-label={t('rvuCodeMapSection.entryModal.descriptionLabel')} className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.descriptionPlaceholder')} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.levelLabel')} <span className="ps-conf-required">*</span></label>
-            <select className="ps-conf-input" value={level} onChange={e => setLevel(e.target.value as BillingDictionaryEntry['level'])}>
+            <select aria-label={t('rvuCodeMapSection.entryModal.levelLabel')} className="ps-conf-input" value={level} onChange={e => setLevel(e.target.value as BillingDictionaryEntry['level'])}>
               <option value="specimen">{t('rvuCodeMapSection.entryModal.levelOptions.specimen')}</option>
               <option value="block">{t('rvuCodeMapSection.entryModal.levelOptions.block')}</option>
               <option value="stain">{t('rvuCodeMapSection.entryModal.levelOptions.stain')}</option>
@@ -148,7 +150,7 @@ const EntryModal: React.FC<EntryModalProps> = ({ seed, onSave, onClose, busy }) 
                 title={t('rvuCodeMapSection.entryModal.componentTypeTooltip', { tc: BILLING_TYPE_LABEL.TC, pc: BILLING_TYPE_LABEL['26'], global: BILLING_TYPE_LABEL.Global })}
               >i</span>
             </label>
-            <select className="ps-conf-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingDictionaryEntry['billingType'])}>
+            <select aria-label={t('rvuCodeMapSection.entryModal.componentTypeLabel')} className="ps-conf-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingDictionaryEntry['billingType'])}>
               {/* Data keys ('TC'/'26'/'Global') stay literal; BILLING_TYPE_LABEL is a
                   shared display-label constant (services/billing/codeMapTable.ts) also
                   consumed by BillingDictionarySection.tsx, BillingTypeTriggerSection.tsx
@@ -163,20 +165,20 @@ const EntryModal: React.FC<EntryModalProps> = ({ seed, onSave, onClose, busy }) 
           <div className="ps-conf-form-row--3">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.workRvuLabel')}</label>
-              <input className="ps-conf-input" type="number" step="0.01" value={workRvu} onChange={e => setWorkRvu(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.workRvuPlaceholder')} />
+              <input aria-label={t('rvuCodeMapSection.entryModal.workRvuLabel')} className="ps-conf-input" type="number" step="0.01" value={workRvu} onChange={e => setWorkRvu(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.workRvuPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.rvuPeLabel')}</label>
-              <input className="ps-conf-input" type="number" step="0.01" value={rvuPe} onChange={e => setRvuPe(e.target.value)} />
+              <input aria-label={t('rvuCodeMapSection.entryModal.rvuPeLabel')} className="ps-conf-input" type="number" step="0.01" value={rvuPe} onChange={e => setRvuPe(e.target.value)} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.rvuMpLabel')}</label>
-              <input className="ps-conf-input" type="number" step="0.01" value={rvuMp} onChange={e => setRvuMp(e.target.value)} />
+              <input aria-label={t('rvuCodeMapSection.entryModal.rvuMpLabel')} className="ps-conf-input" type="number" step="0.01" value={rvuMp} onChange={e => setRvuMp(e.target.value)} />
             </div>
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('rvuCodeMapSection.entryModal.hcpcsLabel')}</label>
-            <input className="ps-conf-input" value={hcpcsCode} onChange={e => setHcpcsCode(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.hcpcsPlaceholder')} />
+            <input aria-label={t('rvuCodeMapSection.entryModal.hcpcsLabel')} className="ps-conf-input" value={hcpcsCode} onChange={e => setHcpcsCode(e.target.value)} placeholder={t('rvuCodeMapSection.entryModal.hcpcsPlaceholder')} />
           </div>
           {error && <span className="ps-conf-error-text">{error}</span>}
         </div>
@@ -223,7 +225,7 @@ const RvuCodeMapSection: React.FC = () => {
   const [entryBusy, setEntryBusy] = useState(false);
 
   const refresh = useCallback(() => {
-    mockRvuCodeMapService.getAllVersions().then(res => {
+    rvuCodeMapService.getAllVersions().then(res => {
       if (res.ok) setVersions(res.data);
       setLoading(false);
     });
@@ -264,7 +266,7 @@ const RvuCodeMapSection: React.FC = () => {
     setEntryBusy(true);
     const user = getSessionUser();
     const label = isEdit ? `Manual edit — ${entry.code}` : `Manual add — ${entry.code}`;
-    const res = await mockRvuCodeMapService.createVersion({
+    const res = await rvuCodeMapService.createVersion({
       label,
       effectiveDate: new Date().toISOString(),
       entries: newEntries,
@@ -347,7 +349,7 @@ const RvuCodeMapSection: React.FC = () => {
       level: inferLevelFromDescription(row.description) ?? 'specimen',
       billingType: 'Global',
     }));
-    const res = await mockRvuCodeMapService.createVersion({
+    const res = await rvuCodeMapService.createVersion({
       label: uploadLabel.trim() || uploadFileName,
       effectiveDate: new Date(uploadEffectiveDate).toISOString(),
       entries: entriesWithBillingCode,
@@ -373,7 +375,7 @@ const RvuCodeMapSection: React.FC = () => {
     downloadCsv('RvuCodeMapTemplate.csv', toCsv(TEMPLATE_EXAMPLE_ROWS));
   };
 
-  if (loading) return <div className="ps-conf-section-subtitle">{t('common.loading')}</div>;
+  if (loading) return <LoadingState label={t('common.loading')} />;
 
   return (
     <div>
@@ -440,7 +442,7 @@ const RvuCodeMapSection: React.FC = () => {
       {/* ── Older versions — collapsed by default, never deleted ── */}
       {olderVersions.length > 0 && (
         <div className="ps-rvu-older-wrap">
-          <button className="ps-conf-btn-row" onClick={() => setShowOlder(s => !s)}>
+          <button data-config-nav className="ps-conf-btn-row" onClick={() => setShowOlder(s => !s)}>
             {showOlder ? '▾' : '▸'} {t('rvuCodeMapSection.olderVersions.toggle', { count: olderVersions.length })}
           </button>
           {showOlder && (

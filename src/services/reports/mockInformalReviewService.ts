@@ -6,7 +6,15 @@ import type { IInformalReviewService } from './IInformalReviewService';
 
 const STORAGE_KEY = 'informal_review_requests';
 
-const load    = (): InformalReviewRequest[] => storageGet<InformalReviewRequest[]>(STORAGE_KEY, []);
+// Batch 455 (demo baseline): one pending informal review each way between
+// Dr. Sarah Johnson and Pete Nimmo, who can both sign in.
+const SEED: InformalReviewRequest[] = [
+  { id: 'informal-demo-1', caseId: 'S26-4601', caseLabel: 'S26-4601', fromUserId: 'PATH-SJ-001', fromUserName: 'Dr. Sarah Johnson', toUserId: 'PATH-001', toUserName: 'Pete Nimmo',
+    note: 'Would you call the stalk margin clear?', status: 'pending', requestedAt: new Date(Date.now() - 3_600_000 * 20).toISOString() },
+  { id: 'informal-demo-2', caseId: 'S26-4602', caseLabel: 'S26-4602', fromUserId: 'PATH-001', fromUserName: 'Pete Nimmo', toUserId: 'PATH-SJ-001', toUserName: 'Dr. Sarah Johnson',
+    note: 'Curious whether you would call this dysplastic naevus or melanoma in situ.', status: 'pending', requestedAt: new Date(Date.now() - 3_600_000 * 3).toISOString() },
+];
+const load    = (): InformalReviewRequest[] => storageGet<InformalReviewRequest[]>(STORAGE_KEY, SEED);
 const persist = (data: InformalReviewRequest[]) => storageSet(STORAGE_KEY, data);
 
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });

@@ -43,12 +43,18 @@
 // been a worse fit than an honest, aggregate one.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ScreeningAdherence } from './screeningIntervals';
+
 export interface CytologyEuComplianceSpecimenInput {
   countryCode: string;
   /** Real, per Specimen.cytologyScreening.hpvOrderReason — 'co_test'
    *  maps to co-testing; any other real, non-undefined value or a
    *  real facility strategy of primary_hpv_reflex maps to primary. */
   hpvStatus: 'primary' | 'co_test' | 'not_applicable';
+  /** Batch 608 (#52): the ordering facility's national registry ID, when set. */
+  nationalRegistryId?: string;
+  /** Batch 608 (#52): the liquid-based platform recorded on the specimen. */
+  platform?: 'ThinPrep' | 'SurePath' | 'other';
 }
 
 export interface CytologyEuComplianceMatrixRow {
@@ -57,11 +63,18 @@ export interface CytologyEuComplianceMatrixRow {
   hpvPrimaryCount: number;
   hpvCoTestCount: number;
   internalAuditNonConformityCount: number;
+  /** Batch 608 (#52): the distinct national registry IDs of the facilities behind these cases. */
+  nationalRegistryIds: string[];
+  thinPrepCount: number;
+  surePathCount: number;
+  /** Batch 608 (#52): share of judged screens that followed the previous one within the country's interval; undefined when none could be judged. */
+  intervalAdherencePercent: number | undefined;
 }
 
 export function resolveCytologyEuComplianceMatrixReport(
   specimens: CytologyEuComplianceSpecimenInput[],
   nonConformityCountByCountry: Record<string, number>,
+  adherenceByCountry: Record<string, ScreeningAdherence> = {},
 ): CytologyEuComplianceMatrixRow[] {
   const byCountry = new Map<string, CytologyEuComplianceSpecimenInput[]>();
   for (const sp of specimens) {
@@ -76,5 +89,9 @@ export function resolveCytologyEuComplianceMatrixReport(
     hpvPrimaryCount: group.filter(sp => sp.hpvStatus === 'primary').length,
     hpvCoTestCount: group.filter(sp => sp.hpvStatus === 'co_test').length,
     internalAuditNonConformityCount: nonConformityCountByCountry[countryCode] ?? 0,
+    nationalRegistryIds: [...new Set(group.map(sp => sp.nationalRegistryId).filter((x): x is string => !!x))].sort(),
+    thinPrepCount: group.filter(sp => sp.platform === 'ThinPrep').length,
+    surePathCount: group.filter(sp => sp.platform === 'SurePath').length,
+    intervalAdherencePercent: adherenceByCountry[countryCode]?.adherencePercent,
   }));
 }

@@ -41,3 +41,9 @@ export async function dismissFromBoardWithAudit(
   if (!logged || logged.ok === false) return { outcome: 'dismissedLogFailed', detail: logged && 'error' in logged ? String(logged.error) : undefined };
   return { outcome: 'dismissed' };
 }
+
+/** Batch 669 (ops-15): the message key to show the person after a dismissal. A dismissed case whose log write failed
+ *  must say so on screen (the row is gone, so nothing else would tell them the record is missing). */
+export function dismissalNoticeKey(outcome: DismissOutcome): string | null {
+  return outcome === 'dismissedLogFailed' ? 'orSuiteDashboard.dismissLogFailed' : null;
+}

@@ -34,5 +34,23 @@ Pete: TAT targets "will need to move to services the API server owns". This is t
 
   Each used to read the screen's browser storage itself.
 
+## Batch 428: Configuration permissions
+
+- `mockTatTargetService`: `add`, `update`, `remove` need `config:tat-targets:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-38)
+
+`tatEntryActions.ts`: the TAT screen's add, edit, switch-on/off and delete actions, moved out of `TATConfigSection.tsx`. Each calls the service and writes its audit entry only when the service accepts the change; deleting a system default is refused and not audited. Tested in `tatEntryActions.test.ts` against the real mock service.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 610 (part A) — Autopsy PAD/FAD rules, frozen section clock (#87, #88)
+
+`TATType` gains `AUTOPSY_PAD` and `AUTOPSY_FAD`; `TATEntry.warningMinutes` (frozen section only, whole minutes, above 0 and below the target); `resolveFrozenSectionClock.ts` returns target and warning minutes for STAT or routine (defaults 20 and 5); `resolveTatEntry` is generic over the entry type.
+
+## Batch 617 (part C): server versions (PS-514)
+
+The TAT target service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.

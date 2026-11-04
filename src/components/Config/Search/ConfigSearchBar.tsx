@@ -45,7 +45,7 @@ function scoreEntry(entry: ConfigSearchEntry, query: string, t: (key: string) =>
   if (label.startsWith(q)) return 80;
   if (label.includes(q)) return 60;
   if (entry.synonyms.some(s => s.toLowerCase().includes(q))) return 40;
-  if (t(entry.descriptionKey).toLowerCase().includes(q)) return 20;
+  if (entry.descriptionKey && t(entry.descriptionKey).toLowerCase().includes(q)) return 20;
   return 0;
 }
 
@@ -92,7 +92,7 @@ const ConfigSearchBar: React.FC<ConfigSearchBarProps> = ({ onNavigate }) => {
   return (
     <div className="ps-config-search" ref={wrapRef}>
       <span className="ps-config-search__icon">&#128269;</span>
-      <input
+      <input data-dirty-ignore data-config-nav
         className="ps-config-search__input"
         type="text"
         placeholder={t('configSearchIndex.searchPlaceholder')}
@@ -115,7 +115,9 @@ const ConfigSearchBar: React.FC<ConfigSearchBarProps> = ({ onNavigate }) => {
                 onClick={() => selectEntry(entry)}
               >
                 <div className="ps-config-search__result-label">{t(entry.labelKey)}</div>
-                <div className="ps-config-search__result-desc">{t(entry.descriptionKey)}</div>
+                {(entry.descriptionKey || entry.contextKey) && (
+                  <div className="ps-config-search__result-desc">{t((entry.descriptionKey ?? entry.contextKey)!)}</div>
+                )}
                 <span className="ps-config-search__result-tab">{t(`configuration.tabs.${entry.tabId}`)}</span>
               </button>
             ))

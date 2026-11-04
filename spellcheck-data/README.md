@@ -14,6 +14,7 @@ Source word lists for PathScribe's medical spell checker (PS-342). They are comp
 - **`sources/de-DE/`:** put the upstream igerman98 source archive here (see its README). It then ships with the German dictionary as the GPL's corresponding source, and the written offer is no longer needed.
 - **`licensed/`** (Batch 339): drop the licensed releases here (SPECIALIST Lexicon, SNOMED CT editions, LOINC) and rebuild. They never ship; only the derived words do. See `licensed/README.md`.
 - **`licensed-sources.json`** (Batch 339): which SNOMED CT hierarchies, language reference sets and LOINC classes the build uses, and which locale each language feeds.
+- **`de/`, `fr/`, `nl/` `pathology.dic.txt` (Batch 609):** starter pathology lists for German (about 190 entries), French (about 155) and Dutch (about 170): plain words, one per line, so every accepted form is written out. They are standard classification spellings, not machine translation, and **need native-speaker clinical review**; extend them from the national SNOMED CT edition when licensed. German nouns are capitalised.
 - **`ko/pathology.txt`:** about 150 Korean pathology terms, as bare nouns (particles are stripped at lookup). **Needs native-speaker clinical review before clinical use.**
 
 ## Rules for editing
@@ -28,3 +29,5 @@ Source word lists for PathScribe's medical spell checker (PS-342). They are comp
 
   This is the same rule as the cytology lexicon's "validated translations only".
 - **No third-party lists:** these lists are authored for PathScribe. Third-party sources (the SPECIALIST Lexicon, SNOMED CT, LOINC) go in `licensed/` as downloaded, and the build derives words from them with attribution. Never paste their content into these files.
+
+- **`es/pathology.dic.txt` (Batch 622):** about 400 Spanish (Spain) pathology entries, plain words, inflected forms written out, tumour / inflammation / procedure / cytology / IHC terms. Authored for PathScribe; **needs native-speaker clinical review**; extend from the Spanish SNOMED CT edition once a licence is confirmed. The base dictionary is `dictionary-es` (RLA-ES, MPL-1.1 chosen).

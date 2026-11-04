@@ -45,8 +45,25 @@ original tab-only navigation, a real result rather than nothing.
 - `constants/configSearchIndex.ts` needs to stay in sync with the
   actual Config tabs/sections as they change — each `system`-tabbed
   entry's own `section` value needs to keep matching a real
-  `SystemSection` id in `Config/System/index.tsx`, or it'll silently
+  `SystemSection` id in `Config/System/systemSections.ts` (moved there from
+  `index.tsx` in Batch 431; corrected in the Batch 496 README audit), or it'll silently
   fall back to tab-only navigation again.
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+Results come from the full index (every tab and section, see `constants/README.md`). A generated section result shows its group (System) instead of a description. Choosing a result passes the section in the address too, so Cytology, Staff and Synoptic Library open on it.
+
+## Batch 437
+
+The Configuration search box is not an unsaved change (`data-dirty-ignore`, PS-128).
+
+## Batch 449
+
+Search now reaches the Report Templates and Validation Studies inner tabs and the staff Sign-in password. Stale and placeholder entries are gone. See `constants/README.md`.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*

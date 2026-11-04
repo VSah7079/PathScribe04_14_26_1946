@@ -2,6 +2,8 @@
 import type { IFacilityCytologyWorkloadCapOverrideService, FacilityCytologyWorkloadCapOverride } from './IFacilityCytologyWorkloadCapOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
+import { CYTOLOGY_WORKLOAD_CAP_OUT_OF_RANGE, cytologyWorkloadCapProblem } from './cytologyWorkloadCapRules';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'facilityCytologyWorkloadCapOverrides';
 
@@ -12,7 +14,11 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockFacilityCytologyWorkloadCapOverrideService: IFacilityCytologyWorkloadCapOverrideService = {
+const facilityCytologyWorkloadCapOverrideServiceUnchecked: IFacilityCytologyWorkloadCapOverrideService = {
+  async getAll() {
+    await delay();
+    return ok(load().map(r => ({ ...r })));
+  },
   async getForFacility(facilityId) {
     await delay();
     const record = load().find(r => r.facilityId === facilityId);
@@ -20,6 +26,8 @@ export const mockFacilityCytologyWorkloadCapOverrideService: IFacilityCytologyWo
   },
   async create(facilityId, overrides) {
     await delay();
+    // Batch 576: a cap is a whole number of slides from 1 to 100.
+    if (cytologyWorkloadCapProblem(overrides.dailySlideCap)) return err(CYTOLOGY_WORKLOAD_CAP_OUT_OF_RANGE);
     const records = load();
     if (records.some(r => r.facilityId === facilityId)) {
       return err(`Facility ${facilityId} already has a Cytology workload cap override — update it instead.`);
@@ -33,6 +41,7 @@ export const mockFacilityCytologyWorkloadCapOverrideService: IFacilityCytologyWo
   },
   async update(facilityId, changes) {
     await delay();
+    if ('dailySlideCap' in changes && cytologyWorkloadCapProblem(changes.dailySlideCap)) return err(CYTOLOGY_WORKLOAD_CAP_OUT_OF_RANGE);
     const records = load();
     const idx = records.findIndex(r => r.facilityId === facilityId);
     if (idx === -1) return err(`Facility ${facilityId} has no Cytology workload cap override to update — create one first.`);
@@ -50,3 +59,8 @@ export const mockFacilityCytologyWorkloadCapOverrideService: IFacilityCytologyWo
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityCytologyWorkloadCapOverrideService: IFacilityCytologyWorkloadCapOverrideService = guardConfigWrites(facilityCytologyWorkloadCapOverrideServiceUnchecked, [
+  ['config:cytology-workload-cap:manage', ['create', 'update', 'remove']],
+]);

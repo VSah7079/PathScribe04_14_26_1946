@@ -14,8 +14,8 @@
 
 import type { ServiceResult } from '../types';
 import type { WorkstationGroup } from './IWorkstationGroupService';
-import { mockScanStationService } from '../scanStations/mockScanStationService';
-import { mockWorkstationGroupService } from './mockWorkstationGroupService';
+import { scanStationService as mockScanStationService } from '../scanStations/scanStationServiceInstance';
+import { workstationGroupService } from './workstationGroupServiceInstance';
 
 /** Real, deliberately honest gate: only a real, non-blank route on a
  *  genuinely Active group is ever surfaced — a station with no group,
@@ -34,6 +34,6 @@ export function resolveBenchRouteForGroup(groupRes: ServiceResult<WorkstationGro
 export async function resolveStationBenchRoute(stationId: string): Promise<string | undefined> {
   const stationRes = await mockScanStationService.getById(stationId);
   if (!stationRes.ok || !stationRes.data.workstationGroupId) return undefined;
-  const groupRes = await mockWorkstationGroupService.getById(stationRes.data.workstationGroupId);
+  const groupRes = await workstationGroupService.getById(stationRes.data.workstationGroupId);
   return resolveBenchRouteForGroup(groupRes);
 }

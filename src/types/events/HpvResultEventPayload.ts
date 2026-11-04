@@ -71,7 +71,7 @@ export interface HpvResultEventPayload {
   /** Real, standard co-testing assay genotype reporting — only
    *  meaningful when hrHpvResult is genuinely 'Positive'. Same real
    *  shape as Specimen.cytologyScreening.hpvGenotypeDetail (PS-172). */
-  genotypeDetail?: { hpv16: boolean; hpv18Or45: boolean; otherHighRisk: boolean };
+  genotypeDetail?: import('../case/HpvGenotype').HpvGenotypeDetail;
   /** Real, per direct guidance's own South Korea information: the real
    *  clinical reason this test was ordered — distinct from the result
    *  itself. Optional; a sending system that only reports the result

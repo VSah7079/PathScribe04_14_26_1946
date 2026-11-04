@@ -112,7 +112,7 @@ describe('dispatchPrintJob', () => {
     vi.mocked(facilityService.getById).mockResolvedValue({ ok: true, data: { printDeliveryConfig: nativeConfig } } as any);
     vi.mocked(printPdfViaQzTray).mockResolvedValue({ ok: true, data: undefined });
     await dispatchPrintJob('CASE-1', 'FAC-A', 'FINAL', 'Routine', okPdf);
-    expect(mockPrintQueueService.persistRenderedPdf).toHaveBeenCalledWith('job-1', 'BASE64DATA');
+    expect(mockPrintQueueService.persistRenderedPdf).toHaveBeenCalledWith('job-1', 'BASE64DATA', { id: undefined, sha256: undefined });
   });
 
   it('real, per PS-279 — orderingFacilityId/pointOfCare/source/paperSource/duplexMode are wired onto the real enqueue() call, regardless of delivery mode', async () => {
@@ -296,6 +296,24 @@ describe('dispatchPrintJob', () => {
       } as any);
       await dispatchPrintJob('CASE-1', 'FAC-A', 'FINAL', 'Routine', okPdf);
       expect(mockPrintQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ resolvedDestination: destination }));
+    });
+
+    it("Batch 553: a rule naming another lab's agent printer is skipped; the next tier (here the facility default) applies", async () => {
+      const ownDefault = { agentPrinter: { siteId: 'FAC-A', destinationId: 'rep-a' } };
+      vi.mocked(facilityService.getById).mockResolvedValue({ ok: true, data: { printDeliveryConfig: { ...directConfig, directNetworkPrintDestination: ownDefault } } } as any);
+      vi.mocked(mockPrintRoutingRuleService.getActive).mockResolvedValue({
+        ok: true,
+        data: [{ id: 'r1', scopeType: 'facility', scopeId: 'FAC-A', printDestination: { agentPrinter: { siteId: 'FAC-B', destinationId: 'rep-b' } }, active: true, createdAt: '', updatedAt: '' }],
+      } as any);
+      await dispatchPrintJob('CASE-1', 'FAC-A', 'FINAL', 'Routine', okPdf);
+      expect(mockPrintQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ resolvedDestination: ownDefault }));
+    });
+
+    it('Batch 553: the job records its performing lab (its site), so Redirect offers only that site\'s agent printers', async () => {
+      vi.mocked(facilityService.getById).mockResolvedValue({ ok: true, data: { printDeliveryConfig: directConfig } } as any);
+      vi.mocked(mockPrintRoutingRuleService.getActive).mockResolvedValue({ ok: true, data: [] } as any);
+      await dispatchPrintJob('CASE-1', 'FAC-A', 'FINAL', 'Routine', okPdf);
+      expect(mockPrintQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ performingFacilityId: 'FAC-A' }));
     });
   });
 });

@@ -95,7 +95,10 @@ export function createHl7v2StatusAdapter(opts: { statusFields?: readonly Hl7Stat
           if (!lisStatus) return { ok: false, error: 'MISSING_STATUS' };
           const updatedAt = hl7TimestampToIso(getField(seg, 22)) ?? messageTime;
           if (!updatedAt) return { ok: false, error: 'INVALID_UPDATED_AT' };
-          current = { u: { accession, lisStatus: lisStatus.trim(), updatedAt }, text: {} };
+          // Batch 426: the order numbers, echoed on the synoptic result (ORC-2/3, else OBR-2/3).
+          const placer = getComponent(getField(orc, 2), 0) || getComponent(getField(seg, 2), 0);
+          const filler = getComponent(getField(orc, 3), 0) || getComponent(getField(seg, 3), 0);
+          current = { u: { accession, lisStatus: lisStatus.trim(), updatedAt, ...(placer ? { placerOrderNumber: placer } : {}), ...(filler ? { fillerOrderNumber: filler } : {}) }, text: {} };
         } else if (seg.segmentId === 'OBX' && current) {
           const code = getComponent(getField(seg, 3), 0);
           const value = unescapeHl7Text(getField(seg, 5));

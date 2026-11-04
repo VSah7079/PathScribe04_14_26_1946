@@ -7,6 +7,10 @@ Case- and specimen-level comment modals, sharing one dialog-position-memory shel
 - **`CommentModalShell.tsx`** — shared shell for both Case and Specimen comment modals — one remembered dialog position for "the comment dialog" generally, not split per-context.
 - **`CaseCommentModal.tsx`** — case-level comment thread (`types/case/CaseComment.ts`).
 - **`ReportCommentModal.tsx`** — specimen/report-level comment, using `PathScribeEditor` for rich text.
+- **`OriginBadge.tsx`** — the comment's sync-status badge (pending, sent, acknowledged, failed), shared by both modals.
+- **`CommentModals.test.tsx`** — tests for both modals (Batch 451).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the file list was missing `OriginBadge.tsx` and the test file.*
 
 ## Batch 367 (PS-74): no inline CSS
 
@@ -22,6 +26,14 @@ Case- and specimen-level comment modals, sharing one dialog-position-memory shel
 - Post checks `commentMissing` (Field Requirements, locked). An editor holding only an empty paragraph or spaces counts as empty.
 - Voice: "post comment".
 - Timestamps use the user's locale.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CommentModals.test.tsx`: the footer button reads Close and only closes; Post Comment is disabled for an empty or blank draft (PS-312).
+
+## Batch 500 (PS-473)
+
+`CaseCommentModal.tsx` and `ReportCommentModal.tsx` render comment HTML through `sanitizeRichHtml` (services/security/sanitizeHtml.ts).
 
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*

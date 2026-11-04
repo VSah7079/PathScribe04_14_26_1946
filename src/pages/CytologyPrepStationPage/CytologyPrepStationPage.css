@@ -1,0 +1,10 @@
+/* Batch 740: the Cytology Preparation bench (fluid decision 1). Layout comes from MicrotomyWorkstationPage.css. */
+.ps-cytoprep-note { margin: 0 0 10px; color: var(--ps-text-muted, #94a3b8); font-size: 13px; }
+.ps-cytoprep-make { margin-bottom: 10px; }
+.ps-cytoprep-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ps-cytoprep-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--ps-border, #334155); border-radius: 8px; }
+.ps-cytoprep-label { font-weight: 600; }
+.ps-cytoprep-steps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ps-cytoprep-waiting { color: var(--ps-warning, #f59e0b); font-size: 13px; }
+.ps-cytoprep-ok { color: var(--ps-success, #10b981); font-size: 13px; margin: 0 0 8px; }
+.ps-cytoprep-error { color: var(--ps-danger, #ef4444); font-size: 13px; margin: 0 0 8px; }

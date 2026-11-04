@@ -14,6 +14,9 @@
 // collision with i18next's own `t()`, surfaced only once this sweep added
 // useTranslation() here. Renamed to its own name at both of its two call
 // sites rather than aliasing around the clash.
+import { roleDisplayName } from '@/services/staff/roleDisplayName';
+import { canSeePeerComparison } from '@components/Contribution/productivityCalculations';
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from "react";
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
@@ -34,26 +37,39 @@ import type {
 import { getOrgOrchestratorDefault } from "@components/Config/AI/orchestratorModeConfig";
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import { useNavigate } from 'react-router';
-import { actionRegistryService, rvuCodeMapService, tatTargetService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
+import { actionRegistryService, userService, flagService, rvuCodeMapService, tatTargetService, performanceTargetService, clientSlaService, facilityService, specimenDeficiencyService, deficiencyTypeService, qaActivityRecordService, intraoperativeService, subspecialtyService, countersignService, qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService } from '../services';
 import type { Subspecialty } from '../services';
 import { caseRouter } from '../services/cases/CaseRouter';
+import { withoutResearchCasesNow } from '@/services/researchCases/researchCaseSettings';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '../services/quality/reconciliationRecordMapping';
-import { computeOverviewKpis, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTopQualityFlags, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
+import { computeOverviewKpis, computePeerKpiAverages, peerValuesByTile, type PeerKpiAverages, computeCaseMixData, computeOrgWideTatPerformance, computeRvu30, computeWeeklyDaily, computeTargetAmounts, computeTopQualityFlags, qualityFlagText, type RealOverviewKpis, type RealCaseMixData, type RealTatPerformance, type RealRvu30, type RealDailyRvu } from './contributionDashboardCalculations';
 import { specimenDictionaryService } from '@/services';
 import { toCsv, downloadCsv } from '../utils/csv';
 import type { DeficiencyType } from '../services/deficiencies/IDeficiencyService';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { QaSupervisionAssignmentType } from '@/types/quality/QaSupervisionAssignmentType';
 import { buildSubspecialtyBreakdown, applyExpectedCaseMix, describeSupervisionProgress, buildCaseMixExportRows } from '@components/Contribution/caseMixCalculations';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { beginExport } from '@/services';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { runExport } from '@/services/exports/runExport';
+import PerformanceTargetsTile from '@components/Contribution/PerformanceTargetsTile';
+import ClientSlaPanel from '@components/Contribution/ClientSlaPanel';
+import { buildTargetProgress, type TargetProgressRow } from '@/services/performanceTargets/performanceTargetRules';
+import { buildClientSlaRows, type ClientSlaRow } from '@/services/clientSLA/clientSlaRules';
 
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 // Extended KPI data — peer averages and % of target (added alongside KpiTile)
-const kpiExtras = [
-  { peer: 109, targetPct: 107 },
-  { peer: 18,  targetPct: null },
-  { peer: 76,  targetPct: 72 },
+// Batch 610 (#87): targetPct was a fixed 107 and 72 with no source; it is now
+// the real "% of target" for the cases tile (from Performance Targets, below)
+// and absent for the others.
+// Batch 652: the peer averages are no longer fixed numbers; they are computed from the real cases (see peerAverages below).
+const kpiExtras: { targetPct: number | null }[] = [
+  { targetPct: null },
+  { targetPct: null },
+  { targetPct: null },
 ];
 
 // mockKpis removed - real fix, now derived from overviewKpis state
@@ -253,7 +269,8 @@ const TatPerformanceTile: React.FC<{ data: RealTatPerformance }> = ({ data }) =>
 // return — pulled out to a real named component, same standard applied to
 // business logic found embedded in the UI elsewhere in this review.
 
-const TeachingCasesTile: React.FC<{
+/** Exported for its tests (Batch 568). */
+export const TeachingCasesTile: React.FC<{
   teachingRecords: import('@/types/quality/QaActivityRecord').QaActivityRecord[];
   countersignRecords: import('@/types/case/CountersignRecord').CountersignRecord[];
   subspecialties: Subspecialty[];
@@ -291,13 +308,16 @@ const TeachingCasesTile: React.FC<{
   const breakdown = applyExpectedCaseMix(buildSubspecialtyBreakdown(teachingRecords, subspecialties), caseMixTargets, subspecialties);
 
   return (
-    <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={onOpen}>
+    // Batch 568 (axe nested-interactive): the tile holds a button (Export), so it isn't a button itself; clicking it
+    // still opens the teaching log, and its title is the button that does so.
+    <div className="ps-contrib-tile ps-contrib-tile-clickable" {...clickableContainer(onOpen)}>
       <div className="ps-contrib-tile-header">
         <div>
-          <div className="ps-contrib-tile-title">{t('contributionDashboard.teaching.title')}</div>
+          <button type="button" className="ps-row-open-btn ps-contrib-tile-title" onClick={e => { e.stopPropagation(); onOpen(); }}>{t('contributionDashboard.teaching.title')}</button>
           <div className="ps-contrib-tile-subtitle">{t('contributionDashboard.teaching.subtitle')}</div>
         </div>
         <button
+          type="button"
           className="ps-conf-btn-secondary ps-contrib-export-btn"
           onClick={onExport}
           title={t('contributionDashboard.teaching.exportTitle')}
@@ -365,10 +385,11 @@ const TeachingCasesTile: React.FC<{
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const ContributionDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { config } = useSystemConfig();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
 
   const [activeTab,           setActiveTab]           = useState<DashboardTab>("overview");
   // Dashboard aggregates across clients/labs, so there's no single case to
@@ -385,13 +406,16 @@ const ContributionDashboardPage: React.FC = () => {
   // just fetching the real data and wiring each real candidate to its
   // real navigation target (deficiencies queue vs. case synoptic view) —
   // the one genuinely React-specific piece that stays here.
+  // Batch 452 (PS-57): the catalogue (flagService) is fetched too, so flags
+  // applied to the pathologist's cases and specimens appear, named from it.
   const [qualityFlags, setQualityFlags] = useState<ContributionFlag[]>([]);
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
       specimenDeficiencyService.getAll(), deficiencyTypeService.getAll(), qaActivityRecordService.getAll(),
       caseRouter.getAll(undefined, { includeOrchestration: true, bypassAccessControl: true }),
-    ]).then(([defRes, typeRes, discRes, casesRes]) => {
+      flagService.getAll(),
+    ]).then(([defRes, typeRes, discRes, casesRes, flagRes]) => {
       if (!defRes.ok) return;
       const types: DeficiencyType[] = typeRes.ok ? typeRes.data : [];
       const typeNameById = Object.fromEntries(types.map(t => [t.id, t.name]));
@@ -401,27 +425,36 @@ const ContributionDashboardPage: React.FC = () => {
         typeNameById,
         discRes.ok ? discRes.data : [],
         FROZEN_FINAL_ACTIVITY_TYPE_ID,
-        casesRes.ok ? casesRes.data : [],
+        casesRes.ok ? withoutResearchCasesNow(casesRes.data) : [],
         user.id,
+        3,
+        Date.now(),
+        flagRes.ok ? flagRes.data : [],
       );
 
       setQualityFlags(candidates.map(flag => ({
         id: flag.id,
         label: flag.caseId,
-        value: flag.value,
+        value: qualityFlagText(flag, t),
         severity: flag.severity,
-        onClick: () => navigate(flag.kind === 'deficiency' ? `/deficiencies?open=${flag.id}` : `/case/${flag.caseId}/synoptic`),
+        onClick: () => { if (flag.kind === 'deficiency') navigate(`/quality-assurance?open=${encodeURIComponent(flag.id)}`); else void openCasePage(flag.caseId); },
       })));
     });
-  }, [user?.id]);
+  }, [user?.id, navigate, openCasePage, t]);
 
   // Real fix: replaces mockKpis/mockCaseMixData - see
   // contributionDashboardCalculations.ts for the real transform logic.
   const [overviewKpis, setOverviewKpis]     = useState<RealOverviewKpis | null>(null);
+  // Batch 652: real peer averages (same role + facility, at least 3 peers), shown only to people allowed to see peer comparison.
+  const canSeePeer = canSeePeerComparison(user?.role, config.showPeerAveragesToPathologists);
+  const [peerAverages, setPeerAverages]     = useState<PeerKpiAverages | null>(null);
   const [caseMixData,  setCaseMixData]      = useState<RealCaseMixData | null>(null);
   const [tatPerformance, setTatPerformance] = useState<RealTatPerformance | null>(null);
   const [rvu30, setRvu30]                   = useState<RealRvu30 | null>(null);
   const [weeklyDaily, setWeeklyDaily]       = useState<RealDailyRvu[] | null>(null);
+  // Batch 610 (#87): this person's progress against the performance targets, and how each client's cases did against its SLA.
+  const [targetRows, setTargetRows]         = useState<TargetProgressRow[]>([]);
+  const [slaRows, setSlaRows]               = useState<ClientSlaRow[]>([]);
   useEffect(() => {
     if (!user?.id) return;
     Promise.all([
@@ -429,21 +462,38 @@ const ContributionDashboardPage: React.FC = () => {
       rvuCodeMapService.getAllVersions(),
       specimenDictionaryService.getAll(),
       tatTargetService.getAll(),
-    ]).then(([res, versionsRes, dictionaryRes, tatRes]) => {
+      performanceTargetService.getAll(),
+      clientSlaService.getAll(),
+      facilityService.getAll(),
+    ]).then(([res, versionsRes, dictionaryRes, tatRes, targetsRes, slasRes, facilitiesRes]) => {
       if (!res.ok) return;
+      // Batch 728 (Lab Workflow spec, Decision 4): research cases are not in the TAT, volume or quality figures.
+      const cases = withoutResearchCasesNow(res.data);
       const versions = versionsRes.ok ? versionsRes.data : [];
       const dictionaryEntries = dictionaryRes.ok ? dictionaryRes.data : [];
-      setOverviewKpis(computeOverviewKpis(res.data, user.id));
-      setCaseMixData(computeCaseMixData(res.data, user.id));
-      setRvu30(computeRvu30(res.data, user.id, versions, new Date(), dictionaryEntries));
-      setWeeklyDaily(computeWeeklyDaily(res.data, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
+      setOverviewKpis(computeOverviewKpis(cases, user.id));
+      if (canSeePeer) {
+        userService.getAll().then(usersRes => {
+          if (!usersRes.ok) return;
+          const staff = usersRes.data;
+          setPeerAverages(computePeerKpiAverages(cases, staff.find(u => u.id === user.id), staff));
+        });
+      } else {
+        setPeerAverages(null);
+      }
+      setCaseMixData(computeCaseMixData(cases, user.id));
+      setRvu30(computeRvu30(cases, user.id, versions, new Date(), dictionaryEntries));
+      setWeeklyDaily(computeWeeklyDaily(cases, user.id, config.facilityTimezone, versions, new Date(), dictionaryEntries));
+      const now = new Date();
+      setTargetRows(buildTargetProgress(targetsRes.ok ? targetsRes.data : [], computeTargetAmounts(cases, user.id, versions, dictionaryEntries), now));
+      setSlaRows(buildClientSlaRows(cases, slasRes.ok ? slasRes.data : [], facilitiesRes.ok ? facilitiesRes.data : [], now));
       const tatEntries = tatRes.ok ? tatRes.data : [];
       // Real fix: org-wide aggregate, deliberately not filtered to this
       // user's own cases the way overviewKpis/caseMixData are - matches
       // TatPerformanceTile's own "weighted across N clients" framing.
-      setTatPerformance(computeOrgWideTatPerformance(res.data, tatEntries));
+      setTatPerformance(computeOrgWideTatPerformance(cases, tatEntries));
     });
-  }, [user?.id]);
+  }, [user?.id, config.facilityTimezone, canSeePeer]);
 
   // Real fix: derives the three real KPI tiles from overviewKpis -
   // formats a null delta (no real prior-30-day baseline to compare
@@ -552,7 +602,13 @@ const ContributionDashboardPage: React.FC = () => {
       };
     });
 
-    downloadCsv(`trainee-case-reference-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
+    // PS-282 + PS-357 (Batch 437): checked (contribution:trainee-case-reference:export) and audited.
+    const filename = `trainee-case-reference-${new Date().toISOString().slice(0, 10)}.csv`;
+    // Batch 550: through the export service (the API server builds it from these filters; the demo builds it here).
+    await runExport('contribution.trainee-case-reference', filename, {}, async () => {
+      if (!(await beginExport('trainee-case-reference', { filename, rowCount: rows.length }))) return;
+      downloadCsv(filename, toCsv(rows));
+    });
   };
 
   // ── Progress/case-mix summary export — real, per direct follow-up.
@@ -562,12 +618,18 @@ const ContributionDashboardPage: React.FC = () => {
   // for the resident to hand to a mentor/program coordinator or open
   // in Excel/a BI tool, not a file meant to be uploaded to ACGME.
   const myCaseMixBreakdown = applyExpectedCaseMix(buildSubspecialtyBreakdown(teachingRecords, subspecialties), myCaseMixTargets, subspecialties);
-  const exportProgressSummary = () => {
+  const exportProgressSummary = async () => {
     if (!user?.id) return;
     const rows = buildCaseMixExportRows(user.id, myCaseMixBreakdown);
-    downloadCsv(`case-mix-progress-summary-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows, [
-      'Resident_ID', 'Category_Code', 'Category_Description', 'Logged_Count', 'Enterprise_Target_Goal', 'Variance', 'Concordance_Status', 'Compliance_Status',
-    ]));
+    // PS-282 + PS-357 (Batch 437): checked (contribution:case-mix-summary:export) and audited.
+    const filename = `case-mix-progress-summary-${new Date().toISOString().slice(0, 10)}.csv`;
+    // Batch 550: through the export service (the API server builds it from these filters; the demo builds it here).
+    await runExport('contribution.case-mix-summary', filename, {}, async () => {
+      if (!(await beginExport('case-mix-summary', { filename, rowCount: rows.length }))) return;
+      downloadCsv(filename, toCsv(rows, [
+        'Resident_ID', 'Category_Code', 'Category_Description', 'Logged_Count', 'Enterprise_Target_Goal', 'Variance', 'Concordance_Status', 'Compliance_Status',
+      ]));
+    });
   };
 
   // ── Active Intraop Sessions — real, previously nothing on this
@@ -602,7 +664,7 @@ const ContributionDashboardPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="ps-contrib-page" tabIndex={0} role="region" aria-label="Contribution dashboard, scrollable">
+    <div className="ps-contrib-page" tabIndex={0} role="region" aria-label={t('contributionDashboard.scrollRegionLabel')}>
 
       {/* ─── Page Title ──────────────────────────────────────────────────── */}
       <div className="ps-contrib-title-block">
@@ -610,7 +672,7 @@ const ContributionDashboardPage: React.FC = () => {
           {t('contributionDashboard.title')}
         </h1>
         <p className="ps-contrib-subtitle">
-          {user?.name} · {t('contributionDashboard.subtitleRole')}
+          {user?.name} · {roleDisplayName(user?.role) || t('contributionDashboard.subtitleRole')}
         </p>
       </div>
 
@@ -620,7 +682,7 @@ const ContributionDashboardPage: React.FC = () => {
           <div
             key={tab}
             className={`ps-contrib-tab${activeTab === tab ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab)}
+            {...pressable(() => setActiveTab(tab))}
           >
             {t(TAB_LABEL_KEYS[tab])}
           </div>
@@ -655,11 +717,15 @@ const ContributionDashboardPage: React.FC = () => {
                 </div>
                 {/* Divider */}
                 <div className="ps-contrib-kpi-divider" />
-                {/* Peer average */}
-                <div className="ps-contrib-kpi-row">
-                  <span className="ps-contrib-kpi-row-label">{t('contributionDashboard.peerAvg')}</span>
-                  <span className="ps-contrib-kpi-row-value">{ext?.peer ?? "—"}</span>
-                </div>
+                {/* Peer average: real, same role + facility, hidden unless the person may see peer comparison */}
+                {canSeePeer && peerAverages && (
+                  <div className="ps-contrib-kpi-row">
+                    <span className="ps-contrib-kpi-row-label">{t('contributionDashboard.peerAvg')}</span>
+                    <span className="ps-contrib-kpi-row-value">
+                      {peerValuesByTile(peerAverages)[ki]?.toLocaleString(i18n.language) ?? t('contributionDashboard.peerNotEnoughData')}
+                    </span>
+                  </div>
+                )}
                 {/* % of target */}
                 {ext?.targetPct != null && (
                   <div className="ps-contrib-kpi-row">
@@ -676,6 +742,12 @@ const ContributionDashboardPage: React.FC = () => {
             <TatPerformanceTile data={tatPerformance ?? { firstTouchAvgHrs: 0, totalCaseAvgHrs: 0, firstTouchTargetHrs: 0, totalTargetHrs: 0, onTargetPct: 0, facilityCount: 0 }} />
             {/* RVU tile as 5th KPI */}
             <Rvu30Tile data={rvu30 ?? { total: 0, deltaPct: null, avgPerCase: 0 }} />
+          </div>
+
+          {/* Batch 610 (#87): performance targets and client SLAs, actual against target */}
+          <div className="ps-perf-row">
+            <PerformanceTargetsTile rows={targetRows} />
+            <ClientSlaPanel rows={slaRows} />
           </div>
 
           {/* Main content: 2-col */}
@@ -737,7 +809,7 @@ const ContributionDashboardPage: React.FC = () => {
                   subspecialties={subspecialties}
                   caseMixTargets={myCaseMixTargets}
                   onOpen={() => navigate('/quality-assurance')}
-                  onExport={(e) => { e.stopPropagation(); exportCaseLog(); }}
+                  onExport={(e) => { e.stopPropagation(); void exportCaseLog(); }}
                 />
               )}
 
@@ -755,13 +827,14 @@ const ContributionDashboardPage: React.FC = () => {
                       <div className="ps-contrib-tile-title">{t('contributionDashboard.myProgress.title')}</div>
                       <div className="ps-contrib-tile-subtitle">{mySupervisionType?.name ?? t('contributionDashboard.myProgress.activeAssignmentFallback')} · {t('contributionDashboard.myProgress.supervisedBy', { name: mySupervision.supervisorUserName })}</div>
                     </div>
-                    <button
+                    <CapabilityButton
+                      capability="contribution:case-mix-summary:export"
                       className="ps-conf-btn-secondary ps-contrib-export-btn"
-                      onClick={exportProgressSummary}
+                      onClick={() => { void exportProgressSummary(); }}
                       title={t('contributionDashboard.myProgress.exportTitle')}
                     >
                       {t('contributionDashboard.myProgress.exportButton')}
-                    </button>
+                    </CapabilityButton>
                   </div>
                   {(() => {
                     const progress = describeSupervisionProgress(mySupervision);
@@ -781,7 +854,7 @@ const ContributionDashboardPage: React.FC = () => {
               )}
 
               {/* Active Intraop Sessions */}
-              <div className="ps-contrib-tile ps-contrib-tile-clickable" onClick={() => navigate('/intraop-queue')}>
+              <div className="ps-contrib-tile ps-contrib-tile-clickable" {...pressable(() => navigate('/intraop-queue'))}>
                 <div className="ps-contrib-tile-header">
                   <div>
                     <div className="ps-contrib-tile-title">{t('contributionDashboard.intraop.title')}</div>

@@ -23,7 +23,7 @@
 // Firestore composite index the first time this runs against a real
 // project — same real, one-time setup Firestore itself prompts for
 // with a direct console link, not a bug (same real note already
-// applied to usePendingEngineNotifications.ts's own query).
+// applied to the engine-notification poll, removed in Batch 549).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';

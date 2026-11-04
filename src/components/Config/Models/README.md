@@ -17,6 +17,18 @@ AI model performance/version comparison tab.
 
 - Models arrive here two ways: the organisation's starter adoptions, or adoption from the ForMedrixAI store (`ValidationStudies/ModelStoreModal.tsx`). A newly adopted model is always Beta, not the default, with zero cases.
 
+## Batch 432
+
+Each model that isn't the default has Retire, confirmed first (the message names any facilities pinned to it). The service checks `config:ai-model:manage`.
+
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 609 (#173)
+
+`ModelOverridesModal.tsx`: a Settings button on each model row opens a window for the organisation's longest-answer cap and confidence threshold (blank = organisation setting). Rules in `services/models/modelOverrides.ts`; a model with settings shows a "custom settings" badge. Tests: `ModelOverridesModal.test.tsx`.

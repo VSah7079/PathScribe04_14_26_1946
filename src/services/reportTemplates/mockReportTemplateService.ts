@@ -12,6 +12,8 @@ import { SectionNode, IfBlockNode, RepeatGroupNode, ParagraphNode, StaticLabelNo
 import { IReportTemplateService } from './IReportTemplateService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { checkTemplateFinalDiagnosis, FINAL_DIAGNOSIS_DESIGNATION_ERROR } from './finalDiagnosisPublishCheck';
 
 // ── Well-known template ID constants ─────────────────────────────────────────
 // Imported by TemplateListTab and other consumers to identify the gold standard.
@@ -68,7 +70,7 @@ const reportHeaderSection = (): SectionNode => section(
     { id: 'hdr-dept',      type: 'text-field', label: 'Department',         bindingKey: 'institution.department', colSpan: 6,  required: false, hideIfEmpty: false, fhirExport: false },
     { id: 'hdr-patient',   type: 'text-field', label: 'Patient Name',       bindingKey: 'patient.name',          colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-dob',       type: 'date',       label: 'Date of Birth',      bindingKey: 'patient.dob',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true, format: 'date' },
-    { id: 'hdr-sex',       type: 'text-field', label: 'Sex',                bindingKey: 'patient.sex',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
+    { id: 'hdr-sex',       type: 'text-field', label: 'Sex at birth',      bindingKey: 'patient.sexAtBirth',        colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-mrn',       type: 'text-field', label: 'MRN',                bindingKey: 'patient.mrn',           colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-accession', type: 'text-field', label: 'Accession',          bindingKey: 'case.accession',        colSpan: 4,  required: true,  hideIfEmpty: false, fhirExport: true  },
     { id: 'hdr-received',  type: 'date',       label: 'Date Received',      bindingKey: 'case.receivedDate',     colSpan: 4,  required: false, hideIfEmpty: false, fhirExport: false, format: 'date' },
@@ -621,7 +623,7 @@ const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(e: string): ServiceResult<T> => ({ ok: false, error: e });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockReportTemplateService: IReportTemplateService = {
+const reportTemplateServiceUnchecked: IReportTemplateService = {
   async getAll() {
     await delay();
     return ok([...TEMPLATES]);
@@ -736,6 +738,8 @@ export const mockReportTemplateService: IReportTemplateService = {
     await delay();
     const idx = TEMPLATES.findIndex(t => t.id === id);
     if (idx === -1) return err<ReportTemplate>(`Template ${id} not found`);
+    // Batch 609 (#38): a Final template with more than one Final Diagnosis field can't be published.
+    if (!(await checkTemplateFinalDiagnosis(TEMPLATES[idx])).ok) return err<ReportTemplate>(FINAL_DIAGNOSIS_DESIGNATION_ERROR);
     const updated: ReportTemplate = {
       ...TEMPLATES[idx],
       status:    'published' as const,
@@ -747,3 +751,9 @@ export const mockReportTemplateService: IReportTemplateService = {
     return ok({ ...updated });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportTemplateService: IReportTemplateService = guardConfigWrites(reportTemplateServiceUnchecked, [
+  ['config:report-template:manage', ['create', 'save', 'update', 'clone', 'remove', 'archive']],
+  ['config:report-template:publish', ['publish']],
+]);

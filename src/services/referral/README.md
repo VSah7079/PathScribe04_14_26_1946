@@ -65,6 +65,18 @@ status updates from external reference labs, and outbound delivery
 of referral manifests — tracked by the backend team's own stories,
 not built here.
 
+## Batch 432
+
+`updateTransitStatus` is now used: Batch detail → "Mark in transit" / "Mark delivered". It needs `referral:transit-status:update` and only moves forward; "result received" comes only with the result (`referralTransitRules.ts`, tested).
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+`processInboundReferralResultEvent` hands the batch's results to the molecular order engine: coded `orderResults`, or a report alone. If the engine fails, the message isn't marked processed, so it can be redelivered.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part C): server versions (PS-514)
+
+The referral tracking service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REFERRAL_RESEARCH_API.md`. The mocks are unchanged.

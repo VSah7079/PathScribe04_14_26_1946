@@ -1,0 +1,2316 @@
+<!doctype html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner · PathScribe-beheerdershandleiding (interne editie van ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="nl" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Beheerdershandleiding</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Zoek schermen, velden, foutcodes" aria-label="Zoeken in de handleiding" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Taal"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl" selected>Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Afdrukken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Hoofdstukken van de handleiding"><a href="index.html">Inhoud</a><a href="setup-sequence.html">Volgorde van inrichting</a><a href="01-system-overview.html">1. Systeemoverzicht en architectuur</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1: Primaire systeemvoorwaarden (eerst inrichten)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2: Stamwoordenboeken en klinische basisgegevens (als tweede inrichten)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3: Workflow-engines en operationele configuratie (als derde inrichten)</a><a href="05-tier4-ai-framework.html">5. Niveau 4: Het ingebedde AI-framework van PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html" aria-current=page>6. Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</a><a href="07-tier6-interface-engine.html">7. Niveau 6: Interface-engine en integraties met externe systemen</a><a href="08-tier7-billing-registry.html">8. Niveau 7: Facturatie, omzetcyclusbeheer en registermeldingen</a><a href="09-appendices.html">9. Bijlagen: probleemoplossing en verificatie van het auditlogboek</a><a href="99-glossary.html">99. Bijlage: Verklarende woordenlijst met termen en afkortingen</a></nav><main id="main"><aside class="pagetoc" aria-label="Op deze pagina"><b>Op deze pagina</b><ul><li class="l2"><a href="#ch6-report-templates">Rapportsjabloonontwerper en inrichting van huisstijl</a></li><li class="l3"><a href="#screen-tab-templates">Tabblad Rapportsjablonen</a></li><li class="l3"><a href="#screen-templates-parts">Onderdelenbibliotheek</a></li><li class="l3"><a href="#screen-templates-templates">Rapportsjablonen</a></li><li class="l3"><a href="#screen-templates-routing">Routeringsregels</a></li><li class="l3"><a href="#screen-fonts">Goedgekeurde lettertypen</a></li><li class="l3"><a href="#screen-document_style">Documentstijl</a></li><li class="l3"><a href="#screen-template_governance">Sjabloonbeoordeling</a></li><li class="l2"><a href="#ch6-synoptic">Inrichting van de CAP-module voor synoptische rapportage</a></li><li class="l3"><a href="#screen-tab-protocols">Tabblad Synoptische bibliotheek</a></li><li class="l3"><a href="#screen-protocols-review">Beoordelingswachtrij</a></li><li class="l3"><a href="#screen-protocols-active">Actieve protocollen</a></li><li class="l3"><a href="#screen-protocols-all">Alle protocollen</a></li><li class="l2"><a href="#ch6-scheduled-delivery">Geplande rapportengine en regels voor automatische distributie</a></li><li class="l3"><a href="#screen-delivery_rules">Leveringsconfiguratieregels</a></li><li class="l3"><a href="#screen-delivery_schedules">Verzendschema&#x27;s</a></li><li class="l3"><a href="#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a></li><li class="l3"><a href="#screen-my-exports">Mijn exports</a></li><li class="l2"><a href="#ch6-batch-jobs">Inrichting van batchafdrukken en de nachtelijke taakplanner</a></li></ul></aside><article><h1 id="ch6"><a class="anchor" href="#ch6" aria-label="Link to this section">#</a> Niveau 5: Rapportage, synoptische formulieren en configuratie van de planner</h1>
+<p>Dit hoofdstuk beschrijft hoe een vrijgegeven rapport eruitziet, welke gestructureerde (synoptische) formulieren pathologen invullen en hoe een vrijgegeven rapport wordt verzonden, afgedrukt en ingepland. Het beschrijft 15 schermen in vier delen. Drie onderdelen uit de opzet zijn niet gerealiseerd en elk is gemarkeerd waar het ter sprake komt: een leveringskanaal naar een patiëntenportaal, het automatisch laden van versies van CAP-protocollen en een nachtelijke taakplanner die een beheerder kan configureren. In elke sectie worden de dichtstbijzijnde werkende voorzieningen genoemd.</p>
+<p><strong>Volgorde van inrichting voor dit niveau.</strong> Doe eerst niveau 1 tot en met niveau 4 (in het bijzonder faciliteiten, artsen, rollen en site-agents). Werk daarna dit niveau in deze volgorde af. Het kader "Inrichtingsvolgorde" van elk scherm herhaalt de plaats van dat scherm in de lijst.</p>
+<ol>
+<li><a href="#screen-fonts">Goedgekeurde lettertypen</a>: kies welke lettertypen de rapporteditors aanbieden.</li>
+<li><a href="#screen-document_style">Documentstijl</a>: stel de standaardtekststijl, het paginaformaat en de marges van het laboratorium voor rapporten in.</li>
+<li><a href="#screen-template_governance">Sjabloonbeoordeling</a>: bepaal wie synoptische sjablonen mag goedkeuren en publiceren.</li>
+<li><a href="#screen-templates-parts">Onderdelenbibliotheek</a>: bouw of kopieer de herbruikbare koppen, inhoudsdelen en voetteksten.</li>
+<li><a href="#screen-templates-templates">Rapportsjablonen</a>: stel rapportsjablonen samen uit onderdelen en publiceer ze.</li>
+<li><a href="#screen-templates-routing">Routeringsregels</a>: kies welk sjabloon een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> gebruikt voor een <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>, arts of <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>.</li>
+<li><a href="#screen-protocols-review">Beoordelingswachtrij</a>: breng synoptische protocollen door concept, beoordeling en goedkeuring.</li>
+<li><a href="#screen-protocols-active">Actieve protocollen</a>: controleer en onderhoud de gepubliceerde synoptische protocollen.</li>
+<li><a href="#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a>: bepaal naar welke printer een vrijgegeven rapport gaat.</li>
+<li><a href="#screen-delivery_rules">Leveringsconfiguratieregels</a>: bepaal hoe elk vrijgegeven rapport wordt verzonden (uitslagbericht, afdrukken, e-fax, bestandsdepot).</li>
+<li><a href="#screen-delivery_schedules">Verzendschema's</a>: bepaal wanneer er iets wordt verzonden.</li>
+</ol>
+<p>Schermen die geen deel uitmaken van de inrichting en dus geen stapnummer hebben: de twee tabbladpagina's (<a href="#screen-tab-templates">tabblad Rapportsjablonen</a> en <a href="#screen-tab-protocols">tabblad Synoptische bibliotheek</a>), <a href="#screen-protocols-all">Alle protocollen</a> en <a href="#screen-my-exports">Mijn exports</a>.</p>
+<p><strong>Leveringskanalen in het kort.</strong> Elk kanaal wordt met zijn beperkingen opnieuw beschreven in <a href="#ch6-scheduled-delivery">Deel 3</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Kanaal</th>
+<th>Status</th>
+<th>Wat er bestaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Afdrukwachtrij</td>
+<td>Gerealiseerd</td>
+<td>Leveringsregels sturen een afdrukopdracht; routeringsregels voor afdrukken kiezen de printer; het scherm Afdrukwachtrij beheert de opdrachten.</td>
+</tr>
+<tr>
+<td>Uitslagbericht naar de koppelingsengine (elektronisch)</td>
+<td>Gerealiseerd</td>
+<td>Het standaardkanaal.</td>
+</tr>
+<tr>
+<td>E-fax</td>
+<td>Gerealiseerd</td>
+<td>Wordt verzonden naar de interfaceserver, die de <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a> doorgeeft aan een e-mail-naar-faxgateway.</td>
+</tr>
+<tr>
+<td>Bestandsdepot</td>
+<td>Gerealiseerd</td>
+<td>Wordt verzonden naar de interfaceserver, die het bestand wegschrijft naar een map of SFTP-bestemming die op die server is ingericht.</td>
+</tr>
+<tr>
+<td>Beveiligde e-mail</td>
+<td>Demonstratie</td>
+<td>Een persoon verstuurt vanuit een venster een aan een casus gekoppeld bericht; de e-mail gaat naar de <a href="07-tier6-interface-engine.html#screen-simulated_mail">Gesimuleerde postvak-uit</a>. Het is geen kanaal van een leveringsregel.</td>
+</tr>
+<tr>
+<td>Patiënten- of verwijzerportaal</td>
+<td>Niet gerealiseerd</td>
+<td>Er bestaat geen portaalkanaal.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Waar de hulpmiddelen voor batch- en nachtelijke taken zijn.</strong> Batchafdrukken en de nachtelijke taakplanner zijn niet één scherm. <a href="#ch6-batch-jobs">Deel 4</a> noemt de schermen die bestaan en waar elk is beschreven.</p>
+<h2 id="ch6-report-templates"><a class="anchor" href="#ch6-report-templates" aria-label="Link to this section">#</a> Rapportsjabloonontwerper en inrichting van huisstijl</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span></nav>
+
+<p>Een rapport wordt opgebouwd uit drie soorten <strong>onderdelen</strong> (kop, inhoud, voettekst). Een <strong>sjabloon</strong> plaatst onderdelen in vijf vakken (kop van pagina 1, kop van pagina 2 en verder, inhoud, voettekst van pagina 2 en verder, voettekst van pagina 1). <strong>Routeringsregels</strong> bepalen welk sjabloon een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> krijgt. De standaardlettertypen, het paginaformaat en de marges van het laboratorium liggen daaronder.</p>
+<p><strong>Hoe een sjabloon voor een casus wordt gekozen.</strong> De router probeert deze stappen in volgorde en stopt bij de eerste overeenkomst: eerst een poort voor voorlopige rapporten; dan een overschrijving per <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> (Pass 0); dan, voor een aangesloten faciliteit zonder eigen regel, de overschrijving van de bovenliggende <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a> (Pass 0a); dan een voorkeur van een arts (Pass 0b); dan een overeenkomst met een <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>, waarbij door de beheerder gedefinieerde regels vóór de ingebouwde tabel worden gecontroleerd (Pass 1); dan de terugval op het <a class="term" href="99-glossary.html#g-subspecialty" title="Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.">subspecialisme</a> (Pass 2); dan de terugval op de gouden standaard (Pass 3). Binnen één regeltype gaat een regel voor één <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a> voor op een algemene regel voor dezelfde faciliteit of arts.</p>
+<p><strong>Lagen van de tekststijl.</strong> De tekststijl van een rapport komt uit drie lagen; de meest specifieke wint: de standaard van het laboratorium (Documentstijl) wordt overschreven door het eigen paneel Stijl van een sjabloon, dat wordt overschreven door de labelopmaak van een component in de inspecteur.</p>
+<p><strong>Huisstijl.</strong> De rapportkop haalt het logo, de naam van de laboratoriumdirecteur en het accreditatienummer uit de <a class="term" href="99-glossary.html#g-department" title="De grove klasse van een monster bij de intake, zoals chirurgisch weefsel of vloeistofcytologie. Zij stuurt het uitsnijdsjabloon, het zaakmasker en een eventuele afwijking van de bewaartermijn.">afdeling</a>, met terugval op de faciliteit en daarna op de onderneming. Die velden worden op andere schermen ingesteld; dit hoofdstuk herhaalt ze niet:
+- Huisstijl van de afdeling: <a href="03-tier2-master-dictionaries.html#screen-departments">Afdelingswoordenboek</a> (Naam labdirecteur, accreditatienummer, URL kopregel-logo).
+- Huisstijl en rapportageopties van de faciliteit: <a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a> en <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitswoordenboek</a>.</p>
+<p>PathScribe slaat alleen het adres van een gehost logobestand op, nooit het beeld zelf. Een kopgedeelte waarbij <strong>Instellingslogo weergeven</strong> is ingeschakeld, gebruikt dat adres.</p>
+<h3 id="screen-tab-templates"><a class="anchor" href="#screen-tab-templates" aria-label="Link to this section">#</a> Tabblad Rapportsjablonen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Rapportsjablonen</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Het tabblad zelf, met de subtabbladen <strong>Rapportsjablonen</strong>, <strong>Onderdelenbibliotheek</strong> en <strong>Routeringsregels</strong>.</p>
+<p><strong>3. Doel en reikwijdte.</strong> Het tabblad groepeert de drie schermen die de opmaak van rapporten bepalen: de sjabloonlijst, de herbruikbare <a class="term" href="99-glossary.html#g-part-library" title="De herbruikbare onderdelen, zoals een blok vragen, waaruit verslagsjablonen worden samengesteld.">onderdelenbibliotheek</a> en de routeringsregels voor sjablonen. De tabbladpagina heeft zelf geen velden. De knoppen van de subtabbladen zijn de enige bedieningselementen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Het tabblad opent voor iedereen met <code>screen:configuration:open</code>. Elk subtabblad is vervolgens beperkt door zijn eigen <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>, zodat iemand zonder die machtiging de lijst ziet maar niets kan wijzigen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-document_style">Documentstijl</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/tab-templates.webp" alt="Tabblad Rapportsjablonen met de drie subtabbladen" loading="lazy"><figcaption>Tabblad Rapportsjablonen met de drie subtabbladen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-templates-report-templates-sub-tab"><td>Rapportsjablonen (subtabblad)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de <a href="#screen-templates-templates">sjabloonlijst</a>.</td>
+<td>Geselecteerd</td>
+</tr>
+<tr id="f-tab-templates-part-library-sub-tab"><td>Onderdelenbibliotheek (subtabblad)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de <a href="#screen-templates-parts">onderdelenbibliotheek</a>.</td>
+<td>Niet geselecteerd</td>
+</tr>
+<tr id="f-tab-templates-routing-rules-sub-tab"><td>Routeringsregels (subtabblad)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de <a href="#screen-templates-routing">routeringsregels voor sjablonen</a>.</td>
+<td>Niet geselecteerd</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Het tabblad openen: <code>screen:configuration:open</code>. De acties van elk subtabblad gebruiken hun eigen machtigingen, die op het subtabblad staan vermeld.
+<strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h3 id="screen-templates-parts"><a class="anchor" href="#screen-templates-parts" aria-label="Link to this section">#</a> Onderdelenbibliotheek</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Onderdelenbibliotheek"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Onderdelenbibliotheek</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Rapportsjablonen</strong> &gt; subtabblad <strong>Onderdelenbibliotheek</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Rapportonderdelen (kop, inhoud, voettekst)</p>
+<p><strong>3. Doel en reikwijdte.</strong> Een onderdeel is één herbruikbaar <a class="term" href="99-glossary.html#g-block" title="Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.">blok</a> van een rapport: een <strong>kop</strong> (huisstijl van de instelling, <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a>, patiëntgegevens), een <strong>inhoudsonderdeel</strong> (diagnose, macroscopische beschrijving, microscopie, synoptische gegevens) of een <strong>voettekst</strong> (paginanummers, vertrouwelijkheidsmelding, regel met patiëntidentiteit). Onderdelen worden hier eenmaal gebouwd en in een willekeurig aantal sjablonen geplaatst. Een onderdeel kan algemeen zijn (aangeboden aan elk <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>) of bij één uitvoerend laboratorium horen. De bibliotheek bevat ingebouwde onderdelen, die met de badge <strong>Ingebouwd</strong> worden getoond. Ingebouwde onderdelen kunnen niet worden bewerkt of gearchiveerd; dupliceer er een om het te wijzigen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Onderdelen hebben geen andere onderdelen nodig, maar de tekststijl van het laboratorium en de uitvoerende laboratoria waarnaar ze verwijzen moeten eerst bestaan. Als u de inrichting van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> overslaat, biedt de lijst Uitvoerend lab alleen Algemeen aan.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 4</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-document_style">Documentstijl</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-templates-templates">Rapportsjablonen</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/templates-parts.webp" alt="Onderdelenbibliotheek met gegroepeerde koppen, inhoudsdelen en voetteksten" loading="lazy"><figcaption>Onderdelenbibliotheek met gegroepeerde koppen, inhoudsdelen en voetteksten</figcaption></figure>
+
+<p><strong>Wat het scherm toont.</strong> Gearchiveerde onderdelen worden in de lijst verborgen. Onderdelen worden gegroepeerd onder Kopteksten, Inhoud en Voetteksten. Elke kaart toont de naam, een statusbadge (Concept, Gepubliceerd of Gearchiveerd), de badge Ingebouwd waar die van toepassing is, het uitvoerend laboratorium, en het type, het specialisme en de omschrijving. Een kaart biedt <strong>Bewerken</strong> (niet bij ingebouwde onderdelen), <strong>Dupliceren</strong> en <strong>Archiveren</strong> met een bevestiging Ja/Nee (niet bij ingebouwde onderdelen).</p>
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bedieningselementen van de lijst:</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filtert de lijst op de naam van het onderdeel.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-parts-type-filter"><td>Typefilter</td>
+<td>Keuze: Alle, Kopteksten, Inhoud, Voetteksten</td>
+<td>Optioneel</td>
+<td>Toont één soort onderdeel.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-parts-lab-filter"><td>Labfilter</td>
+<td>Keuze: alle laboratoria, Algemeen, of één uitvoerend laboratorium</td>
+<td>Optioneel</td>
+<td>Toont onderdelen voor één laboratorium.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-parts-new-part"><td>Nieuw onderdeel</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de typekeuze voor het onderdeel (kop, inhoud of voettekst) en daarna de onderdeelbouwer.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-part-builder"><a class="anchor" href="#ch6-part-builder" aria-label="Link to this section">#</a> Onderdeelbouwer</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Onderdelenbibliotheek &gt; Onderdeelbouwer"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Onderdelenbibliotheek</span> <span aria-hidden="true">›</span> <span>Onderdeelbouwer</span></nav>
+
+<figure class="shot"><img src="../img/templates-parts-builder.webp" alt="Onderdeelbouwer met canvas, palet en inspecteur" loading="lazy"><figcaption>Onderdeelbouwer met canvas, palet en inspecteur</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-part-type"><td>Onderdeeltype</td>
+<td>Keuze: Kopgedeelte, Hoofdgedeelte, Voettekstgedeelte</td>
+<td>Verplicht</td>
+<td>Wordt eenmaal gekozen, bij het aanmaken van het onderdeel. Bepaalt in welk vak het onderdeel kan worden geplaatst.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-parts-name"><td>Naam</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Wordt getoond in de bibliotheek en in het sjabloonvak. Klik op de naam om die te bewerken.</td>
+<td><code>New Header Part</code>, <code>New Body Part</code> of <code>New Footer Part</code></td>
+</tr>
+<tr id="f-templates-parts-specialty"><td>Specialisme</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Groepeert het onderdeel. <code>General</code> betekent elk specialisme.</td>
+<td>Leeg (getoond als Algemeen)</td>
+</tr>
+<tr id="f-templates-parts-description"><td>Omschrijving</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Korte notitie op de bibliotheekkaart.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-parts-standard"><td>Norm</td>
+<td>Keuze: Geen, <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>, RCPath, Aangepast</td>
+<td>Optioneel</td>
+<td>Alleen een label. Het legt de bron van de opmaak vast en laadt of controleert geen <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-parts-performing-lab"><td>Uitvoerend lab</td>
+<td>Keuze: Algemeen (elk <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>), of één uitvoerend laboratorium</td>
+<td>Optioneel</td>
+<td>Een laboratoriumspecifiek onderdeel wordt alleen aangeboden voor de sjablonen van dat laboratorium.</td>
+<td>Algemeen</td>
+</tr>
+<tr id="f-templates-parts-grid"><td>Raster</td>
+<td>Schakelaar: Raster aan / Raster uit</td>
+<td>Optioneel</td>
+<td>Toont of verbergt het opmaakraster op het canvas. Alleen weergave.</td>
+<td>Aan</td>
+</tr>
+<tr id="f-templates-parts-components-canvas"><td>Componenten (canvas)</td>
+<td>Slepen vanuit het palet</td>
+<td>Optioneel</td>
+<td>De inhoud van het onderdeel. Zie de inspecteurvelden onder <a href="#screen-templates-templates">Rapportsjablonen</a>. Het aantal componenten wordt getoond.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-parts-save-state"><td>Opslagstatus</td>
+<td>Indicator: Niet opgeslagen, Bezig met opslaan, Opgeslagen, Fout</td>
+<td>Niet van toepassing</td>
+<td>Het onderdeel wordt tijdens het bewerken opgeslagen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-parts-publish"><td>Publiceren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt het onderdeel beschikbaar voor sjablonen (alleen gepubliceerde onderdelen kunnen worden geplaatst). Er geldt een controle op de definitieve diagnose; zie de sjablooneditor.</td>
+<td>Concept</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Aanmaken, opslaan, archiveren, dupliceren: <code>config:report-template:manage</code>. Publiceren: <code>config:report-template:publish</code>. Beide zijn hoog risico en worden geaudit. Beheerder en Laboratoriumdirecteur hebben beide; Sjabloonauteur heeft manage; Sjabloongoedkeurder heeft publish.
+<strong>Sjabloonvariabelen voor geslacht van de patiënt en <a class="term" href="99-glossary.html#g-nhs-number" title="De patiëntidentificatie van tien cijfers die in de NHS in Engeland en Wales wordt gebruikt. Het laatste cijfer is een controlecijfer.">NHS-nummer</a> (Batch 662).</strong> Verslagsjablonen drukken <code>{{patient.sexAtBirth}}</code> af en kunnen <code>{{patient.nhsNumber}}</code> gebruiken. Geslacht wordt nog steeds met dezelfde code opgeslagen (M, F, U) plus I voor onbepaald, dus sjablonen die <code>patient.sex == 'M'</code> testen blijven werken. Het label op de patiëntbanner toont alleen "traced" wanneer de opgeslagen NHS Number Status Indicator 01 is.
+<strong>Bekende beperkingen.</strong> Het veld Norm is een label. Het koppelt een onderdeel niet aan een CAP- of RCPath-protocol.</p>
+<h3 id="screen-templates-templates"><a class="anchor" href="#screen-templates-templates" aria-label="Link to this section">#</a> Rapportsjablonen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Rapportsjablonen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Rapportsjablonen</strong> &gt; subtabblad <strong>Rapportsjablonen</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Rapportsjablonen</p>
+<p><strong>3. Doel en reikwijdte.</strong> Een rapportsjabloon bepaalt de structuur van een rapport: welke kop-, inhouds- en voettekstonderdelen het gebruikt, in welke vakken, en (optioneel) de door AI ondersteunde generatiestappen van het laboratorium ervoor. Een sjabloon is Concept, Gepubliceerd of Gearchiveerd. Alleen een gepubliceerd sjabloon kan door routering worden gekozen. De lijst toont elk sjabloon met zijn status, een badge <strong>AI</strong> wanneer AI-generatie aanstaat, een badge <strong>STANDAARD</strong> bij de standaardlay-out voor chirurgische pathologie, het aantal actieve vakken en het tijdstip van de laatste wijziging.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Sjablonen worden opgebouwd uit gepubliceerde onderdelen, dus de <a class="term" href="99-glossary.html#g-part-library" title="De herbruikbare onderdelen, zoals een blok vragen, waaruit verslagsjablonen worden samengesteld.">onderdelenbibliotheek</a> komt eerst. Als u die overslaat, toont de onderdeelkiezer in de editor "Geen gepubliceerde onderdelen gevonden". De tekststijl van het laboratorium moet zijn ingesteld, zodat het paneel Stijl van het sjabloon een standaard heeft om op terug te vallen.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 5</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-templates-parts">Onderdelenbibliotheek</a>, <a href="#screen-document_style">Documentstijl</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-templates-routing">Routeringsregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/templates-templates.webp" alt="Lijst met rapportsjablonen met statusfilter, zoekveld, Vanuit standaard en Nieuw sjabloon" loading="lazy"><figcaption>Lijst met rapportsjablonen met statusfilter, zoekveld, Vanuit standaard en Nieuw sjabloon</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bedieningselementen van de lijst:</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-status-filter"><td>Statusfilter</td>
+<td>Keuze: Alle, Gepubliceerd, Concept, Gearchiveerd, elk met een aantal</td>
+<td>Optioneel</td>
+<td>Toont één status.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-templates-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filtert op naam.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-new-template-start-blank"><td>Nieuw sjabloon (leeg beginnen)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt een leeg concept aan en opent de editor.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-templates-from-standard-use-standard-template"><td>Vanuit standaard (standaardsjabloon gebruiken)</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Kopieert de standaardlay-out voor chirurgische pathologie als nieuw concept met de naam <code>My Surgical Pathology Report</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-templates-edit"><td>Bewerken</td>
+<td>Knop op een conceptrij</td>
+<td>Niet van toepassing</td>
+<td>Opent de editor.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-templates-duplicate"><td>Dupliceren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Maakt een kopie met de naam <code>Copy of &lt;name&gt;</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-templates-delete-archive"><td>Verwijderen / archiveren</td>
+<td>Knop met bevestiging Ja/Nee</td>
+<td>Niet van toepassing</td>
+<td>Een concept wordt verwijderd; een gepubliceerd sjabloon wordt gearchiveerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-editor"><a class="anchor" href="#ch6-template-editor" aria-label="Link to this section">#</a> Sjablooneditor</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Rapportsjablonen &gt; Sjablooneditor"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Sjablooneditor</span></nav>
+
+<figure class="shot"><img src="../img/templates-templates-editor.webp" alt="Sjablooneditor met paneel Onderdelenbibliotheek, paginavakken en voorbeeld" loading="lazy"><figcaption>Sjablooneditor met paneel Onderdelenbibliotheek, paginavakken en voorbeeld</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-template-name"><td>Sjabloonnaam</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Klik om te bewerken. Wordt opgeslagen wanneer u het vak verlaat.</td>
+<td>De naam die bij het aanmaken is opgegeven</td>
+</tr>
+<tr id="f-templates-templates-specialty-and-standard-line"><td>Regel met specialisme en norm</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td>Toont het specialisme van het sjabloon en de bijbehorende norm (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>, RCPath of Aangepast). Een leeg sjabloon begint als <code>general</code> en <code>custom</code>.</td>
+<td><code>general</code>, <code>custom</code></td>
+</tr>
+<tr id="f-templates-templates-status"><td>Status</td>
+<td>Concept, Gepubliceerd of Gearchiveerd</td>
+<td>Niet van toepassing</td>
+<td><strong>Publiceren</strong> zet een concept op Gepubliceerd. Publiceren is uitgeschakeld wanneer het sjabloon meer dan één veld heeft dat als Definitieve diagnose is gemarkeerd.</td>
+<td>Concept</td>
+</tr>
+<tr id="f-templates-templates-performing-lab-filter-part-library-panel"><td>Filter uitvoerend lab (paneel Onderdelenbibliotheek)</td>
+<td>Keuze: Alle labs (algemeen + elk lab), Algemeen, of één lab</td>
+<td>Optioneel</td>
+<td>Beperkt de aangeboden onderdelen.</td>
+<td>Alle labs</td>
+</tr>
+<tr id="f-templates-templates-part-search"><td>Onderdelen zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filtert de gepubliceerde onderdelen.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-header"><td>Vak: Kop pagina 1</td>
+<td>Eén kopgedeelte</td>
+<td>Optioneel</td>
+<td>Kop op de eerste pagina.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-header"><td>Vak: Kop pagina 2+</td>
+<td>Eén kopgedeelte, of "hetzelfde als pagina 1"</td>
+<td>Optioneel</td>
+<td>Kop op de latere pagina's.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-slot-body"><td>Vak: Inhoud</td>
+<td>Geordende lijst met inhoudsonderdelen</td>
+<td>Optioneel</td>
+<td>Sleep om de volgorde te wijzigen. Inhoudsonderdelen lopen door over alle pagina's. Elk onderdeel kan met de vakschakelaar worden uitgezet zonder het te verwijderen.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-footer"><td>Vak: Voettekst pagina 2+</td>
+<td>Eén voettekstonderdeel</td>
+<td>Optioneel</td>
+<td>Voettekst op de latere pagina's.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-footer"><td>Vak: Voettekst pagina 1</td>
+<td>Eén voettekstonderdeel</td>
+<td>Optioneel</td>
+<td>Voettekst op de eerste pagina.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-style-font-family"><td>Stijl (lettertype)</td>
+<td>Keuze uit de goedgekeurde lettertypen</td>
+<td>Optioneel</td>
+<td>Standaardtekststijl op sjabloonniveau voor kop, inhoud of voettekst. Valt terug op de standaard van het laboratorium wanneer leeg.</td>
+<td>Standaard van het laboratorium</td>
+</tr>
+<tr id="f-templates-templates-style-font-size-pt"><td>Stijl (lettergrootte, pt)</td>
+<td>Getal</td>
+<td>Optioneel</td>
+<td>Idem. Groottes zijn in punten.</td>
+<td>Standaard van het laboratorium</td>
+</tr>
+<tr id="f-templates-templates-style-bold-underline"><td>Stijl (vet, onderstrepen)</td>
+<td>Schakelaars</td>
+<td>Optioneel</td>
+<td>Idem.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-style-text-transform"><td>Stijl (teksttransformatie)</td>
+<td>Keuze: Zoals getypt, Beginhoofdletters, HOOFDLETTERS</td>
+<td>Optioneel</td>
+<td>Idem.</td>
+<td>Zoals getypt</td>
+</tr>
+<tr id="f-templates-templates-preview"><td>Voorbeeld</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont het sjabloon met fictieve casusgegevens, het aantal pagina's en de fictieve context.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-templates-preview-margins-top-right-bottom-left-mm"><td>Marges van het voorbeeld (boven, rechts, onder, links, mm)</td>
+<td>Getal</td>
+<td>Optioneel</td>
+<td>Alleen voor dit voorbeeld. Het echte paginaformaat en de echte marges van het laboratorium worden ingesteld in Documentstijl.</td>
+<td>De instelling van het laboratorium</td>
+</tr>
+<tr id="f-templates-templates-preview-page-size"><td>Paginaformaat van het voorbeeld</td>
+<td>Keuze: A4, US Letter, US Legal, A3, B5</td>
+<td>Optioneel</td>
+<td>Alleen voor dit voorbeeld.</td>
+<td>De instelling van het laboratorium</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-inspector"><a class="anchor" href="#ch6-template-inspector" aria-label="Link to this section">#</a> Inspecteur: velden van de geselecteerde component</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Rapportsjablonen &gt; Sjablooneditor &gt; Inspecteur"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Sjablooneditor</span> <span aria-hidden="true">›</span> <span>Inspecteur</span></nav>
+
+<p>De inspecteur toont de eigenschappen van wat u op het canvas selecteert. In de onderdeelbouwer wordt dezelfde inspecteur gebruikt.</p>
+<figure class="shot"><img src="../img/templates-templates-inspector.webp" alt="Inspecteurpaneel voor een geselecteerd veld" loading="lazy"><figcaption>Inspecteurpaneel voor een geselecteerd veld</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-label"><td>Label</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Het afgedrukte label van het veld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-width"><td>Breedte</td>
+<td>Kolommen van 12</td>
+<td>Optioneel</td>
+<td>Sleep de greep op het canvas voor een fijnere instelling.</td>
+<td>Bepaald door het componenttype</td>
+</tr>
+<tr id="f-templates-templates-required"><td>Verplicht</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Het veld moet worden ingevuld.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-hide-when-empty"><td>Verbergen wanneer leeg</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Laat het veld weg uit het afgedrukte rapport wanneer het geen waarde heeft.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-page-break-before-this-field"><td>Pagina-einde vóór dit veld</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Begint een nieuwe pagina.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-final-diagnosis-field"><td>Veld voor definitieve diagnose</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Markeert het veld dat de definitieve diagnose bevat. Een sjabloon mag er maar één hebben.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-include-in-fhir-export"><td>Opnemen in FHIR-export</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Wordt bij het veld opgeslagen. Er is geen scherm voor FHIR-export gerealiseerd; zie <a href="07-tier6-interface-engine.html#ch7">Hoofdstuk 7</a>.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-show-when-visibility"><td>Tonen wanneer (zichtbaarheid)</td>
+<td>Conditielijst met AND/OR</td>
+<td>Optioneel</td>
+<td>Condities op andere velden: is gelijk aan, is niet gelijk aan, bevat, is leeg, is niet leeg, groter dan, kleiner dan, enzovoort.</td>
+<td>Altijd getoond</td>
+</tr>
+<tr id="f-templates-templates-label-position"><td>Positie van het label</td>
+<td>Keuze: Boven het veld, Naast het veld, Verborgen</td>
+<td>Optioneel</td>
+<td>Opmaak van het label.</td>
+<td>Boven</td>
+</tr>
+<tr id="f-templates-templates-label-font-size-pt-bold-underline-text-transform"><td>Lettergrootte van het label (pt), vet, onderstrepen, teksttransformatie</td>
+<td>Getal en schakelaars</td>
+<td>Optioneel</td>
+<td>Labelopmaak op componentniveau. Wint van de stijlen van het sjabloon en van het laboratorium.</td>
+<td>Overgenomen</td>
+</tr>
+<tr id="f-templates-templates-binding-key"><td>Bindingssleutel</td>
+<td>Tekst</td>
+<td>Verplicht voor gebonden velden</td>
+<td>Het casusgegevensveld dat een tekstveld, keuzelijst, getal, datum, afbeelding of gegevensalinea leest.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-text-field-placeholder-max-length-validation-pattern-regex"><td>Tekstveld: plaatshouder, maximale lengte, validatiepatroon (regex)</td>
+<td>Tekst, getal, tekst</td>
+<td>Optioneel</td>
+<td>Invoerbeperkingen op een tekstveld.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-dropdown-options"><td>Keuzelijst: opties</td>
+<td>Eén <code>value|Label</code> per regel</td>
+<td>Verplicht</td>
+<td>De keuzes.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-dropdown-allow-multiple-selection-allow-free-text-entry"><td>Keuzelijst: meervoudige selectie toestaan, vrije tekstinvoer toestaan</td>
+<td>Schakelaars</td>
+<td>Optioneel</td>
+<td></td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-number-unit-unit-options-decimal-places-min-max"><td>Getal: eenheid, eenheidopties, aantal decimalen, minimum, maximum</td>
+<td>Tekst en getallen</td>
+<td>Optioneel</td>
+<td></td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-date-format-default-to-today-s-date"><td>Datum: indeling, standaard de datum van vandaag</td>
+<td>Keuze: Datum, Datum en tijd, Alleen jaar; schakelaar</td>
+<td>Optioneel</td>
+<td></td>
+<td>Datum, uit</td>
+</tr>
+<tr id="f-templates-templates-computed-expression-output-type-unit"><td>Berekend: expressie, uitvoertype, eenheid</td>
+<td>Tekst; keuze Tekst, Getal, Datum</td>
+<td>Verplicht</td>
+<td>Een waarde die uit andere velden wordt berekend.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-static-label-text-variant-bold-italic"><td>Vast label: tekst, variant, vet, cursief</td>
+<td>Tekst; keuze Kop 1, 2, 3, Lopende tekst, Bijschrift</td>
+<td>Verplicht</td>
+<td>Vaste kop of tekst.</td>
+<td>Lopende tekst</td>
+</tr>
+<tr id="f-templates-templates-rich-text-block-content-font-size-px-text-alignment"><td>Blok met opgemaakte tekst: inhoud, lettergrootte (px), tekstuitlijning</td>
+<td>Tekst, getal, keuze Links, Gecentreerd, Rechts</td>
+<td>Optioneel</td>
+<td>Vaste tekst, in elk rapport gelijk.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-templates-templates-data-paragraph-binding-key-rich-text-formatting-allow-ai-to-write-this-paragraph"><td>Gegevensalinea: bindingssleutel, opgemaakte tekst, AI toestaan deze alinea te schrijven</td>
+<td>Tekst en schakelaars</td>
+<td>Optioneel</td>
+<td>Een vak dat uit casusgegevens wordt gevuld.</td>
+<td>AI schrijven uit</td>
+</tr>
+<tr id="f-templates-templates-image-embed-binding-key-or-static-image-url-alt-text-caption-alignment-width-height-px"><td>Ingesloten afbeelding: bindingssleutel of statische afbeeldings-URL, alternatieve tekst, bijschrift, uitlijning, breedte, hoogte (px)</td>
+<td>Tekst, getallen</td>
+<td>Optioneel</td>
+<td>Een gehost afbeeldingsadres, nooit een geüpload bestand.</td>
+<td>Automatische grootte</td>
+</tr>
+<tr id="f-templates-templates-section-print-heading-collapsible-start-collapsed"><td>Sectie: afdrukkop, inklapbaar, ingeklapt beginnen</td>
+<td>Tekst en schakelaars</td>
+<td>Optioneel</td>
+<td>Een groep velden.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-templates-templates-column-layout-number-of-columns-column-gap-px"><td>Kolomindeling: aantal kolommen, kolomafstand (px)</td>
+<td>Getallen</td>
+<td>Optioneel</td>
+<td>De kolommen waarover de inhoud loopt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-repeat-group-iterate-over-item-alias-min-items-max-items"><td>Herhaalgroep: herhalen over, itemalias, minimumaantal items, maximumaantal items</td>
+<td>Tekst, getallen</td>
+<td>Optioneel</td>
+<td>Herhaalt de inhoud voor elk item in een lijst.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-if-block-show-children-when-else-branch"><td>Als-blok: onderliggende elementen tonen wanneer, Anders-tak</td>
+<td>Conditielijst</td>
+<td>Optioneel</td>
+<td>Toont de inhoud wanneer de conditie geldt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-switch-block-switch-on-cases-case-label-when"><td>Schakelblok: schakelen op, gevallen (label van het geval, wanneer)</td>
+<td>Veld en conditielijst</td>
+<td>Optioneel</td>
+<td>Toont de inhoud van het overeenkomende geval.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-page-break-break-behavior"><td>Pagina-einde: gedrag bij einde</td>
+<td>Keuze: Automatisch, Altijd afbreken, Afbreken vermijden</td>
+<td>Optioneel</td>
+<td></td>
+<td>Automatisch</td>
+</tr>
+<tr id="f-templates-templates-template-reference-referenced-template-id-name-context-overrides"><td>Sjabloonverwijzing: ID van het gerefereerde sjabloon, naam, contextoverschrijvingen</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voegt de inhoud van een ander sjabloon in.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-templates-header-show-institution-logo-show-patient-name-show-accession-number-page-scope-height-px-custom-html"><td>Kop: instellingslogo weergeven, patiëntnaam weergeven, <a class="term" href="99-glossary.html#g-accession-number" title="De permanente identificatie van een casus, opgebouwd uit het casusmasker van de faciliteit. Op het scherm wordt het behandeld als patiëntidentificatie: het staat binnen patiëntgegevenstags zodat schermafbeeldingen kunnen worden geredigeerd.">accessienummer</a> weergeven, paginabereik, hoogte (px), aangepaste HTML</td>
+<td>Schakelaars, keuze Alle pagina's, Alleen pagina 1, Alleen pagina 2+; getal; tekst</td>
+<td>Optioneel</td>
+<td>Schakelaars voor de inhoud van de kop.</td>
+<td>Uit, alle pagina's</td>
+</tr>
+<tr id="f-templates-templates-footer-show-page-numbers-page-number-format-page-scope-height-px-custom-html"><td>Voettekst: paginanummers weergeven, indeling van het paginanummer, paginabereik, hoogte (px), aangepaste HTML</td>
+<td>Schakelaar, tekst, keuze, getal, tekst</td>
+<td>Optioneel</td>
+<td>Schakelaars voor de inhoud van de voettekst.</td>
+<td>Uit, alle pagina's</td>
+</tr>
+<tr id="f-templates-templates-ai-generation-enable-ai-assisted-generation-system-instruction-temperature-max-tokens"><td>AI-generatie: door AI ondersteunde generatie inschakelen, systeeminstructie, temperatuur, maximaal aantal tokens</td>
+<td>Schakelaar, tekst, getal, getal</td>
+<td>Optioneel</td>
+<td>AI-instellingen per sectie die de orkestratiemodus gebruikt. Ingericht in <a href="05-tier4-ai-framework.html#ch5">Hoofdstuk 5</a>.</td>
+<td>Uit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Aanmaken, opslaan, dupliceren, verwijderen, archiveren: <code>config:report-template:manage</code>. Publiceren: <code>config:report-template:publish</code>. Beide hoog risico, geaudit. Houders zoals bij de <a class="term" href="99-glossary.html#g-part-library" title="De herbruikbare onderdelen, zoals een blok vragen, waaruit verslagsjablonen worden samengesteld.">onderdelenbibliotheek</a>.
+<strong>Bekende beperkingen.</strong> Controles op de definitieve diagnose worden in de editor uitgevoerd vóór het publiceren. De levenscyclus van sjablonen is hier Concept, Gepubliceerd, Gearchiveerd; er is geen beoordelingsstap zoals bij het synoptische sjabloon (zie <a href="#screen-template_governance">Sjabloonbeoordeling</a>).</p>
+<h3 id="screen-templates-routing"><a class="anchor" href="#screen-templates-routing" aria-label="Link to this section">#</a> Routeringsregels</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Routeringsregels"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Routeringsregels</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Rapportsjablonen</strong> &gt; subtabblad <strong>Routeringsregels</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Routeringsregels voor sjablonen</p>
+<p><strong>3. Doel en reikwijdte.</strong> Regels overschrijven de standaardketen (<a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>, dan <a class="term" href="99-glossary.html#g-subspecialty" title="Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.">subspecialisme</a>, dan de gouden standaard) voor specifieke faciliteiten, artsen of synoptische protocollen. Met een <strong>Protocoltoewijzing</strong> wijst u een nieuw of gewijzigd <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> protocol aan een sjabloon toe zonder softwarerelease. Dit is niet hetzelfde scherm als <a href="04-tier3-workflow-engines.html#screen-routing_rules">Routeringsregels</a> onder Systeem, dat casussen naar pathologen routeert.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Regels verwijzen naar gepubliceerde sjablonen, faciliteiten, artsen en protocollen. Als u de sjablonen overslaat, is de lijst Rapportsjabloon leeg. Een protocoltoewijzing kiest uit de protocollen in de synoptische bibliotheek en is daarom het nuttigst na werk in de <a href="#screen-protocols-review">Beoordelingswachtrij</a>; een regel kan later worden toegevoegd.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 6</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-templates-templates">Rapportsjablonen</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Artsen</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/templates-routing.webp" alt="Routeringsregels voor sjablonen met de secties faciliteit, arts en protocol en het testpaneel" loading="lazy"><figcaption>Routeringsregels voor sjablonen met de secties <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>, arts en protocol en het testpaneel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-overrides"><td>Instelling-overrides</td>
+<td>Lijst met regels</td>
+<td>Optioneel</td>
+<td>Pass 0 en Pass 0a. Een aangesloten faciliteit zonder eigen regel gebruikt die van de bovenliggende <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-routing-physician-preferences"><td>Artsvoorkeuren</td>
+<td>Lijst met regels</td>
+<td>Optioneel</td>
+<td>Pass 0b.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-routing-protocol-mappings"><td>Protocoltoewijzingen</td>
+<td>Lijst met regels</td>
+<td>Optioneel</td>
+<td>Pass 1. Ze vullen de ingebouwde protocoltabel aan en gaan erbovenop voor.</td>
+<td>Geen (alleen de ingebouwde tabel)</td>
+</tr>
+<tr id="f-templates-routing-priority-panel"><td>Prioriteitspaneel</td>
+<td>Alleen-lezen lijst</td>
+<td>Niet van toepassing</td>
+<td>Toont elke pass en of die door de beheerder wordt gedefinieerd of door de beheerder kan worden uitgebreid; de pass die de laatste test heeft opgelost, wordt gemarkeerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-templates-routing-enable-disable-rule"><td>Regel inschakelen / uitschakelen</td>
+<td>Schakelaar op elke rij</td>
+<td>Optioneel</td>
+<td>Een uitgeschakelde regel wordt overgeslagen.</td>
+<td>Ingeschakeld</td>
+</tr>
+<tr id="f-templates-routing-delete"><td>Verwijderen</td>
+<td>Knop met bevestiging</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-rule-window"><a class="anchor" href="#ch6-routing-rule-window" aria-label="Link to this section">#</a> Een regel toevoegen of bewerken</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Routeringsregels &gt; Regel toevoegen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Routeringsregels</span> <span aria-hidden="true">›</span> <span>Regel toevoegen</span></nav>
+
+<figure class="shot"><img src="../img/templates-routing-rule.webp" alt="Venster Faciliteitsrouteringsregel toevoegen" loading="lazy"><figcaption>Venster Faciliteitsrouteringsregel toevoegen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-physician-or-protocol"><td>Faciliteit, arts of <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a></td>
+<td>Keuzelijst</td>
+<td>Verplicht</td>
+<td>Op welke entiteit de regel van toepassing is. Het label volgt de sectie die u hebt geopend.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-routing-performing-lab"><td>Uitvoerend lab</td>
+<td>Keuze: Algemeen (elk <a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>), of één lab</td>
+<td>Optioneel</td>
+<td>Een regel voor een lab wordt voor de eigen casussen van dat lab eerder gecontroleerd dan een algemene regel.</td>
+<td>Algemeen</td>
+</tr>
+<tr id="f-templates-routing-report-template"><td>Rapportsjabloon</td>
+<td>Keuzelijst met sjablonen</td>
+<td>Verplicht</td>
+<td>Het sjabloon dat de entiteit altijd gebruikt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-routing-note"><td>Opmerking</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Waarom de overschrijving bestaat.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-test"><a class="anchor" href="#ch6-routing-test" aria-label="Link to this section">#</a> Sjabloonroutering testen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Rapportsjablonen &gt; Routeringsregels &gt; Test"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Rapportsjablonen</span> <span aria-hidden="true">›</span> <span>Routeringsregels</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="../img/templates-routing-test.webp" alt="Paneel Sjabloonroutering testen" loading="lazy"><figcaption>Paneel Sjabloonroutering testen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-performing-facility"><td>Uitvoerende instelling</td>
+<td>Keuzelijst</td>
+<td>Optioneel</td>
+<td>De <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a> van de <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-routing-ordering-physician"><td>Aanvragende arts</td>
+<td>Keuzelijst</td>
+<td>Optioneel</td>
+<td></td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-routing-subspecialty"><td>Subspecialisme</td>
+<td>Keuzelijst</td>
+<td>Optioneel</td>
+<td></td>
+<td>Alle</td>
+</tr>
+<tr id="f-templates-routing-synoptic-template-id"><td>Synoptisch sjabloon-ID</td>
+<td>Keuzelijst</td>
+<td>Optioneel</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-templates-routing-test-routing"><td>Routering testen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont het gekozen sjabloon en de pass die het koos. Bij een dubbelzinnig resultaat worden de kandidaten opgesomd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Toevoegen, wijzigen, verwijderen: <code>config:template-routing:manage</code> (hoog risico, geaudit). Beheerder en Laboratoriumdirecteur hebben deze; Sjabloonauteur en Sjabloongoedkeurder niet.
+<strong>Bekende beperkingen.</strong> De tabellen voor <a class="term" href="99-glossary.html#g-subspecialty" title="Een deelgebied van de pathologie, zoals borst of maag-darmstelsel, gebruikt om casus te routeren. Een subspecialisme kan op poolmodus worden gezet.">subspecialisme</a> en gouden standaard (Pass 2 en 3) zijn ingebouwd en kunnen hier niet worden bewerkt. De poort voor voorlopige rapporten is ingebouwd.</p>
+<h3 id="screen-fonts"><a class="anchor" href="#screen-fonts" aria-label="Link to this section">#</a> Goedgekeurde lettertypen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Goedgekeurde lettertypen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Goedgekeurde lettertypen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Goedgekeurde lettertypen</p>
+<p><strong>3. Doel en reikwijdte.</strong> Bepaalt welke lettertypen de vrijetekst-editors aan pathologen aanbieden in hun werkbalk (de rapporteditor, de narratieve editor, de macro-editors en de opmerkingenvensters lezen de lijst). Een lettertype dat is uitgeschakeld, blijft in de lijst staan maar wordt voor gebruikers verborgen. De pool is vast: 14 lettertypen in drie groepen. U kunt hier geen lettertypenaam toevoegen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen. Deze instelling filtert alleen een werkbalk. Ze wijzigt het standaardlettertype van het laboratorium voor rapporten niet; dat wordt ingesteld in <a href="#screen-document_style">Documentstijl</a>, dat een eigen, kortere lijst van zeven lettertypen aanbiedt en deze lijst niet leest.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 1</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-fonts.webp" alt="Goedgekeurde lettertypen met zoekveld en schakelaars per lettertype" loading="lazy"><figcaption>Goedgekeurde lettertypen met zoekveld en schakelaars per lettertype</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-fonts-search-fonts"><td>Lettertypen zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Filtert de 14 lettertypen op naam.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-fonts-count-badge"><td>Teller</td>
+<td>Alleen-lezen tekst, "N van 14 ingeschakeld"</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-fonts-font-switch-one-per-font"><td>Lettertypeschakelaar (één per lettertype)</td>
+<td>Ja/nee-schakelaar, getoond als Actief of Inactief</td>
+<td>Optioneel</td>
+<td>Aan betekent dat het lettertype in de werkbalken van de editors verschijnt. De pool: Serif (Times New Roman, Georgia, Garamond, Palatino), Sans-Serif (Arial, Helvetica, Calibri, Verdana, Trebuchet MS, Tahoma, Roboto), Monospace (Courier New, Consolas, Lucida Console).</td>
+<td>Aan voor Arial, Times New Roman en Courier New; uit voor de rest</td>
+</tr>
+<tr id="f-fonts-last-font-guard"><td>Bewaking van het laatste lettertype</td>
+<td>Melding "Er moet minstens één lettertype ingeschakeld blijven"</td>
+<td>Niet van toepassing</td>
+<td>Het laatste ingeschakelde lettertype kan niet worden uitgezet.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:report-appearance:manage</code> (hoog risico, geaudit). Zonder deze <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> is de sectie grijs en alleen-lezen. Beheerder en Laboratoriumdirecteur hebben haar standaard.
+<strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h3 id="screen-document_style"><a class="anchor" href="#screen-document_style" aria-label="Link to this section">#</a> Documentstijl</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Documentstijl"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Documentstijl</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Documentstijl</p>
+<p><strong>3. Doel en reikwijdte.</strong> Stelt de standaardtekststijl van het laboratorium in voor de kop, de inhoud en de voettekst van elk rapport, en het paginaformaat en de afdrukmarges van het laboratorium. Het eigen paneel Stijl van een sjabloon overschrijft de standaard voor dat sjabloon, en de labelopmaak van een component overschrijft beide. Groottes worden opgeslagen in punten, de grootte die wordt afgedrukt, en er wordt niets kleiner dan 8 pt afgedrukt. Een stijl die is opgeslagen voordat er punten bestonden, wordt in pixels bewaard (elke pixel wordt als 0,75 pt afgedrukt) en blijft afdrukken zoals voorheen totdat u hem omzet.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen. Doe dit voordat u sjablonen bouwt, zodat elk sjabloon met de juiste standaard begint.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 2</p><dl><dt>Eerst inrichten</dt><dd><span class="none">Geen, dit is een startpunt.</span></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-templates-parts">Onderdelenbibliotheek</a>, <a href="#screen-templates-templates">Rapportsjablonen</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-document_style.webp" alt="Documentstijl met stijlen voor kop, inhoud en voettekst en pagina-instelling" loading="lazy"><figcaption>Documentstijl met stijlen voor kop, inhoud en voettekst en pagina-instelling</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong> Dezelfde vijf stijlvelden komen één keer voor bij kop, inhoud en voettekst.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-document_style-font-family-header-body-footer"><td>Lettertype (kop, inhoud, voettekst)</td>
+<td>Keuze: Arial, Helvetica, Times New Roman, Georgia, Calibri, Verdana, Courier New</td>
+<td>Optioneel</td>
+<td>Het standaardrapportlettertype voor dat gebied.</td>
+<td>Arial</td>
+</tr>
+<tr id="f-document_style-font-size-pt"><td>Lettergrootte (pt)</td>
+<td>Aantal punten, minimaal 8</td>
+<td>Optioneel</td>
+<td>De afgedrukte grootte. Getoond als "Lettergrootte (px, opgeslagen vóór punten)" met een hint wanneer de stijl nog in pixels is.</td>
+<td>Inhoud 10, kop 11, voettekst 10</td>
+</tr>
+<tr id="f-document_style-bold"><td>Vet</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td></td>
+<td>Kop aan; inhoud en voettekst uit</td>
+</tr>
+<tr id="f-document_style-underline"><td>Onderstrepen</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td></td>
+<td>Uit</td>
+</tr>
+<tr id="f-document_style-text-transform"><td>Tekst transformeren</td>
+<td>Keuze: Zoals getypt, Beginhoofdletters, HOOFDLETTERS</td>
+<td>Optioneel</td>
+<td></td>
+<td>Zoals getypt</td>
+</tr>
+<tr id="f-document_style-preview"><td>Voorbeeld</td>
+<td>Alleen-lezen voorbeeldtekst</td>
+<td>Niet van toepassing</td>
+<td>Toont de gekozen stijl direct.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-document_style-convert-to-points"><td>Omzetten naar punten</td>
+<td>Knop, alleen getoond bij een stijl die in pixels is opgeslagen</td>
+<td>Niet van toepassing</td>
+<td>Opent een bevestiging met elke grootte en waarmee die gaat afdrukken. De getallen blijven gelijk en betekenen nu punten, zodat de tekst groter wordt afgedrukt. Vastgelegd in het <a class="term" href="99-glossary.html#g-audit-log" title="Het overzicht van wat mensen, het systeem en de AI hebben gedaan, te lezen op het scherm Systeemlogboeken. De detailtekst is Engels en bevat geen patiëntnamen of klinische waarden.">auditlogboek</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-document_style-page-size"><td>Paginaformaat</td>
+<td>Keuze: A4 (210 x 297 mm), US Letter (216 x 279), US Legal (216 x 356), A3 (297 x 420), B5 (176 x 250)</td>
+<td>Optioneel</td>
+<td>Het papierformaat van het laboratorium. Het sjabloonvoorbeeld opent ermee.</td>
+<td>A4</td>
+</tr>
+<tr id="f-document_style-top-right-bottom-left-margin-mm"><td>Marge boven, rechts, onder, links (mm)</td>
+<td>Geheel getal van 5 tot 50</td>
+<td>Optioneel</td>
+<td>Afdrukmarges.</td>
+<td>Boven 25, rechts 20, onder 25, links 20</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:report-appearance:manage</code> (hoog risico, geaudit), gecontroleerd in de service en op het scherm. Beheerder en Laboratoriumdirecteur hebben haar.
+<strong>Bekende beperkingen.</strong> De ontwikkelrenderer voor rapporten (<code>functions/</code>) drukt nog altijd A4 af en leest het paginaformaat van het laboratorium nog niet; de instelling wordt meegestuurd in de renderlading, zodat de productieserver haar kan gebruiken. Paginaformaat en marges zijn beleid van het laboratorium, bepaald door het printerpapier, en geen persoonlijke keuze.</p>
+<h3 id="screen-template_governance"><a class="anchor" href="#screen-template_governance" aria-label="Link to this section">#</a> Sjabloonbeoordeling</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Sjabloonbeoordeling"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Sjabloonbeoordeling</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Sjabloonbeoordeling</p>
+<p><strong>3. Doel en reikwijdte.</strong> Bepaalt wie op deze locatie <strong>synoptische sjablonen</strong> (de synoptische bibliotheek) mag goedkeuren en publiceren. Het regelt geen rapportsjablonen, die een eigen eenvoudige levenscyclus van concept, publiceren en archiveren hebben. Er gelden twee instellingen en een vaste regel: een diagnostisch <a class="term" href="99-glossary.html#g-synoptic" title="Een verslag dat is opgebouwd uit een vaste set gestructureerde vragen, zodat elk verplicht onderdeel in dezelfde vorm wordt beantwoord.">synoptisch</a> sjabloon kan niet worden gepubliceerd onder 80% SNOMED-dekking op veldniveau. Procedurele sjablonen, zoals checklists voor het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a>, zijn uitgezonderd omdat ze nooit worden gecodeerd.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> De ingebouwde rollen Sjabloonauteur, Sjabloongoedkeurder, Laboratoriumdirecteur en Beheerder doen het werk, dus de rollen van het personeel worden eerst ingericht. Als u dit overslaat, kan niemand een sjabloon goedkeuren, omdat goedkeuring de machtigingen van een goedkeurder vereist.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 3</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-protocols-review">Beoordelingswachtrij</a>, <a href="#screen-protocols-active">Actieve protocollen</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-template_governance.webp" alt="Sjabloonbeoordeling met zelfgoedkeuring en vereiste beoordelaars" loading="lazy"><figcaption>Sjabloonbeoordeling met zelfgoedkeuring en vereiste beoordelaars</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-template_governance-allow-template-self-approval"><td>Zelfgoedkeuring van sjablonen toestaan</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Uit (aanbevolen): een auteur kan een sjabloon dat hij heeft gemaakt of bewerkt niet goedkeuren of publiceren. Elke persoon die het sjabloon heeft opgeslagen, telt als auteur. Zet dit alleen aan voor solopraktijken, kleine locaties of tests.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-template_governance-required-reviewers"><td>Vereiste beoordelaars</td>
+<td>Keuze: 1, 2 of 3 onafhankelijke beoordelaars</td>
+<td>Optioneel</td>
+<td>Goedkeuringen die een sjabloon nodig heeft voordat het kan worden gepubliceerd. Elke goedkeuring moet komen van een andere Sjabloongoedkeurder, Laboratoriumdirecteur of Beheerder die niet een van de auteurs is (tenzij zelfgoedkeuring aanstaat).</td>
+<td>1</td>
+</tr>
+<tr id="f-template_governance-snomed-threshold"><td>SNOMED-drempel</td>
+<td>Alleen-lezen tekst, 80%</td>
+<td>Niet van toepassing</td>
+<td>Getoond in de ondertitel. Niet te bewerken.</td>
+<td>80%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:template-governance:manage</code> (hoog risico, geaudit; de wijziging wordt vastgelegd met de oude en nieuwe waarden). Beheerder heeft haar standaard; Laboratoriumdirecteur niet, dus verleen haar in Personeel &gt; Rollen als de Laboratoriumdirecteur dit moet beheren. Zonder deze <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> toont het scherm een melding dat u de instellingen kunt bekijken maar niet kunt wijzigen.
+<strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h2 id="ch6-synoptic"><a class="anchor" href="#ch6-synoptic" aria-label="Link to this section">#</a> Inrichting van de CAP-module voor synoptische rapportage</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span></nav>
+
+<p>De synoptische bibliotheek bevat de gestructureerde checklists (protocollen) die pathologen invullen voor kanker en andere rapportage. Ze staat los van rapportsjablonen: een <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> bepaalt de vragen en hun codering, een rapportsjabloon bepaalt hoe een rapport eruitziet. Het scherm Routeringsregels koppelt de twee.</p>
+<p><strong>Wat er vandaag werkelijk in de bibliotheek staat (lees dit eerst).</strong> In de demonstratiegegevens bevat het <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> 36 protocollen: 32 Gepubliceerd, 3 In beoordeling en 1 Concept. Naar bron zijn er 23 <code>Custom</code> en 13 <code>PathScribe</code>. <strong>Geen enkel protocol is een gelicentieerde CAP- of RCPath-checklist.</strong> De namen <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>, RCPath en ICCR bestaan alleen als bronlabels in het venster Uploaden en als namen van toezichthoudende instanties. De 19 items met de naam "Generic Template" (borst, long, prostaat, colon, nier, Wilms, melanoom en andere) zijn tijdelijke aanduidingen met versie <code>0.1.0-generic</code>. De rest bestaat uit twee generieke synoptische testformulieren, PathScribe-formulieren zoals <a class="term" href="99-glossary.html#g-mohs" title="Mohs micrografische chirurgie, waarbij huidkanker in dunne lagen wordt verwijderd en elke laag onder de microscoop wordt gecontroleerd voordat de volgende wordt genomen.">Mohs</a> en halsklierdissectie, formulieren voor medische lever, placenta en niertransplantatie, macroscopisch onderzoek bij autopsie, de drie routes voor het <a class="term" href="99-glossary.html#g-grossing" title="Het onderzoeken en snijden van een chirurgisch monster door een patholoog of patholoog-assistent, waarbij het wordt beschreven en de te verwerken stukken worden gekozen.">uitsnijden</a> volgens de gouden standaard en vijf cytologische rapportagesystemen (<a class="term" href="99-glossary.html#g-bethesda" title="Het rapportagesysteem voor uitslagen van cervixcytologie en monsteradequaatheid, gebruikt in de Verenigde Staten en op veel andere plaatsen.">Bethesda</a> schildklier, Milan speekselklier, Paris urinewegen, Papanicolaou pancreaticobiliair, lymfeklier-FNA). Een ziekenhuis dat een CAP-protocol nodig heeft, moet dit verkrijgen onder de eigen licentie van CAP en het via de onderstaande routes binnenbrengen.</p>
+<p><strong>Hoe een protocolversie binnenkomt en weer verdwijnt.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Stap</th>
+<th>Status</th>
+<th>Wat er bestaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Een PathScribe-protocolbestand (<a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a>) importeren</td>
+<td>Gerealiseerd</td>
+<td><strong>Protocol uploaden</strong> leest het bestand, controleert het en slaat het op als concept. Het doorloopt daarna de beoordeling zoals elk ander concept.</td>
+</tr>
+<tr>
+<td>Een elektronische CAP-checklist (eCC, <a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, de XML-formaatstandaard waarmee CAP electronic cancer checklists worden verspreid.">SDC</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a>) of een Excel-werkmap controleren</td>
+<td>Gedeeltelijk</td>
+<td>De indeling van het bestand wordt gecontroleerd en het aantal secties en vragen wordt getoond. Importeren is nog niet mogelijk en de inhoud wordt niet geverifieerd aan CAP of RCPath.</td>
+</tr>
+<tr>
+<td>Een protocol bouwen in de editor</td>
+<td>Gerealiseerd</td>
+<td><strong>Bouwen / Aanpassen</strong> begint vanaf nul of vanaf een kopie van een bestaand protocol.</td>
+</tr>
+<tr>
+<td>Een nieuwe versie van een bestaand protocol laden</td>
+<td>Gerealiseerd</td>
+<td><strong>Nieuwe versie</strong> opent de editor met het volgende versienummer. Bij het publiceren wordt de versie waaruit het voortkomt gearchiveerd.</td>
+</tr>
+<tr>
+<td>Automatische nachtelijke synchronisatie van updates van CAP, RCPath of ICCR</td>
+<td>Niet gerealiseerd</td>
+<td>Het scherm Toezichthoudende organen heeft per orgaan een schakelaar Automatische synchronisatie, en het venster Uploaden en de meldingsteksten noemen een nachtelijke synchronisatie, maar in deze build bestaat er geen synchronisatietaak en staat er geen in de lijst met servertaken. Het meldingscontract (<code>TEMPLATE_NOTIFICATIONS_API.md</code>) beschrijft de berichten die een toekomstige synchronisatietaak zou verzenden. Laad updates tot die tijd handmatig.</td>
+</tr>
+<tr>
+<td>Een protocol buiten gebruik stellen</td>
+<td>Gerealiseerd</td>
+<td><strong>Archiveren</strong> haalt het uit nieuwe rapporten; reeds geschreven rapporten behouden hun inhoud. <strong>Herstellen als concept</strong> brengt het terug voor beoordeling en opnieuw publiceren.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Levenscyclus.</strong> Concept, In beoordeling, Wijzigingen vereist, Goedgekeurd, Gepubliceerd, Gearchiveerd. De namen van de acties volgen de bron: voor CAP is de goedkeuringsstap <strong>Accepteren</strong> en de publicatiestap <strong>Vrijgeven</strong>; voor RCPath zijn ze <strong>Bekrachtigen</strong> en <strong>Publiceren</strong>; voor Custom, PathScribe en ICCR zijn ze <strong>Goedkeuren</strong> en <strong>Publiceren</strong>. De governance (zelfgoedkeuring, aantal beoordelaars, de 80%-regel voor SNOMED) wordt ingesteld in <a href="#screen-template_governance">Sjabloonbeoordeling</a>.</p>
+<h3 id="screen-tab-protocols"><a class="anchor" href="#screen-tab-protocols" aria-label="Link to this section">#</a> Tabblad Synoptische bibliotheek</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Synoptische bibliotheek</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Het tabblad, met drie subpagina's: <strong>Actieve protocollen</strong> (gevalideerde checklists die in gebruik zijn), <strong>Beoordelingswachtrij</strong> (klaargezet voor goedkeuring) en <strong>Alle protocollen</strong> (volledige bibliotheek).</p>
+<p><strong>3. Doel en reikwijdte.</strong> Eén plaats voor de hele levenscyclus van een <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>. Het tabblad heeft zelf geen velden; de drie navigatie-items openen de onderstaande subpagina's.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Opent voor iedereen met <code>screen:configuration:open</code>. Welke toezichthoudende instanties in de bibliotheek verschijnen, wordt ingesteld in <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Toezichthoudende organen</a>.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Toezichthoudende organen</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/tab-protocols.webp" alt="Tabblad Synoptische bibliotheek met Actief, Beoordelingswachtrij en Alle protocollen" loading="lazy"><figcaption>Tabblad Synoptische bibliotheek met Actief, Beoordelingswachtrij en Alle protocollen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-protocols-active-protocols"><td>Actieve protocollen</td>
+<td>Navigatie-item, "Gevalideerde checklists die in gebruik zijn"</td>
+<td>Niet van toepassing</td>
+<td>Opent <a href="#screen-protocols-active">Actieve protocollen</a>.</td>
+<td>Geselecteerd</td>
+</tr>
+<tr id="f-tab-protocols-review-queue"><td>Beoordelingswachtrij</td>
+<td>Navigatie-item, "Klaargezet voor goedkeuring"</td>
+<td>Niet van toepassing</td>
+<td>Opent de <a href="#screen-protocols-review">Beoordelingswachtrij</a>.</td>
+<td>Niet geselecteerd</td>
+</tr>
+<tr id="f-tab-protocols-all-protocols"><td>Alle protocollen</td>
+<td>Navigatie-item, "Volledige bibliotheek"</td>
+<td>Niet van toepassing</td>
+<td>Opent <a href="#screen-protocols-all">Alle protocollen</a>.</td>
+<td>Niet geselecteerd</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Acties gebruiken de protocolmachtigingen die op elke subpagina staan vermeld.
+<strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h3 id="screen-protocols-review"><a class="anchor" href="#screen-protocols-review" aria-label="Link to this section">#</a> Beoordelingswachtrij</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Beoordelingswachtrij"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Beoordelingswachtrij</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Synoptische bibliotheek</strong> &gt; <strong>Beoordelingswachtrij</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Protocollen die op publicatie wachten</p>
+<p><strong>3. Doel en reikwijdte.</strong> Toont elk <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> in een toestand vóór publicatie (In beoordeling, Wijzigingen vereist, Goedgekeurd), gegroepeerd naar anatomische categorie, met een telblok voor elke toestand. Een banner herhaalt de regel: sjablonen hebben vóór publicatie minstens 80% SNOMED-dekking en klinische autorisatie nodig. Klik op een kaart om de beoordelaar (In beoordeling, Goedgekeurd) of de editor (Wijzigingen vereist) te openen. Conceptprotocollen verschijnen hier niet; u vindt ze in Alle protocollen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Vereist de beoordelingsinstellingen en de rollen die het werk doen. Als u ze overslaat, wordt goedkeuring geweigerd omdat de persoon de <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> mist, of omdat één auteur zijn eigen werk probeert goed te keuren.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 7</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-template_governance">Sjabloonbeoordeling</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Toezichthoudende organen</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-protocols-active">Actieve protocollen</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/protocols-review.webp" alt="Beoordelingswachtrij met aantallen per toestand en kaarten" loading="lazy"><figcaption>Beoordelingswachtrij met aantallen per toestand en kaarten</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Komt overeen met protocolnaam, categorie of bron.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-review-state-tiles"><td>Toestandsblokken</td>
+<td>Alleen-lezen aantallen: In beoordeling, Wijzigingen vereist, Goedgekeurd</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-upload-protocol"><td>Protocol uploaden</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het <a href="#ch6-upload-window">venster Uploaden</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-build-customise"><td>Bouwen / Aanpassen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het <a href="#ch6-build-window">venster Bouwen</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-card-name-version-source-badge-type-owner"><td>Kaart: naam, versie, bronbadge, type, eigenaar</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td>Protocolgegevens.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-card-lifecycle-badge"><td>Kaart: badge van de levenscyclus</td>
+<td>Alleen-lezen: In beoordeling, Wijzigingen vereist, Goedgekeurd</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-card-review-note"><td>Kaart: beoordelingsnotitie</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td>De laatste notitie van de beoordelaar, getoond met een retour- of waarschuwingsmarkering.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-review-card-action"><td>Kaartactie</td>
+<td>Opent de beoordelaar ("Beoordelaar openen", of "Beoordelaar openen om te publiceren" bij Goedgekeurd) of de editor ("Editor openen om wijzigingen door te voeren")</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-reviewer-actions"><a class="anchor" href="#ch6-reviewer-actions" aria-label="Link to this section">#</a> Acties van de beoordelaar</h4>
+<p>De beoordelaarspagina (geopend vanaf een kaart) verplaatst een <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> tussen toestanden. Elke verplaatsing vraagt om bevestiging en, bij een terugsturing, om een reden.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-mark-in-review"><td>Markeren als in beoordeling</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Zet een concept in de beoordelingswachtrij.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-approve-cap-accept-rcpath-ratify"><td>Goedkeuren (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>: Accepteren; RCPath: Bekrachtigen)</td>
+<td>Knop met bevestiging en optionele slotopmerkingen</td>
+<td>Optionele opmerkingen</td>
+<td>Vereist <code>config:protocol:approve</code>. Een persoon die het sjabloon heeft gemaakt of bewerkt, kan het niet goedkeuren tenzij zelfgoedkeuring aanstaat, en kan niet tweemaal goedkeuren.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-publish-cap-release"><td>Publiceren (CAP: Vrijgeven)</td>
+<td>Knop met bevestiging</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>config:protocol:publish</code>, het vereiste aantal onafhankelijke goedkeuringen en voor een diagnostisch sjabloon minstens 80% SNOMED-dekking op veldniveau. Publiceren maakt het in één keer beschikbaar voor alle pathologen.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-needs-changes"><td>Wijzigingen vereist</td>
+<td>Knop met verplichte reden</td>
+<td>Verplichte reden</td>
+<td>Stuurt het protocol terug naar de auteur. Vereist <code>config:protocol:approve</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-review-reset-to-draft"><td>Terugzetten naar concept</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Zet een protocol terug naar concept.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Concept maken, importeren, bouwen, opslaan, indienen: <code>config:protocol:draft</code>. Goedkeuren en terugsturen voor wijzigingen: <code>config:protocol:approve</code>. Publiceren: <code>config:protocol:publish</code>. Buiten gebruik stellen (archiveren, herstellen): <code>config:protocol:retire</code>. Alle hoog risico en geaudit. Sjabloonauteur heeft draft; Sjabloongoedkeurder heeft approve, publish en retire; Beheerder heeft alle vier; Laboratoriumdirecteur heeft alle behalve draft. Indienen, terugsturen, goedkeuren en publiceren sturen elk een melding (naar goedkeurders, de auteur enzovoort).
+<strong>Bekende beperkingen.</strong> De beoordelaar en de editor zijn aparte pagina's over de volle breedte (<code>/template-review/:id</code>, <code>/template-editor/:id</code>). Hun referentie per veld valt buiten de 15 schermen van dit hoofdstuk; zie <a href="#ch6-protocol-editor">Velden van de sjablooneditor</a>.</p>
+<h3 id="screen-protocols-active"><a class="anchor" href="#screen-protocols-active" aria-label="Link to this section">#</a> Actieve protocollen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Actieve protocollen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Actieve protocollen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Synoptische bibliotheek</strong> &gt; <strong>Actieve protocollen</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Gepubliceerde protocollen</p>
+<p><strong>3. Doel en reikwijdte.</strong> De checklists die op dit moment in de synoptische rapportageworkflow worden aangeboden (toestand Gepubliceerd), gegroepeerd per categorie en te filteren op Chirurgische pathologie, Niet-GYN-cytologie, GYN-cytologie of Snijden. Klik op een rij om die uit te klappen voor statistieken, de voortgangsweergave van de levenscyclus en acties.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Protocollen komen in deze lijst doordat ze vanuit de beoordelingswachtrij worden gepubliceerd, dus werk eerst de wachtrij af. Als u dit overslaat, is de lijst leeg ("Geen protocollen gevonden").</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 8</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-protocols-review">Beoordelingswachtrij</a>, <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Toezichthoudende organen</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-templates-routing">Routeringsregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/protocols-active.webp" alt="Actieve protocollen gegroepeerd per categorie met een uitgeklapte rij" loading="lazy"><figcaption>Actieve protocollen gegroepeerd per categorie met een uitgeklapte rij</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-active-group-filter"><td>Groepsfilter</td>
+<td>Keuze: Alle, Chirurgische pathologie, Niet-GYN-cytologie, GYN-cytologie, Snijden, elk met een aantal</td>
+<td>Optioneel</td>
+<td></td>
+<td>Alle</td>
+</tr>
+<tr id="f-protocols-active-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Komt overeen met naam, categorie of bron.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-active-upload-protocol"><td>Protocol uploaden</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het <a href="#ch6-upload-window">venster Uploaden</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-build-customise"><td>Bouwen / Aanpassen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het <a href="#ch6-build-window">venster Bouwen</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-row-name-version-source-badge-type-lifecycle-badge"><td>Rij: naam, versie, bronbadge, type, badge van de levenscyclus</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-sections"><td>Secties</td>
+<td>Alleen-lezen getal</td>
+<td>Niet van toepassing</td>
+<td>Een schatting: het aantal velden gedeeld door 7, afgerond, minimaal 1. Het is geen telling van de werkelijke secties van het <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-fields"><td>Velden</td>
+<td>Alleen-lezen getal</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-last-modified"><td>Laatst gewijzigd</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-owner"><td>Eigenaar</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-snomed-ct-coverage-icd-10-11-coverage"><td>SNOMED CT-dekking, <a class="term" href="99-glossary.html#g-icd-10" title="De International Classification of Diseases, tiende revisie, een diagnosecodeset.">ICD-10</a>/11-dekking</td>
+<td>Alleen-lezen balken, procent</td>
+<td>Niet van toepassing</td>
+<td>Dekking van de codering op veldniveau.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-view-protocol"><td>Protocol bekijken</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de alleen-lezen beoordelaar.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-duplicate"><td>Dupliceren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de editor met een kopie (een nieuw protocol).</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-export-json"><td><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> exporteren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Downloadt het protocol als PathScribe-JSON-bestand; de export wordt geaudit.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-new-version"><td>Nieuwe versie</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de editor op de volgende versie. Bij het publiceren van de nieuwe versie wordt deze gearchiveerd.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-active-archive"><td>Archiveren</td>
+<td>Knop met bevestiging</td>
+<td>Niet van toepassing</td>
+<td>Haalt het uit nieuwe rapporten. Een gepubliceerd protocol toont een sterkere waarschuwing. Reeds geschreven rapporten behouden hun inhoud. Vereist <code>config:protocol:retire</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Zoals bij de <a href="#screen-protocols-review">Beoordelingswachtrij</a>. Bekijken en exporteren vereisen alleen het scherm.
+<strong>Bekende beperkingen.</strong> Het aantal Secties is een schatting.</p>
+<h3 id="screen-protocols-all"><a class="anchor" href="#screen-protocols-all" aria-label="Link to this section">#</a> Alle protocollen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Alle protocollen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Alle protocollen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Synoptische bibliotheek</strong> &gt; <strong>Alle protocollen</strong>
+<strong>2. Onderhoudsonderdeel:</strong> De volledige bibliotheek</p>
+<p><strong>3. Doel en reikwijdte.</strong> Elk <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> in elke toestand, gegroepeerd per categorie. Dit is de enige plaats om concepten en gearchiveerde protocollen te vinden en om een gearchiveerd protocol te herstellen.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Niets, behalve dat de bibliotheek inhoud moet hebben.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="#screen-protocols-review">Beoordelingswachtrij</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/protocols-all.webp" alt="Alle protocollen met statusfilterknoppen" loading="lazy"><figcaption>Alle protocollen met statusfilterknoppen</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-status-filter"><td>Statusfilter</td>
+<td>Keuze: Alle, Gepubliceerd, Goedgekeurd, In beoordeling, Wijzigingen vereist, Concept, Gearchiveerd, elk met een aantal</td>
+<td>Optioneel</td>
+<td><strong>Alle</strong> verbergt gearchiveerde protocollen; ze verschijnen alleen onder <strong>Gearchiveerd</strong>.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-protocols-all-search"><td>Zoeken</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Komt overeen met naam, categorie of bron.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-upload-protocol-build-customise"><td>Protocol uploaden, Bouwen / Aanpassen</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Zoals hierboven.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-row-name-version-source-type-lifecycle-badge-review-note"><td>Rij: naam, versie, bron, type, badge van de levenscyclus, beoordelingsnotitie</td>
+<td>Alleen-lezen</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-open-reviewer"><td>Reviewer openen</td>
+<td>Knop, niet bij Gepubliceerd of Gearchiveerd</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-open-editor"><td>Editor openen</td>
+<td>Knop, niet bij Gepubliceerd of Gearchiveerd</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-duplicate-export-json-archive"><td>Dupliceren, <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, een platte-tekstgegevensformaat dat wordt gebruikt door de API, door `config.json` en door webhooks.">JSON</a> exporteren, Archiveren</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Zoals bij Actieve protocollen (Dupliceren en Archiveren worden niet aangeboden bij een gearchiveerde rij).</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-restore-as-draft"><td>Herstellen als concept</td>
+<td>Knop, alleen bij gearchiveerde rijen</td>
+<td>Niet van toepassing</td>
+<td>Brengt een gearchiveerd protocol terug als concept; het moet opnieuw door de beoordeling.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Zoals bij de Beoordelingswachtrij.
+<strong>Bekende beperkingen.</strong> Geen bekend.</p>
+<h4 id="ch6-upload-window"><a class="anchor" href="#ch6-upload-window" aria-label="Link to this section">#</a> Venster Uploaden</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Protocol uploaden"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Protocol uploaden</span></nav>
+
+<figure class="shot"><img src="../img/protocols-upload.webp" alt="Venster Protocol uploaden met toezichthoudend orgaan en zone om bestanden neer te zetten" loading="lazy"><figcaption>Venster Protocol uploaden met toezichthoudend orgaan en zone om bestanden neer te zetten</figcaption></figure>
+
+<p>Ondertitel: "Handmatig uploaden, de terugvaloptie als de nachtelijke synchronisatie een update mist". Een waarschuwing meldt dat een geïmporteerd <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> als concept wordt opgeslagen en ter beoordeling moet worden ingediend en goedgekeurd voordat het kan worden gepubliceerd.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-governing-body"><td>Toezichthoudend orgaan</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>, RCPath, ICCR, RCPA, Overig</td>
+<td>Verplicht</td>
+<td>Wordt vastgelegd als bron van het concept.</td>
+<td>CAP</td>
+</tr>
+<tr id="f-protocols-all-file"><td>Bestand</td>
+<td>JSON-, XML- of XLSX-bestand, tot 10 MB, neergezet of gezocht</td>
+<td>Verplicht</td>
+<td>Wordt gelezen en gecontroleerd zodra het is gekozen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-protocols-all-format-check-result"><td>Resultaat van de indelingscontrole</td>
+<td>Alleen-lezen lijst</td>
+<td>Niet van toepassing</td>
+<td>Meldt of de indeling geldig is, noemt problemen en stelt altijd dat de inhoud niet is geverifieerd aan CAP of RCPath. Alleen een PathScribe-JSON-protocol kan worden geïmporteerd. Een CAP-eCC-formulier (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, de XML-formaatstandaard waarmee CAP electronic cancer checklists worden verspreid.">SDC</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, een tekstformaat dat wordt gebruikt door CAP SDC-formulieren en sommige registerbestanden.">XML</a>) of een Excel-werkmap wordt gecontroleerd maar "kan hier worden gecontroleerd, maar nog niet worden geïmporteerd".</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-import-as-draft"><td>Importeren als concept</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Slaat het concept op. Geweigerd als er al een protocol met dezelfde naam bestaat, of zonder <code>config:protocol:draft</code>.</td>
+<td>Uitgeschakeld totdat het bestand kan worden geïmporteerd</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-build-window"><a class="anchor" href="#ch6-build-window" aria-label="Link to this section">#</a> Venster Bouwen / Aanpassen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Bouwen / Aanpassen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Bouwen / Aanpassen</span></nav>
+
+<figure class="shot"><img src="../img/protocols-build.webp" alt="Venster Bouwen / Aanpassen" loading="lazy"><figcaption>Venster Bouwen / Aanpassen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-start-from-scratch"><td>Vanaf nul beginnen</td>
+<td>Keuze</td>
+<td>Optioneel</td>
+<td>Opent de editor op een leeg sjabloon.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-existing-template-search"><td>Zoeken naar bestaand sjabloon</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Zoekt op naam, bron of categorie.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-existing-template"><td>Bestaand sjabloon</td>
+<td>Keuze uit de bibliotheek, elk met versie en aantal velden</td>
+<td>Optioneel</td>
+<td>Het sjabloon dat moet worden gekopieerd.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-protocols-all-customise-this-template"><td>Dit sjabloon aanpassen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent de editor op een kopie.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-protocol-editor"><a class="anchor" href="#ch6-protocol-editor" aria-label="Link to this section">#</a> Velden van de sjablooneditor</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Synoptische bibliotheek &gt; Sjablooneditor"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Synoptische bibliotheek</span> <span aria-hidden="true">›</span> <span>Sjablooneditor</span></nav>
+
+<figure class="shot"><img src="../img/protocols-editor.webp" alt="Synoptische sjablooneditor met metadata, secties en velden" loading="lazy"><figcaption>Synoptische sjablooneditor met metadata, secties en velden</figcaption></figure>
+
+<p>De editor is een pagina over de volle breedte. Het <a class="term" href="99-glossary.html#g-block" title="Een stukje weefsel dat in een cassette in was is ingebed en waarvan coupes worden gesneden.">blok</a> <strong>Sjabloonmetadata</strong> staat hieronder; secties en velden hebben veel verdere instellingen (veldtype, antwoordopties met SNOMED- en ICD-codering, condities, telregels, rapportagerollen pT, pN, pM, FIGO-stadium en blokidentificatie). De volledige referentie voor die pagina is een openstaande vraag voor de handleiding.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-template-name"><td>Sjabloonnaam</td>
+<td>Tekst</td>
+<td>Verplicht</td>
+<td>Moet uniek zijn onder de niet-gearchiveerde protocollen.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-anatomical-category"><td>Anatomische categorie</td>
+<td>Keuze uit categorieknoppen</td>
+<td>Optioneel</td>
+<td>Groepeert het <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a> in de lijsten.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-source-governing-body"><td>Bron / Overkoepelende instantie</td>
+<td>Keuze uit bronknoppen</td>
+<td>Verplicht</td>
+<td>Bepaalt de namen van de acties (Accepteren, Bekrachtigen, Goedkeuren).</td>
+<td>Custom</td>
+</tr>
+<tr id="f-protocols-all-reporting-standard"><td>Classificatiesysteem</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Voor cytologische systemen, bijvoorbeeld de editie van <a class="term" href="99-glossary.html#g-bethesda" title="Het rapportagesysteem voor uitslagen van cervixcytologie en monsteradequaatheid, gebruikt in de Verenigde Staten en op veel andere plaatsen.">Bethesda</a>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-staging-edition"><td>Editie stadiëring</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Bijvoorbeeld <code>AJCC 8th</code>.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-protocols-all-version"><td>Versie</td>
+<td>Hoofd-, tussen- en patchnummers met ophoogknoppen</td>
+<td>Verplicht</td>
+<td>Wordt bij Nieuwe versie automatisch opgehoogd.</td>
+<td><code>1.0.0</code></td>
+</tr>
+<tr id="f-protocols-all-save-draft"><td>Concept opslaan</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>config:protocol:draft</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-protocols-all-submit-for-review"><td>Indienen ter beoordeling</td>
+<td>Knop met bevestiging</td>
+<td>Niet van toepassing</td>
+<td>Zet het sjabloon in de beoordelingswachtrij en meldt het aan beheerders en klinische leidinggevenden. U kunt het niet bewerken totdat het is teruggestuurd.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch6-scheduled-delivery"><a class="anchor" href="#ch6-scheduled-delivery" aria-label="Link to this section">#</a> Geplande rapportengine en regels voor automatische distributie</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span></nav>
+
+<p>Drie instellingen bepalen wat er na de ondertekening met een rapport gebeurt: <strong>Leveringsconfiguratieregels</strong> kiezen de kanalen, <strong>Routeringsregels voor afdrukbestemmingen</strong> kiezen de printer voor het afdrukkanaal en <strong>Verzendschema's</strong> kiezen het tijdstip. Een vierde scherm, <strong>Mijn exports</strong>, toont de bestanden die een persoon heeft aangevraagd.</p>
+<p><strong>Status per kanaal.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Kanaal</th>
+<th>Status</th>
+<th>Wat er vandaag bestaat</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fax</td>
+<td>Gerealiseerd</td>
+<td>Een leveringsregel kan een kanaal instellen op E-fax met een faxnummer (7 tot 15 cijfers, optioneel met voorafgaand <code>+</code>). PathScribe stuurt de ondertekende <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, de vorm waarin een ondertekend verslag wordt opgeslagen en afgedrukt.">PDF</a> en de bijbehorende gegevens als bericht <code>REPORT_DELIVERY</code> naar de interfaceserver; de server geeft die door aan een e-mail-naar-faxgateway. De gateway wordt op de server ingericht, niet in PathScribe. Als de server geen faxkanaal heeft, antwoordt die met 503 en mislukt de levering met die reden. Contract: <code>REPORT_DELIVERY_API.md</code>; ontwikkelontvanger: <code>functions/report_delivery.py</code>. Maximale PDF-grootte 20 MB.</td>
+</tr>
+<tr>
+<td>Portaal</td>
+<td>Niet gerealiseerd</td>
+<td>Er is geen portaalkanaal in de leveringsregels. Het faciliteitsrecord heeft een keuze <strong>Bezorgmethode</strong> (E-mail, Fax, Portaal, <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, de familie van standaarden voor het uitwisselen van zorginformatie tussen systemen.">HL7</a>) die wordt opgeslagen, maar waar niets naar kijkt wanneer een rapport wordt verzonden.</td>
+</tr>
+<tr>
+<td>Beveiligde e-mail</td>
+<td>Demonstratie</td>
+<td>Geen kanaal van een leveringsregel. Een persoon start vanuit een venster een aan een <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> gekoppeld beveiligd bericht; het wordt bezorgd in de <a href="07-tier6-interface-engine.html#screen-simulated_mail">Gesimuleerde postvak-uit</a> en er verlaat niets het gebouw. Een echt e-mailkanaal is niet gekoppeld.</td>
+</tr>
+<tr>
+<td>Afdrukwachtrij</td>
+<td>Gerealiseerd</td>
+<td>Het afdrukkanaal maakt een afdrukopdracht aan. De printer komt uit de routeringsregels voor afdrukken, anders uit de eigen standaardbestemming van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. Opdrachten worden beheerd op het scherm Afdrukwachtrij (zie <a href="#ch6-batch-jobs">Deel 4</a>).</td>
+</tr>
+<tr>
+<td>Elektronisch (uitslagbericht)</td>
+<td>Gerealiseerd</td>
+<td>Het uitslagbericht naar de koppelingsengine. Het is de standaard wanneer geen regel overeenkomt.</td>
+</tr>
+<tr>
+<td>Bestandsdepot</td>
+<td>Gerealiseerd</td>
+<td>De server schrijft de PDF naar een map of SFTP-bestemming. De regel noemt de bestemming; de server bewaart het adres en de aanmeldgegevens ervan.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="screen-delivery_rules"><a class="anchor" href="#screen-delivery_rules" aria-label="Link to this section">#</a> Leveringsconfiguratieregels</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Leveringsconfiguratieregels"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Leveringsconfiguratieregels</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Leveringsconfiguratieregels</p>
+<p><strong>3. Doel en reikwijdte.</strong> Bepaalt hoe elk vrijgegeven rapport wordt verzonden: via het uitslagbericht, afgedrukt, gefaxt, neergezet op een bestandsbestemming, of vastgehouden voor handmatig ophalen. Een regel komt overeen op basis van zorgverlener, aanvragende instelling, patiëntlocatie (point of care) en rapporttype. De regel die met de meeste velden overeenkomt, wint. Wanneer niets overeenkomt, gaat het rapport <strong>Alleen elektronisch</strong>. Het scherm bevat ook de instelling voor automatische nieuwe pogingen van de locatie en een testpaneel.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Regels verwijzen naar zorgverleners, faciliteiten en locaties, en een afdrukkanaal heeft een plaats nodig om af te drukken. Als u de faciliteiten en artsen overslaat, zijn de criterialijsten leeg. Als u de routering voor afdrukken overslaat, valt een afdrukopdracht terug op de eigen standaardbestemming van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 10</p><dl><dt>Eerst inrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Artsen</a>, <a href="#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-delivery_schedules">Verzendschema&#x27;s</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-delivery_rules.webp" alt="Leveringsconfiguratieregels met de regeltabel, de instelling voor nieuwe pogingen en het testpaneel" loading="lazy"><figcaption>Leveringsconfiguratieregels met de regeltabel, de instelling voor nieuwe pogingen en het testpaneel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bedieningselementen van het scherm:</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-rules-table-criteria-channels-note"><td>Regeltabel: criteria, kanalen, opmerking</td>
+<td>Alleen-lezen lijst</td>
+<td>Niet van toepassing</td>
+<td>Criteria worden gelezen als Zorgverlener, Faciliteit, Locatie en Rapport, of "Komt overeen met elke case (laagste prioriteit)". Kanalen worden gelezen als lijsten Primair, Secundair en Reserve, of "Er wordt niets verzonden".</td>
+<td>Leeg: elke <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> wordt opgelost naar Alleen elektronisch</td>
+</tr>
+<tr id="f-delivery_rules-add-rule"><td>Regel toevoegen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Opent het regelvenster.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-delivery_rules-edit-delete"><td>Bewerken, Verwijderen</td>
+<td>Rijknoppen</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-delivery_rules-automatic-retries-wait-before-each-minutes"><td>Automatische nieuwe pogingen: wachttijd voor elke poging (minuten)</td>
+<td>Hele minuten gescheiden door komma's, elk 1 tot 1.440, maximaal 10</td>
+<td>Optioneel</td>
+<td>Een afdrukopdracht, fax of bestandsdepot die mislukt, wordt na elke wachttijd achtereenvolgens opnieuw geprobeerd. Na de laatste poging gaat de levering naar de leveringsuitzonderingen, ontvangen Beheerder en Laboratoriumdirecteur een bericht en worden de reservekanalen van de regel gebruikt. Leeg betekent geen nieuwe pogingen.</td>
+<td><code>1, 5, 15</code></td>
+</tr>
+<tr id="f-delivery_rules-save-retries"><td>Nieuwe pogingen opslaan</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Vereist <code>config:delivery-rules:manage</code>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-delivery-rule-window"><a class="anchor" href="#ch6-delivery-rule-window" aria-label="Link to this section">#</a> Een leveringsregel toevoegen of bewerken</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Leveringsconfiguratieregels &gt; Regel toevoegen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Leveringsconfiguratieregels</span> <span aria-hidden="true">›</span> <span>Regel toevoegen</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_rules-edit.webp" alt="Venster Leveringsregel toevoegen met criteria en kanalen" loading="lazy"><figcaption>Venster Leveringsregel toevoegen met criteria en kanalen</figcaption></figure>
+
+<p>Elk criterium is optioneel. Een regel waarvan er geen is ingesteld, komt overeen met elke <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a>, maar alleen als overeenkomst met de laagste prioriteit. Het venster waarschuwt hiervoor.</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider"><td>Zorgverlener</td>
+<td>Keuzelijst met artsen</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elke zorgverlener</td>
+</tr>
+<tr id="f-delivery_rules-ordering-facility"><td>Aanvragende instelling</td>
+<td>Keuzelijst met faciliteiten</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elke <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a></td>
+</tr>
+<tr id="f-delivery_rules-patient-location-point-of-care"><td>Patiëntlocatie (point of care)</td>
+<td>Keuzelijst met locaties</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elke locatie</td>
+</tr>
+<tr id="f-delivery_rules-report-type"><td>Rapporttype</td>
+<td>Keuze: Voorlopig, Definitief, Gecorrigeerd, Addendum</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elk rapporttype</td>
+</tr>
+<tr id="f-delivery_rules-channel-electronic-result-message-to-the-interface-engine"><td>Kanaal: elektronisch (uitslagbericht naar de koppelingsengine)</td>
+<td>Keuze: Uit, Primair, Secundair, Reserve</td>
+<td>Optioneel</td>
+<td>Primaire en secundaire kanalen gaan direct. Reservekanalen gaan wanneer een primaire afdrukopdracht, fax of bestandsdepot nergens heen kan of na de nieuwe pogingen nog steeds mislukt.</td>
+<td>Uit</td>
+</tr>
+<tr id="f-delivery_rules-channel-print"><td>Kanaal: afdrukken</td>
+<td>Idem</td>
+<td>Optioneel</td>
+<td></td>
+<td>Uit</td>
+</tr>
+<tr id="f-delivery_rules-channel-e-fax"><td>Kanaal: e-fax</td>
+<td>Idem</td>
+<td>Optioneel</td>
+<td></td>
+<td>Uit</td>
+</tr>
+<tr id="f-delivery_rules-channel-file-drop"><td>Kanaal: bestandsdepot</td>
+<td>Idem</td>
+<td>Optioneel</td>
+<td></td>
+<td>Uit</td>
+</tr>
+<tr id="f-delivery_rules-fax-number"><td>Faxnummer</td>
+<td>Tekst, 7 tot 15 cijfers met optioneel <code>+</code></td>
+<td>Optioneel</td>
+<td>Laat leeg om de aanvragende arts te faxen, of zonder faxnummer de aanvragende instelling.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_rules-file-drop-target"><td>Bestemming van de bestandslevering</td>
+<td>Tekst, de naam van de bestemming zoals ingericht op de interfaceserver</td>
+<td>Verplicht wanneer Bestandsdepot aanstaat</td>
+<td>De map of SFTP-server en de aanmeldgegevens worden op de server bewaard, niet in PathScribe.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_rules-note"><td>Opmerking</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Waarom de regel bestaat.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<p>Een reserve zonder primair kanaal wordt geweigerd ("Een reservekanaal heeft een primair kanaal nodig."). Een faxnummer dat niet 7 tot 15 cijfers heeft, of een bestandsdepot zonder bestemming, wordt geweigerd.</p>
+<h4 id="ch6-delivery-test"><a class="anchor" href="#ch6-delivery-test" aria-label="Link to this section">#</a> Leveringsresolutie testen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Leveringsconfiguratieregels &gt; Test"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Leveringsconfiguratieregels</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_rules-test.webp" alt="Paneel Leveringsresolutie testen" loading="lazy"><figcaption>Paneel Leveringsresolutie testen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider-ordering-facility-patient-location-report-type"><td>Zorgverlener, aanvragende instelling, patiëntlocatie, rapporttype</td>
+<td>Keuzelijsten, zoals hierboven</td>
+<td>Optioneel</td>
+<td>De casusgegevens die moeten worden getest.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-delivery_rules-resolve"><td>Oplossen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont de overeenkomende regel, de opgeloste actie (Alleen elektronisch, Alleen afdrukken, Dubbele levering, Onderdrukken) en het kanaalplan. Zonder overeenkomst meldt het dat de standaard Alleen elektronisch geldt.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Regels toevoegen, wijzigen, verwijderen en nieuwe pogingen opslaan: <code>config:delivery-rules:manage</code> (hoog risico, geaudit). Beheerder en Laboratoriumdirecteur hebben haar. Het opnieuw verzenden van een mislukte levering gebruikt de schermen Afdrukwachtrij of Uitgaand en hun eigen machtigingen.
+<strong>Bekende beperkingen.</strong> Fax en bestandsdepot vereisen dat die kanalen en bestemmingen op de interfaceserver zijn ingericht. Portaal is Niet gerealiseerd. Beveiligde e-mail is hier geen kanaal.</p>
+<h3 id="screen-delivery_schedules"><a class="anchor" href="#screen-delivery_schedules" aria-label="Link to this section">#</a> Verzendschema's</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Verzendschema&#x27;s"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Verzendschema&#x27;s</span></nav>
+
+<p><strong>Status:</strong> Gedeeltelijk</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Verzendschema's</p>
+<p><strong>3. Doel en reikwijdte.</strong> Stelt per feed in <strong>wanneer</strong> er iets wordt verzonden, voor de hele <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>, met een optionele overschrijving voor een uitvoerende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>. Registers krijgen elk een eigen schema. PathScribe bepaalt wanneer een item zijn wachtrij mag verlaten; de koppelingsengine bepaalt hoe het wordt verzonden. Feeds: rapportlevering, factuurlevering, uitslagenfeed, opnamefeed (<a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer (opname, ontslag, overplaatsing). De familie van HL7-berichten voor patiëntregistratie en patiëntbewegingen, zoals A01 (opname), A08 (patiënt bijwerken) en A40 (patiënten samenvoegen).">ADT</a>), accessiefeed, LIS-synchronisatie, <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a>. <strong>Gedeeltelijk:</strong> het schema wordt opgeslagen, opgelost en geëvalueerd, en de <a class="term" href="99-glossary.html#g-outbound-queue" title="De lijst van berichten en kosten die PathScribe heeft opgebouwd en die nog niet zijn verzonden, aangehouden, verzonden of mislukt.">uitgaande wachtrij</a> toont per item het geplande tijdstip en de <a class="term" href="99-glossary.html#g-flag" title="Een teken op een casus of monster, bijvoorbeeld om een extra kleuring aan te vragen of een casus aan te houden.">markering</a> voor de meldingstermijn. Het contract bepaalt dat de productieserver dezelfde regels moet toepassen voordat een item wordt doorgegeven; een browser- of ontwikkelbuild houdt een verzending niet vast tot het tijdstip is bereikt.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Een overschrijving per faciliteit kiest uit de faciliteiten, dus die komen eerst. Als u dit overslaat, kan alleen het schema van de onderneming worden ingesteld.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 11</p><dl><dt>Eerst inrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a>, <a href="#screen-delivery_rules">Leveringsconfiguratieregels</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-delivery_schedules.webp" alt="Verzendschema&#x27;s per feed met bereik onderneming en faciliteit" loading="lazy"><figcaption>Verzendschema&#x27;s per feed met bereik onderneming en faciliteit</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bedieningselementen van het scherm:</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-schedules-for"><td>Schema's voor</td>
+<td>Keuze: Hele onderneming, of één uitvoerende faciliteit</td>
+<td>Optioneel</td>
+<td>Het bereik dat wordt bewerkt.</td>
+<td>Hele onderneming</td>
+</tr>
+<tr id="f-delivery_schedules-feed-card-summary-and-source"><td>Feedkaart: samenvatting en bron</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td>De samenvatting leest bijvoorbeeld "Bundel ma, wo om 06:00 (America/New_York)". De bron leest "Geen schema ingesteld: direct verzonden", "Volgt het schema van de onderneming" of "Ingesteld voor deze locatie".</td>
+<td>Direct verzonden</td>
+</tr>
+<tr id="f-delivery_schedules-registry-cards"><td>Registerkaarten</td>
+<td>Eén kaart per register</td>
+<td>Optioneel</td>
+<td>Elk register heeft een eigen schema en leent nooit dat van een ander.</td>
+<td>240 minuten vasthouden na ondertekening; een amendement zet het opnieuw in de wachtrij</td>
+</tr>
+<tr id="f-delivery_schedules-edit-set-for-this-facility-follow-the-enterprise"><td>Bewerken, Instellen voor deze locatie, Onderneming volgen</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Maken of verwijderen een overschrijving per faciliteit. Door de overschrijving te verwijderen volgt de faciliteit de onderneming.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-editor"><a class="anchor" href="#ch6-schedule-editor" aria-label="Link to this section">#</a> Schema-editor</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Verzendschema&#x27;s &gt; Bewerken"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Verzendschema&#x27;s</span> <span aria-hidden="true">›</span> <span>Bewerken</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_schedules-edit.webp" alt="Schema-editor" loading="lazy"><figcaption>Schema-editor</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-how-it-goes-out"><td>Hoe het wordt verzonden</td>
+<td>Keuze: Direct verzenden, Alleen binnen vaste uren, Gebundeld op vaste tijden, Vasthouden tot de definitieve ondertekening, Bij ondertekening na een beoordelingsperiode</td>
+<td>Verplicht</td>
+<td></td>
+<td>Direct verzenden</td>
+</tr>
+<tr id="f-delivery_schedules-hours-when-items-may-go-out"><td>Uren waarop items mogen worden verzonden</td>
+<td>Rijen met Dagen, Van, Tot (24-uurs); Uren toevoegen / Verwijderen</td>
+<td>Verplicht voor vaste uren</td>
+<td>Elke rij moet op dezelfde dag eindigen na het begin.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-frequency-how-often"><td>Frequentie (hoe vaak)</td>
+<td>Keuze: Dagelijks, Wekelijks, Maandelijks</td>
+<td>Verplicht voor bundel</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-batch-days"><td>Bundeldagen</td>
+<td>Weekdagen ma tot zo</td>
+<td>Verplicht voor wekelijks</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-days-of-the-month"><td>Dagen van de maand</td>
+<td>Getallen 1 tot 28, gescheiden door komma's</td>
+<td>Verplicht voor maandelijks</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-batch-times-24-hour"><td>Bundeltijden (24-uurs)</td>
+<td>Tijden zoals <code>06:00, 22:00</code></td>
+<td>Verplicht voor bundel</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-cutoff-time-optional"><td>Sluitingstijd (optioneel)</td>
+<td>Tijd, 24-uurs</td>
+<td>Optioneel</td>
+<td>Items die na dit tijdstip op een dag met een run zijn ondertekend, wachten op de volgende run. Leeg gebruikt het tijdstip van de run.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_schedules-review-hold-minutes-after-sign-out"><td>Beoordelingsperiode (minuten na ondertekening)</td>
+<td>Geheel getal, 1 tot 10.080</td>
+<td>Verplicht voor beoordelingsperiode</td>
+<td>Stem haar af op het venster voor <a class="term" href="99-glossary.html#g-qa" title="Kwaliteitsborging (quality assurance), de beoordeling van werk om problemen te vinden en te corrigeren.">QA</a> en amendementen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-days-with-no-sending"><td>Dagen zonder verzending</td>
+<td>Datums <code>YYYY-MM-DD</code>, gescheiden door komma's</td>
+<td>Optioneel</td>
+<td>Bijvoorbeeld feestdagen. Geldt voor uren en bundel.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_schedules-time-zone"><td>Tijdzone</td>
+<td>IANA-naam, bijvoorbeeld <code>America/New_York</code></td>
+<td>Verplicht</td>
+<td>De bovenstaande tijden worden in deze zone gelezen.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-reporting-deadline-days-from-sign-out"><td>Meldingstermijn (dagen na ondertekening)</td>
+<td>Geheel getal, 1 tot 3.650</td>
+<td>Optioneel</td>
+<td>De wachtrij markeert casussen die er dichtbij (binnen 3 dagen) of voorbij zijn.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_schedules-an-amendment-puts-the-item-back-in-the-queue"><td>Een amendement zet het item terug in de wachtrij</td>
+<td>Ja/nee-schakelaar</td>
+<td>Optioneel</td>
+<td>Een gecorrigeerd rapport wordt volgens dit schema opnieuw verzonden. Standaard aan voor registers.</td>
+<td>Uit, behalve registers</td>
+</tr>
+<tr id="f-delivery_schedules-save-schedule"><td>Schema opslaan</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Geweigerd als het ongeldig is of zonder <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-test"><a class="anchor" href="#ch6-schedule-test" aria-label="Link to this section">#</a> Een schema uitproberen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Verzendschema&#x27;s &gt; Een schema uitproberen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Verzendschema&#x27;s</span> <span aria-hidden="true">›</span> <span>Een schema uitproberen</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_schedules-test.webp" alt="Paneel Een schema uitproberen" loading="lazy"><figcaption>Paneel Een schema uitproberen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-feed"><td>Feed</td>
+<td>Keuze uit feeds</td>
+<td>Verplicht</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-performing-facility"><td>Uitvoerende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a></td>
+<td>Keuze, of Geen (schema van de <a class="term" href="99-glossary.html#g-enterprise" title="Het hoogste niveau van de organisatie van een klant in PathScribe. Instellingen die hier worden gemaakt gelden voor elke jurisdictie en faciliteit eronder, tenzij ze worden overschreven.">onderneming</a>)</td>
+<td>Optioneel</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-registry"><td>Register</td>
+<td>Keuze</td>
+<td>Verplicht voor de feed Register</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-delivery_schedules-date-and-time-in-the-schedule-s-time-zone"><td>Datum en tijd (in de tijdzone van het schema)</td>
+<td>Datum en tijd</td>
+<td>Verplicht</td>
+<td></td>
+<td>Nu</td>
+</tr>
+<tr id="f-delivery_schedules-the-case-is-finally-signed-out"><td>De <a class="term" href="99-glossary.html#g-case" title="Eén patiëntepisode in het laboratorium, aangeduid met een accessienummer en bestaande uit een of meer monsters en één verslag.">casus</a> is definitief ondertekend</td>
+<td>Ja/nee</td>
+<td>Optioneel</td>
+<td></td>
+<td>Nee</td>
+</tr>
+<tr id="f-delivery_schedules-signed-out-at"><td>Ondertekend op</td>
+<td>Datum en tijd</td>
+<td>Optioneel</td>
+<td></td>
+<td>Leeg</td>
+</tr>
+<tr id="f-delivery_schedules-check"><td>Controleren</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Antwoordt "Het wordt verzonden" of "Het wacht", met de reden en de eerstvolgende gelegenheid.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Wijzigen: <code>config:delivery-schedules:manage</code> (hoog risico, geaudit per feed, faciliteit, <a class="term" href="99-glossary.html#g-registry" title="Een instantie die meldingen van een ziekte of een screeningsuitslag verzamelt voor een land of programma, zoals een kankerregister of een register voor cervixscreening.">register</a> en soort; geen patiëntgegevens). Beheerder en Laboratoriumdirecteur hebben haar.
+<strong>Bekende beperkingen.</strong> Registerbestemmingen, <a class="term" href="99-glossary.html#g-field-requirements" title="De instellingen die bepalen welke velden op een pagina moeten zijn ingevuld voordat een stap kan worden voltooid.">verplichte velden</a>, goedkeuring voor ingebruikname en transport horen bij de eigen inrichting van het register, niet bij het schema. Zie <code>DELIVERY_SCHEDULES_API.md</code>.</p>
+<h3 id="screen-print_routing_rules"><a class="anchor" href="#screen-print_routing_rules" aria-label="Link to this section">#</a> Routeringsregels voor afdrukbestemmingen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Routeringsregels voor afdrukbestemmingen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Routeringsregels voor afdrukbestemmingen</span></nav>
+
+<p><strong>Status:</strong> Gerealiseerd</p>
+<p><strong>1. Navigatie:</strong> tabblad Configuratie <strong>Systeem</strong> &gt; groep <strong>Beheer &amp; compliance</strong>
+<strong>2. Onderhoudsonderdeel:</strong> Routeringsregels voor afdrukbestemmingen</p>
+<p><strong>3. Doel en reikwijdte.</strong> Bepaalt naar welke netwerkprinter de afdrukopdracht van een vrijgegeven rapport gaat. Het bereik van een regel is een niveau: <strong>Werkstation / Gebruiker</strong>, <strong>Locatie</strong>, <strong>Klantaccount (aanvragende instelling)</strong> of <strong>Instelling (<a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>)</strong>. Het meest specifieke niveau met een overeenkomende, actieve regel wint volledig van minder specifieke niveaus. Binnen een niveau kan een regel worden beperkt naar preparaat- of casustype en naar gebeurtenistrigger. Wanneer niets overeenkomt, gaat de opdracht naar de eigen standaardbestemming van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Een regel noemt een printer die via een <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a> of via een adres wordt bereikt, en een bereik dat uit werkstations, locaties en faciliteiten wordt gekozen. Als u de site-agents overslaat, kan alleen een printeradres worden opgegeven. Een regel voor een faciliteit moet de printers van de eigen site-agent van die faciliteit gebruiken.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Niveau 5, stap 9</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site-agents</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Faciliteitsconfiguratie</a>, <a href="02-tier1-primary-prerequisites.html#screen-workstations">Werkstations</a></dd><dt>Dit maakt mogelijk</dt><dd><a href="#screen-delivery_rules">Leveringsconfiguratieregels</a></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/system-print_routing_rules.webp" alt="Routeringsregels voor afdrukbestemmingen met tabel en testpaneel" loading="lazy"><figcaption>Routeringsregels voor afdrukbestemmingen met tabel en testpaneel</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<p>Bedieningselementen van het scherm:</p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-rules-table-scope-criteria-destination-note"><td>Regeltabel: bereik, criteria, bestemming, opmerking</td>
+<td>Alleen-lezen lijst</td>
+<td>Niet van toepassing</td>
+<td>Criteria luiden "Preparaat: ...", "Trigger: ..." of "Komt overeen met elke opdracht op dit niveau".</td>
+<td>Leeg: opdrachten gebruiken de standaardbestemming van elke faciliteit</td>
+</tr>
+<tr id="f-print_routing_rules-add-rule-edit-delete"><td>Regel toevoegen, Bewerken, Verwijderen</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-rule-window"><a class="anchor" href="#ch6-print-rule-window" aria-label="Link to this section">#</a> Een routeringsregel voor afdrukken toevoegen of bewerken</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Routeringsregels voor afdrukbestemmingen &gt; Regel toevoegen"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Routeringsregels voor afdrukbestemmingen</span> <span aria-hidden="true">›</span> <span>Regel toevoegen</span></nav>
+
+<figure class="shot"><img src="../img/system-print_routing_rules-edit.webp" alt="Venster Routeringsregel voor afdrukken toevoegen" loading="lazy"><figcaption>Venster Routeringsregel voor afdrukken toevoegen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-scope-tier"><td>Bereikniveau</td>
+<td>Keuze: Werkstation / Gebruiker, Locatie, Klantaccount (aanvragende instelling), Instelling (<a class="term" href="99-glossary.html#g-performing-lab" title="De faciliteit die het onderzoek doet en het verslag uitgeeft, in tegenstelling tot een klant die alleen monsters stuurt.">uitvoerend laboratorium</a>)</td>
+<td>Verplicht</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-scope"><td>Bereik</td>
+<td>Id van <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a> of gebruiker (tekst, bijvoorbeeld <code>ws-fgh-theatre2-01</code>), of een keuzelijst met locaties of faciliteiten</td>
+<td>Verplicht</td>
+<td>Er verschijnt een waarschuwing wanneer het ontbreekt.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type"><td>Preparaat-/Casustype</td>
+<td>Keuze: Routine chirurgisch, Vriescoupe, Cytologie</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elk preparaat-/casustype</td>
+</tr>
+<tr id="f-print_routing_rules-event-trigger"><td>Gebeurtenistrigger</td>
+<td>Keuze: Eerste ondertekening, Gewijzigde ondertekening (gecorrigeerd/addendum), Voorlopig</td>
+<td>Optioneel</td>
+<td></td>
+<td>Elke gebeurtenistrigger</td>
+</tr>
+<tr id="f-print_routing_rules-print-destination-printer"><td>Afdrukbestemming: printer</td>
+<td>Keuze: Printer van de <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a>, of Printeradres (rechtstreeks verzonden)</td>
+<td>Verplicht</td>
+<td>Een direct adres werkt alleen vanaf een PathScribe-server binnen het ziekenhuisnetwerk; gebruik vanuit de cloud een printer van de site-agent.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-site-performing-lab"><td>Locatie (uitvoerend laboratorium)</td>
+<td>Keuzelijst</td>
+<td>Verplicht voor een printer van een site-agent</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-printer"><td>Printer</td>
+<td>Keuzelijst met de rapportprinters van de site-agent</td>
+<td>Verplicht voor een printer van een site-agent</td>
+<td>Vereist de <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> om de printers van die locatie te zien.</td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-address"><td>Adres</td>
+<td>IP-adres of hostnaam, zonder <code>http://</code> of pad</td>
+<td>Verplicht voor een direct adres</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-protocol"><td>Protocol</td>
+<td>Keuze: <a class="term" href="99-glossary.html#g-ipp" title="Internet Printing Protocol, een netwerkafdrukprotocol. In Franse tekst is IPP ook de patiëntidentificatie die in plaats van MRN wordt gebruikt.">IPP</a>, <a class="term" href="99-glossary.html#g-lpr" title="Line Printer Remote, een ouder netwerkafdrukprotocol (ook geschreven als LPR/LPD). Het kan niet bevestigen dat een pagina is afgedrukt.">LPR</a>/LPD, Raw (poort 9100)</td>
+<td>Verplicht voor een direct adres</td>
+<td></td>
+<td>Geen</td>
+</tr>
+<tr id="f-print_routing_rules-port"><td>Poort</td>
+<td>Geheel getal 1 tot 65535</td>
+<td>Optioneel</td>
+<td></td>
+<td>De standaardpoort van het <a class="term" href="99-glossary.html#g-protocol" title="Een gestructureerde set vragen voor het rapporteren van één soort casus, zoals een CAP-kankerprotocol, waaruit een synoptisch verslag wordt opgebouwd.">protocol</a></td>
+</tr>
+<tr id="f-print_routing_rules-ipp-path"><td>IPP-pad</td>
+<td>Tekst</td>
+<td>Optioneel, alleen IPP</td>
+<td></td>
+<td><code>/ipp/print</code></td>
+</tr>
+<tr id="f-print_routing_rules-lpr-queue"><td>LPR-wachtrij</td>
+<td>Tekst</td>
+<td>Optioneel, alleen LPR/LPD</td>
+<td></td>
+<td><code>lp</code></td>
+</tr>
+<tr id="f-print_routing_rules-name"><td>Naam</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Een herkenbare naam voor de printer.</td>
+<td>Leeg</td>
+</tr>
+<tr id="f-print_routing_rules-note"><td>Opmerking</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td>Waarom de regel bestaat.</td>
+<td>Leeg</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-test"><a class="anchor" href="#ch6-print-test" aria-label="Link to this section">#</a> Resolutie van de afdrukbestemming testen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie &gt; Systeem &gt; Beheer &amp; compliance &gt; Routeringsregels voor afdrukbestemmingen &gt; Test"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span> <span aria-hidden="true">›</span> <span>Systeem</span> <span aria-hidden="true">›</span> <span>Beheer &amp; compliance</span> <span aria-hidden="true">›</span> <span>Routeringsregels voor afdrukbestemmingen</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="../img/system-print_routing_rules-test.webp" alt="Paneel Resolutie van de afdrukbestemming testen" loading="lazy"><figcaption>Paneel Resolutie van de afdrukbestemming testen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-workstation-user-id"><td>Id van <a class="term" href="99-glossary.html#g-workstation" title="Een geregistreerde computer in een faciliteit, met zijn discipline, gebied en gekoppelde printers.">werkstation</a> / gebruiker</td>
+<td>Tekst</td>
+<td>Optioneel</td>
+<td></td>
+<td>Leeg</td>
+</tr>
+<tr id="f-print_routing_rules-location-ordering-facility-performing-facility"><td>Locatie, aanvragende instelling, uitvoerende <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a></td>
+<td>Keuzelijsten</td>
+<td>Optioneel</td>
+<td></td>
+<td>Alle</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type-event-trigger"><td>Preparaat-/casustype, gebeurtenistrigger</td>
+<td>Keuzes</td>
+<td>Optioneel</td>
+<td></td>
+<td>Alle</td>
+</tr>
+<tr id="f-print_routing_rules-resolve"><td>Oplossen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td>Toont de overeenkomende regel en het niveau ervan, en de opgeloste bestemming. Zonder overeenkomst meldt het dat de opdracht zou terugvallen op de standaardbestemming van de faciliteit.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> Openen: <code>screen:configuration:open</code>. Toevoegen, wijzigen, verwijderen: <code>config:print-routing:manage</code> (hoog risico, geaudit). Het noemen van de printer van de agent van een locatie wordt op die locatie gecontroleerd, evenals het zien van de printers ervan. Beheerder en Laboratoriumdirecteur hebben haar.
+<strong>Bekende beperkingen.</strong> De standaardbestemming en afdrukmodus van de faciliteit (benoemde QZ Tray-printer, overdracht aan de koppelingsengine of direct netwerkafdrukken) en het papierformaat worden ingesteld op het tabblad Afdrukken van het faciliteitsrecord in het <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Faciliteitswoordenboek</a>, niet hier. Direct netwerkafdrukken vereist een PathScribe-server of <a class="term" href="99-glossary.html#g-site-agent" title="Een kleine Windows-service die in een laboratorium wordt geïnstalleerd en verslagen en labels afdrukt en bestanden naar shares op het ziekenhuisnetwerk schrijft, op instructie van de API-server.">site-agent</a> binnen het ziekenhuisnetwerk; een browser kan geen printersocket openen.</p>
+<h3 id="screen-my-exports"><a class="anchor" href="#screen-my-exports" aria-label="Link to this section">#</a> Mijn exports</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Mijn exports"><span>Start</span> <span aria-hidden="true">›</span> <span>Mijn exports</span></nav>
+
+<p><strong>Status:</strong> Demonstratie</p>
+<p><strong>1. Navigatie:</strong> De exportknop in de bovenbalk, die het aantal exports toont dat klaarstaat om te downloaden. De knop verschijnt alleen wanneer een API-server is gekoppeld; open in de demonstratie de pagina op <code>/my-exports</code>.
+<strong>2. Onderhoudsonderdeel:</strong> De eigen exportbestanden van de aangemelde persoon</p>
+<p><strong>3. Doel en reikwijdte.</strong> Grote exports (QA-, audit-, vernietigings- en zoekrapporten) worden als achtergrondtaken voorbereid. De persoon vraagt de export aan, krijgt bericht wanneer het bestand klaar is en downloadt het hier. Bestanden worden 7 dagen bewaard en alleen de persoon die ze heeft aangevraagd kan ze downloaden. In deze demonstratie worden exports direct gedownload, dus de lijst is normaal gesproken leeg. Een banner markeert de gesimuleerde server: exports worden in de browser voorbereid en alleen tot het afmelden bewaard. Het API-contract is <code>ASYNC_EXPORT_API.md</code>; met de PathScribe-server gekoppeld wordt een grote export daar voorbereid en verschijnt hij hier wanneer hij klaar is.</p>
+<p><strong>4. Vereisten en afhankelijkheden.</strong> Geen om het te openen. Een export verschijnt alleen als de eigen exportmachtiging ervan is verleend (bijvoorbeeld <code>qa:deficiencies:export</code>); verleen die dus in de rollen van het personeel aan de mensen die ze nodig hebben.</p>
+<aside class="setup" aria-label="Inrichtingsvolgorde"><p class="setup-step"><b>Inrichtingsvolgorde</b> · Naslag, geen onderdeel van de inrichting</p><dl><dt>Eerst inrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></dd><dt>Dit maakt mogelijk</dt><dd><span class="none">Geen.</span></dd></dl></aside>
+
+<p><strong>5. Scherm.</strong></p>
+<figure class="shot"><img src="../img/screen-my-exports.webp" alt="Lijst Mijn exports met status, rijen en download" loading="lazy"><figcaption>Lijst Mijn exports met status, rijen en download</figcaption></figure>
+
+<p><strong>6. Veldreferentie.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Veldnaam</th>
+<th>Gegevenstype / indeling</th>
+<th>Verplicht/Optioneel</th>
+<th>Beschrijving en bedrijfslogica</th>
+<th>Systeemstandaard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-my-exports-export"><td>Export</td>
+<td>Alleen-lezen tekst</td>
+<td>Niet van toepassing</td>
+<td>De titel van de export.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-requested"><td>Aangevraagd</td>
+<td>Alleen-lezen datum en tijd</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-status"><td>Status</td>
+<td>Alleen-lezen: Wacht, Wordt voorbereid, Klaar, Mislukt, Geannuleerd, Verlopen</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-rows"><td>Rijen</td>
+<td>Alleen-lezen getal</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-deleted-after"><td>Verwijderd na</td>
+<td>Alleen-lezen datum</td>
+<td>Niet van toepassing</td>
+<td>Zeven dagen na de aanvraag.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-actions-download-cancel"><td>Acties: Downloaden, Annuleren</td>
+<td>Knoppen</td>
+<td>Niet van toepassing</td>
+<td>Downloaden wanneer Klaar; Annuleren terwijl Wacht of Wordt voorbereid.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-refresh"><td>Vernieuwen</td>
+<td>Knop</td>
+<td>Niet van toepassing</td>
+<td></td>
+<td>Niet van toepassing</td>
+</tr>
+<tr id="f-my-exports-make-exports-take-longer-to-try-the-waiting-experience"><td>Exports langer laten duren (om het wachten uit te proberen)</td>
+<td>Ja/nee-schakelaar, alleen getoond op de gesimuleerde server</td>
+<td>Optioneel</td>
+<td>Een demonstratiebediening.</td>
+<td>Uit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Machtigingen.</strong> De pagina vereist alleen een aangemelde persoon en toont de eigen exports van die persoon. Elke export wordt aangevraagd onder een eigen <a class="term" href="99-glossary.html#g-capability" title="Eén toestemming, benoemd in de vorm `domain:object:verb`, zoals `config:roles:manage`. Rollen krijgen machtigingen en elke beschermde handeling controleert er een.">machtiging</a> <code>...:export</code>, die hoog risico is en wordt geaudit als <code>DOCUMENT_EXPORTED</code> met het aantal rijen.
+<strong>Bekende beperkingen.</strong> De serverkant is niet gekoppeld. Configuratie-exports (woordenboeken, conversietabellen, de artsenlijst) zijn klein, blijven in de browser en verschijnen hier niet. Geplande runs van opgeslagen rapporten (pagina Zoeken, Rapport &gt; Schema's) zijn Gesimuleerd en versturen niets; ze hebben een eigen contract in <code>SCHEDULED_REPORTS_API.md</code>.</p>
+<h2 id="ch6-batch-jobs"><a class="anchor" href="#ch6-batch-jobs" aria-label="Link to this section">#</a> Inrichting van batchafdrukken en de nachtelijke taakplanner</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Start &gt; Configuratie"><span>Start</span> <span aria-hidden="true">›</span> <span>Configuratie</span></nav>
+
+<p><strong>Status van dit deel:</strong> Gedeeltelijk. Er is geen enkel scherm "batchafdrukken en nachtelijke taakplanner", en een beheerder kan geen geplande taak aanmaken of bewerken. Wat er bestaat, staat hieronder, met het hoofdstuk dat elk scherm beschrijft.</p>
+<table>
+<thead>
+<tr>
+<th>Onderdeel</th>
+<th>Status</th>
+<th>Waar het wordt geconfigureerd</th>
+<th>Waar het is beschreven</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Afdrukwachtrij (vasthouden, vrijgeven, annuleren, opnieuw proberen, omleiden, bulkacties)</td>
+<td>Gerealiseerd</td>
+<td>Opdrachten worden beheerd in Systeemlogboeken &gt; Koppelingen &gt; Afdrukwachtrij. Printers en routering worden ingesteld in <a href="#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a> en op het tabblad Afdrukken van de <a class="term" href="99-glossary.html#g-facility" title="Eén laboratorium of locatie binnen een onderneming. Een faciliteit met uitvoerend laboratorium doet het onderzoek; een klantfaciliteit stuurt alleen monsters.">faciliteit</a>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: koppelingen</a></td>
+</tr>
+<tr>
+<td>Samenvoegen van afdrukbatches ("Batch nu uitvoeren")</td>
+<td>Gedeeltelijk</td>
+<td>Een knop op het scherm Afdrukwachtrij met een begin en einde van het venster (24-uurs tijden, gelezen als <a class="term" href="99-glossary.html#g-utc" title="Gecoördineerde wereldtijd (Coordinated Universal Time), de tijdstandaard waarin auditvermeldingen worden opgeslagen en getoond.">UTC</a>) en een groeperingskeuze (Klantaccount of Leverroute). Het groepeert in de wachtrij staande, niet-gekoppelde opdrachten die in het venster zijn ondertekend onder gedeelde batch-id's. Het draait alleen wanneer iemand op de knop drukt. Een terugkerende taak met de naam <code>print.batchAggregation</code> verschijnt in de lijst met servertaken zonder vast interval, maar in deze build is geen tijdschema ingesteld.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systeemlogboeken: koppelingen</a></td>
+</tr>
+<tr>
+<td>Etiketten opnieuw afdrukken per batch</td>
+<td>Gerealiseerd</td>
+<td>Batchbeheer &gt; Etiketten herdrukken: zoek casussen op accessiedatum of -nummer, kies cassettes, monstercontainers of aanvraagformulieren, kies een cassetteprinter en druk één etiket tegelijk opnieuw af. Elk etiket wordt geaudit; mislukte etiketten kunnen opnieuw worden geprobeerd. Vereist <code>label:batch:reprint</code>.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-batch-management">Batchbeheer</a></td>
+</tr>
+<tr>
+<td>Geplande exports</td>
+<td>Demonstratie</td>
+<td>Opgeslagen zoekrapporten voor casussen kunnen worden gepland (dagelijks, wekelijks of maandelijks) via de pagina Zoeken, Rapport &gt; Schema's. Een run wordt gesimuleerd en verstuurt niets. Grote exports draaien als achtergrondtaken en staan in <a href="#screen-my-exports">Mijn exports</a>.</td>
+<td><code>SCHEDULED_REPORTS_API.md</code>, <code>ASYNC_EXPORT_API.md</code></td>
+</tr>
+<tr>
+<td>Servertaken (wachtrijstatus, dead letters, opnieuw in de wachtrij zetten)</td>
+<td>Gerealiseerd, alleen lezen en opnieuw in de wachtrij zetten</td>
+<td>Systeemlogboeken &gt; Servertaken. Toont de taaksoorten (koppelingsverzending, leveringspoging, afdrukverzending, vrijgave van vastgehouden rapporten, kostenverzending, exportopbouw, gebeurtenis) en de terugkerende taken met hoe vaak elk draait. Vereist <code>jobs:server-job:view</code>; het opnieuw in de wachtrij zetten van een dead-lettertaak vereist <code>jobs:server-job:requeue</code>.</td>
+<td><a href="09-appendices.html#screen-audit-log">Systeemlogboeken</a></td>
+</tr>
+<tr>
+<td>Nachtelijke taakplanner (taken aanmaken, bewerken, in- of uitschakelen)</td>
+<td>Niet gerealiseerd</td>
+<td>Terugkerende taken liggen vast op de API-server. Het scherm Servertaken toont ze en laat hun status zien, maar heeft geen bediening om een tijdstip te wijzigen of er een uit te zetten.</td>
+<td>Niet van toepassing</td>
+</tr>
+<tr>
+<td>Nachtelijke protocolsynchronisatie (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. Het accrediteert laboratoria en publiceert de kankerprotocollen (checklists) die de synoptische verslagen van PathScribe volgen.">CAP</a>, RCPath, ICCR)</td>
+<td>Niet gerealiseerd</td>
+<td>Zie <a href="#ch6-synoptic">Synoptische bibliotheek</a>.</td>
+<td>Niet van toepassing</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Terugkerende taken die de server vandaag toont</strong> (minuten tussen de runs): sweep voor nieuwe leveringspogingen (0,5), sweep voor aflopende vrijgave (0,25), verlopen van consultlinks (5), escalatie van verouderde registeritems (60), dagelijkse meldingen voor opvolging (1440), verlopen van supporttoegang (5), sweep voor cytologie-histologiecorrelatie (1440), LIS-polling (eigen schema), afdrukbatchaggregatie (eigen schema), SLA-bewaking van cytologie-ROSE (5), opschoning van de berichtenbus (1440).</p>
+<p><strong>Volgorde van inrichting voor batchwerk.</strong> Voor servertaken valt niets te configureren. Rond voor afdrukken eerst de <a href="#screen-print_routing_rules">Routeringsregels voor afdrukbestemmingen</a> af en controleer dan de Afdrukwachtrij. Richt voor het opnieuw afdrukken van etiketten eerst de cassetteprinter in onder Printerprofielen. Verleen <code>label:batch:reprint</code> en de machtigingen <code>print:job:*</code> in de rollen van het personeel aan de mensen die dit uitvoeren.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

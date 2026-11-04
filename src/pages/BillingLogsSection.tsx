@@ -56,11 +56,23 @@ import {
 import type { BillingAuditLogFilters, BillingAuditLogEntry, BillingAuditLogEventKind } from '@/services/billing/searchBillingAuditLog';
 import { userService, facilityService } from '@/services';
 import { downloadCSV, buildMetaHeader } from '@/utils/csvExport';
+import { getPersonalSetting, setPersonalSetting } from '@/services/userSettings/personalSettings';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { beginExport } from '@/services';
+import { clickableContainer } from '@/utils/a11y/pressable';
+import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
+import { csvQuoted } from '@/utils/csv';
+import { runExport } from '@/services/exports/runExport';
 
 const LS_KEY = 'pathscribe:savedBillingLogQueries';
 interface SavedQuery { id: string; name: string; filters: BillingAuditLogFilters; createdAt: string; }
-const lsLoad = (): SavedQuery[] => { try { const r = localStorage.getItem(LS_KEY); return r ? JSON.parse(r) : []; } catch { return []; } };
-const lsSave = (s: SavedQuery[]) => { try { localStorage.setItem(LS_KEY, JSON.stringify(s)); } catch { /* best-effort */ } };
+// Batch 431: saved searches belong to the person who saved them (they were
+// shared by everyone on the computer). PS-345 moves them to the server.
+const lsLoad = (): SavedQuery[] => {
+  const saved = getPersonalSetting<SavedQuery[]>(LS_KEY, []);
+  return Array.isArray(saved) ? saved : [];
+};
+const lsSave = (s: SavedQuery[]) => setPersonalSetting(LS_KEY, s);
 
 interface StaffStub { id: string; name: string; roles: string; }
 interface FacilityStub { id: string; name: string; }
@@ -344,6 +356,10 @@ const BillingLogsSection: React.FC = () => {
     void handleSearch(q.filters);
   };
 
+  // Batch 570: after a chip's × (from the keyboard) removes it, focus goes to the next chip, or "Save query".
+  const savedChipsRef = useRef<HTMLDivElement | null>(null);
+  const rememberChipFocus = useFocusAfterRemoval(savedQueries.map(x => x.id), savedChipsRef, 'data-saved-open', [],
+    () => savedChipsRef.current?.querySelector<HTMLElement>('.ps-searchpage-save-new-btn, .ps-searchpage-save-input'));
   const handleDeleteQuery = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setSavedQueries(p => p.filter(x => x.id !== id));
@@ -356,34 +372,46 @@ const BillingLogsSection: React.FC = () => {
    *  (extracted to utils/csvExport.ts for this) - but passes
    *  containsPatientIdentifiers: true, since this export's own rows
    *  genuinely include patient name and MRN/MPI, unlike those 4. */
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
     if (!results || results.length === 0) return;
-    const esc = (v: string) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const meta = buildMetaHeader(
-      'Billing Log',
-      requestedByLabel,
-      {
-        'Case': caseNumber, 'Patient Name': patientName, 'Patient ID': patientId,
-        'Name Range': nameRangeFrom || nameRangeTo ? `${nameRangeFrom || 'A'} to ${nameRangeTo || 'Z'}` : '',
-        'Billing Event Date': serviceDateFrom || serviceDateTo ? `${serviceDateFrom || '…'} to ${serviceDateTo || '…'}` : '',
-        'Date of Service': dateOfServiceFrom || dateOfServiceTo ? `${dateOfServiceFrom || '…'} to ${dateOfServiceTo || '…'}` : '',
-        'Sign-out Date': signOutDateFrom || signOutDateTo ? `${signOutDateFrom || '…'} to ${signOutDateTo || '…'}` : '',
-        'Type': type, 'Billing Type': billingType ?? '', 'Status': approvalStatus ?? '',
-        'Staff': staffNames.join('; '), 'Pathologist': pathologistNames.join('; '),
-        'Facility': facilityIds.map(id => facilityOptions.find(c => c.id === id)?.name ?? id).join('; '),
-        'Detail': detail,
-      },
-      results.length,
-      true,
-    );
-    const data = [
-      ['Case', 'Patient', 'Patient ID', 'Timestamp', 'Type', 'Billing Type', 'Status', 'Event', 'Detail', 'Staff', 'Pathologist', 'Facility'].join(','),
-      ...results.map(e => [
-        e.caseNumber, e.patientName, e.patientId, e.timestamp, BILLING_AUDIT_LOG_KIND_LABEL[e.kind],
-        e.billingType ?? '', e.approvalStatus ?? '', e.label, e.detail, e.staff, e.signingPathologist ?? '', e.clientName ?? '',
-      ].map(esc).join(',')),
-    ];
-    downloadCSV(meta + data.join('\n'), `pathscribe-billing-log-${new Date().toISOString().slice(0, 10)}.csv`);
+    // PS-282 + PS-357 (Batch 437): checked (audit:billing-log:export) and audited.
+    const filename = `pathscribe-billing-log-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filters: Record<string, string> = {
+      'Case': caseNumber, 'Patient Name': patientName, 'Patient ID': patientId,
+      'Name Range': nameRangeFrom || nameRangeTo ? `${nameRangeFrom || 'A'} to ${nameRangeTo || 'Z'}` : '',
+      'Billing Event Date': serviceDateFrom || serviceDateTo ? `${serviceDateFrom || '…'} to ${serviceDateTo || '…'}` : '',
+      'Date of Service': dateOfServiceFrom || dateOfServiceTo ? `${dateOfServiceFrom || '…'} to ${dateOfServiceTo || '…'}` : '',
+      'Sign-out Date': signOutDateFrom || signOutDateTo ? `${signOutDateFrom || '…'} to ${signOutDateTo || '…'}` : '',
+      'Type': type, 'Billing Type': billingType ?? '', 'Status': approvalStatus ?? '',
+      'Staff': staffNames.join('; '), 'Pathologist': pathologistNames.join('; '),
+      'Facility': facilityIds.map(id => facilityOptions.find(c => c.id === id)?.name ?? id).join('; '),
+      'Detail': detail,
+    };
+    // Batch 550: through the export service. The API server builds it from the typed filters below (they can name a
+    // patient, so the server keeps them as PHI, ASYNC_EXPORT_API.md §8); the demo builds it here.
+    await runExport('audit.billing-log', filename, {
+      caseNumber, patientName, patientId, nameRangeFrom, nameRangeTo, serviceDateFrom, serviceDateTo,
+      dateOfServiceFrom, dateOfServiceTo, signOutDateFrom, signOutDateTo, type, billingType: billingType ?? null,
+      approvalStatus: approvalStatus ?? null, staffNames, pathologistNames, facilityIds, detail,
+    }, async () => {
+      if (!(await beginExport('billing-log', { filename, rowCount: results.length }))) return;
+      const esc = csvQuoted; // Batch 543 (F8): quoted, and formula cells neutralized
+      const meta = buildMetaHeader(
+        'Billing Log',
+        requestedByLabel,
+        filters,
+        results.length,
+        true,
+      );
+      const data = [
+        ['Case', 'Patient', 'Patient ID', 'Timestamp', 'Type', 'Billing Type', 'Status', 'Event', 'Detail', 'Staff', 'Pathologist', 'Facility'].join(','),
+        ...results.map(e => [
+          e.caseNumber, e.patientName, e.patientId, e.timestamp, BILLING_AUDIT_LOG_KIND_LABEL[e.kind],
+          e.billingType ?? '', e.approvalStatus ?? '', e.label, e.detail, e.staff, e.signingPathologist ?? '', e.clientName ?? '',
+        ].map(esc).join(',')),
+      ];
+      downloadCSV(meta + data.join('\n'), filename);
+    });
   };
 
   return (
@@ -394,12 +422,14 @@ const BillingLogsSection: React.FC = () => {
             <div className="ps-search-title-block-title">{t('billingLogs.title')}</div>
             <div className="ps-search-title-block-sub">{t('billingLogs.subtitle')}</div>
           </div>
-          <div className="ps-search-saved-chips">
+          <div className="ps-search-saved-chips" ref={savedChipsRef}>
             {savedQueries.map(q => (
-              <button key={q.id} type="button" onClick={() => handleLoadQuery(q.id)} className={`ps-searchpage-saved-chip${activeSavedId === q.id ? ' ps-searchpage-saved-chip--active' : ''}`} title={summarizeFilters(q.filters, t)}>
-                {q.name}
-                <span onClick={e => handleDeleteQuery(q.id, e)} className="ps-searchpage-saved-chip-remove">×</span>
-              </button>
+              // Batch 569 (axe nested-interactive): the chip was a button holding its × button. The chip is a mouse
+              // shortcut now; its name is the button that loads the query, and × is a button of its own.
+              <span key={q.id} {...clickableContainer(() => handleLoadQuery(q.id))} className={`ps-searchpage-saved-chip${activeSavedId === q.id ? ' ps-searchpage-saved-chip--active' : ''}`}>
+                <button type="button" className="ps-row-open-btn" data-saved-open={q.id} title={summarizeFilters(q.filters, t)} aria-current={activeSavedId === q.id ? 'true' : undefined} onClick={e => { e.stopPropagation(); handleLoadQuery(q.id); }}>{q.name}</button>
+                <button type="button" className="ps-row-open-btn ps-searchpage-saved-chip-remove" aria-label={t('billingLogs.deleteQueryAria', { name: q.name })} title={t('billingLogs.deleteQueryAria', { name: q.name })} onClick={e => { rememberChipFocus(e, q.id); handleDeleteQuery(q.id, e); }}>×</button>
+              </span>
             ))}
             {showSaveInput ? (
               <div className="ps-searchpage-save-row">
@@ -407,7 +437,7 @@ const BillingLogsSection: React.FC = () => {
                   onKeyDown={e => { if (e.key === 'Enter') handleSaveQuery(); if (e.key === 'Escape') { setShowSaveInput(false); setSaveNameInput(''); } }}
                   placeholder={t('billingLogs.placeholders.saveQueryName')} className="ps-searchpage-save-input" />
                 <button type="button" onClick={handleSaveQuery} className="ps-searchpage-save-btn">{t('billingLogs.save')}</button>
-                <button type="button" onClick={() => { setShowSaveInput(false); setSaveNameInput(''); }} className="ps-searchpage-save-cancel-btn">✕</button>
+                <button type="button" onClick={() => { setShowSaveInput(false); setSaveNameInput(''); }} className="ps-searchpage-save-cancel-btn" aria-label={t('common.cancel')} title={t('common.cancel')}>✕</button>
               </div>
             ) : (
               <button type="button" onClick={() => setShowSaveInput(true)} className="ps-searchpage-save-new-btn">{t('billingLogs.saveQuery')}</button>
@@ -444,11 +474,11 @@ const BillingLogsSection: React.FC = () => {
                   <div className="ps-searchpage-date-grid">
                     <div>
                       <div className="ps-searchpage-date-label">{t('billingLogs.dateFrom')}</div>
-                      <input className="ps-searchpage-filter-input" value={nameRangeFrom} onChange={e => setNameRangeFrom(e.target.value)} placeholder={t('billingLogs.placeholders.nameRangeFrom')} />
+                      <input aria-label={t('billingLogs.dateFrom')} className="ps-searchpage-filter-input" value={nameRangeFrom} onChange={e => setNameRangeFrom(e.target.value)} placeholder={t('billingLogs.placeholders.nameRangeFrom')} />
                     </div>
                     <div>
                       <div className="ps-searchpage-date-label">{t('billingLogs.dateTo')}</div>
-                      <input className="ps-searchpage-filter-input" value={nameRangeTo} onChange={e => setNameRangeTo(e.target.value)} placeholder={t('billingLogs.placeholders.nameRangeTo')} />
+                      <input aria-label={t('billingLogs.dateTo')} className="ps-searchpage-filter-input" value={nameRangeTo} onChange={e => setNameRangeTo(e.target.value)} placeholder={t('billingLogs.placeholders.nameRangeTo')} />
                     </div>
                   </div>
 
@@ -494,20 +524,20 @@ const BillingLogsSection: React.FC = () => {
                   <div className="ps-searchpage-inline-grid">
                     <div>
                       <div className="ps-searchpage-section-mb4"><SectionLabel title={t('billingLogs.sectionLabels.type')} /></div>
-                      <select className="ps-searchpage-filter-input" value={type} onChange={e => setType(e.target.value as BillingAuditLogEventKind | '')}>
+                      <select aria-label={t('a11y.fields.questionType')} className="ps-searchpage-filter-input" value={type} onChange={e => setType(e.target.value as BillingAuditLogEventKind | '')}>
                         {TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                       </select>
                     </div>
                     <div>
                       <div className="ps-searchpage-section-mb4"><SectionLabel title={t('billingLogs.sectionLabels.billingType')} /></div>
-                      <select className="ps-searchpage-filter-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingAuditLogFilters['billingType'] | '')}>
+                      <select aria-label={t('billingLogs.sectionLabels.billingType')} className="ps-searchpage-filter-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingAuditLogFilters['billingType'] | '')}>
                         {BILLING_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                       </select>
                     </div>
                   </div>
 
                   <div className="ps-searchpage-section-mb4"><SectionLabel title={t('billingLogs.sectionLabels.status')} /></div>
-                  <select className="ps-searchpage-filter-input" value={approvalStatus} onChange={e => setApprovalStatus(e.target.value as BillingAuditLogFilters['approvalStatus'] | '')}>
+                  <select aria-label={t('billingLogs.sectionLabels.status')} className="ps-searchpage-filter-input" value={approvalStatus} onChange={e => setApprovalStatus(e.target.value as BillingAuditLogFilters['approvalStatus'] | '')}>
                     {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
                   </select>
 
@@ -565,7 +595,7 @@ const BillingLogsSection: React.FC = () => {
               <div className="ps-search-summary-actions">
                 {results !== null && <span className="ps-searchpage-result-count">{t('billingLogs.resultCount', { count: results.length })}</span>}
                 {results !== null && results.length > 0 && (
-                  <button type="button" onClick={handleExportCSV} className="ps-searchpage-export-btn">{t('billingLogs.exportCsv')}</button>
+                  <CapabilityButton capability="audit:billing-log:export" onClick={() => { void handleExportCSV(); }} className="ps-searchpage-export-btn">{t('billingLogs.exportCsv')}</CapabilityButton>
                 )}
               </div>
             </div>

@@ -1,0 +1,1437 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anhang: Fehlerbehebung und Prüfung des Prüfprotokolls · PathScribe-Administratorhandbuch</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="de" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administratorhandbuch</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Bildschirme, Felder, Fehlercodes suchen" aria-label="Im Handbuch suchen" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Sprache"><option value="en">English</option><option value="fr">Français</option><option value="de" selected>Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Drucken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Kapitel des Handbuchs"><a href="index.html">Inhalt</a><a href="setup-sequence.html">Reihenfolge der Einrichtung</a><a href="01-system-overview.html">1. Systemübersicht und Architektur</a><a href="02-tier1-primary-prerequisites.html">2. Stufe 1: Primäre Systemvoraussetzungen (zuerst einrichten)</a><a href="03-tier2-master-dictionaries.html">3. Stufe 2: Stammwörterbücher und klinische Grunddaten (an zweiter Stelle einrichten)</a><a href="04-tier3-workflow-engines.html">4. Stufe 3: Workflow-Engines und betriebliche Konfiguration (als Drittes einrichten)</a><a href="05-tier4-ai-framework.html">5. Stufe 4: Das in PathScribe eingebettete KI-Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Stufe 5: Befundung, synoptische Formulare und Konfiguration des Schedulers</a><a href="07-tier6-interface-engine.html">7. Stufe 6: Schnittstellen-Engine und Anbindung externer Systeme</a><a href="08-tier7-billing-registry.html">8. Stufe 7: Abrechnung, Erlösmanagement und Registermeldung</a><a href="09-appendices.html" aria-current=page>9. Anhang: Fehlerbehebung und Prüfung des Prüfprotokolls</a><a href="99-glossary.html">99. Anhang: Glossar der Begriffe und Abkürzungen</a></nav><main id="main"><aside class="pagetoc" aria-label="Auf dieser Seite"><b>Auf dieser Seite</b><ul><li class="l2"><a href="#ch9-matrix">Matrix zur Fehlerbehebung</a></li><li class="l3"><a href="#ch9-matrix-empty">Leere Listen und Meldungen „nicht eingerichtet“</a></li><li class="l3"><a href="#ch9-matrix-permissions">Abgelehnte Speichervorgänge, ausgegraute Schaltflächen und Bildschirme, die sich nicht öffnen lassen</a></li><li class="l3"><a href="#ch9-matrix-print">Etiketten und Berichte, die nicht gedruckt werden</a></li><li class="l3"><a href="#ch9-matrix-interfaces">Schnittstellennachrichten, die hängen</a></li><li class="l3"><a href="#ch9-matrix-signin">Die Anmeldung schlägt fehl</a></li><li class="l3"><a href="#ch9-matrix-stuck">Eine Schnittstellennachricht oder ein Bildschirm hängt anscheinend</a></li><li class="l2"><a href="#ch9-error-codes">Index der Systemfehlercodes</a></li><li class="l3"><a href="#ch9-codes-http">Codes, die jeder Bildschirm mit Serveranbindung anzeigen kann</a></li><li class="l3"><a href="#ch9-codes-exports">Exporte</a></li><li class="l3"><a href="#ch9-codes-config">Konfiguration beim Start</a></li><li class="l3"><a href="#ch9-codes-print">Drucken, Etiketten und der Standortagent</a></li><li class="l3"><a href="#ch9-codes-outbound">Ausgehende Nachrichten, Leistungen, Register und Serveraufträge</a></li><li class="l3"><a href="#ch9-codes-config-screens">Konfigurationsbildschirme: Ablehnungen, die man kennen sollte</a></li><li class="l2"><a href="#ch9-system-logs">Referenz der Systemprotokolle</a></li><li class="l3"><a href="#screen-audit-log">Systemprotokolle</a></li><li class="l2"><a href="#ch9-audit-verification">Anleitung zur Prüfung des Prüfprotokolls</a></li><li class="l3"><a href="#ch9-audit-recorded">Was aufgezeichnet wird</a></li><li class="l3"><a href="#ch9-audit-find-setting">So finden Sie die Änderung einer Einstellung</a></li><li class="l3"><a href="#ch9-audit-find-permission">So prüfen Sie, wer eine Berechtigung geändert hat</a></li><li class="l3"><a href="#ch9-audit-integrity">So funktionieren Integrität und Aufbewahrung der Aufzeichnung</a></li><li class="l3"><a href="#ch9-audit-export">So exportieren Sie</a></li><li class="l3"><a href="#ch9-audit-support">Wie das Prüfprotokoll des Support-Zugriffs einzuordnen ist</a></li><li class="l3"><a href="#ch9-audit-routine">Ein kurzer Prüfablauf</a></li></ul></aside><article><h1 id="ch9"><a class="anchor" href="#ch9" aria-label="Link to this section">#</a> Anhang: Fehlerbehebung und Prüfung des Prüfprotokolls</h1>
+<p>Dieses Kapitel hat drei Teile. Der erste ist eine Matrix zur Fehlerbehebung: die Probleme, auf die Administratoren am häufigsten stoßen, jeweils mit Ursache und dem Bildschirm, der sie behebt. Der zweite ist ein Index der Fehlercodes, die PathScribe anzeigt oder aufzeichnet. Der dritte beschreibt den Bildschirm Systemprotokolle und enthält eine Schritt-für-Schritt-Anleitung, um zu prüfen, was das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> enthält. Das Glossar der Begriffe ist das letzte Kapitel des Handbuchs (<a href="99-glossary.html#ch99">Glossar</a>).</p>
+<p><strong>Das Benutzerhandbuch (Batch 657).</strong> Das Online-Benutzerhandbuch für die Personen, die die Arbeit erledigen, wird aus Markdown in <code>docs/user-guide/</code> mit <code>python3 scripts/user-guide/build.py</code> erstellt und mit der Anwendung unter <code>/help</code> veröffentlicht; die Schaltfläche Hilfe jedes Bildschirms und F1 öffnen den Artikel zum angezeigten Bildschirm. Konfigurations- und Administratorbildschirme behalten ihre Schaltflächen für das Administratorhandbuch. Es ist keine Einstellung nötig. Eine Seite wird hinzugefügt oder geändert, indem man ihre Datei bearbeitet und neu erstellt; der Build prüft die erforderlichen Abschnitte, Links und Routen.</p>
+<p>Jede hier zitierte Meldung ist der Text des Produkts in deutscher Sprache. Jeder Code ist einer, der im Quellcode vorhanden ist; ein Code, der in einem Vertrag nur ein <a class="term" href="99-glossary.html#g-placeholder" title="Ein Datensatz, der für einen Briefkasten-Barcode angelegt wird, zu dem noch kein Auftrag vorliegt. Er enthält den Beleg und wird später mit einem Auftrag verknüpft; er erhält nie eine Eingangsnummer.">Platzhalter</a> ist und im Produkt nicht verwendet wird, ist nicht aufgeführt.</p>
+<h2 id="ch9-matrix"><a class="anchor" href="#ch9-matrix" aria-label="Link to this section">#</a> Matrix zur Fehlerbehebung</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Anhänge &gt; Matrix zur Fehlerbehebung"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Anhänge</span> <span aria-hidden="true">›</span> <span>Matrix zur Fehlerbehebung</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt</p>
+<p><strong>So verwenden Sie die Matrix.</strong> Suchen Sie das Symptom, das der Benutzer meldet, lesen Sie die wahrscheinliche Ursache und folgen Sie der Behebung. Die meisten Meldungen „es funktioniert nicht“ haben eine von zwei Ursachen: ein Verzeichnis, das nie eingerichtet wurde (eine leere Liste), oder eine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a>, die eine <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> nicht enthält (eine ausgegraute Schaltfläche oder ein abgelehntes Speichern). Zeigt das Symptom einen Code in Großbuchstaben, schlagen Sie ihn im <a href="#ch9-error-codes">Fehlercode-Index</a> nach.</p>
+<p><strong>Vor allem anderen.</strong> Zwei Prüfungen beantworten die meisten Fragen.</p>
+<ol>
+<li>Öffnen Sie <a href="#screen-audit-log">Systemprotokolle</a> und suchen Sie nach dem Namen der Person oder dem Berechtigungsschlüssel. Eine abgelehnte Berechtigungsprüfung schreibt einen Eintrag <strong>Capability refused</strong>, der die Berechtigung und die Sitzungsrolle der Person nennt.</li>
+<li>Suchen Sie im Tab <strong>Fehlerprotokoll</strong> nach einem offenen Fehler mit einem Code, einer Quelle und einer Uhrzeit nahe der Meldung.</li>
+</ol>
+<h3 id="ch9-matrix-empty"><a class="anchor" href="#ch9-matrix-empty" aria-label="Link to this section">#</a> Leere Listen und Meldungen „nicht eingerichtet“</h3>
+<p>Eine leere Auswahlliste oder eine Meldung „nichts konfiguriert“ bedeutet fast immer, dass ein Verzeichnis, das in der Einrichtungsreihenfolge früher steht, übersprungen wurde. Die Seite <a href="setup-sequence.html">Einrichtungsreihenfolge</a> nennt die Reihenfolge.</p>
+<table>
+<thead>
+<tr>
+<th>Symptom (was der Benutzer sieht)</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Im Teamfenster eines Falls: <strong>Keine Teilnahmetypen konfiguriert</strong>, mit dem Hinweis „Richten Sie Typen unter System → Teilnahmetypen ein.“</td>
+<td>Es existiert kein Teilnahmetyp.</td>
+<td>Fügen Sie die Typen hinzu, die das Labor verwendet, und öffnen Sie das Fenster erneut.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Teilnahmetypen</a></td>
+</tr>
+<tr>
+<td>Ein Testdruck oder ein Etikettenfenster meldet <strong>Keine Druckerprofile konfiguriert</strong>.</td>
+<td>Es wurde kein <a class="term" href="99-glossary.html#g-printer-profile" title="Die gespeicherten Einstellungen für ein Druckermodell, einschließlich seiner Verbindungsmethode (Bridge).">Druckerprofil</a> hinzugefügt.</td>
+<td>Fügen Sie für jedes Modell von Etikettendrucker ein Druckerprofil hinzu.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Druckerprofile</a></td>
+</tr>
+<tr>
+<td>Eine Einbettungs- oder Mikrotomiestation meldet <strong>Kein Drucker konfiguriert</strong> oder <strong>Das konfigurierte Druckerprofil existiert nicht mehr</strong>. Eine Station zur Objektträgerverteilung meldet <strong>Diese Station ist nicht für den Druck von Objektträgeretiketten eingerichtet.</strong></td>
+<td>Die Station hat kein Druckerprofil, oder ihr Profil wurde gelöscht.</td>
+<td>Öffnen Sie die Station und wählen Sie ein Druckerprofil, das noch existiert.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-scan_stations">Scanstationen</a>, <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Druckerprofile</a></td>
+</tr>
+<tr>
+<td>Ein Fenster zur Objektträgerverteilung oder zu einem Scan-Batch meldet <strong>Es sind keine Objektträgerscanner eingerichtet</strong> (der Text nennt Konfiguration, Geräte, Art „Objektträgerscanner“).</td>
+<td>Es gibt keinen Geräteeintrag der Art Objektträgerscanner.</td>
+<td>Fügen Sie die Scanner hinzu.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-equipment">Geräte</a></td>
+</tr>
+<tr>
+<td>Ein Etikett wird nicht gedruckt, und die Meldung lautet <strong>Keine GS1-GTIN konfiguriert. Legen Sie in den Druckeinstellungen eine fest, bevor Sie ein GS1-Kassettenetikett drucken</strong> (oder Objektträgeretikett).</td>
+<td>Für die <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> ist keine GS1-GTIN eingetragen.</td>
+<td>Tragen Sie die <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, die Nummer, die ein GS1-Barcode trägt. Die Druckeinstellungen enthalten die GTIN der Einrichtung.">GTIN</a> in den Druckeinstellungen ein.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-print_settings">Druckeinstellungen</a></td>
+</tr>
+<tr>
+<td>Das Dashboard Facility Ops meldet <strong>Es sind noch keine Anzeigeprofile konfiguriert</strong>.</td>
+<td>Es existiert kein <a class="term" href="99-glossary.html#g-display-profile" title="Ein gespeichertes Layout von Dashboard-Kacheln, das eine Wandanzeige darstellt.">Anzeigeprofil</a>.</td>
+<td>Fügen Sie unter Anzeigeprofile eines hinzu.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-display_profiles">Anzeigeprofile</a></td>
+</tr>
+<tr>
+<td>Das OP-Dashboard meldet <strong>Noch keine Terminals konfiguriert</strong>.</td>
+<td>Es existiert kein Terminal für den OP-Saal.</td>
+<td>Fügen Sie die Terminals hinzu.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-or_suite_terminals">OP-Saal-Terminals</a></td>
+</tr>
+<tr>
+<td>Im Fenster der Weiterleitungsregel: <strong>Keine aktiven Pools. Aktivieren Sie zuerst „Pool / Arbeitsgruppe“ bei einer <a class="term" href="99-glossary.html#g-subspecialty" title="Ein Bereich der Pathologie, etwa Mamma oder Gastrointestinaltrakt, der zur Verteilung von Fällen verwendet wird. Eine Subspezialität kann auf den Pool-Modus umgestellt werden.">Subspezialität</a>.</strong></td>
+<td>Keine Subspezialität befindet sich im Modus Pool / Arbeitsgruppe.</td>
+<td>Schalten Sie Pool / Arbeitsgruppe für mindestens eine Subspezialität ein und fügen Sie dann die Regel hinzu.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-subspecialties">Subspezialitäten</a>, <a href="04-tier3-workflow-engines.html#screen-routing_rules">Weiterleitungsregeln</a></td>
+</tr>
+<tr>
+<td>Im Fenster für einen neuen Behälter: <strong>Derzeit ist keine Einrichtung mit der <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> „<a class="term" href="99-glossary.html#g-reference-lab" title="Ein Labor, an das Untersuchungen weitergeleitet werden. Einer Einrichtung wird die Rolle Referenzlabor zugewiesen.">Referenzlabor</a>“ konfiguriert.</strong></td>
+<td>Keine Einrichtung hat die Rolle Referenzlabor.</td>
+<td>Weisen Sie einer Einrichtung diese Rolle in ihren Einrichtungseinstellungen zu.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></td>
+</tr>
+<tr>
+<td>Ein Benutzer, der sichere E-Mail versucht, sieht <strong>Für Ihr Labor ist kein sicheres Nachrichten-Gateway eingerichtet.</strong></td>
+<td>Die Einrichtung hat kein Gateway unter ihrem Tab Sichere Nachrichten.</td>
+<td>Fügen Sie in den Einstellungen der Einrichtung ein Gateway hinzu.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></td>
+</tr>
+<tr>
+<td>Die Liste <strong>Hinzufügen</strong> der Service-Level je Kunde ist leer, mit dem Hinweis, dass jeder Kunde bereits ein Service-Level hat oder keine Kunden eingerichtet sind.</td>
+<td>Jede Einrichtung hat bereits ein Service-Level, oder es existieren keine Einrichtungen von Kunden.</td>
+<td>Fügen Sie zuerst die Einrichtungen hinzu oder bearbeiten Sie das vorhandene Service-Level.</td>
+<td><a href="03-tier2-master-dictionaries.html#screen-clients">Einrichtungskonfiguration</a>, <a href="03-tier2-master-dictionaries.html#screen-client_sla">Service-Level je Kunde</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-permissions"><a class="anchor" href="#ch9-matrix-permissions" aria-label="Link to this section">#</a> Abgelehnte Speichervorgänge, ausgegraute Schaltflächen und Bildschirme, die sich nicht öffnen lassen</h3>
+<p>PathScribe prüft Berechtigungen zweimal. Der Bildschirm graut eine Aktion aus, die die Person nicht ausführen darf. Der Dienst hinter der Aktion prüft erneut und lehnt sie ab. In der Produktion wiederholt der API-Server die Prüfung und hat das letzte Wort. Für keine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> gibt es eine Umgehung, auch nicht für Superadmin.</p>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eine Schaltfläche ist ausgegraut. Ihr Tooltip lautet <strong>Ihre Rollen enthalten „<capability>“ nicht.</strong></td>
+<td>Keine der Rollen der Person enthält diese <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a>.</td>
+<td>Fügen Sie die Berechtigung einer Rolle hinzu, die die Person hat. Berechtigungen sind im Rollenverzeichnis nach Bereichen gruppiert.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Der Tooltip lautet <strong>„<capability>“ erfordert außerdem „<other>“, das Ihre Rollen nicht enthalten.</strong></td>
+<td>Die Berechtigung setzt eine weitere Berechtigung voraus (ihre <code>requires</code>-Liste im Katalog).</td>
+<td>Erteilen Sie beide. Ein Speichern der Rolle wird mit „a capability is missing one it needs“ abgelehnt, bis auch die erforderliche Berechtigung erteilt ist.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Der Tooltip lautet <strong>„<capability>“ ist hier nicht verfügbar: Ihre Einrichtungszuordnung deckt dies nicht ab.</strong></td>
+<td>Die Person hat die Berechtigung, aber die Aktion betrifft eine <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> außerhalb ihrer zugewiesenen Einrichtungen (oder umfasst alle Einrichtungen).</td>
+<td>Ändern Sie die Einrichtungszuordnung der Person.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Ein Speichern in der Konfiguration schlägt fehl mit <strong>Nicht gespeichert: Dafür ist die Berechtigung „<permission>“ nötig. Ein Administrator kann sie unter Konfiguration → Personal → Rollenverzeichnis erteilen.</strong></td>
+<td>Der Person fehlt die Berechtigung <code>config:...:manage</code> für diesen Bildschirm (Code <code>CONFIG_NOT_PERMITTED</code>).</td>
+<td>Erteilen Sie die genannte Berechtigung der Rolle der Person.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Ein Speichern der Rolle schlägt fehl: <strong>Nicht gespeichert: Danach könnte keine Rolle mehr Rollen verwalten.</strong></td>
+<td>Die Änderung ließe keine zuweisbare Rolle mit <code>config:roles:manage</code> übrig.</td>
+<td>Vergeben Sie zuerst <strong>Rollen verwalten</strong> an eine andere zuweisbare Rolle und speichern Sie dann.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Ein Speichern einer Rolle oder eines Mitarbeiters schlägt fehl mit <strong>Das Ändern der Diskrepanzregeln und das Freigeben der KI-Anweisungen sind getrennte Aufgaben</strong>.</td>
+<td>Eine Person (oder eine Rolle) darf nicht zugleich <code>config:clinical-mismatch-rules:manage</code> und <code>config:ai-prompt:approve</code> haben (Code <code>SEPARATION_OF_DUTIES</code>).</td>
+<td>Verteilen Sie die beiden Berechtigungen auf zwei Rollen, die verschiedene Personen haben.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Ein Speichern der Rolle schlägt fehl mit <strong>Diese Rolle wird von ForMedrixAI verwaltet</strong>.</td>
+<td>Die Rolle Superadmin kann in einem Krankenhaus nicht geändert werden.</td>
+<td>Keine. Verwenden Sie eine andere Rolle.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Ein Benutzer öffnet einen Bildschirm und sieht <strong>Sie haben keinen Zugriff auf diesen Bildschirm</strong>; nach der Anmeldung meldet die Startseite <strong>Keine Ihrer Rollen gibt Ihnen bisher Zugriff auf einen Bildschirm.</strong></td>
+<td>Der Rolle fehlt die Berechtigung <code>screen:&lt;name&gt;:open</code>, daher zeigt die Startseite keine Kachel, und die Route lehnt die Adresse ab.</td>
+<td>Fügen Sie der Rolle die Bildschirmberechtigung hinzu.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Eine Person kann ihre eigene Bearbeitung nicht freigeben: <strong>Sie haben diesen Text bearbeitet und können ihn daher nicht freigeben.</strong></td>
+<td>Die Selbstfreigabe wird für KI-Anweisungen abgelehnt (Code <code>SELF_APPROVAL</code>).</td>
+<td>Lassen Sie eine andere Person mit <code>config:ai-prompt:approve</code> die Freigabe vornehmen.</td>
+<td><a href="05-tier4-ai-framework.html#screen-ai_instructions">KI-Anweisungen</a></td>
+</tr>
+<tr>
+<td>Eine Export-Schaltfläche tut nichts, oder der Export-Bildschirm zeigt <strong>Sie haben keine Berechtigung, diesen Bericht zu exportieren.</strong></td>
+<td>Jeder Export hat eine eigene Berechtigung (zum Beispiel <code>audit:audit-log:export</code>), und der Server prüft sie beim Herunterladen erneut.</td>
+<td>Erteilen Sie die Export-Berechtigung, die der Tooltip der Schaltfläche nennt.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-print"><a class="anchor" href="#ch9-matrix-print" aria-label="Link to this section">#</a> Etiketten und Berichte, die nicht gedruckt werden</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ein Etikett geht an das Druckfenster des Browsers, und die Meldung lautet <strong>Der Etikettendrucker ist nicht verbunden, daher wurde dieses Etikett an das Druckfenster des Browsers gesendet. Prüfen Sie, ob <a class="term" href="99-glossary.html#g-qz-tray" title="Ein kleines Programm auf einem Computer, mit dem eine Webseite ohne Druckdialog auf einem lokalen Drucker drucken kann, etwa einem Etikettendrucker.">QZ Tray</a> auf diesem Computer läuft.</strong></td>
+<td>Der Dienst QZ Tray läuft auf diesem Computer nicht oder ist nicht erreichbar.</td>
+<td>Starten Sie QZ Tray auf dem Computer und drucken Sie erneut.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Druckerprofile</a>, <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Druckeinstellungen</a></td>
+</tr>
+<tr>
+<td><strong>Etikett <id> wurde nicht gedruckt: <printer> hat keine Etiketten mehr / Das Farbband von <printer> ist leer / Der Druckkopf von <printer> ist geöffnet / <printer> ist nicht erreichbar.</strong></td>
+<td>Der Drucker hat diesen Zustand gemeldet (Codes <code>PAPER_OUT</code>, <code>RIBBON_OUT</code>, <code>HEAD_OPEN</code>, <code>PRINTER_UNREACHABLE</code>).</td>
+<td>Beheben Sie das Problem am Drucker und wiederholen Sie dann das Etikett. Ein Etikett wird nie von selbst wiederholt, daher kann es nicht doppelt gedruckt werden.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Druckwarteschlange</a></td>
+</tr>
+<tr>
+<td><strong>...wurde nicht gedruckt: <printer> hat das Etikettenlayout abgelehnt</strong> oder <strong>der Barcode hat die GS1-Validierung nicht bestanden. Dies ist ein PathScribe-Problem; bitte melden Sie es.</strong></td>
+<td>Der Inhalt des Etiketts wurde abgelehnt (<code>MALFORMED_ZPL</code>, <code>INVALID_GS1</code>). Eine Wiederholung hilft nicht.</td>
+<td>Melden Sie es dem Support von ForMedrixAI mit der Uhrzeit und dem Layout des Etiketts.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-label_designer">Etikettendesigner</a></td>
+</tr>
+<tr>
+<td>Ein Druckauftrag für einen Befund ist <strong>Fehlgeschlagen</strong> mit „Network printing needs the PathScribe site agent.“</td>
+<td>Ein Befund wurde aus einem Browser an einen Netzwerkdrucker gesendet, den dieser nicht erreichen kann (<code>NEEDS_SITE_AGENT</code>).</td>
+<td>Leiten Sie den Druck des Labors über einen Drucker des Standortagenten.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Standortagenten</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-print_routing_rules">Druckziel-Weiterleitungsregeln</a></td>
+</tr>
+<tr>
+<td>Das Drucken „funktioniert“, aber in der Demonstration kommt nichts heraus.</td>
+<td>Die Demonstration zeichnet Drucke auf, statt sie zu senden.</td>
+<td>Lesen Sie das <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> simulierter Drucke.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-simulated_print">Protokoll simulierter Drucke</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-interfaces"><a class="anchor" href="#ch9-matrix-interfaces" aria-label="Link to this section">#</a> Schnittstellennachrichten, die hängen</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eine Nachricht erscheint in <strong>Ausgehende Interface-DLQ</strong> mit dem Fehler <strong>Übermittlung abgelehnt</strong>, <strong>Übermittlungs-Timeout</strong> oder <strong>Engine nicht erreichbar</strong>.</td>
+<td>Die Schnittstellen-Engine hat kein 2xx zurückgegeben (<code>DISPATCH_REJECTED</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_UNREACHABLE</code>). Die Nachricht wird für eine Wiederholung aufbewahrt.</td>
+<td>Prüfen Sie die Engine im Untertab <strong>Engines</strong>. Ist sie fehlerfrei, wählen Sie <strong>Übermittlung erneut versuchen</strong> (erfordert <code>interface:outbound:resend</code>).</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a></td>
+</tr>
+<tr>
+<td>Die Wiederholung antwortet <strong>In der <a class="term" href="99-glossary.html#g-outbound-queue" title="Die Liste der Nachrichten und Leistungen, die PathScribe erstellt hat und die noch nicht gesendet sind, zurückgehalten, gesendet oder fehlgeschlagen sind.">Ausgangswarteschlange</a> angehalten: dort zuerst freigeben.</strong></td>
+<td>Die Nachricht ist in der Ausgangswarteschlange angehalten.</td>
+<td>Geben Sie sie auf diesem Bildschirm frei und senden Sie sie dann erneut.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a></td>
+</tr>
+<tr>
+<td>Die Wiederholung antwortet <strong>Zurückgehalten: Das Befund-PDF ist noch nicht verfügbar.</strong></td>
+<td>Das Befunddokument ist noch nicht erstellt.</td>
+<td>Warten Sie. Es wird bei einer späteren Wiederholung mit dem <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, die Form, in der ein signierter Befund gespeichert und gedruckt wird.">PDF</a> gesendet.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a></td>
+</tr>
+<tr>
+<td>Eine Leistung ist in der <strong>Ausgehenden <a class="term" href="99-glossary.html#g-dlq" title="Dead-Letter-Queue, die Liste der Nachrichten, die alle Wiederholungen nicht bestanden haben. Die Systemprotokolle haben eine für ausgehende Schnittstellennachrichten und eine für Leistungen.">DLQ</a></strong> (Abrechnung) mit <strong>ICD-10-Code fehlt</strong> oder <strong><a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, die zehnstellige Kennung eines US-Leistungserbringers, die auf einer Leistung erforderlich ist.">NPI</a> des Leistungserbringers fehlt</strong>.</td>
+<td>Die Leistung kann ohne den Code oder die NPI nicht erstellt werden (<code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>).</td>
+<td>Tragen Sie den Wert in der Zeile ein; die Zeile hat für beide ein Eingabefeld.</td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Abrechnung</a></td>
+</tr>
+<tr>
+<td>Ein Auftrag unter <strong>Serveraufträge</strong> lässt sich nicht erneut einreihen: <strong>Senden Sie diesen Auftrag unter „Schnittstellen“ erneut.</strong></td>
+<td>Schnittstellen- und Druckaufträge werden von ihren eigenen Bildschirmen aus erneut gesendet (<code>WRONG_SCREEN</code>).</td>
+<td>Verwenden Sie die Schnittstellen- oder <a class="term" href="99-glossary.html#g-print-queue" title="Die Liste der Druckaufträge für Befunde und Etiketten mit ihrem Status, von in der Warteschlange bis gedruckt oder fehlgeschlagen.">Druckwarteschlange</a>, mit <code>interface:outbound:resend</code> oder <code>print:job:retry</code>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a></td>
+</tr>
+<tr>
+<td>Ein erneutes Einreihen antwortet <strong>Dieser Auftrag ist nicht mehr fehlgeschlagen; er wurde vielleicht bereits erneut eingereiht.</strong></td>
+<td>Jemand hat ihn bereits erneut eingereiht (<code>NOT_DEAD_LETTERED</code>).</td>
+<td>Aktualisieren Sie. Keine Aktion.</td>
+<td><a href="#screen-audit-log">Systemprotokolle</a></td>
+</tr>
+<tr>
+<td>Ausstehende Schnittstellenausnahmen (ein Zähler am Tab <strong>Schnittstellenprotokoll</strong>).</td>
+<td>Eingehende Nachrichten, die keinem Patienten oder <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> zugeordnet werden konnten, warten auf eine Person.</td>
+<td>Öffnen Sie den Untertab <strong>Schnittstellenausnahmen</strong> und prüfen Sie jede einzeln.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-signin"><a class="anchor" href="#ch9-matrix-signin" aria-label="Link to this section">#</a> Die Anmeldung schlägt fehl</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>E-Mail-Adresse oder Passwort falsch</strong>, danach <strong>Ein weiterer Fehlversuch sperrt die Anmeldung für diese E-Mail-Adresse für 15 Minuten.</strong></td>
+<td>Die Anmeldung mit Passwort sperrt eine E-Mail-Adresse nach 5 aufeinanderfolgenden Fehlversuchen für 15 Minuten. Die Zählung gilt je eingegebener E-Mail-Adresse, gleich ob die Adresse zu einem Konto gehört.</td>
+<td>Warten Sie 15 Minuten oder legen Sie für die Person ein neues Passwort fest: Das Festlegen eines Passworts hebt die Sperre auf. Das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> enthält <strong>Sign-in failed</strong>, <strong>Sign-in locked</strong> und <strong>Sign-in refused</strong>.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td><strong>Bitten Sie Ihren Administrator, Ihr Passwort im Bildschirm „Personal“ zurückzusetzen.</strong></td>
+<td>Die Person hat das Passwort vergessen. Das Anmeldeformular bietet kein Zurücksetzen durch die Person selbst.</td>
+<td>Legen Sie im Datensatz der Person ein temporäres Passwort fest. Die Person muss bei der nächsten Anmeldung ein eigenes wählen.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-single-sign-on" title="Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.">Single Sign-On</a>: <strong>Sie haben sich angemeldet, aber für Sie gibt es kein aktives PathScribe-Konto.</strong></td>
+<td>Es passt kein Mitarbeiterdatensatz (<code>not_provisioned</code>).</td>
+<td>Fügen Sie die Person als Mitarbeiter hinzu. Das erste Single Sign-On verknüpft über die E-Mail-Adresse.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Single Sign-On: <strong>Ihr PathScribe-Konto ist inaktiv.</strong></td>
+<td>Der Mitarbeiterdatensatz ist inaktiv.</td>
+<td>Aktivieren Sie ihn wieder.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Single Sign-On: <strong>Mehr als ein PathScribe-Konto passt zu dieser Anmeldung.</strong></td>
+<td>Zwei Mitarbeiterdatensätze haben dieselbe E-Mail-Adresse (<code>ambiguous</code>).</td>
+<td>Entfernen Sie das Duplikat.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Single Sign-On: <strong>Dieses PathScribe-Konto ist bereits mit einem anderen Anmeldekonto verknüpft.</strong></td>
+<td>Ein neu zugewiesenes Postfach: Der Datensatz ist mit einer anderen Identität beim selben Anbieter verknüpft (<code>already_linked</code>).</td>
+<td>Heben Sie die Verknüpfung des alten Kontos im Datensatz der Person auf und melden Sie sich dann erneut an.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Single Sign-On: <strong>Ihr PathScribe-Konto umfasst keinen Zugriff auf diese Anwendung.</strong></td>
+<td>Die Rollen der Person enthalten weder Zugriff auf Fälle noch Zugriff auf die Konfiguration (<code>no_app_access</code>).</td>
+<td>Geben Sie der Person eine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> mit Zugriff.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Single Sign-On: <strong>Ihre Organisation verlangt einen zweiten Faktor, und der Anmeldedienst hat keinen gemeldet.</strong></td>
+<td>Der <a class="term" href="99-glossary.html#g-identity-provider" title="Der Dienst, der Personen für Single Sign-On anmeldet, etwa das Microsoft-Entra-Verzeichnis eines Krankenhauses.">Identitätsanbieter</a> hat keinen zweiten Faktor gemeldet (<code>mfa_required</code>).</td>
+<td>Schließen Sie den zweiten Faktor beim Identitätsanbieter ab.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+<tr>
+<td><strong>Die Anmeldung ist für diese Installation nicht eingerichtet. Wenden Sie sich an Ihren Systemadministrator.</strong></td>
+<td>Für die Version ist keine Anmeldung konfiguriert.</td>
+<td>Korrigieren Sie <code>config.json</code> (siehe die Codes für den Start unten).</td>
+<td><a href="#ch9-codes-config">Konfigurationscodes für den Start</a></td>
+</tr>
+<tr>
+<td>Eine ganzseitige Meldung <strong>PathScribe kann nicht starten: die Konfiguration muss korrigiert werden</strong> mit einer Liste von Codes.</td>
+<td><code>config.json</code> enthält eine Einstellung, die das Produkt ablehnt. PathScribe startet mit falschen Einstellungen nicht.</td>
+<td>Korrigieren Sie <code>config.json</code> auf dem Webserver und laden Sie neu. Jeder Code steht im Index.</td>
+<td><a href="#ch9-codes-config">Konfigurationscodes für den Start</a></td>
+</tr>
+<tr>
+<td>Codes für den zweiten Faktor: <strong>Dieser Code wurde bereits verwendet. Warten Sie auf den nächsten.</strong> oder <strong>Zu viele Versuche. Codes für den zweiten Faktor sind bis <time> gesperrt.</strong></td>
+<td>Der Code wurde erneut verwendet, oder es wurden zu viele falsche Codes eingegeben.</td>
+<td>Warten Sie auf den nächsten Code oder bis zum Ende der Sperre.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+<tr>
+<td><strong>Dieses Konto ist bereits in einem anderen Tab oder Fenster dieses Browsers angemeldet.</strong></td>
+<td>PathScribe erlaubt je Konto und Browser eine aktive Sitzung.</td>
+<td>Fahren Sie fort, um die andere Sitzung abzumelden (ihre ungespeicherte Arbeit bleibt erhalten und wird zur Prüfung angeboten).</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-matrix-stuck"><a class="anchor" href="#ch9-matrix-stuck" aria-label="Link to this section">#</a> Eine Schnittstellennachricht oder ein Bildschirm hängt anscheinend</h3>
+<table>
+<thead>
+<tr>
+<th>Symptom</th>
+<th>Wahrscheinliche Ursache</th>
+<th>Behebung</th>
+<th>Bildschirm</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Ein Bildschirm meldet <strong>Der PathScribe-Server ist nicht erreichbar. Versuchen Sie es gleich noch einmal.</strong></td>
+<td>Der Browser konnte den API-Server nicht erreichen, oder dieser antwortete mit einem Serverfehler (<code>UNAVAILABLE</code>) oder innerhalb von 30 Sekunden nicht (<code>TIMED_OUT</code>).</td>
+<td>Prüfen Sie den Netzwerkweg und den Zustand des API-Servers. Der Bildschirm wiederholt den Versuch, wo er es angibt (zum Beispiel das Engine-Panel jede Minute).</td>
+<td><a href="#screen-audit-log">Systemprotokolle</a></td>
+</tr>
+<tr>
+<td><strong>Ihre Sitzung ist beendet. Melden Sie sich erneut an.</strong></td>
+<td>Der Server hat 401 zurückgegeben (<code>SIGNED_OUT</code>).</td>
+<td>Melden Sie sich erneut an.</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+<tr>
+<td><strong>Das wurde bereits erledigt. Aktualisieren und erneut ansehen.</strong> oder ein Speichern, das einen Konflikt meldet.</td>
+<td>Jemand anderes hat denselben Datensatz geändert (<code>CONFLICT</code>).</td>
+<td>Aktualisieren Sie den Bildschirm und führen Sie die Änderung erneut aus.</td>
+<td><a href="#screen-audit-log">Systemprotokolle</a></td>
+</tr>
+<tr>
+<td>Ein Export bleibt <strong>Wird vorbereitet</strong> oder endet mit <strong>Der Export hat zu lange gedauert und wurde abgebrochen.</strong></td>
+<td>Ein Build wird nach 30 Minuten abgebrochen (<code>TIMED_OUT</code>).</td>
+<td>Schränken Sie die Filter ein und exportieren Sie erneut.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a></td>
+</tr>
+<tr>
+<td><strong>Es werden bereits 3 Exporte für Sie vorbereitet.</strong></td>
+<td>Ein Benutzer darf 3 offene Exporte haben (<code>TOO_MANY_OPEN</code>).</td>
+<td>Warten Sie, bis einer fertig ist, oder brechen Sie einen ab.</td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-error-codes"><a class="anchor" href="#ch9-error-codes" aria-label="Link to this section">#</a> Index der Systemfehlercodes</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Anhänge &gt; Index der Systemfehlercodes"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Anhänge</span> <span aria-hidden="true">›</span> <span>Index der Systemfehlercodes</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt</p>
+<p><strong>Was dieser Index abdeckt.</strong> Die Codes in Großbuchstaben im Quellcode, die ein Administrator auf einem Bildschirm sehen, im Fehlerprotokoll lesen oder in einem Vertrag finden kann. Jede Zeile nennt den Bildschirm, auf dem der Code erscheint, was er bedeutet und was zu tun ist. Der in der zweiten Spalte genannte Vertrag liegt in <code>docs/architecture/</code>; wo kein Vertrag einen Code aufführt, nennt die Zeile stattdessen die Dienstdatei.</p>
+<p><strong>Wie Codes auf einen Bildschirm gelangen.</strong> Der API-Client gibt jedem fehlgeschlagenen Aufruf einen kurzen festen Code und verwendet nie den Meldungstext des Servers, weil dieser Text einen Patienten nennen könnte. Ein Code des Servers wird verwendet, wenn er aus Großbuchstaben, Ziffern und Unterstrichen besteht, 2 bis 40 Zeichen lang ist und mit einem Buchstaben beginnt. Andernfalls ergibt sich der Code aus dem HTTP-Status.</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>401</td>
+<td><code>SIGNED_OUT</code></td>
+</tr>
+<tr>
+<td>403</td>
+<td><code>NOT_PERMITTED</code></td>
+</tr>
+<tr>
+<td>404</td>
+<td><code>NOT_FOUND</code></td>
+</tr>
+<tr>
+<td>409</td>
+<td><code>CONFLICT</code></td>
+</tr>
+<tr>
+<td>400, 422</td>
+<td><code>INVALID</code></td>
+</tr>
+<tr>
+<td>429</td>
+<td><code>TOO_MANY_REQUESTS</code></td>
+</tr>
+<tr>
+<td>alles andere</td>
+<td><code>UNAVAILABLE</code></td>
+</tr>
+</tbody>
+</table>
+<p>Es gibt auch Gründe in Kleinbuchstaben (zum Beispiel die Anmeldegründe <code>not_provisioned</code> und <code>inactive</code> sowie die Gründe des Servers <code>capability_refused</code>, <code>support_access_disabled</code> und <code>support_access_not_approved</code>). Sie sind keine Codes in Großbuchstaben, daher stehen sie in der Matrix oben und im Bildschirm <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriff</a>, nicht in diesem Index.</p>
+<h3 id="ch9-codes-http"><a class="anchor" href="#ch9-codes-http" aria-label="Link to this section">#</a> Codes, die jeder Bildschirm mit Serveranbindung anzeigen kann</h3>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-signed-out"><td><code>SIGNED_OUT</code></td>
+<td>Jeder Bildschirm, der den API-Server aufruft. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code> Abschnitt 4; <code>src/services/apiServer/apiHttpClient.ts</code>.</td>
+<td>Der Server hat 401 geantwortet: Die Anmeldung ist beendet, oder das Token wurde nicht angenommen.</td>
+<td>Melden Sie sich erneut an. Kehrt der Code direkt nach der Anmeldung zurück, informieren Sie den Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-not-permitted"><td><code>NOT_PERMITTED</code></td>
+<td>Jeder Bildschirm mit Serveranbindung. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>; <code>AUTHORIZATION_API.md</code>.</td>
+<td>Der Server hat 403 geantwortet: Die <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> fehlt oder liegt außerhalb der Einrichtungen der Person.</td>
+<td>Siehe die Zeilen der Matrix zu ausgegrauten Schaltflächen. Suchen Sie in <a href="#screen-audit-log">Systemprotokolle</a> nach <strong>Capability refused</strong>.</td>
+</tr>
+<tr id="e-not-found"><td><code>NOT_FOUND</code></td>
+<td>Jeder Bildschirm mit Serveranbindung. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Der Datensatz existiert nicht mehr, zum Beispiel weil jemand anderes ihn gelöscht oder stillgelegt hat.</td>
+<td>Aktualisieren Sie und öffnen Sie ihn erneut.</td>
+</tr>
+<tr id="e-conflict"><td><code>CONFLICT</code></td>
+<td>Jeder Bildschirm mit einem versionierten Speichern. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code> (versionierte Speichervorgänge).</td>
+<td>Der Server hat 409 geantwortet: Der Datensatz hat sich seit dem Lesen geändert. Bei einem <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> gibt der Server zusätzlich die Version zurück, die er hält.</td>
+<td>Aktualisieren Sie und führen Sie die Änderung erneut aus.</td>
+</tr>
+<tr id="e-invalid"><td><code>INVALID</code></td>
+<td>Jedes Speichern mit Serveranbindung. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Der Server hat 400 oder 422 geantwortet: Er hat die Werte abgelehnt.</td>
+<td>Prüfen Sie die Eingaben im Formular und speichern Sie erneut.</td>
+</tr>
+<tr id="e-too-many-requests"><td><code>TOO_MANY_REQUESTS</code></td>
+<td>Jeder Bildschirm mit Serveranbindung. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>; <code>STAFF_ADMIN_API.md</code>.</td>
+<td>Der Server hat 429 geantwortet: Ein Ratenlimit wurde erreicht.</td>
+<td>Warten Sie einen Moment und versuchen Sie es erneut. Wiederholte Fälle gehen an den Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-timed-out"><td><code>TIMED_OUT</code></td>
+<td>Jeder Bildschirm mit Serveranbindung; die Liste der Exporte. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>; <code>ASYNC_EXPORT_API.md</code> Abschnitt 4.</td>
+<td>Der Aufruf hatte innerhalb von 30 Sekunden keine Antwort (der Standard des Clients). Bei einem Export-Build wurde der Build nach 30 Minuten abgebrochen.</td>
+<td>Wiederholen Sie den Vorgang. Schränken Sie bei einem Export die Filter ein.</td>
+</tr>
+<tr id="e-unavailable"><td><code>UNAVAILABLE</code></td>
+<td>Jeder Bildschirm mit Serveranbindung, zum Beispiel die Liste der Arbeitsplätze, die Liste der Standortagenten, das Engine-Panel und Serveraufträge. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>.</td>
+<td>Der Server war nicht erreichbar, antwortete mit einem anderen Status oder sendete eine Antwort, die kein JSON-Objekt war.</td>
+<td>Prüfen Sie das Netzwerk und den API-Server. Wiederholen Sie den Vorgang.</td>
+</tr>
+<tr id="e-not-supported"><td><code>NOT_SUPPORTED</code></td>
+<td>Eine Aktion, die nur in der Demonstration existiert, in einer <a class="term" href="99-glossary.html#g-server-build" title="Eine Version von PathScribe für einen echten Einsatz, ohne Demonstrationskonten, die sich über den Identitätsanbieter anmeldet und mit dem API-Server spricht.">Server-Version</a>. Vertrag: <code>HTTP_SERVICES_PATTERN.md</code>; <code>src/services/apiServer/httpServiceExtras.ts</code>.</td>
+<td>Die Methode existiert nur für die Demonstration (Erzeugen von Demodaten). Die Server-Version führt keinen Aufruf aus.</td>
+<td>Nichts. Bei einer Server-Version zu erwarten.</td>
+</tr>
+<tr>
+<td id="ch9-codes-permission">### Ablehnungen von Berechtigungen und Freigaben</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Fehlercode</th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-config-not-permitted"><td><code>CONFIG_NOT_PERMITTED</code></td>
+<td>Jedes Speichern in der Konfiguration. Vertrag: <code>AUTHORIZATION_API.md</code>; <code>src/services/authorization/guardConfigWrites.ts</code>.</td>
+<td>Den Rollen der Person fehlt die Berechtigung für diesen Bildschirm, daher wurde nichts gespeichert. Die Seite Konfiguration zeigt den Namen der Berechtigung.</td>
+<td>Erteilen Sie die Berechtigung unter <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>.</td>
+</tr>
+<tr id="e-export-not-permitted"><td><code>EXPORT_NOT_PERMITTED</code></td>
+<td>Export der Fallsuche und Export des Fallberichts. Vertrag: <code>CASE_SEARCH_API.md</code>; <code>AUTHORIZATION_API.md</code> (Exporte).</td>
+<td>Die Export-Berechtigung (<code>search:case-results:export</code> oder <code>search:case-report:export</code>) fehlt. Es werden keine Zeilen zurückgegeben.</td>
+<td>Erteilen Sie die Berechtigung.</td>
+</tr>
+<tr id="e-separation-of-duties"><td><code>SEPARATION_OF_DUTIES</code></td>
+<td>Speichern einer <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> und Speichern eines Mitarbeiters. Vertrag: <code>AUTHORIZATION_API.md</code> (<a class="term" href="99-glossary.html#g-separation-of-duties" title="Eine Regel, nach der zwei Befugnisse nicht bei einer Person liegen dürfen, etwa die Regeln zur klinischen Abweichungsprüfung zu ändern und die KI-Anweisungen zu genehmigen.">Funktionstrennung</a>).</td>
+<td>Eine Rolle oder eine Person hätte sowohl <code>config:clinical-mismatch-rules:manage</code> als auch <code>config:ai-prompt:approve</code>.</td>
+<td>Weisen Sie die beiden Berechtigungen getrennten Rollen zu, die verschiedene Personen haben.</td>
+</tr>
+<tr id="e-self-approval"><td><code>SELF_APPROVAL</code></td>
+<td>KI-Anweisungen. Vertrag: <code>AUTHORIZATION_API.md</code>; <a href="05-tier4-ai-framework.html#screen-ai_instructions">KI-Anweisungen</a>.</td>
+<td>Die Person hat den ausstehenden Text bearbeitet und kann ihn daher nicht freigeben.</td>
+<td>Lassen Sie eine andere Person mit <code>config:ai-prompt:approve</code> die Freigabe vornehmen.</td>
+</tr>
+<tr id="e-ai-vendor-not-allowed"><td><code>AI_VENDOR_NOT_ALLOWED</code></td>
+<td>Jede KI-Funktion. Vertrag: <code>AI_PROXY.md</code>; <code>src/services/aiIntegration/aiCallPolicy.ts</code>.</td>
+<td>Die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> lehnt den Dienst oder die Region für den <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> ab. Der Aufruf wird nicht gesendet und als <code>AI_CALL_REFUSED</code> protokolliert. Die Funktion arbeitet ohne KI weiter und meldet „KI ist für diese Rechtsordnung nicht verfügbar.“</td>
+<td>Ändern Sie die Regel oder die <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a> im Tab <a href="05-tier4-ai-framework.html#screen-tab-ai">KI-Verhalten</a>, sofern die Richtlinie des Labors dies erlaubt.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-exports"><a class="anchor" href="#ch9-codes-exports" aria-label="Link to this section">#</a> Exporte</h3>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-invalid-parameters"><td><code>INVALID_PARAMETERS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>. Vertrag: <code>ASYNC_EXPORT_API.md</code> Abschnitt 3.</td>
+<td>Der Server konnte die Filter nicht verwenden.</td>
+<td>Ändern Sie die Filter und exportieren Sie erneut.</td>
+</tr>
+<tr id="e-too-many-rows"><td><code>TOO_MANY_ROWS</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>. Vertrag: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>Mehr als 1.000.000 Zeilen passten.</td>
+<td>Schränken Sie die Filter ein.</td>
+</tr>
+<tr id="e-too-many-open"><td><code>TOO_MANY_OPEN</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>. Vertrag: <code>ASYNC_EXPORT_API.md</code>.</td>
+<td>Die Person hat bereits 3 Exporte in der Warteschlange oder in Bearbeitung.</td>
+<td>Warten Sie oder brechen Sie einen ab.</td>
+</tr>
+<tr id="e-build-failed"><td><code>BUILD_FAILED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>. Quelle: <code>src/services/exports/asyncExportContract.ts</code>.</td>
+<td>Der Server konnte die Datei nicht erstellen. Ein Build erhält 2 Versuche.</td>
+<td>Versuchen Sie es erneut. Schlägt es wieder fehl, informieren Sie den Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-cancelled"><td><code>CANCELLED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>. Quelle: <code>src/i18n/locales/en.json</code> (<code>exports.problem</code>).</td>
+<td>Der Export wurde abgebrochen.</td>
+<td>Exportieren Sie erneut, wenn er noch benötigt wird.</td>
+</tr>
+<tr id="e-expired"><td><code>EXPIRED</code></td>
+<td><a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>; der Standortagent. Vertrag: <code>ASYNC_EXPORT_API.md</code>; <code>SITE_AGENT_API.md</code> Abschnitt 6.</td>
+<td>Bei einem Export: Die Datei wurde nach ihrer Aufbewahrungsdauer gelöscht (standardmäßig 7 Tage, 1 bis 30 vom Labor festgelegt). Bei einem Auftrag des Standortagenten: Er wurde nicht rechtzeitig gestartet und zurückgegeben.</td>
+<td>Exportieren Sie erneut. Zu einem Auftrag siehe die Druckzeilen unten.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config"><a class="anchor" href="#ch9-codes-config" aria-label="Link to this section">#</a> Konfiguration beim Start</h3>
+<p>Diese erscheinen auf dem ganzseitigen Bildschirm <strong>PathScribe kann nicht starten: die Konfiguration muss korrigiert werden</strong>. PathScribe startet erst, wenn sie korrigiert sind. Die Einstellungen und die Regeln stehen in <code>RUNTIME_CONFIG.md</code> Abschnitt 3. Der Code ist <code>src/services/runtimeConfig/runtimeSettings.ts</code>.</p>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-unreadable"><td><code>UNREADABLE</code></td>
+<td>Startbildschirm.</td>
+<td><code>config.json</code> ist kein gültiges <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, ein Nur-Text-Datenformat, das von der API, von `config.json` und von Webhooks verwendet wird.">JSON</a>.</td>
+<td>Korrigieren Sie die Datei.</td>
+</tr>
+<tr id="e-not-an-object"><td><code>NOT_AN_OBJECT</code></td>
+<td>Startbildschirm.</td>
+<td><code>config.json</code> muss eine Liste von Einstellungen und Werten sein (ein JSON-Objekt).</td>
+<td>Korrigieren Sie die Datei.</td>
+</tr>
+<tr id="e-unknown-setting"><td><code>UNKNOWN_SETTING</code></td>
+<td>Startbildschirm.</td>
+<td>Der Name gehört nicht zu den Einstellungen, die PathScribe kennt, oder ist ein Name, der nur für den Build gilt.</td>
+<td>Prüfen Sie die Schreibweise anhand von <code>RUNTIME_CONFIG.md</code>.</td>
+</tr>
+<tr id="e-not-text"><td><code>NOT_TEXT</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Wert muss Text, eine Zahl oder wahr oder falsch sein.</td>
+<td>Korrigieren Sie den Wert.</td>
+</tr>
+<tr id="e-too-long"><td><code>TOO_LONG</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Wert ist länger als 2.000 Zeichen.</td>
+<td>Kürzen Sie ihn.</td>
+</tr>
+<tr id="e-invalid-url"><td><code>INVALID_URL</code></td>
+<td>Startbildschirm.</td>
+<td>Der Wert muss eine Webadresse oder ein Pfad auf dieser Website sein, der mit <code>/</code> beginnt und weder Benutzernamen noch Passwort enthält.</td>
+<td>Korrigieren Sie die Adresse.</td>
+</tr>
+<tr id="e-not-https"><td><code>NOT_HTTPS</code></td>
+<td>Startbildschirm.</td>
+<td>Eine Adresse muss https verwenden. Einfaches http ist nur zu diesem Computer in einem Entwicklungs-Build erlaubt.</td>
+<td>Verwenden Sie eine https-Adresse.</td>
+</tr>
+<tr id="e-not-this-site"><td><code>NOT_THIS_SITE</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Proxy-Pfad führt zu einer anderen Website (zum Beispiel <code>//host</code>).</td>
+<td>Verwenden Sie einen Pfad auf dieser Website oder eine https-Adresse.</td>
+</tr>
+<tr id="e-api-server-required"><td><code>API_SERVER_REQUIRED</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Server-Build benötigt die Adresse des PathScribe-Servers, und es ist keine festgelegt.</td>
+<td>Legen Sie die API-Adresse fest.</td>
+</tr>
+<tr id="e-sso-required"><td><code>SSO_REQUIRED</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Server-Build meldet nur über den <a class="term" href="99-glossary.html#g-identity-provider" title="Der Dienst, der Personen für Single Sign-On anmeldet, etwa das Microsoft-Entra-Verzeichnis eines Krankenhauses.">Identitätsanbieter</a> an, daher muss <code>VITE_AUTH_MODE</code> den Wert <code>sso</code> haben.</td>
+<td>Legen Sie ihn und die Einstellungen des Anbieters fest.</td>
+</tr>
+<tr id="e-api-server-in-demo-build"><td><code>API_SERVER_IN_DEMO_BUILD</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Demonstrations-Build spricht nie mit einem echten Server.</td>
+<td>Installieren Sie einen Server-Build.</td>
+</tr>
+<tr id="e-not-in-demo-build"><td><code>NOT_IN_DEMO_BUILD</code></td>
+<td>Startbildschirm.</td>
+<td>Ein Demonstrations-Build kann keine Einstellung für <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a>, Renderer, Schnittstellenempfänger oder Serveraufträge verwenden und ist nie Produktion.</td>
+<td>Installieren Sie einen Server-Build.</td>
+</tr>
+<tr id="e-address-not-from-server"><td><code>ADDRESS_NOT_FROM_SERVER</code></td>
+<td>Startbildschirm, gekennzeichnet mit „(aus /api/config des PathScribe-Servers)“.</td>
+<td>Der Server darf keine Adresse festlegen, weil die Sicherheitsrichtlinie der Website aus <code>config.json</code> erstellt wird.</td>
+<td>Tragen Sie die Adresse in <code>config.json</code> ein.</td>
+</tr>
+<tr id="e-not-from-server"><td><code>NOT_FROM_SERVER</code></td>
+<td>Startbildschirm, gekennzeichnet mit „(aus /api/config des PathScribe-Servers)“.</td>
+<td>Nur <code>config.json</code> oder der Build darf diese Einstellung festlegen (Anmeldung, die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> der Instanz, welche Aufträge der Server ausführt).</td>
+<td>Verschieben Sie die Einstellung nach <code>config.json</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-print"><a class="anchor" href="#ch9-codes-print" aria-label="Link to this section">#</a> Drucken, Etiketten und der Standortagent</h3>
+<p>Die ersten sechs Codes haben einen eigenen Meldungstext. Der Vertrag für die Codes des Agenten ist <code>SITE_AGENT_API.md</code> Abschnitt 6; die Liste ist <code>AGENT_ERROR_CODES</code> in <code>src/services/siteAgent/siteAgentContract.ts</code>. Drucke von Befunden werden nach dem Zustellplan des Labors wiederholt (standardmäßig nach 1, 5 und 15 Minuten, bis zu 10 Wiederholungen). Etiketten werden nie von selbst wiederholt.</p>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-printer-unreachable"><td><code>PRINTER_UNREACHABLE</code></td>
+<td>Etiketten-Meldung; <a class="term" href="99-glossary.html#g-print-queue" title="Die Liste der Druckaufträge für Befunde und Etiketten mit ihrem Status, von in der Warteschlange bis gedruckt oder fehlgeschlagen.">Druckwarteschlange</a>. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Keine Verbindung zum Drucker. Bei Befunden wird wiederholt.</td>
+<td>Prüfen Sie Stromversorgung und Netzwerk des Druckers und wiederholen Sie dann.</td>
+</tr>
+<tr id="e-paper-out"><td><code>PAPER_OUT</code></td>
+<td>Etiketten-Meldung; Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Dem Etikettendrucker gehen die Etiketten aus.</td>
+<td>Legen Sie Etiketten ein und wiederholen Sie.</td>
+</tr>
+<tr id="e-ribbon-out"><td><code>RIBBON_OUT</code></td>
+<td>Etiketten-Meldung; Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Dem Etikettendrucker geht das Farbband aus.</td>
+<td>Legen Sie ein Farbband ein und wiederholen Sie.</td>
+</tr>
+<tr id="e-head-open"><td><code>HEAD_OPEN</code></td>
+<td>Etiketten-Meldung; Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Druckkopf ist geöffnet.</td>
+<td>Schließen Sie ihn und wiederholen Sie.</td>
+</tr>
+<tr id="e-malformed-zpl"><td><code>MALFORMED_ZPL</code></td>
+<td>Etiketten-Meldung. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Drucker hat das Etikettenlayout abgelehnt. Keine Wiederholung.</td>
+<td>Melden Sie es dem Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-invalid-gs1"><td><code>INVALID_GS1</code></td>
+<td>Etiketten-Meldung. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Barcode des Etiketts hat die GS1-Validierung nicht bestanden. Keine Wiederholung.</td>
+<td>Melden Sie es dem Support von ForMedrixAI. Prüfen Sie die <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, die Nummer, die ein GS1-Barcode trägt. Die Druckeinstellungen enthalten die GTIN der Einrichtung.">GTIN</a> in den <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Druckeinstellungen</a>.</td>
+</tr>
+<tr id="e-needs-site-agent"><td><code>NEEDS_SITE_AGENT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Druckwarteschlange</a>. Vertrag: <code>SITE_AGENT_API.md</code>; <code>src/services/printing/printJobFailureReason.ts</code>.</td>
+<td>Ein Browser kann nicht an einen Netzwerkdrucker senden. Der Auftrag schlägt sofort fehl und geht in die Ausnahmewarteschlange.</td>
+<td>Verwenden Sie einen Drucker des Standortagenten. Siehe <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Standortagenten</a>.</td>
+</tr>
+<tr id="e-printer-offline"><td><code>PRINTER_OFFLINE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Druckwarteschlange</a>. Quelle: <code>src/services/printing/attemptPrintDelivery.ts</code>.</td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="Ein kleines Programm auf einem Computer, mit dem eine Webseite ohne Druckdialog auf einem lokalen Drucker drucken kann, etwa einem Etikettendrucker.">QZ Tray</a> ist auf dem Druckcomputer nicht verbunden. Es wird wiederholt.</td>
+<td>Starten Sie QZ Tray.</td>
+</tr>
+<tr id="e-print-rejected"><td><code>PRINT_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Druckwarteschlange</a>. Quelle: <code>attemptPrintDelivery.ts</code>, <code>redispatchPrintJob.ts</code>.</td>
+<td>Ein Auftrag kann nicht gedruckt werden, zum Beispiel weil für die Zustellung über QZ Tray kein Drucker konfiguriert ist oder das Befunddokument nicht erstellt werden konnte.</td>
+<td>Korrigieren Sie die Druckereinstellungen und wiederholen Sie dann.</td>
+</tr>
+<tr id="e-printer-rejected"><td><code>PRINTER_REJECTED</code></td>
+<td>Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Drucker hat den Auftrag abgelehnt. Keine Wiederholung.</td>
+<td>Prüfen Sie die eigene Fehleranzeige des Druckers.</td>
+</tr>
+<tr id="e-document-unavailable"><td><code>DOCUMENT_UNAVAILABLE</code></td>
+<td>Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Download-Link des Agenten ist fehlgeschlagen oder abgelaufen. Es wird wiederholt.</td>
+<td>Zunächst nichts. Bleibt es bestehen, informieren Sie den Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-document-integrity"><td><code>DOCUMENT_INTEGRITY</code></td>
+<td>Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der <a class="term" href="99-glossary.html#g-sha-256" title="Ein kryptografischer Hash, der eine Datei oder einen Datensatz in einen festen Fingerabdruck umwandelt und zum Erkennen einer Änderung dient.">SHA-256</a> der Datei stimmte nicht überein, daher wurde sie nie gedruckt. Keine Wiederholung.</td>
+<td>Informieren Sie den Support von ForMedrixAI.</td>
+</tr>
+<tr id="e-unknown-destination"><td><code>UNKNOWN_DESTINATION</code></td>
+<td>Druckwarteschlange; Dateiablage. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Agent hat keinen Drucker und keine Freigabe mit dieser Kennung (seine Konfiguration ist veraltet).</td>
+<td>Aktualisieren Sie die Druckerliste des Agenten unter <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Standortagenten</a>.</td>
+</tr>
+<tr id="e-share-unreachable"><td><code>SHARE_UNREACHABLE</code></td>
+<td>Zustellung in die Dateiablage. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Die Freigabe war nicht erreichbar. Es wird wiederholt.</td>
+<td>Prüfen Sie die Freigabe.</td>
+</tr>
+<tr id="e-share-access-denied"><td><code>SHARE_ACCESS_DENIED</code></td>
+<td>Zustellung in die Dateiablage. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Agent darf nicht in die Freigabe schreiben. Keine Wiederholung.</td>
+<td>Korrigieren Sie die Berechtigungen der Freigabe.</td>
+</tr>
+<tr id="e-share-full"><td><code>SHARE_FULL</code></td>
+<td>Zustellung in die Dateiablage. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Die Freigabe ist voll. Es wird wiederholt.</td>
+<td>Schaffen Sie Speicherplatz.</td>
+</tr>
+<tr id="e-in-doubt"><td><code>IN_DOUBT</code></td>
+<td>Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Der Agent wurde angehalten, nachdem er mit dem Senden begonnen hatte und bevor er das Ergebnis kannte. Er wird nie von selbst erneut gesendet.</td>
+<td>Prüfen Sie den Drucker. Drucken Sie erneut, wenn die Seite nicht vorhanden ist.</td>
+</tr>
+<tr id="e-agent-error"><td><code>AGENT_ERROR</code></td>
+<td>Druckwarteschlange. Vertrag: <code>SITE_AGENT_API.md</code>.</td>
+<td>Jeder andere Fehler des Agenten. Es wird wiederholt.</td>
+<td>Prüfen Sie den Agenten unter <a href="02-tier1-primary-prerequisites.html#screen-site_agents">Standortagenten</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-outbound"><a class="anchor" href="#ch9-codes-outbound" aria-label="Link to this section">#</a> Ausgehende Nachrichten, Leistungen, Register und Serveraufträge</h3>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-dispatch-rejected"><td><code>DISPATCH_REJECTED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a> (angezeigt als „Übermittlung abgelehnt“). Vertrag: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Die Engine hat kein 2xx zurückgegeben. Die Nachricht wird für eine Wiederholung aufbewahrt.</td>
+<td>Prüfen Sie die Engine und wählen Sie dann <strong>Übermittlung erneut versuchen</strong>.</td>
+</tr>
+<tr id="e-dispatch-timeout"><td><code>DISPATCH_TIMEOUT</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a> (angezeigt als „Übermittlungs-Timeout“). Vertrag: <code>OUTBOUND_QUEUE_API.md</code>; <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Die Engine hat nicht rechtzeitig geantwortet.</td>
+<td>Wie oben.</td>
+</tr>
+<tr id="e-dispatch-unreachable"><td><code>DISPATCH_UNREACHABLE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a> (angezeigt als „Engine nicht erreichbar“). Vertrag: <code>INTERFACE_TRANSACTIONS.md</code>.</td>
+<td>Die Engine war nicht erreichbar.</td>
+<td>Wie oben.</td>
+</tr>
+<tr id="e-missing-icd10"><td><code>MISSING_ICD10</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Abrechnung</a>. Vertrag: <code>DIAGNOSIS_CODING.md</code>; <code>src/services/billing/validateChargeMetadata.ts</code>.</td>
+<td>Einer Leistung fehlt ein ICD-10-Code.</td>
+<td>Tragen Sie den Code in der Zeile ein.</td>
+</tr>
+<tr id="e-missing-provider-npi"><td><code>MISSING_PROVIDER_NPI</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Abrechnung</a>. Quelle: <code>validateChargeMetadata.ts</code>.</td>
+<td>Einer Leistung fehlt die <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, die zehnstellige Kennung eines US-Leistungserbringers, die auf einer Leistung erforderlich ist.">NPI</a> des Leistungserbringers.</td>
+<td>Tragen Sie die NPI in der Zeile ein.</td>
+</tr>
+<tr id="e-registry-not-ready"><td><code>REGISTRY_NOT_READY</code></td>
+<td><a class="term" href="99-glossary.html#g-outbound-queue" title="Die Liste der Nachrichten und Leistungen, die PathScribe erstellt hat und die noch nicht gesendet sind, zurückgehalten, gesendet oder fehlgeschlagen sind.">Ausgangswarteschlange</a>; Registerausnahmen. Vertrag: <code>BATCH_REGISTRY_FEED_API.md</code>; <code>REGISTRY_ACKNOWLEDGEMENT_API.md</code>.</td>
+<td>Eine Meldung an ein <a class="term" href="99-glossary.html#g-registry" title="Eine Stelle, die Meldungen zu einer Krankheit oder einem Screening-Ergebnis für ein Land oder Programm sammelt, etwa ein Krebs- oder Zervixscreening-Register.">Register</a> ist zurückgehalten: Ein erforderliches Feld oder eine erforderliche Einstellung fehlt.</td>
+<td>Vervollständigen Sie das fehlende Element, das der Eintrag nennt.</td>
+</tr>
+<tr id="e-registry-live-not-approved"><td><code>REGISTRY_LIVE_NOT_APPROVED</code></td>
+<td>Ausgangswarteschlange; Registerausnahmen. Vertrag: <code>REGISTRY_GO_LIVE_API.md</code>.</td>
+<td>Ein echter <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> wurde freigegeben, aber die Verbindung zum Register ist nicht für den Produktivbetrieb freigegeben. Der Eintrag zeigt „Zurückgehalten: Bestätigung erforderlich“.</td>
+<td>Schließen Sie die Freigabe für den Produktivbetrieb im Einstellungsbildschirm des Registers ab.</td>
+</tr>
+<tr id="e-not-dead-lettered"><td><code>NOT_DEAD_LETTERED</code></td>
+<td>Serveraufträge. Vertrag: <code>MESSAGE_BUS_API.md</code>.</td>
+<td>Der Auftrag ist nicht mehr fehlgeschlagen (409).</td>
+<td>Aktualisieren Sie.</td>
+</tr>
+<tr id="e-wrong-screen"><td><code>WRONG_SCREEN</code></td>
+<td>Serveraufträge. Quelle: <code>src/services/serverJobs/serverJobsContract.ts</code>.</td>
+<td>Schnittstellen- und Druckaufträge werden hier nicht erneut eingereiht.</td>
+<td>Senden Sie sie aus der Schnittstellen- oder <a class="term" href="99-glossary.html#g-print-queue" title="Die Liste der Druckaufträge für Befunde und Etiketten mit ihrem Status, von in der Warteschlange bis gedruckt oder fehlgeschlagen.">Druckwarteschlange</a> erneut.</td>
+</tr>
+<tr id="e-consult-link-not-active"><td><code>CONSULT_LINK_NOT_ACTIVE</code></td>
+<td>Tab Konsil-Links. Vertrag: <code>CONSULT_ACCESS_API.md</code>.</td>
+<td>Der Link ist bereits widerrufen oder abgelaufen.</td>
+<td>Aktualisieren Sie.</td>
+</tr>
+<tr id="e-no-recipients"><td><code>NO_RECIPIENTS</code></td>
+<td>Zeitpläne für Berichte. Vertrag: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Es ist kein aktiver Empfänger übrig.</td>
+<td>Wählen Sie mindestens einen Empfänger.</td>
+</tr>
+<tr id="e-too-many-schedules"><td><code>TOO_MANY_SCHEDULES</code></td>
+<td>Zeitpläne für Berichte. Vertrag: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Die Person hat die höchste zulässige Zahl an Zeitplänen.</td>
+<td>Löschen oder vereinen Sie einen Zeitplan.</td>
+</tr>
+<tr id="e-recipient-access-unknown"><td><code>RECIPIENT_ACCESS_UNKNOWN</code></td>
+<td>Zeitpläne für Berichte. Vertrag: <code>SCHEDULED_REPORTS_API.md</code>.</td>
+<td>Es konnte nicht ermittelt werden, was ein Empfänger sehen darf, daher wurde nichts erstellt.</td>
+<td>Prüfen Sie die Rollen und Einrichtungen des Empfängers.</td>
+</tr>
+<tr id="e-run-failed"><td><code>RUN_FAILED</code></td>
+<td>Zeitpläne für Berichte. Quelle: <code>src/services/scheduledReports/createScheduledReportService.ts</code>.</td>
+<td>Ein geplanter Lauf ist fehlgeschlagen.</td>
+<td>Sehen Sie im Fehlerprotokoll nach.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch9-codes-config-screens"><a class="anchor" href="#ch9-codes-config-screens" aria-label="Link to this section">#</a> Konfigurationsbildschirme: Ablehnungen, die man kennen sollte</h3>
+<table>
+<thead>
+<tr>
+<th><a class="term" href="99-glossary.html#g-error-code" title="Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.">Fehlercode</a></th>
+<th>Wo er erscheint</th>
+<th>Bedeutung</th>
+<th>Was zu tun ist</th>
+</tr>
+</thead>
+<tbody>
+<tr id="e-reason-required"><td><code>REASON_REQUIRED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>, Sperrungen von Arbeitsplätzen und Feeds sowie mehrere Fallaktionen. Quelle: der Dienst des jeweiligen Bildschirms.</td>
+<td>Für die Änderung ist ein Grund erforderlich.</td>
+<td>Geben Sie einen Grund ein.</td>
+</tr>
+<tr id="e-bad-date"><td><code>BAD_DATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>src/services/coding/codeSystemPolicyRules.ts</code>.</td>
+<td>Ein Datum ist kein echtes Kalenderdatum.</td>
+<td>Korrigieren Sie es.</td>
+</tr>
+<tr id="e-bad-role"><td><code>BAD_ROLE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Eine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> in einer Regel ist nicht gültig.</td>
+<td>Wählen Sie eine gültige Rolle.</td>
+</tr>
+<tr id="e-bad-system"><td><code>BAD_SYSTEM</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Ein Codiersystem ist leer oder nicht gültig.</td>
+<td>Wählen Sie ein Codiersystem.</td>
+</tr>
+<tr id="e-duplicate"><td><code>DUPLICATE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Dasselbe Codiersystem hat zwei Zeilen mit demselben Startdatum.</td>
+<td>Entfernen Sie eine Zeile oder geben Sie ihr ein anderes Datum.</td>
+</tr>
+<tr id="e-no-rules"><td><code>NO_RULES</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Es gibt keine Regeln.</td>
+<td>Fügen Sie eine Regel hinzu oder setzen Sie auf den Standard zurück.</td>
+</tr>
+<tr id="e-too-many"><td><code>TOO_MANY</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a>. Quelle: <code>codeSystemPolicyRules.ts</code>.</td>
+<td>Es gibt zu viele Regeln.</td>
+<td>Entfernen Sie einige.</td>
+</tr>
+<tr id="e-same-person"><td><code>SAME_PERSON</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>src/services/billing/codeEngine/planImportJob.ts</code>.</td>
+<td>Die Person, die den Import hochgeladen hat, kann ihn nicht freigeben oder ablehnen (<a class="term" href="99-glossary.html#g-four-eyes-principle" title="Eine Regel, nach der eine Person eine Änderung vorbereitet und eine andere Person sie genehmigt. Der Import der Abrechnungscodes verwendet es.">Vier-Augen-Prinzip</a>).</td>
+<td>Eine andere Person muss entscheiden.</td>
+</tr>
+<tr id="e-job-not-approved"><td><code>JOB_NOT_APPROVED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>planImportJob.ts</code>.</td>
+<td>Nur ein freigegebener Import kann zurückgenommen werden.</td>
+<td>Keine.</td>
+</tr>
+<tr id="e-job-not-pending"><td><code>JOB_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>planImportJob.ts</code>.</td>
+<td>Der Import wartet nicht mehr auf Freigabe.</td>
+<td>Aktualisieren Sie.</td>
+</tr>
+<tr id="e-mapping-incomplete"><td><code>MAPPING_INCOMPLETE</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>src/services/billing/mockCodeImportService.ts</code>.</td>
+<td>Die Spalten für den Abrechnungscode, den CPT-Code und das Gültigkeitsdatum sind nicht alle zugeordnet.</td>
+<td>Ordnen Sie sie zu oder geben Sie ein Gültigkeitsdatum für die ganze Datei an.</td>
+</tr>
+<tr id="e-no-rows"><td><code>NO_ROWS</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>mockCodeImportService.ts</code>.</td>
+<td>Die Datei hat keine Zeilen, die importiert werden können.</td>
+<td>Prüfen Sie die Datei.</td>
+</tr>
+<tr id="e-rows-refused"><td><code>ROWS_REFUSED</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>mockCodeImportService.ts</code>.</td>
+<td>Einige Zeilen können nicht importiert werden.</td>
+<td>Korrigieren Sie sie oder wählen Sie, sie zu überspringen.</td>
+</tr>
+<tr id="e-row-missing"><td><code>ROW_MISSING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>mockCodeImportService.ts</code>.</td>
+<td>Eine Codeversion aus dem Import existiert nicht mehr und kann daher nicht freigegeben werden.</td>
+<td>Laden Sie den Import erneut hoch.</td>
+</tr>
+<tr id="e-row-not-pending"><td><code>ROW_NOT_PENDING</code></td>
+<td><a href="03-tier2-master-dictionaries.html#screen-code_import">Code-Import</a>. Quelle: <code>mockCodeImportService.ts</code>.</td>
+<td>Eine Codeversion aus dem Import ist nicht mehr ausstehend.</td>
+<td>Laden Sie den Import erneut hoch.</td>
+</tr>
+<tr id="e-name-taken"><td><code>NAME_TAKEN</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Arbeitsplätze</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: <code>src/services/workstationRegistry/workstationRegistryRules.ts</code>; <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Ein anderer aktiver <a class="term" href="99-glossary.html#g-workstation" title="Ein registrierter Computer in einer Einrichtung, mit seiner Fachrichtung, seinem Bereich und seinen zugeordneten Druckern.">Arbeitsplatz</a> der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> hat diesen Namen.</td>
+<td>Wählen Sie einen anderen Namen.</td>
+</tr>
+<tr id="e-already-revoked"><td><code>ALREADY_REVOKED</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Arbeitsplätze</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: dieselben beiden Dienste.</td>
+<td>Der Arbeitsplatz ist bereits gesperrt.</td>
+<td>Keine.</td>
+</tr>
+<tr id="e-revoke-reason-invalid"><td><code>REVOKE_REASON_INVALID</code></td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-workstations">Arbeitsplätze</a>, <a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: dieselben beiden Dienste.</td>
+<td>Ein Grund muss gewählt werden, bei Sonstiges mit einer Notiz.</td>
+<td>Wählen Sie einen Grund.</td>
+</tr>
+<tr id="e-feed-off"><td><code>FEED_OFF</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: <code>src/services/biFeed/biFeedRules.ts</code>.</td>
+<td>Der Feed ist ausgeschaltet.</td>
+<td>Schalten Sie ihn in den Feed-Einstellungen ein.</td>
+</tr>
+<tr id="e-dataset-not-in-feed"><td><code>DATASET_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: <code>biFeedRules.ts</code>.</td>
+<td>Ein Datensatz wird vom Feed nicht angeboten.</td>
+<td>Fügen Sie ihn zuerst in den Feed-Einstellungen hinzu.</td>
+</tr>
+<tr id="e-facility-not-in-feed"><td><code>FACILITY_NOT_IN_FEED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: <code>biFeedRules.ts</code>.</td>
+<td>Eine Einrichtung wird vom Feed nicht angeboten.</td>
+<td>Fügen Sie sie zuerst in den Feed-Einstellungen hinzu.</td>
+</tr>
+<tr id="e-identified-not-approved"><td><code>IDENTIFIED_NOT_APPROVED</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-bi_feed">Berichts-Feed</a>. Quelle: <code>biFeedRules.ts</code>.</td>
+<td>Für identifizierende Token muss eine Freigabe vorliegen.</td>
+<td>Erfassen Sie die Freigabe.</td>
+</tr>
+<tr id="e-not-hl7"><td><code>NOT_HL7</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>src/services/lisIngestion/adapters/hl7v2StatusAdapter.ts</code>.</td>
+<td>Die Nachricht ist keine HL7-v2-Nachricht (sie muss mit einem MSH-Segment beginnen).</td>
+<td>Prüfen Sie das sendende System.</td>
+</tr>
+<tr id="e-unsupported-message-type"><td><code>UNSUPPORTED_MESSAGE_TYPE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>hl7v2StatusAdapter.ts</code>.</td>
+<td>Es werden nur Nachrichten <a class="term" href="99-glossary.html#g-oru" title="Der HL7-Nachrichtentyp für unaufgefordert gesendete Beobachtungsergebnisse. ORU^R01 übermittelt ein Ergebnis.">ORU</a>^R01, <a class="term" href="99-glossary.html#g-orm" title="Der allgemeine HL7-Nachrichtentyp für Aufträge (ORM^O01).">ORM</a>^O01 und <a class="term" href="99-glossary.html#g-oml" title="Der HL7-Nachrichtentyp für Laboraufträge (OML^O21).">OML</a>^O21 angenommen.</td>
+<td>Senden Sie einen unterstützten Typ.</td>
+</tr>
+<tr id="e-missing-accession"><td><code>MISSING_ACCESSION</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>hl7v2StatusAdapter.ts</code>, <code>webhookJsonAdapter.ts</code>.</td>
+<td>Die Nachricht hat keine <a class="term" href="99-glossary.html#g-accession-number" title="Die dauerhafte Kennung eines Falls, gebildet aus der Fallmaske der Einrichtung. Sie wird auf dem Bildschirm wie eine Patientenkennung behandelt: Sie steht in Patientendaten-Tags, damit Screenshots geschwärzt werden können.">Eingangsnummer</a>.</td>
+<td>Korrigieren Sie den Absender.</td>
+</tr>
+<tr id="e-missing-status"><td><code>MISSING_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>src/services/lisIngestion/types.ts</code>.</td>
+<td>Die Nachricht hat keinen LIS-Status.</td>
+<td>Korrigieren Sie den Absender.</td>
+</tr>
+<tr id="e-invalid-json"><td><code>INVALID_JSON</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>types.ts</code>.</td>
+<td>Die Nachricht ist kein gültiges <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, ein Nur-Text-Datenformat, das von der API, von `config.json` und von Webhooks verwendet wird.">JSON</a>.</td>
+<td>Korrigieren Sie den Absender.</td>
+</tr>
+<tr id="e-crosswalk-duplicate-status"><td><code>CROSSWALK_DUPLICATE_STATUS</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>src/services/assistPolling/mockAssistPollingService.ts</code>.</td>
+<td>Ein LIS-Status ist doppelt zugeordnet.</td>
+<td>Ordnen Sie jeden Status nur einmal zu.</td>
+</tr>
+<tr id="e-interval-out-of-range"><td><code>INTERVAL_OUT_OF_RANGE</code></td>
+<td><a href="07-tier6-interface-engine.html#screen-assist_lis_polling">LIS-Eingang (Assist-Modus)</a>. Quelle: <code>mockAssistPollingService.ts</code>.</td>
+<td>Das Abfrageintervall liegt außerhalb der zulässigen ganzen Minuten.</td>
+<td>Geben Sie einen Wert im angezeigten Bereich ein.</td>
+</tr>
+<tr id="e-nhs-number-check-digit"><td><code>NHS_NUMBER_CHECK_DIGIT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Die <a class="term" href="99-glossary.html#g-nhs-number" title="Die zehnstellige Patientenkennung, die im NHS in England und Wales verwendet wird. Die letzte Ziffer ist eine Prüfziffer.">NHS-Nummer</a> besteht die Prüfung der Prüfziffer nicht.</td>
+<td>Korrigieren Sie die Nummer im <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>.</td>
+</tr>
+<tr id="e-nhs-number-format"><td><code>NHS_NUMBER_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Die NHS-Nummer hat nicht zehn Ziffern.</td>
+<td>Korrigieren Sie sie.</td>
+</tr>
+<tr id="e-patient-identifier-missing"><td><code>PATIENT_IDENTIFIER_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Die NHS-Nummer fehlt.</td>
+<td>Geben Sie sie ein.</td>
+</tr>
+<tr id="e-icdo-missing"><td><code>ICDO_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Es gibt keinen ICD-O-3-Code.</td>
+<td>Fügen Sie ihn dem Fall hinzu.</td>
+</tr>
+<tr id="e-icdo-format"><td><code>ICDO_FORMAT</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Ein ICD-O-3-Code hat nicht die Form <code>8500/3</code>.</td>
+<td>Korrigieren Sie ihn.</td>
+</tr>
+<tr id="e-diagnosis-date-missing"><td><code>DIAGNOSIS_DATE_MISSING</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>. Vertrag: <code>UK_COSD_API.md</code>.</td>
+<td>Das Diagnosedatum fehlt.</td>
+<td>Geben Sie es ein.</td>
+</tr>
+<tr id="e-xml-not-well-formed"><td><code>XML_NOT_WELL_FORMED</code></td>
+<td><a href="08-tier7-billing-registry.html#screen-cosd_destination">Britisches Krebsregister (COSD)</a>; Hochladen von Protokollen. Vertrag: <code>UK_COSD_API.md</code>; Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Die Vorschau oder die hochgeladene Datei ist kein wohlgeformtes <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, ein Textformat, das von CAP-SDC-Formularen und einigen Registerdateien verwendet wird.">XML</a>.</td>
+<td>Korrigieren Sie die Daten oder die Datei.</td>
+</tr>
+<tr id="e-unsupported-format"><td><code>UNSUPPORTED_FORMAT</code></td>
+<td>Hochladen von Protokollen in die Synoptik-Bibliothek (<a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Synoptik-Bibliothek</a>). Quelle: <code>src/services/templates/protocolUploadValidation.ts</code>.</td>
+<td>Der Dateityp wird nicht unterstützt. Verwenden Sie JSON, XML oder XLSX.</td>
+<td>Konvertieren Sie die Datei.</td>
+</tr>
+<tr id="e-file-too-large"><td><code>FILE_TOO_LARGE</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Die Datei ist größer als 10 MB.</td>
+<td>Verkleinern Sie sie.</td>
+</tr>
+<tr id="e-json-invalid"><td><code>JSON_INVALID</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Die Datei ist kein gültiges JSON.</td>
+<td>Korrigieren Sie sie.</td>
+</tr>
+<tr id="e-json-newer-format"><td><code>JSON_NEWER_FORMAT</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Die Datei wurde von einer neueren Version von PathScribe exportiert.</td>
+<td>Aktualisieren Sie PathScribe oder exportieren Sie aus derselben Version.</td>
+</tr>
+<tr id="e-xml-not-sdc"><td><code>XML_NOT_SDC</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Das XML ist kein Formular der <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP Electronic Cancer Checklists, die strukturierte Form der CAP-Krebsprotokolle, verteilt als SDC-XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, der XML-Formularstandard, mit dem die elektronischen CAP-Krebs-Checklisten verteilt werden.">SDC</a>).</td>
+<td>Verwenden Sie die richtige Datei.</td>
+</tr>
+<tr id="e-not-importable"><td><code>NOT_IMPORTABLE</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Das Format kann geprüft, aber noch nicht importiert werden. Der Import funktioniert für PathScribe-Protokolldateien (JSON).</td>
+<td>Verwenden Sie eine JSON-Datei von PathScribe.</td>
+</tr>
+<tr id="e-xlsx-not-mapped"><td><code>XLSX_NOT_MAPPED</code></td>
+<td>Hochladen von Protokollen. Quelle: <code>protocolUploadValidation.ts</code>.</td>
+<td>Die Blätter der Arbeitsmappe wurden nicht gelesen, daher wurden Spalten nicht Fragen zugeordnet.</td>
+<td>Verwenden Sie ein unterstütztes Format.</td>
+</tr>
+<tr id="e-production-gated"><td><code>PRODUCTION_GATED</code></td>
+<td><a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>. Quelle: <code>src/services/smartCapture/smartCaptureStates.ts</code>.</td>
+<td>Es ist eine echte Schnittstellen-Engine konfiguriert, und die <a class="term" href="99-glossary.html#g-production-gate" title="Ein Schalter, der geschlossen bleibt, bis ein Labor das Senden echter Daten an eine echte Schnittstellen-Engine freigibt.">Produktionsschranke</a> ist geschlossen, daher wurde nichts gesendet.</td>
+<td>Öffnen Sie die Produktionsschranke, wenn das Labor bereit ist.</td>
+</tr>
+<tr id="e-already-accessioned"><td><code>ALREADY_ACCESSIONED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-Einwurf</a>. Vertrag: <code>LOCKBOX_API.md</code>.</td>
+<td>Die Quittung wurde bereits im <a class="term" href="99-glossary.html#g-accession" title="Der Vorgang, eine Probe entgegenzunehmen und ihr eine dauerhafte Fallnummer zu geben; auch diese Nummer selbst (die Eingangsnummer). Sie verbindet einen Fall mit dem physischen Gewebe und seiner Probenkette.">Probeneingang</a> erfasst (409).</td>
+<td>Keine.</td>
+</tr>
+<tr id="e-placeholder-unresolved"><td><code>PLACEHOLDER_UNRESOLVED</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-Einwurf</a>. Vertrag: <code>LOCKBOX_API.md</code>.</td>
+<td>Der Probeneingang wurde für einen <a class="term" href="99-glossary.html#g-placeholder" title="Ein Datensatz, der für einen Briefkasten-Barcode angelegt wird, zu dem noch kein Auftrag vorliegt. Er enthält den Beleg und wird später mit einem Auftrag verknüpft; er erhält nie eine Eingangsnummer.">Platzhalter</a> ohne verknüpfte Auftragsnummer angefordert (409).</td>
+<td>Verknüpfen Sie den Platzhalter zuerst mit seinem Auftrag.</td>
+</tr>
+<tr id="e-not-a-placeholder"><td><code>NOT_A_PLACEHOLDER</code></td>
+<td><a href="04-tier3-workflow-engines.html#screen-lockbox-drop-off">Lockbox-Einwurf</a>. Vertrag: <code>LOCKBOX_API.md</code>.</td>
+<td>Nur ein Platzhalter kann mit einem Auftrag verknüpft werden.</td>
+<td>Keine.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch9-system-logs"><a class="anchor" href="#ch9-system-logs" aria-label="Link to this section">#</a> Referenz der Systemprotokolle</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Anhänge &gt; Referenz der Systemprotokolle"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Anhänge</span> <span aria-hidden="true">›</span> <span>Referenz der Systemprotokolle</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt</p>
+<p>In den Systemprotokollen wird gelesen, was Personen, das System und die KI getan haben. Dieser Teil beschreibt den Bildschirm. Der nächste Teil (<a href="#ch9-audit-verification">Anleitung zur Prüfung des Prüfprotokolls</a>) erklärt, wie Sie ihn nutzen, um die Fragen eines Auditors zu beantworten.</p>
+<h3 id="screen-audit-log"><a class="anchor" href="#screen-audit-log" aria-label="Link to this section">#</a> Systemprotokolle</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Systemprotokolle"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Systemprotokolle</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt. Das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> wird in der Demonstration im Browser gehalten; mit einem API-Server hält es der Server (siehe Bekannte Grenzen).</p>
+<p><strong>1. Navigation:</strong> Kachel <strong>Systemprotokolle</strong> der Startseite (Adresse <code>/audit</code>).
+<strong>2. Wartungspunkt:</strong> Systemprotokolle (ein Referenzbildschirm; hier wird nichts eingerichtet).</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Ein Bildschirm für die Compliance-Aufzeichnung des Labors: KI-Aktionen, Änderungen durch Benutzer, Systemereignisse, Fehler, Aktivitäten der Qualitätssicherung, Schnittstellen- und Druckaktivität, Fehler bei der Übermittlung von Abrechnungsdaten, kritische Warnmeldungen, externe Konsil-Links und die Hintergrundaufträge des API-Servers. Er ist schreibgeschützt, bis auf drei Aktionen: einen Fehler als <strong>Beheben</strong> zu markieren, eine fehlgeschlagene Schnittstellennachricht oder einen Druckauftrag erneut zu senden und einen <a class="term" href="99-glossary.html#g-consult-link" title="Ein reiner Ansichtslink, der für einen Fall an einen externen Konsiliarius ausgestellt wird. Er kann sofort widerrufen werden und läuft von selbst ab.">Konsil-Link</a> zu widerrufen. Jeder Tab ist eine andere Aufzeichnung, die ein anderer Dienst führt. Die Tabs Prüfprotokoll und Fehlerprotokoll sind hier beschrieben. Der Tab <strong>Schnittstellenprotokoll</strong> ist unter <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a> beschrieben und der Tab <strong>Abrechnung</strong> unter <a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Abrechnung</a>.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Der Bildschirm zeigt nur, was geschehen ist, daher ist nichts vorab zu konfigurieren, außer wer ihn öffnen darf. Eine Person ohne <code>screen:audit-log:open</code> sieht keine Kachel auf der Startseite und, wenn sie die Adresse eingibt, die Meldung „Sie haben keinen Zugriff auf diesen Bildschirm“.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Referenz, nicht Teil der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a></p><dl><dt>Zuerst einrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-log.webp" alt="Systemprotokolle, Tab Prüfprotokoll mit Typ-Schaltflächen, Filtern und CSV exportieren" loading="lazy"><figcaption>Systemprotokolle, Tab Prüfprotokoll mit Typ-Schaltflächen, Filtern und <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a> exportieren</figcaption></figure>
+
+<p>Die Kopfzeile der Seite lautet <strong>Systemprotokolle</strong> mit dem Untertitel „Vollständige Aufzeichnung von KI-Aktionen, Benutzeränderungen, Systemereignissen, Fehlern und Qualitätssicherungsaktivitäten“. Darunter folgen eine Tab-Leiste, ein Feld <strong><a class="term" href="99-glossary.html#g-support-reference" title="Ein zufälliger, nicht identifizierender Code der Form `SR-XXXX-XXXX`, den Mitarbeitende dem Support anstelle einer Fallnummer nennen.">Support-Referenz</a> suchen</strong> und dann der aktive Tab. Ein Zähler am Tab <strong>Fehlerprotokoll</strong> zeigt offene Fehler, am Tab <strong>Schnittstellenprotokoll</strong> die ausstehenden Schnittstellenausnahmen und am Tab <strong>Qualitätssicherung</strong> die offenen Qualitätspunkte. Eine Person mit der <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> Pathologe sieht den Hinweis „Es wird nur Ihre eigene Fallaktivität angezeigt — Ereignisse aus Validierungsstudien sind für Pathologen nicht sichtbar“.</p>
+<figure class="shot"><img src="../img/screen-audit-log-errors.webp" alt="Systemprotokolle, Tab Fehlerprotokoll" loading="lazy"><figcaption>Systemprotokolle, Tab Fehlerprotokoll</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong> Der Bildschirm hat Filter, Spalten und Schaltflächen statt Formularfeldern. Die Zeilennamen beginnen mit dem Tab.</p>
+<h4>Tabs</h4>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-tab-audit-log"><td>Tab: <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a></td>
+<td>Tab</td>
+<td>Nicht zutreffend</td>
+<td>Jeder Prüfeintrag, den die Person sehen darf. Unten beschrieben.</td>
+<td>Beim Öffnen ausgewählt</td>
+</tr>
+<tr id="f-audit-log-tab-error-log"><td>Tab: Fehlerprotokoll</td>
+<td>Tab</td>
+<td>Nicht zutreffend</td>
+<td>Fehler, die das System mit einem Code aufgezeichnet hat. Unten beschrieben.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-interface-log"><td>Tab: Schnittstellenprotokoll</td>
+<td>Tab mit den Untertabs Schnittstellenausnahmen, Ausgehende Interface-DLQ, Ausgehende Sendungen, <a class="term" href="99-glossary.html#g-print-queue" title="Die Liste der Druckaufträge für Befunde und Etiketten mit ihrem Status, von in der Warteschlange bis gedruckt oder fehlgeschlagen.">Druckwarteschlange</a>, Engines</td>
+<td>Nicht zutreffend</td>
+<td>Siehe <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a>. Die Adresse <code>?tab=interfaces</code> öffnet ihn.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-quality-assurance"><td>Tab: Qualitätssicherung</td>
+<td>Tab mit einer Gruppenauswahl</td>
+<td>Nicht zutreffend</td>
+<td>Acht Gruppen von Qualitätsaufzeichnungen: Mängel, Intraoperative Verknüpfung, Diskrepanz &amp; Abgleich, Gegenzeichnungsdauer, Qualifikationsprüfung, Abweichung nach Finalisierung, Patientenabgleich-Prüfung und Managementbewertungen. Jede Gruppe hat eigene Auswahlmöglichkeiten für den Status.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-financial"><td>Tab: Abrechnung</td>
+<td>Tab mit den Untertabs Abrechnungsprotokolle und Ausgehende <a class="term" href="99-glossary.html#g-dlq" title="Dead-Letter-Queue, die Liste der Nachrichten, die alle Wiederholungen nicht bestanden haben. Die Systemprotokolle haben eine für ausgehende Schnittstellennachrichten und eine für Leistungen.">DLQ</a></td>
+<td>Nicht zutreffend</td>
+<td>Siehe <a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Abrechnung</a>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-critical-alerts"><td>Tab: Kritische Warnmeldungen</td>
+<td>Tab</td>
+<td>Nicht zutreffend</td>
+<td>Die Aufzeichnung der Warnmeldungen zu kritischen Befunden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-consult-links"><td>Tab: Konsil-Links</td>
+<td>Tab</td>
+<td>Nicht zutreffend</td>
+<td>Jeder externe <a class="term" href="99-glossary.html#g-consult-link" title="Ein reiner Ansichtslink, der für einen Fall an einen externen Konsiliarius ausgestellt wird. Er kann sofort widerrufen werden und läuft von selbst ab.">Konsil-Link</a> in jedem <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>, mit <strong>Nur aktive</strong> und <strong>Widerrufen</strong>. Wird Personen mit <code>audit:consult-links:view</code> angezeigt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-tab-server-jobs"><td>Tab: Serveraufträge</td>
+<td>Tab</td>
+<td>Nicht zutreffend</td>
+<td>Die Hintergrundaufträge des API-Servers: Zustand und Dead Letters, mit erneutem Einreihen. Nur Personen mit <code>jobs:server-job:view</code> angezeigt. Ein Link, der ohne diese <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> geöffnet wird, landet im Prüfprotokoll.</td>
+<td>Ohne die Berechtigung verborgen</td>
+</tr>
+<tr id="f-audit-log-find-a-support-reference"><td><a class="term" href="99-glossary.html#g-support-reference" title="Ein zufälliger, nicht identifizierender Code der Form `SR-XXXX-XXXX`, den Mitarbeitende dem Support anstelle einer Fallnummer nennen.">Support-Referenz</a> suchen</td>
+<td>Text, Form <code>SR-XXXX-XXXX</code></td>
+<td>Optional</td>
+<td>Nennt den Fall, den Prüfeintrag, den Fehlereintrag oder die Schnittstellenausnahme, auf die eine Support-Referenz verweist. Eine Suche wird selbst protokolliert (<code>support_reference.resolved</code>). Liegt der Eintrag außerhalb des geladenen Zeitraums, fordert die Meldung auf, den Zeitraum zu erweitern.</td>
+<td>Leer</td>
+</tr>
+</tbody>
+</table>
+<h4>Tab Prüfprotokoll</h4>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-audit-log-type-pills"><td><a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a>: Typ-Schaltflächen</td>
+<td>Auswahl: Alle, KI, Benutzer, System, mit Zählern</td>
+<td>Optional</td>
+<td>Filtert nach dem Typ des Eintrags.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-log-audit-log-patient-management-only"><td>Prüfprotokoll: Nur Patientenverwaltung</td>
+<td>Ja/Nein-Kontrollkästchen mit Zähler</td>
+<td>Optional</td>
+<td>Zeigt nur Ereignisse, deren Name mit <code>mpi.</code> beginnt (Zusammenführen, Verschieben, Verknüpfen, erneutes Zuordnen, Aktualisierung demografischer Daten). Wird mit den anderen Filtern kombiniert. Ein künftiges Ereignis <code>mpi.</code> wird automatisch einbezogen.</td>
+<td>Nein</td>
+</tr>
+<tr id="f-audit-log-audit-log-user-filter"><td>Prüfprotokoll: Benutzerfilter</td>
+<td>Auswahl aller Benutzer in den geladenen Einträgen</td>
+<td>Optional</td>
+<td>Nur in einer Sitzung als Superadmin angezeigt. Alle anderen finden eine Person, indem sie den Namen in das Suchfeld eingeben.</td>
+<td>Alle Benutzer</td>
+</tr>
+<tr id="f-audit-log-audit-log-date-range"><td>Prüfprotokoll: Zeitraum</td>
+<td>Auswahl: Heute, Letzte 7 Tage, Letzte 30 Tage, Letzte 90 Tage, Benutzerdefinierter Zeitraum</td>
+<td>Optional</td>
+<td>Grenze in der Zeitzone der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>. Benutzerdefinierter Zeitraum fügt ein Datum <strong>von</strong> und <strong>bis</strong> hinzu; das Enddatum schließt den ganzen Tag ein.</td>
+<td>Letzte 7 Tage</td>
+</tr>
+<tr id="f-audit-log-audit-log-search"><td>Prüfprotokoll: Suche</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Findet den Ereignisnamen, den Detailtext, den Benutzer und die Fall-ID (<a class="term" href="99-glossary.html#g-accession-number" title="Die dauerhafte Kennung eines Falls, gebildet aus der Fallmaske der Einrichtung. Sie wird auf dem Bildschirm wie eine Patientenkennung behandelt: Sie steht in Patientendaten-Tags, damit Screenshots geschwärzt werden können.">Eingangsnummer</a>), ohne Beachtung der Groß- und Kleinschreibung.</td>
+<td>Leer</td>
+</tr>
+<tr id="f-audit-log-audit-log-export-csv"><td>Prüfprotokoll: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a> exportieren</td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Erfordert <code>audit:audit-log:export</code>. Siehe die Anleitung zur Prüfung. Ohne sie ausgegraut.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-timestamp"><td>Prüfprotokoll: Zeitstempel</td>
+<td>Spalte, <code>YYYY-MM-DD HH:MM:SS.mmm UTC</code></td>
+<td>Nicht zutreffend</td>
+<td>Wann der Eintrag geschrieben wurde, stets in <a class="term" href="99-glossary.html#g-utc" title="Koordinierte Weltzeit, der Zeitstandard, in dem Prüfeinträge gespeichert und angezeigt werden.">UTC</a> angezeigt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-type"><td>Prüfprotokoll: Typ</td>
+<td>Spalte</td>
+<td>Nicht zutreffend</td>
+<td>KI, Benutzer oder System.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-event"><td>Prüfprotokoll: Ereignis</td>
+<td>Spalte</td>
+<td>Nicht zutreffend</td>
+<td>Der Ereignisname, gefolgt von einem Chip mit der <a class="term" href="99-glossary.html#g-support-reference" title="Ein zufälliger, nicht identifizierender Code der Form `SR-XXXX-XXXX`, den Mitarbeitende dem Support anstelle einer Fallnummer nennen.">Support-Referenz</a>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-detail"><td>Prüfprotokoll: Detail</td>
+<td>Spalte</td>
+<td>Nicht zutreffend</td>
+<td>Englischer Text, frei von Patientennamen, Geburtsdaten, Patientennummern (<a class="term" href="99-glossary.html#g-mrn" title="Medizinische Aktennummer (Medical Record Number), die Kennung, die eine Einrichtung einem Patienten gibt.">MRN</a>) und klinischen Werten.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-user"><td>Prüfprotokoll: Benutzer</td>
+<td>Spalte</td>
+<td>Nicht zutreffend</td>
+<td>Der Anzeigename der Person oder des Systemakteurs. Automatische Aktionen zeigen einen Systemakteur wie <code>SYSTEM</code>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-audit-log-case"><td>Prüfprotokoll: <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a></td>
+<td>Spalte</td>
+<td>Nicht zutreffend</td>
+<td>Die Eingangsnummer, wenn der Eintrag einen Fall betrifft. Ein Klick darauf öffnet den Fall.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p>Der Eintrag enthält außerdem einen Konfidenzwert (bei KI-Einträgen), eine Kennung der Einrichtung und eine Kennung der <a class="term" href="99-glossary.html#g-scan-station" title="Ein benannter Arbeitsplatzaufbau mit seinen Druckern und seiner Anzeige, den eine Person auswählt, damit Etiketten und Scans an den richtigen Ort gehen.">Scanstation</a>. Sie werden gespeichert und stehen im Vertrag des Servers, aber der Bildschirm zeigt dafür keine Spalte, und die CSV-Datei enthält weder Einrichtung noch Station. Die Kennung der Einrichtung fehlt bei Einträgen, die vor ihrer Einführung oder von Code aufgezeichnet wurden, der sie nicht liefert.</p>
+<h4>Tab Fehlerprotokoll</h4>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-log-error-log-severity-pills"><td>Fehlerprotokoll: Schweregrad-Schaltflächen</td>
+<td>Auswahl: Alle, Fehler, Warnung, Info, mit Zählern</td>
+<td>Optional</td>
+<td>Filtert nach Schweregrad.</td>
+<td>Alle</td>
+</tr>
+<tr id="f-audit-log-error-log-status"><td>Fehlerprotokoll: Status</td>
+<td>Auswahl: Alle Status, Nur offene, Nur gelöste</td>
+<td>Optional</td>
+<td>Filtert nach Lösungsstand.</td>
+<td>Alle Status</td>
+</tr>
+<tr id="f-audit-log-error-log-search"><td>Fehlerprotokoll: Suche</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Findet Meldung, Code und Quelle.</td>
+<td>Leer</td>
+</tr>
+<tr id="f-audit-log-error-log-resolve"><td>Fehlerprotokoll: Beheben</td>
+<td>Schaltfläche in jeder offenen Zeile</td>
+<td>Nicht zutreffend</td>
+<td>Erfordert <code>audit:error:resolve</code>. Erfasst, wer ihn behoben hat und wann; die Zeile zeigt dann „Behoben von <name>, <time>“.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-error-log-export-csv"><td>Fehlerprotokoll: <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a> exportieren</td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Erfordert <code>audit:error-log:export</code>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-audit-log-error-log-columns"><td>Fehlerprotokoll: Spalten</td>
+<td>Zeitstempel, Schweregrad, Code, Meldung, Quelle, <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>, Status</td>
+<td>Nicht zutreffend</td>
+<td>Die Spalte Code enthält die Codes des <a href="#ch9-error-codes">Index</a>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong>
+- Den Bildschirm öffnen: <code>screen:audit-log:open</code>. Admin, Laborleitung und QS-Prüfer haben sie standardmäßig. Die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> Pathologe hat sie standardmäßig nicht.
+- Export: eine <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> je <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a>, jede mit hohem Risiko, jede setzt <code>screen:audit-log:open</code> voraus: <code>audit:audit-log:export</code>, <code>audit:error-log:export</code>, <code>audit:interface-log:export</code>, <code>audit:qa-log:export</code> und <code>audit:billing-log:export</code>. Rollen, die den Bildschirm öffnen, erhalten ab Werk alle fünf. Jeder Export wird selbst protokolliert.
+- Einen Fehler beheben: <code>audit:error:resolve</code> (hohes Risiko).
+- Tab Konsil-Links: <code>audit:consult-links:view</code>. Serveraufträge: <code>jobs:server-job:view</code>, und erneutes Einreihen mit <code>jobs:server-job:requeue</code>.
+- Eingrenzung auf dem Bildschirm: Pathologen sehen jeden Eintrag, der einen Fall nennt, sowie ihre eigenen Einträge ohne Fall. Ereignisse aus Validierungsstudien (<code>validation_study_created</code>, <code>validation_study_activated</code>, <code>validation_study_closed</code>, <code>validation_study_deleted</code>, <code>validation_report_generated</code> und die drei Ereignisse <code>validation_routing_rule_*</code>) sind für alle außer Admin, Pathologe-Admin und Superadmin verborgen.
+- Das Ansehen des Protokolls wird selbst nicht protokolliert. Exporte, das Beheben eines Fehlers und eine Suche nach einer <a class="term" href="99-glossary.html#g-support-reference" title="Ein zufälliger, nicht identifizierender Code der Form `SR-XXXX-XXXX`, den Mitarbeitende dem Support anstelle einer Fallnummer nennen.">Support-Referenz</a> werden protokolliert.</p>
+<p><strong>Bekannte Grenzen.</strong>
+- <strong>Keine Manipulationserkennung im Hauptprüfprotokoll.</strong> Das Hauptprüfprotokoll ist von Natur aus <a class="term" href="99-glossary.html#g-append-only" title="Ein Datensatz, dem die Anwendung etwas hinzufügen, den sie aber nie bearbeiten oder löschen kann. Das Prüfprotokoll ist von Grund auf nur anhängend.">nur anhängend</a> (im Dienst gibt es keinen Aufruf zum Ändern oder Löschen, und der Vertrag des Servers erteilt dem Datenbankzugang der Anwendung keine solche Berechtigung), aber seine Einträge sind nicht per Hash verkettet, und nichts auf dem Bildschirm prüft sie. Die einzige per Hash verkettete Aufzeichnung ist das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> des <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriffs</a>. Siehe die Anleitung zur Prüfung.
+- <strong>Die <a class="term" href="99-glossary.html#g-retention" title="Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.">Aufbewahrung</a> ist eine Einstellung, keine erzwungene Regel.</strong> Die Aufbewahrungsdauer des Protokolls wird unter <a href="02-tier1-primary-prerequisites.html#screen-retention">Datenaufbewahrung</a> festgelegt. Kein Auftrag zum Löschen liest sie bisher (PS-345), daher wird derzeit nichts dadurch gelöscht.
+- <strong>Das <code>detail</code> des Prüfprotokolls ist absichtlich englisch.</strong> Es ist ein Compliance-Nachweis, kein Text der Oberfläche. Die Spaltenüberschriften, Filter und Schaltflächen sind übersetzt; der Detailtext und die exportierte Datei nicht.
+- <strong>Demonstration.</strong> Ohne API-Server wird das Prüfprotokoll im Browser gespeichert und beginnt mit vorbefüllten Beispieleinträgen. Die Zeit und der handelnde Benutzer stammen aus dem Browser. Mit einem API-Server legt der Server Zeit und Akteur anhand des Anmelde-Tokens fest.
+- <strong>Keine Spalte für <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> oder Station</strong> auf dem Bildschirm oder in der CSV-Datei, obwohl beide aufgezeichnet werden (siehe oben).</p>
+<h2 id="ch9-audit-verification"><a class="anchor" href="#ch9-audit-verification" aria-label="Link to this section">#</a> Anleitung zur Prüfung des Prüfprotokolls</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Anhänge &gt; Anleitung zur Prüfung des Prüfprotokolls"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Anhänge</span> <span aria-hidden="true">›</span> <span>Anleitung zur Prüfung des Prüfprotokolls</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Die Aufzeichnung, die Suche und der Export sind umgesetzt. Die Manipulationserkennung für das Hauptprüfprotokoll und das automatische Löschen nach der Aufbewahrungsdauer sind nicht umgesetzt.</p>
+<p><strong>Für wen dies gedacht ist.</strong> Für einen Administrator oder einen Service-Ingenieur von ForMedrixAI, der einem Auditor oder Inspektor zeigen muss, was sich geändert hat, wer es geändert hat und wann. Sie verwendet nur, was heute existiert.</p>
+<h3 id="ch9-audit-recorded"><a class="anchor" href="#ch9-audit-recorded" aria-label="Link to this section">#</a> Was aufgezeichnet wird</h3>
+<p>Jeder Prüfeintrag enthält: eine Kennung; eine Zeit (in <a class="term" href="99-glossary.html#g-utc" title="Koordinierte Weltzeit, der Zeitstandard, in dem Prüfeinträge gespeichert und angezeigt werden.">UTC</a> gespeichert); einen Typ (<strong>KI</strong>, <strong>Benutzer</strong> oder <strong>System</strong>); einen Ereignisnamen; einen Detailsatz auf Englisch; den Anzeigenamen des handelnden Benutzers; eine <a class="term" href="99-glossary.html#g-accession-number" title="Die dauerhafte Kennung eines Falls, gebildet aus der Fallmaske der Einrichtung. Sie wird auf dem Bildschirm wie eine Patientenkennung behandelt: Sie steht in Patientendaten-Tags, damit Screenshots geschwärzt werden können.">Eingangsnummer</a> des Falls, wenn es eine gibt; eine KI-Konfidenz, wo sie zutrifft; eine Kennung der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>, wo der Code sie liefert; und die <a class="term" href="99-glossary.html#g-scan-station" title="Ein benannter Arbeitsplatzaufbau mit seinen Druckern und seiner Anzeige, den eine Person auswählt, damit Etiketten und Scans an den richtigen Ort gehen.">Scanstation</a>, an der die Aktion erfolgte. Die Kennung der Station wird jedem Eintrag, den der Prüfdienst schreibt, automatisch hinzugefügt.</p>
+<p>Was im <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> landet:</p>
+<ul>
+<li><strong>Jede Prüfung einer <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> mit hohem Risiko</strong>, erlaubt oder abgelehnt. Das Ereignis heißt <strong>Capability allowed</strong> oder <strong>Capability refused</strong>. Das Detail nennt den Berechtigungsschlüssel, die Rollen, die sie erteilt haben, oder den Grund der Ablehnung, die Sitzungsrolle der Person und die Einrichtung. Der <a class="term" href="99-glossary.html#g-capability-catalog" title="Die vollständige Liste der Berechtigungen, mit der Risikostufe jeder Berechtigung und jeder Berechtigung, die sie voraussetzt.">Berechtigungskatalog</a> kennzeichnet, welche Berechtigungen ein hohes Risiko haben. Das Speichern eines Konfigurationsbildschirms ist eine dieser Prüfungen.</li>
+<li><strong>Änderungen an Rollen und Mitarbeitern.</strong> <strong>Role capabilities changed</strong> listet, was einer <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> erteilt und entzogen wurde. <strong>Staff access changed</strong> erfasst eine Änderung der Rollen, Einrichtungen, des pädiatrischen Zugriffs, des Orchestrierungszugriffs oder des mandantenübergreifenden QS-Zugriffs einer Person, jeweils von und zu. <strong>Staff credentials changed</strong> erfasst Änderungen der Zugangsdaten.</li>
+<li><strong>Anmeldeereignisse.</strong> <strong>Signed in</strong>, <strong>Sign-in failed</strong> (Versuch n von 5), <strong>Sign-in locked</strong>, <strong>Sign-in refused</strong>, <strong><a class="term" href="99-glossary.html#g-sso" title="Single Sign-On. Siehe Single Sign-On.">SSO</a> account linked</strong>, <strong>SSO account unlinked</strong> und <strong>SSO sign-in refused</strong>. Das Protokoll zeichnet nie auf, was eingegeben wurde.</li>
+<li><strong>Benannte Änderungsereignisse für einige Einstellungen.</strong> Zum Beispiel <code>AI_VENDOR_POLICY_CHANGED</code>, <code>CLINICAL_MISMATCH_RULE_CHANGED</code>, <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code>, <code>FEEDBACK_SETTINGS_CHANGED</code>, <code>RECALL_SETTINGS_CHANGED</code>, <code>QA_TREND_POLICY_CHANGED</code>, <code>CODE_SYSTEM_POLICY_CHANGED</code>, <code>PEER_REVIEW_GATE_CHANGED</code>, <strong>Template review settings changed</strong>, <strong>Organ map colours changed</strong>, <strong>Signing-authority country profile changed</strong> und die vier Ereignisse <strong>Signing-authority facility override</strong> (hinzugefügt, geändert, entfernt, Begründung aktualisiert). Die Ereignisse zur Ausnahme einer Einrichtung enthalten jedes geänderte Kennzeichen von und zu sowie die Begründung des Administrators oder „Justification: none given“.</li>
+<li><strong>Sprachbefehle.</strong> <strong>Voice command executed</strong> und <strong>Voice command refused</strong>. Das Detail nennt die Aktions-ID und den Bildschirm, zum Beispiel <code>Voice command executed: action TABLE_DELETE on screen WORKLIST; confirmed by repeating the phrase</code>; bei einer Ablehnung steht der Grund darin (auf diesem Bildschirm nicht verfügbar, Wendung zur Bestätigung nicht wiederholt oder nicht rechtzeitig wiederholt). Die Person ist der handelnde Benutzer. Das Protokoll speichert nie, was gesagt wurde, und kein Eintrag nennt einen <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>.</li>
+<li><strong>Drucke und Exporte.</strong> <code>DOCUMENT_PRINTED</code>, <code>DOCUMENT_REPRINTED</code>, <code>DOCUMENT_RENDERED</code>, <code>DOCUMENT_EXPORTED</code>, <code>DOCUMENT_FAXED</code>: wer, die Eingangsnummer, das Ziel, der Status und, bei einem Export, die Zeilenzahl.</li>
+<li><strong>Fallereignisse</strong> (Case events), etwa das Erzeugen von Synopsen, Feldaktualisierungen, Finalisierung, Protokollauswahl, Erkennung und Korrektur von Abweichungen, Korrekturen der Abrechnung und Patientenverwaltung (<code>mpi.*</code>).</li>
+<li><strong>Automatische Aktionen</strong> (Automatic actions) unter einem Systemakteur.</li>
+</ul>
+<p>Zwei Grenzen sind beim Lesen der Aufzeichnung wichtig.</p>
+<ol>
+<li>Ein Eintrag zu einer Berechtigung zeigt, dass eine Person eine Berechtigung verwendet hat und ob sie erlaubt war. Bei den meisten Einstellungen zeigt er die alten und neuen Werte <strong>nicht</strong>. Nur die oben genannten Ereignisse und einige weitere enthalten die Änderung selbst.</li>
+<li>Eine Änderung, die eine Sitzung als Superadmin in einer anderen Organisation vornimmt, wird auch in die Aufzeichnung des <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriffs</a> dieser Organisation geschrieben.</li>
+</ol>
+<p><strong>Der Detailtext ist absichtlich englisch.</strong> Prüfaufzeichnungen sind Compliance-Nachweise, kein Text der Oberfläche, daher bleibt das Detail in jeder Sprache des Produkts und im Export wörtlich englisch. Suchen Sie mit dem englischen Ereignisnamen oder dem Berechtigungsschlüssel.</p>
+<h3 id="ch9-audit-find-setting"><a class="anchor" href="#ch9-audit-find-setting" aria-label="Link to this section">#</a> So finden Sie die Änderung einer Einstellung</h3>
+<ol>
+<li>Öffnen Sie <a href="#screen-audit-log">Systemprotokolle</a>, Tab <strong><a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a></strong>.</li>
+<li>Legen Sie den <strong>Zeitraum</strong> fest. Standard ist <strong>Letzte 7 Tage</strong>; wählen Sie <strong>Benutzerdefinierter Zeitraum</strong> für eine ältere Änderung. Einträge außerhalb des Zeitraums sind ausgeblendet, nicht verschwunden.</li>
+<li>Geben Sie unter <strong>Suche</strong> den Berechtigungsschlüssel des Bildschirms ein, den Sie prüfen. Die <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> zum Ändern jedes Konfigurationsbildschirms ist in dessen Teil <strong>Berechtigungen</strong> in diesem Handbuch genannt (zum Beispiel <code>config:retention-policy:manage</code> für <a href="02-tier1-primary-prerequisites.html#screen-retention">Datenaufbewahrung</a>). Die Suche findet den Detailtext und damit die Einträge <strong>Capability allowed</strong>.</li>
+<li>Lesen Sie die Spalten <strong>Benutzer</strong> und <strong>Zeitstempel</strong> für wer und wann. Das Detail nennt die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a>, die die Berechtigung erteilt hat.</li>
+<li>Hat der Bildschirm ein benanntes Änderungsereignis (siehe die Liste oben), suchen Sie auch nach diesem Ereignisnamen. Es enthält die Änderung selbst, nicht nur die Berechtigungsprüfung.</li>
+<li>Um Störeinträge auszuschließen, verwenden Sie die Schaltflächen für den <strong>Typ</strong> (<strong>Benutzer</strong> zeigt die Aktionen von Menschen).</li>
+<li>Um nur Ablehnungen zu sehen, suchen Sie <code>Capability refused</code>.</li>
+</ol>
+<p>Ein Eintrag mit <strong>Capability allowed</strong> zeigt, dass die Person die Änderung vornehmen durfte und dass die Änderung versucht wurde. Er beweist für sich allein nicht, welcher Wert gespeichert wurde. Vergleichen Sie bei einer Einstellung ohne eigenes Änderungsereignis mit dem aktuellen Wert des Bildschirms und, wenn das Labor eine führt, mit einem Konfigurationsexport (siehe <strong>Export</strong> unten).</p>
+<h3 id="ch9-audit-find-permission"><a class="anchor" href="#ch9-audit-find-permission" aria-label="Link to this section">#</a> So prüfen Sie, wer eine Berechtigung geändert hat</h3>
+<ol>
+<li>Suchen Sie im Tab <strong><a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a></strong> nach <code>Role capabilities changed</code>. Jeder Eintrag lautet <code>Role "&lt;name&gt;": granted &lt;keys&gt;; removed &lt;keys&gt;.</code> Die Spalte <strong>Benutzer</strong> nennt die Person, die die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> gespeichert hat.</li>
+<li>Um zu sehen, wer eine Rolle erhalten oder verloren hat, suchen Sie <code>Staff access changed</code>. Das Detail listet jede Änderung von und zu (Rollen, Einrichtungen, pädiatrischer Zugriff, Orchestrierungszugriff, mandantenübergreifender QS-Zugriff).</li>
+<li>Um Änderungen der Zugangsdaten zu sehen, suchen Sie <code>Staff credentials changed</code>.</li>
+<li>Um zu sehen, ob eine Person eine <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> tatsächlich verwendet hat, suchen Sie den Berechtigungsschlüssel und lesen Sie die Einträge <strong>Capability allowed</strong> und <strong>Capability refused</strong>.</li>
+<li>Um aufzulisten, wer heute etwas tun darf, verwenden Sie <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a> und <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a>; das <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> zeigt den Verlauf, diese Bildschirme zeigen den aktuellen Zustand.</li>
+<li>Für eine Rolle, die das Krankenhaus nicht ändern kann: Eine Änderung der Rolle Superadmin wird in einem Krankenhaus abgelehnt, daher zeigt kein Eintrag eine solche. Superadmin liegt bei Mitarbeitenden des Supports von ForMedrixAI und wird außerhalb des Mitarbeiterverzeichnisses des Krankenhauses erteilt.</li>
+</ol>
+<p>Ein Speichern einer Rolle wird außerdem abgelehnt, bevor etwas geschrieben wird, wenn danach keine Rolle mehr Rollen verwalten könnte, ein Paar zur <a class="term" href="99-glossary.html#g-separation-of-duties" title="Eine Regel, nach der zwei Befugnisse nicht bei einer Person liegen dürfen, etwa die Regeln zur klinischen Abweichungsprüfung zu ändern und die KI-Anweisungen zu genehmigen.">Funktionstrennung</a> verletzt würde oder eine Berechtigung ohne die erforderliche erteilt würde. Ein abgelehntes Speichern schreibt keinen Eintrag <strong>Role capabilities changed</strong>.</p>
+<h3 id="ch9-audit-integrity"><a class="anchor" href="#ch9-audit-integrity" aria-label="Link to this section">#</a> So funktionieren Integrität und Aufbewahrung der Aufzeichnung</h3>
+<p><strong>Nur anhängend.</strong> Der Prüfdienst hat keinen Aufruf, um einen Eintrag zu ändern oder zu löschen; er kann nur neue schreiben und sie lesen. Der Vertrag des Servers (<code>STAFF_ADMIN_API.md</code> Abschnitt 1; <code>AUTHORIZATION_API.md</code>) verlangt, dass die Prüftabelle <a class="term" href="99-glossary.html#g-append-only" title="Ein Datensatz, dem die Anwendung etwas hinzufügen, den sie aber nie bearbeiten oder löschen kann. Das Prüfprotokoll ist von Grund auf nur anhängend.">nur anhängend</a> ist: Es gibt keinen Aufruf zum Ändern oder Löschen, und der Datenbankzugang der Anwendung hat keine solche <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a>. Ein behobener Fehler ist die einzige Änderung, die an einem Datensatz erlaubt ist, und sie wird als wer und wann am Fehlereintrag erfasst, nicht als Überschreiben der Meldung.</p>
+<p><strong>Wer die Zeit und den Akteur festlegt.</strong> Mit dem API-Server legt der Server die Zeit und den handelnden Benutzer anhand des Bearer-Tokens fest. Der Browser sendet nur das Ereignis, daher kann ein Benutzer den angezeigten Namen nicht wählen. In der Demonstration tut es der Browser.</p>
+<p><strong>Eindeutige Kennungen.</strong> Jeder Eintrag erhält eine eindeutige Kennung. Die Tabelle des Servers soll die Eindeutigkeit ebenfalls erzwingen.</p>
+<p><strong>Manipulationserkennung: Das Hauptprüfprotokoll hat keine.</strong> Das Hauptprüfprotokoll ist <strong>nicht</strong> per Hash verkettet oder signiert. Nichts im Bildschirm Systemprotokolle belegt, dass ein Eintrag von jemandem mit direktem Datenbankzugriff nicht verändert wurde, und es gibt dafür keine Schaltfläche „Prüfen“. Die Integrität beruht auf der oben genannten Regel „nur anhängend“ und auf Datenbankberechtigungen. Die einzige per Hash verkettete Aufzeichnung ist das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> des <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriffs</a> (siehe unten). Verlangt Ihr Auditor eine kryptografische Manipulationserkennung für das Hauptprotokoll, teilen Sie dies ForMedrixAI mit: Sie ist nicht umgesetzt.</p>
+<p><strong><a class="term" href="99-glossary.html#g-retention" title="Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.">Aufbewahrung</a>.</strong> Die Aufbewahrungsdauer des Prüfprotokolls ist eine Einstellung unter <a href="02-tier1-primary-prerequisites.html#screen-retention">Datenaufbewahrung</a>: das Feld <strong>Audit-Protokolle</strong>, in Tagen, von 90 bis 3650, standardmäßig 365. Der Bildschirm sagt, eine Änderung „wird beim nächsten Löschzyklus wirksam“. <strong>Kein Auftrag zum Löschen liest diese Einstellung bisher (PS-345)</strong>, daher wird derzeit nichts dadurch gelöscht. Behandeln Sie die Zahl als aufgezeichnete Richtlinie, nicht als erzwungene. Ein Nachweis jedes Exports (wer, was, wann, Zeilenzahl und Hash der Datei) wird mit der Aufbewahrung des Prüfprotokolls geführt.</p>
+<p><strong>Exporte sind Arbeitskopien.</strong> Die exportierte CSV-Datei ist eine Kopie dessen, was auf dem Bildschirm stand. Der Nachweis des Exports ist der Prüfeintrag.</p>
+<h3 id="ch9-audit-export"><a class="anchor" href="#ch9-audit-export" aria-label="Link to this section">#</a> So exportieren Sie</h3>
+<ol>
+<li>Legen Sie im benötigten Tab zuerst die Filter fest. Der Export umfasst die Zeilen, die die Filter übrig lassen, nicht das ganze <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a>.</li>
+<li>Wählen Sie <strong><a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a> exportieren</strong>. Die Schaltfläche ist ausgegraut, mit einem Tooltip, der die <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> nennt, sofern die Person nicht die Export-Berechtigung für diesen Tab hat (siehe Berechtigungen oben).</li>
+<li>Der Dienst prüft die Berechtigung, bevor er die Datei erstellt. Eine Ablehnung erstellt nichts.</li>
+<li>Mit einem API-Server wird der Export vom Server erstellt (siehe <a href="06-tier5-reporting-synoptic-scheduler.html#screen-my-exports">Meine Exporte</a>): Die Datei ist eine Arbeitskopie, die standardmäßig 7 Tage aufbewahrt wird (1 bis 30), eine Person darf 3 offene Exporte haben, und mehr als 1.000.000 Zeilen werden abgelehnt. In der Demonstration erstellt der Browser die Datei und lädt sie sofort herunter.</li>
+<li>Ein Dateiname hat die Form <code>pathscribe-audit-log-&lt;date&gt;.csv</code>. Die ersten Zeilen sind ein Kopf, der den Bericht, die anfordernde Person, die verwendeten Filter und die Zeilenzahl nennt. Dann folgen die Spalten: <strong>ID, Timestamp, Type, Event, Detail, Actioned By, Accession No., AI Confidence</strong>. Zellen, die mit <code>=</code>, <code>+</code>, <code>-</code> oder <code>@</code> beginnen, werden entschärft, damit eine Tabellenkalkulation sie nicht als Formel ausführt.</li>
+<li>Jeder Export schreibt einen Eintrag <code>DOCUMENT_EXPORTED</code> mit der Person, dem Dateinamen, dem Format und der Zeilenzahl. Suchen Sie <code>DOCUMENT_EXPORTED</code>, um zu sehen, wer das Protokoll exportiert hat.</li>
+<li>Die CSV-Datei enthält die Kennungen von <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> und Station nicht. Braucht ein Inspektor sie, teilen Sie dies dem Service von ForMedrixAI mit: Der Server hält sie.</li>
+<li>Die anderen Tabs werden auf dieselbe Weise exportiert, jeder mit eigener Berechtigung und eigenen Spalten: Fehlerprotokoll (ID, Timestamp, Severity, Code, Message, Source, Accession No., Resolved), Qualitätssicherung (ID, Group, Date, Case, Specimen, Detail, Status, User), Schnittstellenprotokoll und das Abrechnungsprotokoll im Tab Abrechnung.</li>
+</ol>
+<h3 id="ch9-audit-support"><a class="anchor" href="#ch9-audit-support" aria-label="Link to this section">#</a> Wie das Prüfprotokoll des Support-Zugriffs einzuordnen ist</h3>
+<p>Wenn der Support von ForMedrixAI auf Ihre Daten zugreift, wird dies in einem eigenen Strom aufgezeichnet, getrennt vom Hauptprüfprotokoll, und er gehört Ihrer Organisation. Er ist unter <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriff</a> beschrieben.</p>
+<ul>
+<li><strong>Was er aufzeichnet.</strong> Richtlinienänderungen; Anfragen, Genehmigungen, Ablehnungen, Abläufe, vorzeitige Beendigungen und Widerrufe; abgelehnte Öffnungen; Öffnen und Bearbeiten von Fällen; jede Liste, Suche oder jeden Bericht, die Ihre Fälle offengelegt haben (mit den Fall-IDs); die Namen, nie die Werte, von Suchkriterien; und Exporte dieses Prüfprotokolls. Auch die eigenen Exporte und Konfigurationsänderungen eines Support-Mitarbeiters werden hier erfasst (als <code>supportExport</code> und <code>supportConfigChange</code>) sowie im Hauptprüfprotokoll.</li>
+<li><strong>Einträge werden nie entfernt.</strong> Jeder Eintrag enthält eine laufende Nummer, die Zeit, den Akteur, das Ticket, die Aktion, die Fall-IDs und ein englisches Detail ohne Patientendaten.</li>
+<li><strong>Es ist per Hash verkettet.</strong> Jeder Eintrag trägt einen <a class="term" href="99-glossary.html#g-sha-256" title="Ein kryptografischer Hash, der eine Datei oder einen Datensatz in einen festen Fingerabdruck umwandelt und zum Erkennen einer Änderung dient.">SHA-256</a> über seine Felder und den Hash des vorherigen Eintrags, beginnend mit 64 Nullen. Ein geänderter, entfernter oder umgeordneter Eintrag unterbricht die Kette. Der Bildschirm meldet <strong><a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> unverändert (N Einträge)</strong> oder <strong>Protokoll bei Eintrag N verändert</strong>, und der JSON-Export enthält die Prüfung der Kette.</li>
+<li><strong>So prüfen Sie es.</strong> Öffnen Sie den Support-Zugriff, lesen Sie die Kettenzeile im Prüfbereich und exportieren Sie <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, ein Nur-Text-Datenformat, das von der API, von `config.json` und von Webhooks verwendet wird.">JSON</a> für eine unabhängige Prüfung. Sie benötigen <code>config:support-audit:view</code>.</li>
+<li><strong>Exportformate.</strong> <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a>, JSON und <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, die Form, in der ein signierter Befund gespeichert und gedruckt wird.">PDF</a>, mit den Spalten Zeitstempel, Name des Support-Mitarbeiters, Herkunfts-IP, Herkunftsland, Ticket-ID, Durchgeführte Aktion, Fall-IDs, Detail.</li>
+<li><strong>Grenzen.</strong> Herkunfts-IP und Herkunftsland kann nur der Server wahrheitsgemäß aus der Anfrage erfassen, daher lässt die Demonstration sie leer. Mandantengetrennte Speicherung in einer eigenen, nur anhängenden Tabelle ist Arbeit am Server (PS-358).</li>
+</ul>
+<p>Dies ist die einzige Aufzeichnung im Produkt mit eingebauter Manipulationserkennung. Sie deckt nur den Support-Zugriff ab, nicht das Hauptprüfprotokoll.</p>
+<h3 id="ch9-audit-routine"><a class="anchor" href="#ch9-audit-routine" aria-label="Link to this section">#</a> Ein kurzer Prüfablauf</h3>
+<p>Gehen Sie für eine routinemäßige Überprüfung eines Stichprobenzeitraums diese Schritte durch.</p>
+<ol>
+<li>Legen Sie den Zeitraum des <strong>Prüfprotokolls</strong> auf den Zeitraum fest. Notieren Sie die Anzahl in der Fußzeile („N von M Ereignissen angezeigt“).</li>
+<li>Suchen Sie <code>Role capabilities changed</code>, <code>Staff access changed</code> und <code>Capability refused</code> und lesen Sie jeden Eintrag.</li>
+<li>Suchen Sie <code>Sign-in locked</code> und <code>Sign-in refused</code> nach Anmeldeproblemen.</li>
+<li>Suchen Sie <code>DOCUMENT_EXPORTED</code>, um zu sehen, wer Daten herausgenommen hat.</li>
+<li>Öffnen Sie den Tab <strong>Fehlerprotokoll</strong>, filtern Sie auf <strong>Nur offene</strong> und prüfen Sie, dass nichts Wichtiges ungelöst ist.</li>
+<li>Öffnen Sie den <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriff</a> und bestätigen Sie, dass die Kettenzeile „unverändert“ meldet; lesen Sie die Einträge des Zeitraums.</li>
+<li>Exportieren Sie die CSV-Datei des Prüfprotokolls für den Zeitraum und bewahren Sie die Datei bei Ihren Prüfnotizen auf. Der Export wird selbst protokolliert.</li>
+</ol></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

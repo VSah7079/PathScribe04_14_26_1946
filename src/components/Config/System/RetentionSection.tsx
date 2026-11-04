@@ -1,8 +1,9 @@
 /**
  * RetentionSection.tsx
  * Data retention policy — editable by administrators.
- * Persists to localStorage via 'pathscribe_retention_policy' key.
- * When SystemConfigContext adds retention fields, replace localStorage with context.
+ * Batch 428: loaded and saved through services/retention/retentionPolicyService.ts,
+ * which checks config:retention-policy:manage (this screen used to write browser
+ * storage directly).
  *
  * i18n sweep (batch 51): every on-screen string converted to the new
  * `retentionSection` namespace. No real/persisted data in this file —
@@ -13,29 +14,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface RetentionPolicy {
-  aiSuggestionDays:     number;
-  auditLogDays:         number;
-  caseSnapshotYears:    number;
-  reportArchiveYears:   number;
-}
-
-const DEFAULTS: RetentionPolicy = {
-  aiSuggestionDays:   90,
-  auditLogDays:       365,
-  caseSnapshotYears:  7,
-  reportArchiveYears: 10,
-};
-
-const STORAGE_KEY = 'pathscribe_retention_policy';
-
-function load(): RetentionPolicy {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : { ...DEFAULTS };
-  } catch { return { ...DEFAULTS }; }
-}
+import { loadRetentionPolicy as load, saveRetentionPolicy, DEFAULT_RETENTION_POLICY as DEFAULTS, type RetentionPolicy } from '@/services';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 // ─── Editable row ─────────────────────────────────────────────────────────────
 const Row: React.FC<{
@@ -71,6 +51,8 @@ const RetentionSection: React.FC = () => {
   const [policy,  setPolicy]  = useState<RetentionPolicy>(load);
   const [saved,   setSaved]   = useState(false);
   const [dirty,   setDirty]   = useState(false);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(dirty);
 
   const saved_policy = load(); // reference point for dirty detection
 
@@ -80,8 +62,8 @@ const RetentionSection: React.FC = () => {
     setSaved(false);
   };
 
-  const handleSave = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(policy));
+  const handleSave = async () => {
+    if (!(await saveRetentionPolicy(policy))) return;
     setSaved(true);
     setDirty(false);
     setTimeout(() => setSaved(false), 3000);

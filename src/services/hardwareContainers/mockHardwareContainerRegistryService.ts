@@ -14,6 +14,7 @@ import { mockAuditService } from '../auditlog/mockAuditService';
 import type {
   IHardwareContainerRegistryService, HardwareContainer, ContainerType,
 } from './IHardwareContainerRegistryService';
+import { withMissingSeedRecords } from '../mockSeedMerge';
 
 const STORAGE_KEY = 'hardware_containers';
 
@@ -27,10 +28,13 @@ const SEED_CONTAINERS: HardwareContainer[] = [
   { id: 'hwc-seed-2', rackId: 'RACK-STAIN-05', containerType: 'Staining Rack', status: 'Available', createdAt: new Date(Date.now() - 30 * 86400_000).toISOString() },
   { id: 'hwc-seed-3', rackId: 'RACK-PROC-01', containerType: 'Tissue Processor Basket', status: 'Available', createdAt: new Date(Date.now() - 30 * 86400_000).toISOString() },
   { id: 'hwc-seed-4', rackId: 'RACK-TRAY-02', containerType: 'Archive Storage Tray', status: 'Available', createdAt: new Date(Date.now() - 30 * 86400_000).toISOString() },
+  // Batch 737 (spec §11.1): a staining rack for large-format slides (megablocks).
+  { id: 'hwc-seed-5', rackId: 'RACK-STAIN-LF-01', containerType: 'Staining Rack', status: 'Available', supportsLargeFormat: true, createdAt: new Date(Date.now() - 30 * 86400_000).toISOString() },
 ];
 
 function loadContainers(): HardwareContainer[] {
-  return storageGet<HardwareContainer[]>(STORAGE_KEY, SEED_CONTAINERS);
+  // Batch 737: seed racks added after a browser stored its list are merged in.
+  return withMissingSeedRecords(storageGet<HardwareContainer[] | null>(STORAGE_KEY, null), SEED_CONTAINERS).records;
 }
 function saveContainers(containers: HardwareContainer[]): void {
   storageSet(STORAGE_KEY, containers);
@@ -56,7 +60,7 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
   async getByRackId(rackId: string): Promise<ServiceResult<HardwareContainer>> {
     const normalized = rackId.trim().toUpperCase();
     const container = loadContainers().find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     return { ok: true, data: container };
   },
 
@@ -76,7 +80,10 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
     return { ok: true, data: container };
   },
 
-  async update(id: ID, changes: { isSmartContainer?: boolean; storageConditionTypeId?: string }): Promise<ServiceResult<HardwareContainer>> {
+  async update(id: ID, changes: { isSmartContainer?: boolean; storageConditionTypeId?: string; supportsLargeFormat?: boolean }): Promise<ServiceResult<HardwareContainer>> {
+    // Batch 737: registering what a rack takes (large-format slides) is an equipment setting.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('config:equipment:manage')).allowed) return { ok: false, error: 'CONFIG_NOT_PERMITTED' };
     const containers = loadContainers();
     const idx = containers.findIndex(c => c.id === id);
     if (idx === -1) return { ok: false, error: `No hardware container found with id "${id}".` };
@@ -90,14 +97,14 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
     const containers = loadContainers();
     const normalized = rackId.trim().toUpperCase();
     const container = containers.find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     // Real, honest conflict check — the spec's own "preventing
     // duplicate batch conflicts on subsequent runs." A rack already
     // checked out to a DIFFERENT batch is a genuine conflict; checking
     // it out again to the SAME batch (e.g. a page refresh re-running
     // the same real flow) is a harmless, idempotent no-op.
     if (container.status === 'InUse' && container.currentBatchId !== batchId) {
-      return { ok: false, error: `Rack "${rackId}" is already checked out to another active batch. Release it there first, or choose a different rack.` };
+      return { ok: false, error: 'rackCheckedOut' };
     }
     const updated: HardwareContainer = { ...container, status: 'InUse', currentBatchId: batchId, updatedAt: new Date().toISOString() };
     saveContainers(containers.map(c => c.id === container.id ? updated : c));
@@ -113,7 +120,7 @@ export const mockHardwareContainerRegistryService: IHardwareContainerRegistrySer
     const containers = loadContainers();
     const normalized = rackId.trim().toUpperCase();
     const container = containers.find(c => c.rackId.toUpperCase() === normalized);
-    if (!container) return { ok: false, error: `No registered hardware container for rack ID "${rackId}".` };
+    if (!container) return { ok: false, error: 'rackNotRegistered' };
     if (container.status === 'Available') return { ok: true, data: container }; // real, honest idempotent no-op
     const updated: HardwareContainer = { ...container, status: 'Available', currentBatchId: undefined, updatedAt: new Date().toISOString() };
     saveContainers(containers.map(c => c.id === container.id ? updated : c));

@@ -32,21 +32,34 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
+import { useGuardedNavigate } from '@/hooks/useGuardedNavigate';
 import { useEffectiveScanStation } from '@/hooks/useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import type { ScanStation } from '@/services/scanStations/IScanStationService';
-import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
-import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
+
 import { resolveBenchRouteForGroup } from '@/services/workstationGroups/resolveStationBenchRoute';
-import { mockActionGroupService } from '@/services/actionGroups/mockActionGroupService';
+import { useSelectableScanStations } from '@/hooks/useSelectableScanStations';
+import { useTouchLayout } from '@/hooks/useTouchLayout';
+import { TOUCH_LAYOUT_MODES } from '@/utils/touch/touchLayout';
+import { scanStationService, actionRegistryService, workstationGroupService, actionGroupService } from '@/services';
+import { useCompanionWindow } from '@/hooks/useCompanionWindow';
+import { SLIDE_IMAGE_WINDOW_NAME } from '@/services/digitalPathology/slideImages';
+
 
 export function NavBarScanStation() {
   const { t } = useTranslation();
-  const { effectiveStationId, isDeviceLocked, isUserDefault, setStationId } = useEffectiveScanStation();
-  const [stations, setStations] = useState<ScanStation[]>([]);
+  const { effectiveStationId, isDeviceLocked, isUserDefault, unavailableStationId, setStationId } = useEffectiveScanStation();
+  // Batch 713: only the Active stations this user may use (services/scanStations/stationsForUser.ts).
+  const { stations, allStations, reload: loadStations } = useSelectableScanStations();
   const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
+  // Touch spec §5 (Batch 735): this workstation's touch layout override lives with its station choice.
+  const touch = useTouchLayout();
+  // PS-128 (Batch 437): through the unsaved-changes guard.
+  const navigate = useGuardedNavigate();
+  // Batch 750 (S10): set where the slide image window opens on this workstation (pages/WindowPositionPage).
+  const slideWindow = useCompanionWindow({ windowName: SLIDE_IMAGE_WINDOW_NAME, preferredWidth: 1400, preferredHeight: 900, closeOnUnmount: false });
+  const [slideWindowBlocked, setSlideWindowBlocked] = useState(false);
+  const setSlideWindowPosition = () => {
+    void slideWindow.openCompanion(`/window-position?window=${SLIDE_IMAGE_WINDOW_NAME}`).then(r => setSlideWindowBlocked(r === 'blocked'));
+  };
   // Real fix, per PS-289's own comment thread — the one piece its own
   // addendum named and never actually delivered: "dedicatedPageRoute"
   // was captured by the admin CRUD screen but nothing ever consumed
@@ -57,14 +70,6 @@ export function NavBarScanStation() {
   // already resolves the station's WorkstationGroup below — no
   // second fetch.
   const [benchRoute, setBenchRoute] = useState<string | undefined>(undefined);
-
-  const loadStations = () => {
-    mockScanStationService.getAll().then(res => {
-      if (res.ok) setStations(res.data.filter(s => s.status === 'Active'));
-    });
-  };
-
-  useEffect(() => { loadStations(); }, []);
 
   // Real, per PS-289's own comment thread — the actual runtime
   // payoff of the whole WorkstationGroup design: the moment the
@@ -84,20 +89,20 @@ export function NavBarScanStation() {
   // zero-step way functionalArea tagging already does.
   useEffect(() => {
     if (!effectiveStationId) {
-      mockActionRegistryService.setCurrentStationProfile(undefined);
-      mockActionRegistryService.setCurrentActionGroupActionIds(undefined);
+      actionRegistryService.setCurrentStationProfile(undefined);
+      actionRegistryService.setCurrentActionGroupActionIds(undefined);
       setBenchRoute(undefined);
       return;
     }
-    mockScanStationService.getById(effectiveStationId).then(stationRes => {
+    scanStationService.getById(effectiveStationId).then(stationRes => {
       if (!stationRes.ok || !stationRes.data.workstationGroupId) {
-        mockActionRegistryService.setCurrentStationProfile(undefined);
-        mockActionRegistryService.setCurrentActionGroupActionIds(undefined);
+        actionRegistryService.setCurrentStationProfile(undefined);
+        actionRegistryService.setCurrentActionGroupActionIds(undefined);
         setBenchRoute(undefined);
         return;
       }
-      mockWorkstationGroupService.getById(stationRes.data.workstationGroupId).then(groupRes => {
-        mockActionRegistryService.setCurrentStationProfile(groupRes.ok ? groupRes.data.functionalArea : undefined);
+      workstationGroupService.getById(stationRes.data.workstationGroupId).then(groupRes => {
+        actionRegistryService.setCurrentStationProfile(groupRes.ok ? groupRes.data.functionalArea : undefined);
         // Real fix, found by this app's own inline-CSS/business-logic
         // sweep: delegates to resolveStationBenchRoute.ts's shared
         // Active-gated route rule — the same real "only a real route
@@ -106,14 +111,14 @@ export function NavBarScanStation() {
         // independently-maintained copy of the same gate. Passes the
         // group already fetched above rather than re-fetching it.
         setBenchRoute(resolveBenchRouteForGroup(groupRes));
-        if (!groupRes.ok) { mockActionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
+        if (!groupRes.ok) { actionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
 
         const actionGroupIds = [groupRes.data.defaultActionGroupId, ...(groupRes.data.allowedActionGroupIds ?? [])].filter((id): id is string => !!id);
-        if (actionGroupIds.length === 0) { mockActionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
+        if (actionGroupIds.length === 0) { actionRegistryService.setCurrentActionGroupActionIds(undefined); return; }
 
-        Promise.all(actionGroupIds.map(id => mockActionGroupService.getById(id))).then(results => {
+        Promise.all(actionGroupIds.map(id => actionGroupService.getById(id))).then(results => {
           const flattened = results.filter(r => r.ok).flatMap(r => r.ok ? r.data.actionIds : []);
-          mockActionRegistryService.setCurrentActionGroupActionIds(flattened);
+          actionRegistryService.setCurrentActionGroupActionIds(flattened);
         });
       });
     });
@@ -131,7 +136,7 @@ export function NavBarScanStation() {
   const handleToggleOpen = () => {
     setOpen(v => {
       const next = !v;
-      if (next) loadStations();
+      if (next) void loadStations();
       return next;
     });
   };
@@ -162,6 +167,11 @@ export function NavBarScanStation() {
       {open && (
         <div className="ps-navbar-station-menu">
           <div className="ps-navbar-station-menu-title">{provenance}</div>
+          {unavailableStationId && (
+            <div className="ps-navbar-station-menu-title" role="status">
+              {t('navBarScanStation.notAvailable', { station: allStations.find(x => x.id === unavailableStationId)?.name ?? unavailableStationId })}
+            </div>
+          )}
           {stations.map(s => (
             <button
               key={s.id}
@@ -171,11 +181,27 @@ export function NavBarScanStation() {
               {s.id === effectiveStationId ? '✓ ' : ''}{s.name}
             </button>
           ))}
-          {isDeviceLocked && (
+          {(isDeviceLocked || !!unavailableStationId) && (
             <button className="ps-navbar-station-menu-item ps-navbar-station-menu-item--clear" onClick={() => { setStationId(null); setOpen(false); }}>
               {t('navBarScanStation.clearFixedStation')}
             </button>
           )}
+          <div className="ps-navbar-station-menu-title">{t('touchLayout.title')}</div>
+          <div className="ps-navbar-touch-choice" role="radiogroup" aria-label={t('touchLayout.title')}>
+            {TOUCH_LAYOUT_MODES.map(m => (
+              <button key={m} type="button" role="radio" aria-checked={touch.mode === m}
+                className={`ps-navbar-touch-choice-btn${touch.mode === m ? ' ps-navbar-touch-choice-btn--active' : ''}`}
+                onClick={() => touch.setMode(m)}>
+                {t(`touchLayout.modes.${m}`)}
+              </button>
+            ))}
+          </div>
+          <div className="ps-navbar-station-menu-title" role="status">{t(touch.active ? 'touchLayout.nowOn' : 'touchLayout.nowOff')}</div>
+          <div className="ps-navbar-station-menu-title">{t('windowPosition.windows.slideImage')}</div>
+          <button type="button" className="ps-navbar-station-menu-item" onClick={setSlideWindowPosition} title={t('windowPosition.setPositionTitle')}>
+            {t('windowPosition.setPosition')}
+          </button>
+          {slideWindowBlocked && <div className="ps-navbar-station-menu-title" role="alert">{t('slideImage.message.blocked')}</div>}
         </div>
       )}
     </div>

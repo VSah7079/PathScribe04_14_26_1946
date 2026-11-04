@@ -1,0 +1,510 @@
+<h1 id="top">Worklist</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Worklist lists the cases you have to work on: cases assigned to you, cases waiting in a pool for someone to claim them, and the queues that need your attention (countersign, release, revision, review, holds, follow-up). Tiles across the top count each kind of work and filter the list when you select them. Selecting a case opens it.</p>
+<p><strong>Intended users.</strong> Pathologists, pathology assistants and laboratory managers. What you see depends on your role: the peer-review queues, for example, appear only to people who may open them.</p>
+<p><strong>Where it fits.</strong> The Worklist is the usual start of the working day. Cases arrive here after accessioning and grossing. From a row you go on to the case report. To find a case that is not in your list (for example a completed case from last month), use <a href="/help/search">Search</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/worklist-overview.png" alt="The Worklist with the LIS Cases and Orchestration Cases tiles, the branch tabs, the filter tiles and the case table"><figcaption>The Worklist with the LIS Cases and Orchestration Cases tiles, the branch tabs, the filter tiles and the case table</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>In this version the cases, pools and counts come from demonstration data. Screens, buttons and rules behave as described here, but the cases you see are not real patients.</p>
+</div>
+<p>The screen has four bands, from the top:</p>
+<ol>
+<li><strong>LIS Cases and Orchestration Cases tiles</strong> (and, for people who may use them, the two peer-review queue tiles). These switch the whole screen between your laboratory's own cases and Orchestration cases.</li>
+<li><strong>Branch tabs</strong>: All Cases, Surg Path, Cytology and Autopsy, each with a count.</li>
+<li><strong>Filter tiles</strong>: one per kind of work, each with a count.</li>
+<li><strong>The case table</strong>, under the page title (the title changes to name the filter you chose, for example "Urgent" or "Awaiting Countersign").</li>
+</ol>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LIS Cases / Orchestration Cases</td>
+<td>Switches between the two sources of cases. LIS Cases come from your laboratory information system. Orchestration cases are the ones PathScribe Orchestration holds itself (the lock window calls them Orchestration cases), a different source with its own access rule. The number is every case in that group, assigned to you plus waiting in a pool. Your choice is remembered for the rest of your session.</td>
+</tr>
+<tr>
+<td>Urgent and Pool badges</td>
+<td>On the tile you are not currently viewing, small badges tell you that the other group has urgent cases or pool cases waiting.</td>
+</tr>
+<tr>
+<td>Cytology QC Peer Review Queue, Surgical Post-Sign-Out QA</td>
+<td>Two peer-review queues that open inside the Worklist, with the number of items waiting. They are shown only if your role may open them.</td>
+</tr>
+<tr>
+<td>All Cases, Surg Path, Cytology, Autopsy</td>
+<td>Branch tabs. They narrow the list and the tile counts to one discipline. All Cases is the default. Your choice is remembered for the rest of your session.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The accession number of the case.</td>
+</tr>
+<tr>
+<td>Patient, DOB (Age), Sex, MRN</td>
+<td>Who the case belongs to. Cases you may not see yet show a lock and a message instead (see Exception handling).</td>
+</tr>
+<tr>
+<td>Physician</td>
+<td>The requesting physician.</td>
+</tr>
+<tr>
+<td>Specimen(s)</td>
+<td>The specimens on the case. Point at a chip to read the full description.</td>
+</tr>
+<tr>
+<td>Flag(s)</td>
+<td>Flags on the case or on its specimens. Point at a chip to see whether it is a case flag or a specimen flag and what it means.</td>
+</tr>
+<tr>
+<td>Staff</td>
+<td>The people on the case. A small RES tag marks a resident or fellow. Selecting a name starts a message to that person.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Where the case is, for example Draft, Accessioned, Gross Complete, In Progress, Finalizing, Pending Countersign, Pending Release, Returned, Pool. A finalized case with a revision reads, for example, "Final (Amended)". A case has one final diagnosis, but each specimen can have its own synoptic report. When a case has several synoptic reports that are not all in the same state, the status shows how many are final, for example "1/2 Final" (two synoptic reports, one final).</td>
+</tr>
+<tr>
+<td>Digital Readiness, DP AI Triage &amp; Biomarkers</td>
+<td>Shown for cases that have digital slides or an AI screening result. Select the badge to open the slide or triage details.</td>
+</tr>
+<tr>
+<td>Sorted by</td>
+<td>A ribbon above the table that appears when you sort. <strong>Clear All</strong> removes the sort.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Slide Detail panel.</strong> It slides out from the right when you select a digital-slide badge. The heading is <strong>Slide Detail</strong>, with the accession, patient and MRN under it.</p>
+<ul>
+<li><strong>Case Readiness Summary</strong> shows the case's digital-readiness status and, when an AI screen exists, "AI Triage:" with its result and any biomarker note. With neither it says "No digital slide data available for this case."</li>
+<li><strong>Slide Assets</strong> lists each scanned slide by its position, with a status (Pending, Scanning, Ready or Error), the acquisition mode and number of focal planes, and a note when a scan failed. "No WSI scan data available for this case." means no scan has been recorded. Slides are not matched to blocks, so the panel does not say which block a slide came from.</li>
+<li><strong>Open Case Workspace</strong> opens the case.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<p>The Worklist has no toolbar. Its controls are the tiles and tabs described here, and the sort headings of the table.</p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A filter tile</td>
+<td>Shows only that kind of work. The tile you chose stays highlighted and its label changes to "Back to LIS Cases" (or "Back to Orchestration Cases"). Select it again to return to all cases.</td>
+</tr>
+<tr>
+<td>A branch tab</td>
+<td>Narrows the list to Surg Path, Cytology or Autopsy cases, or back to All Cases.</td>
+</tr>
+<tr>
+<td>LIS Cases / Orchestration Cases</td>
+<td>Switches the group of cases and resets the filter to Active Cases.</td>
+</tr>
+<tr>
+<td>Table column headings</td>
+<td>Sort the table. Sorting more than one column is possible; the Sorted by ribbon lists them.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-filter-tiles">The filter tiles</h3>
+<p>Each tile shows a count. The counts follow the branch tab and the LIS or Orchestration choice you made, and they count the same cases the list shows when you select the tile.</p>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>The cases it shows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pool Cases</td>
+<td>Cases waiting in a pool for someone to claim. Selecting one opens the claim window.</td>
+</tr>
+<tr>
+<td>Delegated</td>
+<td>Cases delegated to you that you have not yet taken up.</td>
+</tr>
+<tr>
+<td>Awaiting Countersign</td>
+<td>Cases a resident has released that are waiting for your countersignature as attending.</td>
+</tr>
+<tr>
+<td>Collaborating Cases</td>
+<td>Open cases where you are an active member of the case team, in any role (not only the ones assigned to you). Finalized and closed cases are left out. If you are taken off a case's team, it leaves this tile.</td>
+</tr>
+<tr>
+<td>Queued for Release</td>
+<td>Cases you signed out that are held in the release buffer, where you can still recall them before the report is released.</td>
+</tr>
+<tr>
+<td>Needs Revision</td>
+<td>Cases returned to you for revision, or returned by you and still waiting for the revision. Shown only when there are some.</td>
+</tr>
+<tr>
+<td>Urgent</td>
+<td>STAT and Rush cases. The tile also shows "+n in Pool" when urgent cases are waiting unclaimed in a pool.</td>
+</tr>
+<tr>
+<td>In Progress</td>
+<td>Cases being worked on.</td>
+</tr>
+<tr>
+<td>Awaiting Grossing</td>
+<td>Cases accessioned and waiting for grossing.</td>
+</tr>
+<tr>
+<td>Gross Complete</td>
+<td>Cases grossed and ready for the microscopic read.</td>
+</tr>
+<tr>
+<td>Cases on Hold</td>
+<td>Cases with an active hold.</td>
+</tr>
+<tr>
+<td>Digital Pathology</td>
+<td>Cases with digital slides or an AI screening result. Not shown on the Autopsy branch.</td>
+</tr>
+<tr>
+<td>GYN Cytology, Non-GYN Cytology / FNA</td>
+<td>Shown only when the Cytology branch tab is chosen.</td>
+</tr>
+<tr>
+<td>New Cases</td>
+<td>Cases you have never opened. The tile turns red when one of them is urgent.</td>
+</tr>
+<tr>
+<td>Amend &amp; Addenda</td>
+<td>Cases with a pending amendment notice from the laboratory system, or an open amendment, correction or addendum draft. The list groups them under "Amendment &amp; Correction", "Addenda" and "LIS Notices — Pending Review".</td>
+</tr>
+<tr>
+<td>Completed Today</td>
+<td>Cases finalized today, in your facility's time zone.</td>
+</tr>
+<tr>
+<td>Draft</td>
+<td>Cases still in draft.</td>
+</tr>
+<tr>
+<td>Finalizing</td>
+<td>Cases in the finalizing step.</td>
+</tr>
+<tr>
+<td>Informal Review</td>
+<td>Cases a colleague has asked you to look at informally.</td>
+</tr>
+<tr>
+<td>Peer Review</td>
+<td>Cases with a peer review waiting on you. Shown only when there are some.</td>
+</tr>
+<tr>
+<td>Follow-up due</td>
+<td>Your signed-out cases whose follow-up is due soon or overdue. Shown only when there are some.</td>
+</tr>
+<tr>
+<td>Cytology Review</td>
+<td>Positive GYN cytology waiting for a pathologist, if your role may take them. Shown only when there are some.</td>
+</tr>
+</tbody>
+</table>
+<p>Two bars can also appear above the table when they apply: <strong>Amended &amp; Addenda Triage</strong> (inbound laboratory-system amendment notices and open amendment or addendum drafts) and <strong>Pending Grossing Triage</strong> (specimens whose grossing checklist is not fully confirmed, with "n of m checklist items confirmed").</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red dot</td>
+<td>Urgent case (STAT).</td>
+</tr>
+<tr>
+<td>Status dot</td>
+<td>The case status. Point at it to read "Status: ..." in words.</td>
+</tr>
+<tr>
+<td>New / Grossed (pool rows)</td>
+<td>New means the pool case is awaiting gross. Grossed means it is ready for pickup.</td>
+</tr>
+<tr>
+<td>Urgent and All Cases bars</td>
+<td>Divider bars inside the list. Urgent cases that are unclaimed in a pool sit at the very top.</td>
+</tr>
+<tr>
+<td>n Restricted</td>
+<td>On a divider bar: more cases of the same type are waiting unclaimed in a pool and are not counted in that group's own total. Beside a pool name: you are not a member of that pool, so its cases are visible but you cannot claim them.</td>
+</tr>
+<tr>
+<td>Lock with "Restricted ..."</td>
+<td>You cannot open this case yet (pediatric, Orchestration or pool access).</td>
+</tr>
+<tr>
+<td>Access requested</td>
+<td>You have already asked for access and are waiting.</td>
+</tr>
+<tr>
+<td>SLA</td>
+<td>The case is past a client's first-touch or signed-report target.</td>
+</tr>
+<tr>
+<td>Warning triangle</td>
+<td>The case has an open specimen deficiency (see the Deficiencies queue in <a href="/help/quality">Quality &amp; Compliance</a>).</td>
+</tr>
+<tr>
+<td>Coloured dot (Abnormal, Critical, Malignant)</td>
+<td>A finding confirmed at sign-out.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>More worklist wording</strong></p>
+<ul>
+<li><strong>Tile tooltips.</strong> The LIS Cases and Orchestration Cases tiles say what they are: when active, "Currently in LIS Cases" or "Currently in Orchestration Cases"; when not, "Switch to LIS Cases" or "Switch to Orchestration Cases".</li>
+<li><strong>Sorted by.</strong> When you sort by more than one column, a ribbon lists the columns in order, each marked "asc" or "desc" (ascending or descending), with an x to drop that column and <strong>Clear All</strong> to reset.</li>
+<li><strong>Empty list.</strong> "No cases match the current filter." means the tile, tab or LIS/Orchestration choice holds no cases.</li>
+<li><strong>Pool dots.</strong> A pool case carries a small dot with a tooltip: "New — awaiting Gross" (not yet grossed) or "Grossed — ready for pickup" (grossing is done, so it can be claimed and reported).</li>
+<li><strong>Digital slide badges.</strong> The badge under Digital Readiness has the tooltip "View slide details"; the badge under DP AI Triage &amp; Biomarkers has "View AI triage details". Either opens the <strong>Slide Detail</strong> panel (see below).</li>
+<li><strong>Restricted rows.</strong> The patient name is replaced by a lock and "Restricted Patient", "Restricted Case" or "Restricted Pooled Case". Under it a hint says what to do: "Click to request pediatric access", "Click to request Orchestration access", or, for a pool case, "Claim this case to view patient details". After you ask, the hint becomes "Access requested". The window that opens is titled <strong>Pediatric Access Required</strong> ("Patient age … · Case …") or <strong>Orchestration Access Required</strong> ("Case …"). Pediatric access needs both your own qualification and the submitting facility's authorisation; Orchestration cases come from a separate source with their own access rule.</li>
+<li><strong>Small screens.</strong> In a window narrower than 1024 pixels, or on a tablet, the table becomes a list of cards. A card pairs the labels "Accession · Physician" with the received date under them. The tiles, sorting and indicators work the same way. Make the window wider and the table returns. The Search results use the same list, so they change to cards at the same width.</li>
+<li><strong>Amended &amp; Addenda Triage.</strong> A draft amendment or addendum that has no explanation of change or title shows "Draft not yet released" in place of its detail.</li>
+</ul>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>Click a row, or move through the list with the keys below. Keys marked "screen" apply on the Worklist; if a key is also used by an always-available command, the Worklist wins while you are on this screen and the other command is reached with Alt+J, then its key.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Key</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open the Worklist from another screen</td>
+<td>Alt+W</td>
+</tr>
+<tr>
+<td>Next row / previous row</td>
+<td>Alt+Down Arrow / Alt+Up Arrow</td>
+</tr>
+<tr>
+<td>Ten rows down / up</td>
+<td>Alt+Page Down / Alt+Page Up</td>
+</tr>
+<tr>
+<td>First row / last row</td>
+<td>Alt+Home / Alt+End</td>
+</tr>
+<tr>
+<td>Open the selected case</td>
+<td>Alt+Enter</td>
+</tr>
+<tr>
+<td>Refresh the list (the page stays as it is)</td>
+<td>Alt+R</td>
+</tr>
+<tr>
+<td>Filter Urgent</td>
+<td>Alt+F</td>
+</tr>
+<tr>
+<td>Filter Completed Today</td>
+<td>Alt+C</td>
+</tr>
+<tr>
+<td>Filter Pool Cases</td>
+<td>Alt+Shift+P</td>
+</tr>
+<tr>
+<td>Filter Awaiting Countersign</td>
+<td>Alt+A</td>
+</tr>
+<tr>
+<td>Filter Collaborating Cases</td>
+<td>Ctrl+Alt+F</td>
+</tr>
+<tr>
+<td>Filter by Physician</td>
+<td>Alt+Shift+F</td>
+</tr>
+<tr>
+<td>Filter New Cases</td>
+<td>Alt+Shift+U</td>
+</tr>
+<tr>
+<td>Filter Digital Pathology</td>
+<td>Ctrl+Alt+Y</td>
+</tr>
+<tr>
+<td>Filter GYN Cytology / Non-GYN Cytology / Autopsy</td>
+<td>Ctrl+Alt+Z / Alt+Shift+K / Alt+Shift+Q</td>
+</tr>
+<tr>
+<td>Clear the filter</td>
+<td>Alt+Shift+C</td>
+</tr>
+<tr>
+<td>Sort by date / priority / status</td>
+<td>Alt+S / Alt+P / Alt+Shift+S</td>
+</tr>
+<tr>
+<td>Sort by a named column / clear sort</td>
+<td>Ctrl+Alt+S / Ctrl+Alt+C</td>
+</tr>
+<tr>
+<td>In the claim window: Accept / Pass</td>
+<td>Alt+A / Ctrl+Alt+P</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Alt+A has two meanings</p>
+<p>On the Worklist, Alt+A filters Awaiting Countersign. While the pool claim window is open, Alt+A means Accept instead, and goes back to the filter when the window closes. Accept and Pass only act when their buttons are showing and not greyed out.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the Worklist from Home, or press Alt+W. The list opens with the Active Cases title, showing everything in the group and branch you last used.</li>
+<li>Check the tiles. Counts above zero on Urgent, Awaiting Countersign, Queued for Release, Needs Revision and the others tell you what needs attention first.</li>
+<li>Select a tile to filter the list. The page title changes to the tile's name and the tile's label becomes "Back to LIS Cases".</li>
+<li>Select a case row. The case opens in the report screen. (For a pool case, see the next procedure.)</li>
+<li>When you leave the report and come back, the filter you were using is restored and the next case in the list is selected for you.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p><strong>Claim a case from a pool.</strong></p>
+<ol>
+<li>Select the <strong>Pool Cases</strong> tile, or find a row whose status reads Pool (pool rows are grouped under their pool name, urgent pools first).</li>
+<li>Select the row. The claim window opens under the heading "<em>pool name</em> — Case Assignment" and first shows "Checking availability...".</li>
+<li>When the window is ready it says what you can do. Select <strong>Claim &amp; Continue</strong> to assign the case to yourself and open its report, or <strong>Pass</strong> to return it to the pool for another reviewer.</li>
+<li>After <strong>Pass</strong>, you return to the Worklist with the Pool Cases tile still selected.</li>
+<li>To leave without deciding, close the window. The case is released and stays in the pool.</li>
+</ol>
+<p><strong>Work through the keyboard.</strong></p>
+<ol>
+<li>Use Alt+Down Arrow and Alt+Up Arrow to move through the list, and Alt+Enter to open the highlighted case.</li>
+<li>Use the filter keys in the Hotkeys table to switch tiles without the mouse.</li>
+</ol>
+<p><strong>Review a peer-review queue.</strong></p>
+<ol>
+<li>Select the Cytology QC Peer Review Queue or Surgical Post-Sign-Out QA tile (shown only if your role allows).</li>
+<li>The queue opens inside the Worklist. Select the LIS Cases tile to return to your cases.</li>
+<li>The Cytology QC view is described in <a href="/help/cytology">Cytology</a>. The Surgical QA view lists post-sign-out peer review cases (random or targeted), biopsy-to-resection correlation candidates and a second list of deferred clinical mismatches awaiting secondary review. A row's buttons are Open Case, Record Review (Concordant or Discordant; Discordant asks for the direction of change, severity, root cause and a comment) and, for correlation candidates, Not Relevant. Recording a review needs the surgical QA review permission.</li>
+</ol>
+<p><strong>Take a positive cytology case.</strong></p>
+<ol>
+<li>Select the <strong>Cytology Review</strong> tile.</li>
+<li>Select a case with no pathologist yet. The window "Take this case for review?" explains that taking it makes you the pathologist and opens it in the Cytology Workspace.</li>
+<li>Select <strong>Take and open</strong>. A case that is already yours opens directly.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>The case shows a lock.</strong> A pediatric case, an Orchestration case or a pool case from a pool you do not belong to cannot be opened. Select the row to see what is needed. For pediatric and Orchestration cases, select <strong>Request Pediatric Access</strong> or <strong>Request Orchestration Access</strong>; an automated request goes to your system administrator and the row then reads "Access requested". For a pool case, the claim window shows <strong>Request Pool Access</strong>.</li>
+<li><strong>The claim window says "Case Unavailable".</strong> Another pathologist is reviewing the case, or accepted it first. Close the window and choose a different case.</li>
+<li><strong>The claim window says "Pool Access Required".</strong> You are not a member of that pool. Select <strong>Request Pool Access</strong>; an administrator is notified and can add you.</li>
+<li><strong>Claim &amp; Continue or Pass is greyed out.</strong> Your role must allow the action. Ask your manager.</li>
+<li><strong>A tile you expect is missing.</strong> Needs Revision, Peer Review, Follow-up due and Cytology Review disappear when their count is zero. The GYN and Non-GYN tiles appear only on the Cytology branch tab, and Digital Pathology is hidden on the Autopsy branch.</li>
+<li><strong>A case is not in your list at all.</strong> The list shows cases assigned to you, cases in pools, and cases that reach you through delegation, review, follow-up or countersign. Use <a href="/help/search">Search</a> for anything else.</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Automatic pool routing</p>
+<p>A case that nobody has accepted after grossing is routed to its pool once the Assignment Timeout set by your administrator has passed. This is checked while the Worklist is open, about every 30 seconds. It never takes a case away from a pathologist who already holds it.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Known limits</p>
+<p>The claim window always offers <strong>Claim &amp; Continue</strong> and <strong>Pass</strong>. The older <strong>Claim Case</strong> and <strong>View Report</strong> choices are not shown anywhere. The Slide Detail panel has no <strong>Request Rescan</strong> button on this screen even though the wording exists. In the claim window the explanation reads "You can claim this case and continue reporting, or pass it back to the pool for someone else to review", followed by <strong>What Happens Next</strong>; once you have asked for pool access it says "Access request sent" and that an administrator has been told.</p>
+</div>
+<p><strong>Taking a Cytology Review case fails.</strong> "The case couldn't be taken. Try again." means the take did not complete for a reason not otherwise named (other messages name them: another pathologist already took it, the case no longer needs review, no permission). Try again, or choose another case.</p>
+<p>When the claim window is opened from a report and the case carries no pool name, its heading reads "MFT Pool — Case Assignment".</p>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a claim was refused with a message under the buttons, read it. It says what your role is not allowed to do. Close the window; nothing was changed.</li>
+<li>If you selected the wrong tile, select it again to return to Active Cases, or use Alt+Shift+C.</li>
+<li>If counts look out of date, press Alt+R to refresh the list.</li>
+<li>If you passed a case by mistake, find it in the Pool Cases tile and claim it again if it is still there.</li>
+<li>A wrong sort is removed with <strong>Clear All</strong> in the Sorted by ribbon.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Expecting a "my cases" filter. There is none; Active Cases already lists the cases assigned to you plus the pools.</li>
+<li>Forgetting that the tiles follow the LIS Cases or Orchestration Cases choice and the branch tab. A tile showing 0 may simply be on the other side.</li>
+<li>Opening a pool case just to look. Opening it starts the claim window; close the window to leave the case in the pool.</li>
+<li>Pressing Alt+A in the claim window when you meant the countersign filter. Close the window first.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Learn the keys for the tiles you use every day: Alt+F (Urgent), Alt+A (Awaiting Countersign) and Alt+Shift+P (Pool).</li>
+<li>Alt+Down Arrow and Alt+Enter let you move through a list of cases without the mouse.</li>
+<li>After you finish a case, PathScribe returns you to the Worklist with the next case in the list already selected.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Start with Urgent and Queued for Release, then Awaiting Countersign and Needs Revision, then the pool.</li>
+<li>Check Cases on Hold regularly so that held cases are not forgotten.</li>
+<li>Laboratory managers can use the branch tabs and the Urgent tile's pool count to see whether urgent work is sitting unclaimed.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: bench work that brings cases to the Worklist.</li>
+<li><a href="/help/grossing">Grossing</a>: cases reach Gross Complete here.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: open a case from the list to write and sign it out.</li>
+<li><a href="/help/search">Search</a>: find any case that is not in your list.</li>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: deficiencies, audit trail and corrective action.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A tile is missing</td>
+<td>Its count is zero (Needs Revision, Peer Review, Follow-up due, Cytology Review), or it belongs to another branch tab.</td>
+</tr>
+<tr>
+<td>The Urgent count is higher than the cases I can see</td>
+<td>Urgent cases waiting in a pool are counted in the "+n in Pool" line and on the divider bars.</td>
+</tr>
+<tr>
+<td>A case shows a lock</td>
+<td>Pediatric, Orchestration or pool access is needed. Select the row and request access.</td>
+</tr>
+<tr>
+<td>Claim &amp; Continue is greyed out</td>
+<td>Your role does not allow claiming pool cases.</td>
+</tr>
+<tr>
+<td>"Another pathologist accepted this case first"</td>
+<td>Someone else claimed it while you were looking. Choose another case.</td>
+</tr>
+<tr>
+<td>The peer-review queue tiles are not there</td>
+<td>Your role does not include them.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Press Alt+R to refresh the list.</li>
+<li>Select Active Cases (select the highlighted tile again) and the All Cases tab to remove filters.</li>
+<li>Check that the LIS Cases or Orchestration Cases tile is the one you expect.</li>
+<li>Ask your laboratory manager to confirm your role and pool membership.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when cases you know are assigned to you do not appear after checking the tabs and tiles, or when the claim window stays on "Checking availability..." Have the case number and the time of the problem ready.</p>

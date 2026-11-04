@@ -1,0 +1,31 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 667 \u2014 User Guide label coverage check and gap closure",
+    "description": "Vitest, 2026-10-24. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "User Guide: every short on-screen label is explained or ignored with a reason",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T16:55:00Z",
+      "finish": "2026-10-24T16:56:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/help/userGuide.coverage.guard.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "User Guide: published manifest, routes and exemptions still agree",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T16:55:00Z",
+      "finish": "2026-10-24T16:56:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/help/userGuide.guard.test.ts"
+    }
+  ]
+}

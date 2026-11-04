@@ -16,6 +16,8 @@
 
 import type { VoiceProfileId } from '../../constants/voiceProfiles';
 import type { StaffUser } from '../users/IUserService';
+import { dataMayPersistInBrowser } from '../browserData/browserDataPolicy';
+import type { MfaStamp } from './mfa/mfaPolicy';
 
 export type AppRole = 'pathologist' | 'admin' | 'pathologist-admin' | 'superadmin';
 
@@ -52,26 +54,55 @@ export interface SessionProfile {
    *  check the same person signed in again. */
   ssoIssuer?: string;
   ssoSubject?: string;
+  /** Batch 611 (#157). When this session last satisfied a second factor (no secret, no code). */
+  mfa?: MfaStamp;
 }
 
 export const SESSION_PROFILE_STORAGE_KEY = 'pathscribe-user';
 
-/** The stored profile, or null when there is none or it can't be read. */
-export function readSessionProfile(): SessionProfile | null {
-  try {
-    const raw = localStorage.getItem(SESSION_PROFILE_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed.id === 'string' && parsed.id ? parsed as SessionProfile : null;
-  } catch {
-    return null;
-  }
+/**
+ * Batch 525 (PS-485): what is stored of the profile on a server deployment.
+ * Who is signed in and how, nothing from the staff record (signature image,
+ * credentials, names, access flags, tenant): those are kept in memory and,
+ * after a reload, filled in again from the staff record (the session restore
+ * in authSession.ts, via profileNeedsStaffFields). In the demo the whole
+ * profile is stored, as before. The profile holds no patient data either way.
+ */
+export const MINIMAL_PROFILE_FIELDS = ['id', 'name', 'email', 'role', 'initials', 'voiceProfile', 'authMethod', 'ssoProviderId', 'ssoIssuer', 'ssoSubject', 'mfa'] as const;
+
+export function minimalSessionProfile(profile: SessionProfile): SessionProfile {
+  const out: Record<string, unknown> = {};
+  for (const k of MINIMAL_PROFILE_FIELDS) if (profile[k] !== undefined) out[k] = profile[k];
+  return out as unknown as SessionProfile;
 }
 
-/** Stores the profile, or removes it when given null. */
-export function writeSessionProfile(profile: SessionProfile | null): void {
+/** The full profile for this tab (memory). */
+let inMemory: SessionProfile | null = null;
+
+/** The profile: this tab's copy, else the stored one; null when there is none or it can't be read. */
+export function readSessionProfile(): SessionProfile | null {
+  let stored: SessionProfile | null = null;
   try {
-    if (profile) localStorage.setItem(SESSION_PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    const raw = localStorage.getItem(SESSION_PROFILE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    stored = parsed && typeof parsed.id === 'string' && parsed.id ? parsed as SessionProfile : null;
+  } catch {
+    stored = null;
+  }
+  if (dataMayPersistInBrowser()) return stored;
+  // Server deployment: this tab's full copy while it is the same person
+  // (signed out, or someone else signed in from another tab: the stored form wins).
+  if (inMemory && stored && inMemory.id === stored.id) return inMemory;
+  inMemory = null;
+  return stored;
+}
+
+/** Stores the profile (only its minimal form on a server deployment), or removes it when given null. */
+export function writeSessionProfile(profile: SessionProfile | null): void {
+  const keepWhole = dataMayPersistInBrowser();
+  inMemory = profile && !keepWhole ? { ...profile } : null;
+  try {
+    if (profile) localStorage.setItem(SESSION_PROFILE_STORAGE_KEY, JSON.stringify(keepWhole ? profile : minimalSessionProfile(profile)));
     else localStorage.removeItem(SESSION_PROFILE_STORAGE_KEY);
   } catch { /* storage unavailable: the session lives in memory only */ }
 }

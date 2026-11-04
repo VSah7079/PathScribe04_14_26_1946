@@ -1,0 +1,1399 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tier 4: The PathScribe Embedded AI Framework · PathScribe Administrator Guide (ForMedrixAI internal edition)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html" aria-current=page>5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch5-setup-order">How Tier 4 is set up</a></li><li class="l2"><a href="#ch5-ai-output-governance">AI output governance and the regulatory profile</a></li><li class="l2"><a href="#ch5-ai-infrastructure">AI infrastructure and model architecture</a></li><li class="l3"><a href="#screen-tab-ai">AI Behavior (tab)</a></li><li class="l2"><a href="#ch5-specimen-vision">Specimen tracking and grossing computer-vision assist</a></li><li class="l3"><a href="#screen-smart_capture">Smart Capture</a></li><li class="l2"><a href="#ch5-nlp">NLP and auto-structuring engine</a></li><li class="l3"><a href="#screen-history_extraction">AI history extraction</a></li><li class="l2"><a href="#ch5-dp-ai">Digital pathology AI image analysis</a></li><li class="l2"><a href="#ch5-smart-qc">Smart quality control and diagnostic anomaly detection rules</a></li><li class="l3"><a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a></li><li class="l2"><a href="#ch5-governance">AI governance, human-in-the-loop thresholds and calibration</a></li><li class="l3"><a href="#screen-ai_instructions">AI Instructions</a></li><li class="l3"><a href="#screen-tab-validation">Validation Studies (tab)</a></li><li class="l3"><a href="#screen-validation-studies">Validation Studies: Studies</a></li><li class="l3"><a href="#screen-validation-dashboard">Validation Studies: Dashboard</a></li><li class="l3"><a href="#screen-validation-reports">Validation Studies: Reports</a></li></ul></aside><article><h1 id="ch5"><a class="anchor" href="#ch5" aria-label="Link to this section">#</a> Tier 4: The PathScribe Embedded AI Framework</h1>
+<p>Tier 4 covers every setting that decides whether, where and how PathScribe uses artificial intelligence (AI), and the checks that keep a pathologist in control of the result. Read this chapter with one fact in mind: the framework is narrower than its outline. PathScribe calls an external language model for report and dictation help, and it ingests results from vendor image-analysis products. It does not contain a computer-vision engine, a tumour detector, a cell counter, a biomarker scorer, a standalone natural language processing (NLP) engine or a model-weight calibration tool. Each of those is labelled <strong>Not built</strong> below, with the nearest thing that does exist.</p>
+<p>Production runs on Microsoft SQL Server behind an <a class="term" href="99-glossary.html#g-asp-net-core" title="The Microsoft web framework PathScribe&#x27;s API server is built on.">ASP.NET Core</a> <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a>. Most of the screens in this chapter work on the demonstration data in the browser today, and the status line on each screen says how far its server contract goes.</p>
+<h2 id="ch5-setup-order"><a class="anchor" href="#ch5-setup-order" aria-label="Link to this section">#</a> How Tier 4 is set up</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>Complete Tiers 1 to 3 first. Tier 4 reads facilities, physicians, <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> types and code systems from them. Then work through the screens in this order. Each screen's part 4 repeats its own prerequisites.</p>
+<ol>
+<li><a href="#screen-tab-ai">AI Behavior (tab)</a>: choose the AI service and model, set the vendor policy, the confidence threshold and the Orchestrator default.</li>
+<li><a href="#screen-tab-validation">Validation Studies (tab)</a>: the entry point for the evidence that a model works for your data.</li>
+<li><a href="#screen-validation-studies">Validation Studies: Studies</a>: create, approve and activate a study.</li>
+<li><a href="#screen-validation-reports">Validation Studies: Reports</a>: close a study and print the report that grades it.</li>
+<li><a href="#screen-ai_instructions">AI Instructions</a>: approve the text that the clinical mismatch check sends to the model.</li>
+<li><a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a>: set when a mismatch alerts, logs or blocks sign-out.</li>
+<li><a href="#screen-history_extraction">AI history extraction</a>: turn on the advisory read of historical cases.</li>
+<li><a href="#screen-smart_capture">Smart Capture</a>: the billing-suggestion prototype switch and its production checklist.</li>
+</ol>
+<p><a href="#screen-validation-dashboard">Validation Studies: Dashboard</a> is a day-to-day page and is not part of setup. A model's <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override needs a published report template and a passing study, so finish <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Chapter 6</a> for the templates before you rely on a facility override.</p>
+<h2 id="ch5-ai-output-governance"><a class="anchor" href="#ch5-ai-output-governance" aria-label="Link to this section">#</a> AI output governance and the regulatory profile</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p><strong>Status:</strong> Built in the browser on the demonstration data. The server must repeat the sign-out rule below before production (contract in <code>docs/product/REGULATORY_PROFILE.md</code>).</p>
+<p>PathScribe treats AI output as a draft that a pathologist must vouch for. These rules apply on every install; none of them is a setting on a screen.</p>
+<ul>
+<li><strong>Regulatory profile.</strong> A build setting, <code>VITE_REGULATORY_PROFILE</code>, chooses <code>documentation</code> (the default) or <code>clinical_support</code> (kept for later, not validated). From Batch 706 (Pete, Oct 28 2026) no clinical screen shows an AI confidence percentage in either profile (a plain "Check source" prompt, "Source found in report text" or a "Strong match" / "Possible match" label appears instead). The <strong>Confidence Threshold</strong> settings below remain numeric because they are settings you type, not displays of an AI result. In the documentation profile a clinical mismatch is a plain low-risk <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> that is logged and never holds sign-out. The thresholds and <strong>Block</strong> rules on <a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a> are kept for <code>clinical_support</code>. The profile is read when the application starts; changing it needs a new build.</li>
+<li><strong>AI-drafted narrative must be accepted.</strong> Sign-out stops while any AI-drafted narrative section has not been accepted, edited, or kept as the earlier text.</li>
+<li><strong>Unconfirmed AI values stay out of the signed report.</strong> Before the sign-out or Finalize window opens, every optional <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> or <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> field that still holds an unchanged, unverified AI value is cleared. The AI suggestion stays, so the pathologist can cancel and Confirm. Required fields with an unverified AI value stop the sign-out as before. Values filled by auto-insert or by the Orchestrator button start as unverified.</li>
+<li><strong>What is written to the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> (counts and names only, never clinical text):</strong> <code>AI_NARRATIVE_ACCEPTED</code>, <code>AI_NARRATIVE_ACCEPTED_EDITED</code>, <code>AI_NARRATIVE_REJECTED</code>, <code>AI_CODE_BOUND</code>, <code>AI_VALUES_AUTOFILLED</code>, <code>AI_VALUES_OMITTED_AT_SIGNOUT</code>. Each <code>AI_CODE_BOUND</code> entry also records the code's wording from the terminology dictionary, the model and provider, the model's own confidence, whether the code was found in the dictionary (or the billing code table), which part of the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> it was taken from (and the <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>), and whether the pathologist changed it before binding it.</li>
+<li><strong>Known limits.</strong> The omission and the audit entries are written by the browser; the production <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> must apply and write them itself. Autopsy and cytology reports carry no AI suggestions today. The wording in this section is a description of behaviour, not a statement that PathScribe meets any regulation.</li>
+</ul>
+<p><strong>Status of the six outline areas</strong></p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Status</th>
+<th>Where it is configured</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI infrastructure and model architecture</td>
+<td>Built for the screens and settings; Partial for the server side (see each screen)</td>
+<td>Configuration, <strong>AI Behavior</strong> tab; Facility Dictionary, <strong>AI &amp; Performance</strong> tab (<a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Chapter 2</a>)</td>
+</tr>
+<tr>
+<td>Specimen tracking and grossing computer-vision assist</td>
+<td>Not built. A vendor dictionary and a rule-based billing prototype exist</td>
+<td>Vendor Integrations, category gross imaging (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Chapter 4</a>); <a href="#screen-smart_capture">Smart Capture</a></td>
+</tr>
+<tr>
+<td>NLP and auto-structuring engine</td>
+<td>Partial. Individual features exist; no standalone engine</td>
+<td><a href="#screen-history_extraction">AI history extraction</a>; Voice and Macros tabs (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Chapter 4</a>); report page tools</td>
+</tr>
+<tr>
+<td>Digital pathology AI image analysis</td>
+<td>Partial. Vendor result ingestion exists. Tumour detection, cell counting and biomarker scoring are Not built</td>
+<td>Vendor Integrations, categories digital pathology AI and slide viewers (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Chapter 4</a>); <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> AI <a class="term" href="99-glossary.html#g-discordance" title="A difference between two reads of the same material, such as a preliminary and a final diagnosis, or a first and a second pathologist.">discordance</a> tab (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Chapter 4</a>)</td>
+</tr>
+<tr>
+<td>Smart quality control and anomaly detection rules</td>
+<td>Built for the screens; Demonstration for the server side of AI Instructions</td>
+<td><a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a>; <a href="#screen-ai_instructions">AI Instructions</a>; Abnormal Trigger Rules (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Chapter 3</a>)</td>
+</tr>
+<tr>
+<td>AI governance, human-in-the-loop thresholds, calibration</td>
+<td>Built for governance and thresholds. Weight calibration: none exists</td>
+<td><a href="#screen-ai_instructions">AI Instructions</a>; <a href="#screen-tab-validation">Validation Studies</a>; Model Versions panel on the AI Behavior tab</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch5-ai-infrastructure"><a class="anchor" href="#ch5-ai-infrastructure" aria-label="Link to this section">#</a> AI infrastructure and model architecture</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p><strong>Status:</strong> Built for the settings screens. Partial for the server: the production calls are written down, and a few are not yet connected (listed under each screen).</p>
+<p>This section explains how an AI call is made and who decides what it uses. The screen that sets all of it, <a href="#screen-tab-ai">AI Behavior (tab)</a>, follows.</p>
+<p><strong>The AI proxy.</strong> The browser never holds an AI key. It calls PathScribe's own <code>/api/ai/...</code> routes and the server adds the key from a secret store such as Azure Key Vault. Routes exist for Anthropic, Google Gemini (generate, stream and model list), OpenAI, Azure OpenAI (<code>/api/ai/azure/chat/completions</code>), a custom endpoint, AWS Bedrock (invoke and invoke-stream), and the <a class="term" href="99-glossary.html#g-umls" title="The Unified Medical Language System, a US National Library of Medicine collection of medical vocabularies.">UMLS</a> and National Library of Medicine terminology lookups. The server must write an audit entry for each call (without the prompt text) and rate-limit callers. The proxy that the development build uses does not exist in production. Rotating an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> key is done by ForMedrixAI support in the server's secret store. No screen sets or shows a key.</p>
+<p><strong>Providers.</strong> The screen shows vendor names. Internally each is stored under an id named for the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> it speaks.</p>
+<table>
+<thead>
+<tr>
+<th>Shown as</th>
+<th>Stored id</th>
+<th>Models offered (first is the default when you pick the provider)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anthropic (Claude)</td>
+<td><code>structured_messages</code></td>
+<td><code>claude-sonnet-4-6</code> (recommended), <code>claude-opus-4-8</code> (highest accuracy), <code>claude-haiku-4-5</code> (fastest)</td>
+</tr>
+<tr>
+<td>OpenAI (GPT-4)</td>
+<td><code>chat_completions</code></td>
+<td><code>gpt-4o</code> (recommended), <code>gpt-4-turbo</code>, <code>gpt-4</code></td>
+</tr>
+<tr>
+<td>Azure OpenAI</td>
+<td><code>chat_completions_managed</code></td>
+<td><code>gpt-4o</code> (Azure), <code>gpt-4-turbo</code> (Azure)</td>
+</tr>
+<tr>
+<td>AWS Bedrock</td>
+<td><code>model_gateway</code></td>
+<td><code>anthropic.claude-sonnet-4-6-v1:0</code>, <code>anthropic.claude-opus-4-8-v1:0</code>, <code>amazon.nova-pro-v1:0</code></td>
+</tr>
+<tr>
+<td>Google (Gemini)</td>
+<td><code>structured_content</code></td>
+<td><code>gemini-1.5-flash</code> (recommended), <code>gemini-1.5-pro</code></td>
+</tr>
+<tr>
+<td>Self-hosted / Custom endpoint</td>
+<td><code>custom</code></td>
+<td><code>custom</code></td>
+</tr>
+<tr>
+<td>Mock, Demo Mode</td>
+<td><code>mock</code></td>
+<td><code>mock-v1</code></td>
+</tr>
+</tbody>
+</table>
+<p>If the stored provider id is not one of these, PathScribe uses <code>structured_messages</code>. A provider setting of <code>mock</code> or an unknown value still sends the call to the Anthropic route through the proxy (a disclosed behaviour of the proxy, not a demo shortcut). Bedrock needs a server route that signs requests and returns a normalised stream; that route is part of the proxy contract.</p>
+<p><strong>Which setting wins.</strong> PathScribe resolves the AI configuration in this order: a personal override (a developer view only; no screen sets it for an administrator), then the organisation's lab setting, then the build defaults <code>VITE_AI_PROVIDER</code>, <code>VITE_AI_MODEL</code>, <code>VITE_AI_PROXY_URL</code>, <code>VITE_AI_GATEWAY_REGION</code> (default <code>us-east-1</code>), <code>VITE_AI_HOSTING_REGION</code> and <code>VITE_AI_MAX_TOKENS</code> (default 1000). The organisation setting is stored under the key <code>pathscribe_ai_org_config</code>.</p>
+<p><strong>Which model each task uses.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Task</th>
+<th>Model used</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report and narrative help (Generate Narrative, Suggest Synoptic Fields, <a class="term" href="99-glossary.html#g-macro" title="A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.">macro</a> suggestions, critical-findings scan, template assignment)</td>
+<td>The organisation's default model, or the performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own model if one is set in the Facility Dictionary, <strong>AI &amp; Performance</strong> tab</td>
+<td>A facility may choose only a model that has a reported study graded PASS for that facility (<a href="#screen-validation-reports">Validation Studies: Reports</a>). The facility's token limit and request format come with the model.</td>
+</tr>
+<tr>
+<td>Dictation refinement</td>
+<td>The organisation-wide default model of type Voice Dictation</td>
+<td>No facility layer. A voice model becomes the default only with a PASS-graded study. Set on the Voice tab (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Chapter 4</a>).</td>
+</tr>
+<tr>
+<td>AI <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> and <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> template assignment</td>
+<td>As report help</td>
+<td>The confidence threshold for these two is fixed at 60 in code; there is no setting. Grossing assignment falls back to the standard tissue template.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Vendor policy.</strong> One rule per <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a>, and optionally one narrower rule per facility, says which AI services and hosting regions may be used for work in that place. A call must pass the jurisdiction rule and the facility rule. With no rule, every service is allowed. Inside a rule, allowed services can be all or a list, and each allowed service can carry a list of allowed regions; no list means any region. A call whose region is not recorded is refused where regions are limited. A refusal never falls over to another service: the feature carries on without AI and shows "AI is not available for this jurisdiction". The mock provider is always allowed. The server must answer a refused call with 403 and the code <code>AI_VENDOR_NOT_ALLOWED</code>, and audit it as <code>AI_CALL_REFUSED</code>.</p>
+<p><strong>AI <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>.</strong> Each AI call writes a record of: <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, section, provider, model, status (completed, error, cancelled or refused), token count, time taken, <a class="term" href="99-glossary.html#g-hosting-region" title="The geographic region where a cloud AI service processes data. The AI vendor policy can allow or refuse regions.">hosting region</a>, jurisdiction, facility and feature. The log holds the latest 2000 entries and is kept in the browser until the server records it. No screen shows it.</p>
+<p><strong>Orchestrator mode.</strong> Orchestrator mode writes a report narrative in four fixed steps instead of one request. The engine in <code>src/orchestrator/</code> is the live code. <a href="#screen-tab-ai">AI Behavior (tab)</a> sets the organisation default, and a facility can override it. Step wording and order are not editable.</p>
+<h3 id="screen-tab-ai"><a class="anchor" href="#screen-tab-ai" aria-label="Link to this section">#</a> AI Behavior (tab)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>AI Behavior</strong>
+<strong>2. Maintenance item:</strong> AI Behavior (the whole tab)</p>
+<p><strong>3. Business purpose and scope.</strong> This tab holds the organisation's AI settings: which AI engine is in use, whether AI runs for gross and microscopic work, how confident a suggestion must be before it is shown or inserted, which service and model sit behind the calls, where the vendor policy allows calls to go, whether Orchestrator mode is on, and which model versions are available. Everything is organisation-wide. A <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> can override only the model and the narrative auto-draft switch, on its own record in the <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The vendor policy scopes are the jurisdictions and facilities you already defined, so set those up first. Skip the facilities and the policy section can offer only the lab's own <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a>, so no facility rule can be written.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 1</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-tab-validation">Validation Studies (tab)</a>, <a href="#screen-ai_instructions">AI Instructions</a>, <a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a>, <a href="#screen-history_extraction">AI history extraction</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/tab-ai.webp" alt="AI Behavior tab: AI Engine badge, behaviour switches, provider settings, vendor policy, Orchestrator Config and Model Versions" loading="lazy"><figcaption>AI Behavior tab: AI Engine badge, behaviour switches, provider settings, vendor policy, Orchestrator Config and Model Versions</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> The sections appear top to bottom in this order. Changes in the first group save as you make them.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-engine-badge"><td><strong>AI Engine</strong> badge</td>
+<td>Read-only badge</td>
+<td>Not applicable</td>
+<td>Shows the model id now in use, or "Mock - Demo Mode" with a <strong>DEMO</strong> pill when the mock provider is selected.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-gross-driven-ai-enabled"><td><strong>Gross-Driven AI</strong>, <strong>Enabled</strong></td>
+<td>Yes/No checkbox (<code>grossEnabled</code>)</td>
+<td>Optional</td>
+<td>When off, <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> completion and the assist polling skip the AI evaluation of the gross description.</td>
+<td>On</td>
+</tr>
+<tr id="f-tab-ai-microscopic-driven-ai-enabled"><td><strong>Microscopic-Driven AI</strong>, <strong>Enabled</strong></td>
+<td>Yes/No checkbox (<code>microscopicEnabled</code>)</td>
+<td>Optional</td>
+<td>When off, the amendment workflow, the <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> side panel and the assist polling skip AI work on the microscopic text.</td>
+<td>On</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Confidence Threshold</strong></td>
+<td>Slider, whole number 0 to 100 (<code>confidenceThreshold</code>)</td>
+<td>Optional</td>
+<td>The share of confidence a suggestion needs. The synoptic side panel and the synoptic report review badge use it to mark suggestions (in the default profile the badge reads "Check source" and shows no percentage). A model can carry its own value in its <strong>Settings</strong> window (below). Saves when you change it.</td>
+<td>75</td>
+</tr>
+<tr id="f-tab-ai-advanced-auto-insert-suggestions-at-or-above-confidence-threshold"><td><strong>Advanced</strong>: Auto-insert suggestions at or above confidence threshold</td>
+<td>Yes/No checkbox (<code>autoInsertSuggestions</code>)</td>
+<td>Optional</td>
+<td>When on, the synoptic side panel fills a suggestion into an empty field without waiting for the pathologist to accept it, if its confidence meets the threshold. The value stays unverified (tinted), the fill is written to the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> as <code>AI_VALUES_AUTOFILLED</code>, and an optional field still unconfirmed at sign-out is left out of the signed report.</td>
+<td>Off</td>
+</tr>
+<tr id="f-tab-ai-reset-to-defaults"><td><strong>Reset to Defaults</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Puts all the behaviour settings above back to their defaults. Does not change the provider, the vendor policy or the Orchestrator switch.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>AI Provider Settings</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>Shown with the heading <strong>AI Provider - Organisation Settings</strong> only to a person whose <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> is admin, pathologist-admin or superadmin. Anyone else sees a note that the provider is managed by the administrator. A warning box reminds you that <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> text leaves the system for the chosen service. Fields that do not apply to the chosen provider are hidden.</p>
+<figure class="shot"><img src="img/tab-ai-provider.webp" alt="AI Provider Settings with provider, model and hosting region" loading="lazy"><figcaption>AI Provider Settings with provider, model and <a class="term" href="99-glossary.html#g-hosting-region" title="The geographic region where a cloud AI service processes data. The AI vendor policy can allow or refuse regions.">hosting region</a></figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-provider"><td><strong>AI Provider</strong></td>
+<td>Choice, grouped <strong>Production Providers</strong> and <strong>Development &amp; Demo</strong></td>
+<td>Required</td>
+<td>Selects the service. Picking a provider sets <strong>Model</strong> to that provider's first model. A short hint under the field describes the provider.</td>
+<td>Anthropic (Claude) when nothing is stored</td>
+</tr>
+<tr id="f-tab-ai-model"><td><strong>Model</strong></td>
+<td>Choice from the provider's list (table above)</td>
+<td>Required</td>
+<td>The model id sent on each call.</td>
+<td>First model of the provider</td>
+</tr>
+<tr id="f-tab-ai-azure-resource-endpoint"><td><strong>Azure Resource Endpoint</strong></td>
+<td>https link; <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> <code>https://my-org.openai.azure.com</code></td>
+<td>Required for Azure OpenAI</td>
+<td>Your Azure resource address. Shown only for Azure OpenAI.</td>
+<td>None</td>
+</tr>
+<tr id="f-tab-ai-deployment-name"><td><strong>Deployment Name</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>The Azure deployment to call. Kept only when an endpoint is also set. Shown only for Azure OpenAI.</td>
+<td>None</td>
+</tr>
+<tr id="f-tab-ai-aws-region"><td><strong>AWS Region</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>The Bedrock region. Shown only for AWS Bedrock.</td>
+<td><code>us-east-1</code></td>
+</tr>
+<tr id="f-tab-ai-hosting-region"><td><strong>Hosting region</strong></td>
+<td>Text; placeholder <code>eu-west-1</code></td>
+<td>Optional</td>
+<td>The region where the vendor processes the call, as the vendor names it. Recorded on each call so the vendor policy can check it. Shown for every provider except AWS Bedrock and Mock.</td>
+<td>Blank (region not recorded)</td>
+</tr>
+<tr id="f-tab-ai-endpoint-base-url"><td><strong>Endpoint Base URL</strong></td>
+<td>https link</td>
+<td>Required for Custom</td>
+<td>The base address of an OpenAI-compatible service. PathScribe posts to <code>/chat/completions</code> under it. Shown only for Self-hosted / Custom endpoint.</td>
+<td>None</td>
+</tr>
+<tr id="f-tab-ai-policy-warning"><td>Policy warning</td>
+<td>Read-only message</td>
+<td>Not applicable</td>
+<td>Appears before you save a service or region that a <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> or <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> rule in the policy below disallows.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-save-org-config"><td><strong>Save Org Config</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Stores the organisation setting. Needs <code>config:ai-provider:manage</code>. If you leave the tab with unsaved changes you are warned.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-test-connection"><td><strong>Test Connection</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Sends one test request (feature <code>connection-test</code>, 20 tokens, asking for the exact reply "PathScribe AI connection OK"). The result reads Testing, Connection OK or Failed with the error.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-clear-override"><td><strong>Clear Override</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Appears only in the developer view, where a personal override can be set. Not shown to an administrator.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Where PathScribe keeps data</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>A read-only card.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-database"><td><strong>Database</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The region of the database, taken from the server's <code>/api/config</code>. Shows <strong>Not reported</strong> when the server does not give it (the demonstration has no server).</td>
+<td>Not reported</td>
+</tr>
+<tr id="f-tab-ai-file-storage-reports-exports"><td><strong>File storage (reports, exports)</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The region of file storage, from the same source.</td>
+<td>Not reported</td>
+</tr>
+<tr id="f-tab-ai-ai-service"><td><strong>AI service</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The <a class="term" href="99-glossary.html#g-hosting-region" title="The geographic region where a cloud AI service processes data. The AI vendor policy can allow or refuse regions.">hosting region</a> set in AI Provider Settings.</td>
+<td>Not recorded</td>
+</tr>
+</tbody>
+</table>
+<h4>AI vendor policy</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>A table of rules, one row for the lab's own <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> and one for each <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> you serve, plus an <strong>Add a facility rule</strong> control. A facility rule narrows its jurisdiction's rule. The audit event for a change is <code>AI_VENDOR_POLICY_CHANGED</code> (before and after).</p>
+<figure class="shot"><img src="img/tab-ai-vendor-policy.webp" alt="AI vendor policy rule table and rule editor" loading="lazy"><figcaption><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="A per-jurisdiction rule that says which AI services and hosting regions may be used. A call the rule refuses is not sent, and the feature carries on without AI.">AI vendor policy</a> rule table and rule editor</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-jurisdiction-or-facility"><td><strong>Jurisdiction or facility</strong></td>
+<td>Read-only text (facility shown as facility and jurisdiction)</td>
+<td>Not applicable</td>
+<td>The scope of the rule.</td>
+<td>The lab's jurisdiction, plus each served facility</td>
+</tr>
+<tr id="f-tab-ai-allowed"><td><strong>Allowed</strong></td>
+<td>Read-only text: <strong>No rule: every service</strong>, <strong>Every service</strong>, or the list of services</td>
+<td>Not applicable</td>
+<td>What the rule permits.</td>
+<td>No rule: every service</td>
+</tr>
+<tr id="f-tab-ai-service-in-use"><td><strong>Service in use</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>Shows the service, model and region now in use and whether this scope allows it: <strong>Allowed</strong>, <strong>Not allowed: service</strong>, <strong>Not allowed: region</strong> or <strong>Not allowed: region not recorded</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-actions-edit-remove-rule"><td><strong>Actions</strong>: <strong>Edit</strong>, <strong>Remove rule</strong></td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td><strong>Edit</strong> opens the rule editor below. <strong>Remove rule</strong> deletes the rule, so the scope goes back to allowing every service.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-add-a-facility-rule-choose-a-facility"><td><strong>Add a facility rule</strong>, <strong>Choose a facility...</strong></td>
+<td>Choice of served facilities</td>
+<td>Optional</td>
+<td>Starts a rule for one facility.</td>
+<td>None</td>
+</tr>
+<tr id="f-tab-ai-allow-every-service"><td><strong>Allow every service</strong></td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>Allows all services. When off, tick the services to allow.</td>
+<td>On for a new rule</td>
+</tr>
+<tr id="f-tab-ai-allowed-services"><td>Allowed services</td>
+<td>One checkbox per AI service</td>
+<td>Required when <strong>Allow every service</strong> is off</td>
+<td>At least one service must be allowed, or the save is refused (<strong>Allow at least one service, or remove the rule</strong>).</td>
+<td>None</td>
+</tr>
+<tr id="f-tab-ai-allowed-regions-for-service"><td><strong>Allowed regions for</strong> (service)</td>
+<td>Text, regions separated by commas, for example <code>eu-west-1, uksouth</code></td>
+<td>Optional</td>
+<td>Leave empty to allow any region. Regions are trimmed, lower-cased and de-duplicated. A blank entry, or regions on a service that is not allowed, are refused.</td>
+<td>Empty (any region)</td>
+</tr>
+<tr id="f-tab-ai-save-rule"><td><strong>Save rule</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Saves the rule. The result reads <strong>Saved</strong> or the reason it was refused.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Orchestrator Config</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>A collapsible section. The badge <strong>ON - click to toggle</strong> or <strong>OFF - click to toggle</strong> is the organisation-wide default for Orchestrator mode.</p>
+<figure class="shot"><img src="img/tab-ai-orchestrator.webp" alt="Orchestrator Config with the four generation steps" loading="lazy"><figcaption>Orchestrator Config with the four generation steps</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-on-off-switch"><td>ON/OFF switch</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>The organisation default. A <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> can override it with <strong>Narrative auto-draft</strong> (Inherit org default, Enabled for lab, Disabled for lab) in the Facility Dictionary, <strong>AI &amp; Performance</strong> tab. Saving needs <code>config:ai-provider:manage</code>.</td>
+<td>ON</td>
+</tr>
+<tr id="f-tab-ai-steps-summary"><td>Steps summary</td>
+<td>Read-only text, "N of 4 generation steps active"</td>
+<td>Not applicable</td>
+<td>Counts the active steps.</td>
+<td>4 of 4</td>
+</tr>
+<tr id="f-tab-ai-step-cards"><td>Step cards</td>
+<td>Read-only: step name, <strong>ACTIVE</strong> or <strong>DISABLED</strong>, <strong>AI Instruction</strong>, <strong>Context Fields</strong></td>
+<td>Not applicable</td>
+<td>Four fixed steps run in order: Administrative &amp; Clinical Header, Specimen &amp; Gross Description, Synoptic Data Summary, Ancillary Testing &amp; Final Diagnosis. Earlier steps give context to later ones.</td>
+<td>Fixed in code</td>
+</tr>
+</tbody>
+</table>
+<h4>Model Versions</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<p>A collapsible section marked <strong>Admin only</strong> that holds the models panel.</p>
+<figure class="shot"><img src="img/tab-ai-models.webp" alt="Model Versions table" loading="lazy"><figcaption>Model Versions table</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-model"><td><strong>Model</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The model's name.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-vendor"><td><strong>Vendor</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The model's maker.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-type"><td><strong>Type</strong></td>
+<td>Read-only: Gross Only, Micro Only, Gross + Micro, Diagnosis Only, Voice Dictation</td>
+<td>Not applicable</td>
+<td>What the model is for.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-accuracy"><td><strong>Accuracy</strong></td>
+<td>Read-only percentage</td>
+<td>Not applicable</td>
+<td>The benchmark figure recorded for the model.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-cases-processed"><td><strong>Cases Processed</strong></td>
+<td>Read-only whole number</td>
+<td>Not applicable</td>
+<td>Cases the model has handled for your organisation.</td>
+<td>0 for a newly adopted model</td>
+</tr>
+<tr id="f-tab-ai-status"><td><strong>Status</strong></td>
+<td>Read-only: Active, Beta, Retired</td>
+<td>Not applicable</td>
+<td>A model adopted from the ForMedrixAI store starts as Beta.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-facilities-approved"><td><strong>Facilities Approved</strong></td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Facilities whose pinned model is this one.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-default"><td><strong>Default</strong></td>
+<td>Read-only mark</td>
+<td>Not applicable</td>
+<td>The organisation's default model.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-set-default"><td><strong>Set Default</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Makes the model the default. A voice model cannot become the default without a reported study graded PASS.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-retire"><td><strong>Retire</strong></td>
+<td>Button, then a confirmation</td>
+<td>Not applicable</td>
+<td>Retires the model. The confirmation names the facilities pinned to it. The default model cannot be retired.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-ai-settings"><td><strong>Settings</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the Model Settings window below.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h5>Model Settings window</h5>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; AI Behavior"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>AI Behavior</span></nav>
+
+<figure class="shot"><img src="img/tab-ai-model-settings.webp" alt="Model Settings window" loading="lazy"><figcaption>Model Settings window</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-longest-answer-tokens"><td><strong>Longest answer (tokens)</strong></td>
+<td>Whole number 50 to 8000</td>
+<td>Optional</td>
+<td>The most the model may write in one reply. Blank uses the organisation setting.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Confidence threshold (%)</strong></td>
+<td>Whole number 0 to 100</td>
+<td>Optional</td>
+<td>This model's own threshold. Blank uses the organisation <strong>Confidence Threshold</strong>.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p>Anything else is refused with "Enter whole numbers within the ranges shown, or leave the field blank". These are the only two per-model overrides that exist.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. The tab is view-only for a person who holds none of these four: <code>config:ai-behavior:manage</code> (behaviour settings and <strong>Reset to Defaults</strong>), <code>config:ai-provider:manage</code> (provider settings and the Orchestrator switch), <code>config:ai-model:manage</code> (set default, update, retire and adopt a model) and <code>config:ai-vendor-policy:manage</code> (the vendor policy). The AI Provider panel also needs the <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> admin, pathologist-admin or superadmin, which is a role check, not a <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> check. Admin and Lab Director hold the four capabilities by default through the configuration groups, and Superadmin holds everything except <code>config:ai-prompt:approve</code>, which is withheld for <a class="term" href="99-glossary.html#g-separation-of-duties" title="A rule that two powers must not rest with one person, such as changing the clinical mismatch rules and approving the AI instructions.">separation of duties</a> (the Lab Director approves AI instructions; ForMedrixAI support never does). The vendor policy change is audited as <code>AI_VENDOR_POLICY_CHANGED</code>. A change to the behaviour settings records only the permission check, not what changed.</p>
+<p><strong>Known limits.</strong>
+- Three settings that nothing read ("Show confidence scores", "Suggest macros", "Filter by <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a>") were removed in Batches 682 and 687. Whether confidence scores show is decided by the regulatory profile (see AI output governance above), not a checkbox.
+- The behaviour settings and the vendor policy have server contracts (<code>CONFIG_SERVICES_API.md</code>, <code>AI_VENDOR_POLICY_API.md</code>; models in <code>MODELS_API.md</code>). Until the server is connected they work on the demonstration data in the browser.
+- Step wording, order and field mapping in Orchestrator Config are Planned: the screen says "configurable in a future release".
+- The AI spell-check was retired and has no setting.
+- No setting turns off the AI critical-findings scan on its own. It follows the provider, the vendor policy and the <a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Abnormal Trigger Rules</a>.
+- The confidence floor for an "Abnormal" finding is 50 (Batch 655). It is a constant in the code, not yet a setting, so a laboratory cannot change it here.
+- <strong>The Codes window (Batch 656).</strong> Each suggested medical code is confirmed two ways: by looking up the code itself, and, side by side, by the AI's own wording; either one confirms it. A code whose lookup fails stays out of the list and is counted in a note, as before. <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> checks go through the server route that holds <code>UMLS_API_KEY</code>; restart the development server after editing <code>.env</code>.
+- <strong>"Checked origin" on a suggested code (Batch 699).</strong> Under each suggested code the window says where in the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> the code came from, for example <em>Checked origin: the microscopic description</em> (with the <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> when the case text names one), or <em>Origin not stated</em>. The software checks only that the part of the case the AI named exists and holds text, and that a named specimen appears in that text; no person verifies it, and the screen never says "verified". Hovering the line shows that note. There is no setting. The audit entry for a bound code (<code>AI_CODE_BOUND</code>) records the origin. The wording is machine-translated in the five other languages and awaits native review.
+- <strong>Similar Cases (Demonstration) (Batch 655).</strong> The list in the Patient History window, formerly named "AI Matched Cases", is scored by fixed rules on demonstration data. No AI is called, and each percentage is case similarity, not a model confidence.</p>
+<h2 id="ch5-specimen-vision"><a class="anchor" href="#ch5-specimen-vision" aria-label="Link to this section">#</a> Specimen tracking and grossing computer-vision assist</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Smart Capture"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Not built for computer vision. Two nearby things exist and are described here so no one mistakes them for it.</p>
+<p>PathScribe has no computer-vision engine for specimens. Nothing in the product reads a photograph of a <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, a <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> or a slide to identify it, count blocks, measure a lesion or track it. The nearest things that exist are these.</p>
+<ul>
+<li><strong>The <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> imaging vendor dictionary.</strong> A list of imaging vendors (for example PAX-it!/PAXcam, PathoZoom and MacroPATH, named in the interface comment) and how to reach each: name, how the link is authenticated (none, signed link, OAuth 2 bearer token or mutual <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, the encryption that protects a web connection and shows as https.">TLS</a>), the https base address, and whether the vendor supports telepathology. It is one category (<code>gross_imaging</code>) of <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Vendor Integrations</a> in <a href="04-tier3-workflow-engines.html#ch4">Chapter 4</a>, which documents its fields. It holds addresses only and performs no image analysis. The grossing camera control in the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is plain photo capture; it stores the picture inline, which is flagged as not compliant, and moving it onto this vendor category is deferred.</li>
+<li><strong>Grossing Hardware</strong> (<a href="02-tier1-primary-prerequisites.html#screen-grossing_hardware">Chapter 2</a>) for scales, cameras and barcode devices.</li>
+<li><strong><a href="#screen-smart_capture">Smart Capture</a></strong>, below. Despite the name it calls no AI model and looks at no image. It is a fixed rule set that suggests billing lines.</li>
+</ul>
+<h3 id="screen-smart_capture"><a class="anchor" href="#screen-smart_capture" aria-label="Link to this section">#</a> Smart Capture</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Smart Capture"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Built (prototype). It works on the demonstration data and has a server contract (<code>SIGNATURES_SMART_CAPTURE_API.md</code>), and the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> drawer is labelled "Prototype, not compliance-reviewed".</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Smart Capture</p>
+<p><strong>3. Business purpose and scope.</strong> Smart Capture suggests Current Procedural Terminology (<a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a>) charge lines for a case from the <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> description words, the <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> count and the <a class="term" href="99-glossary.html#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a> counts. The rules are fixed and versioned (<code>sim-rules-1.0</code>): SC-LEVEL (88302 to 88309 by specimen level), SC-SPECIAL (88312), SC-IHC-FIRST and SC-IHC-ADDL (88342 and 88341) and SC-DECAL (88311). It is not AI and not computer vision. The flow is suggest, review (accept or reject each line), approve (a pathologist confirms) and export. In the demonstration the export goes to a simulated engine. This screen switches the prototype on or off and records the production checklist that must be complete before an export to a real interface engine is allowed.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The rules need CPT switched on for the <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a> in Code Systems. Skip that and the drawer suggests nothing and reports <code>CPT_OFF</code>.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 8</p><dl><dt>Configure first</dt><dd><a href="03-tier2-master-dictionaries.html#screen-code_systems">Code Systems</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-smart_capture.webp" alt="Smart Capture prototype switch, production checklist and export gate" loading="lazy"><figcaption>Smart Capture prototype switch, production checklist and export gate</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-smart_capture-offer-the-smart-capture-drawer-in-the-billing-review"><td><strong>Offer the Smart Capture drawer in the billing review</strong></td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>When off, the Smart Capture drawer is not offered in the case Billing panel. Audited as "Smart Capture Prototype Switched".</td>
+<td>On</td>
+</tr>
+<tr id="f-smart_capture-clinical-validation-done"><td><strong>Clinical validation done</strong></td>
+<td>Yes/No tick; records who ticked and when</td>
+<td>Optional</td>
+<td>Production checklist item. Unticking any of the six closes the export gate. Audited as "Smart Capture Checklist Changed".</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-security-review-done"><td><strong>Security review done</strong></td>
+<td>Yes/No tick; records who and when</td>
+<td>Optional</td>
+<td>Production checklist item.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-privacy-review-done"><td><strong>Privacy review done</strong></td>
+<td>Yes/No tick; records who and when</td>
+<td>Optional</td>
+<td>Production checklist item.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-legal-review-done"><td><strong>Legal review done</strong></td>
+<td>Yes/No tick; records who and when</td>
+<td>Optional</td>
+<td>Production checklist item.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-claims-and-coding-policy-review-done"><td><strong>Claims and coding policy review done</strong></td>
+<td>Yes/No tick; records who and when</td>
+<td>Optional</td>
+<td>Production checklist item.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-real-receiving-system-tested"><td><strong>Real receiving system tested</strong></td>
+<td>Yes/No tick; records who and when</td>
+<td>Optional</td>
+<td>Production checklist item.</td>
+<td>Not ticked</td>
+</tr>
+<tr id="f-smart_capture-allow-export-to-a-real-interface-engine"><td><strong>Allow export to a real interface engine</strong></td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Disabled until all six ticks are set. When off, export goes only to the simulated engine. Audited as "Smart Capture Production Gate Changed".</td>
+<td>Off</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change any setting: <code>config:smart-capture:manage</code> (Admin and Lab Director by default). In the case, <code>billing:smart-capture:review</code>, <code>billing:smart-capture:approve</code> and <code>billing:smart-capture:send</code> go to the Pathologist <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>. Every change above is audited.</p>
+<p><strong>Known limits.</strong> The rules are a prototype and have not been compliance-reviewed; the ticks record that someone says the review was done and do not carry out any review. Nothing uses AI or images. Export to a real interface engine is a gate only: no real receiving system is connected.</p>
+<h2 id="ch5-nlp"><a class="anchor" href="#ch5-nlp" aria-label="Link to this section">#</a> NLP and auto-structuring engine</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; AI history extraction"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>AI history extraction</span></nav>
+
+<p><strong>Status:</strong> Partial. Individual language features exist. A standalone NLP or auto-structuring engine does not, and there is no screen for one.</p>
+<p>What exists today, each of which sends text to the model chosen on <a href="#screen-tab-ai">AI Behavior (tab)</a> and is subject to the vendor policy:</p>
+<ul>
+<li><strong>History extraction</strong> (<a href="#screen-history_extraction">AI history extraction</a>): reads historical cases and fills structured fields as advisory information.</li>
+<li><strong>Suggest Synoptic from Narrative</strong>: on the report page, fills <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> fields from the narrative. Each suggestion carries a confidence from 0 to 100 and a quote from the source text. It works in Orchestrator and Assist modes.</li>
+<li><strong>Generate Narrative from Synoptic</strong>: on the report page, writes the narrative from the synoptic data. Orchestrator mode only.</li>
+<li><strong>Synoptic template assignment</strong>: the model proposes which synoptic template a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> needs, with a fixed confidence threshold of 60.</li>
+<li><strong>Critical-findings scan</strong> at sign-out: a negation-aware scan of narrative text only.</li>
+<li><strong>Dictation refinement</strong> (Voice tab, <a href="04-tier3-workflow-engines.html#screen-tab-voice">Chapter 4</a>) and <strong><a class="term" href="99-glossary.html#g-macro" title="A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.">macro</a> suggestion</strong> (Macros tab, <a href="04-tier3-workflow-engines.html#screen-tab-macros">Chapter 4</a>).</li>
+</ul>
+<p>Not built: a general free-text-to-structured pipeline beyond the features above, a screen to configure one, and any trained clinical NLP model of PathScribe's own. The earlier Computational Sidecar was retired on 18 October 2026.</p>
+<h3 id="screen-history_extraction"><a class="anchor" href="#screen-history_extraction" aria-label="Link to this section">#</a> AI history extraction</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; AI history extraction"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>AI history extraction</span></nav>
+
+<p><strong>Status:</strong> Partial. The screen and the rules work on the demonstration data and the server contract is written (<code>HISTORY_AI_EXTRACTION_API.md</code>), but nothing has been tried against a real server. The summary hook for Assist mode is not built.</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> AI history extraction</p>
+<p><strong>3. Business purpose and scope.</strong> When a pathologist opens a historical <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, the model can read its Final Diagnosis and Microscopic text and propose values for the fields of a structured template. The results are labelled "AI-extracted, not verified" and are advisory only: reports, printing, the <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>, billing, rules and exports never use them (a test in the code guards this). It makes two model calls per case (choose the template, then fill the fields) and drops any field with confidence below 30 (fixed in code). Results are cached by a hash of the source text, and a failed run is tried again the next time the case is opened. The audit event <code>HISTORY_EXTRACTION_RUN</code> carries no patient text.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The feature needs a working AI service and the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> list. With no AI service, or with one the vendor policy refuses, nothing is extracted and the case shows no advisory data.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 7</p><dl><dt>Configure first</dt><dd><a href="#screen-tab-ai">AI Behavior (tab)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-history_extraction.webp" alt="AI history extraction scope, state and accuracy card" loading="lazy"><figcaption>AI history extraction scope, state and accuracy card</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-history_extraction-applies-to"><td><strong>Applies to</strong></td>
+<td>Choice: <strong>Enterprise (all facilities)</strong> or one active facility</td>
+<td>Required</td>
+<td>The scope you are viewing and changing.</td>
+<td>Enterprise</td>
+</tr>
+<tr id="f-history_extraction-state-card"><td>State card</td>
+<td>Read-only <strong>On</strong> or <strong>Off</strong></td>
+<td>Not applicable</td>
+<td>The setting in force for the chosen scope. Resolved as the facility's own setting, then the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> setting, then off.</td>
+<td>Off</td>
+</tr>
+<tr id="f-history_extraction-source-tag"><td>Source tag</td>
+<td>Read-only: <strong>Built-in default</strong>, <strong>Enterprise setting</strong> or <strong>This facility's own setting</strong></td>
+<td>Not applicable</td>
+<td>Where the state came from.</td>
+<td>Built-in default</td>
+</tr>
+<tr id="f-history_extraction-turn-on-turn-off"><td><strong>Turn on</strong> / <strong>Turn off</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Sets the state for the chosen scope.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-history_extraction-use-the-enterprise-setting"><td><strong>Use the enterprise setting</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Appears only when the chosen facility has its own entry. Removes it so the facility follows the enterprise.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-history_extraction-accuracy-so-far"><td><strong>Accuracy so far</strong></td>
+<td>Read-only card: reports read, fields extracted, flagged wrong</td>
+<td>Not applicable</td>
+<td>Counts, for the chosen scope, how many reports were read, how many fields were extracted and how many a pathologist flagged as wrong.</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Change: <code>config:history-extraction:manage</code> (Admin and Lab Director). In the case, <code>ai:history-extraction:run</code> and <code>ai:history-extraction:flag</code> go to Pathologist, Fellow and Resident, and <code>case:clinical-history:record</code> goes to those three and Pathologist Assistant. The vendor policy applies and refuses a disallowed service with <code>vendorNotAllowed</code>. Running an extraction is audited as <code>HISTORY_EXTRACTION_RUN</code>.</p>
+<p><strong>Known limits.</strong> Advisory only by design. The Assist-mode summary hook is Not built. The 30-point confidence cut-off has no setting.</p>
+<h2 id="ch5-dp-ai"><a class="anchor" href="#ch5-dp-ai" aria-label="Link to this section">#</a> Digital pathology AI image analysis</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Vendor Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Vendor Integrations</span></nav>
+
+<p><strong>Status:</strong> Partial. Receiving and showing results from vendor products exists. Tumour detection, cell counting and biomarker scoring performed by PathScribe itself are <strong>Not built</strong>.</p>
+<p>PathScribe does not analyse images. It records what a vendor's product reports. The nearest thing to an AI analysis module is this chain, which is configured in other chapters:</p>
+<ul>
+<li><strong>Vendor dictionary</strong> (category digital pathology AI in <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Vendor Integrations</a>, <a href="04-tier3-workflow-engines.html#ch4">Chapter 4</a>): vendor name, product name, modality (free text), an <strong>FDA Cleared</strong> checkbox (an administrator's point-in-time record, not a check) and an active switch. It is seeded with Paige Prostate, Ibex Prostate Detect, PathAI AISight Dx, Proscia Concentriq AP-Dx, Hologic Genius Digital Diagnostics (cervical cytology) and BD FocalPoint GS (marked not cleared, as it is a premarket approval and not a 510(k) clearance). Slide viewer vendors (launch address templates) and whole-slide-image scan batches sit beside it.</li>
+<li><strong>Result record</strong>: a status (ordered, completed, failed or timed out), findings (a free-text label, a confidence from 0 to 1 and an optional region), biomarker read-outs as free text (name and value), and a slide triage rank with a review recommendation in the style of BD's quintiles.</li>
+<li><strong>Ingestion</strong>: a vendor result arrives as an inbound interface-engine event. In the demonstration, completing a Cytology Imaging batch places an AI screening order automatically with the first active cervical cytology vendor.</li>
+<li><strong>Cytology worklist badge and concordance prompt</strong>: the pathologist's answer is recorded. A disagreement raises an open deficiency and never starts a corrective action by itself.</li>
+<li><strong><a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> AI <a class="term" href="99-glossary.html#g-discordance" title="A difference between two reads of the same material, such as a preliminary and a final diagnosis, or a first and a second pathologist.">discordance</a> tab</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Chapter 4</a>): a per-vendor discordance report and a stalled-result report. The stalled-result timeout is set there (whole hours 1 to 720, default 24).</li>
+</ul>
+<p>Not built: a PathScribe-owned tumour detector, cell counter or biomarker scorer, and any control that tunes a vendor's analysis. The real vendor integrations are not closed. The contract is <code>DIGITAL_PATHOLOGY_API.md</code>. Related set-up: Cytology Instrumentation (<a href="03-tier2-master-dictionaries.html#screen-cytology_instrumentation">Chapter 3</a>).</p>
+<h2 id="ch5-smart-qc"><a class="anchor" href="#ch5-smart-qc" aria-label="Link to this section">#</a> Smart quality control and diagnostic anomaly detection rules</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Clinical Mismatch Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Clinical Mismatch Rules</span></nav>
+
+<p><strong>Status:</strong> Built for the rule screens. Demonstration for the server side of AI Instructions. There is no single "anomaly detection" module; the checks below are separate and each is documented where it is configured.</p>
+<ul>
+<li><strong>Clinical mismatch check</strong> (<a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a> and <a href="#screen-ai_instructions">AI Instructions</a>, this chapter): the model compares the clinical indication and history with the diagnosis, and the rules decide what a result does.</li>
+<li><strong>Abnormal Trigger Rules</strong> (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Chapter 3</a>): discrete rules with the severities Abnormal, Critical and Malignant. The seeded rules are Margin Status, Perineural Invasion, Lymph Node Status and Lymphovascular Invasion.</li>
+<li><strong>Critical-findings narrative scan</strong>: the model scans the narrative at sign-out, negation-aware, and sends narrative text only. It has no setting of its own.</li>
+<li><strong><a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> <a class="term" href="99-glossary.html#g-discordance" title="A difference between two reads of the same material, such as a preliminary and a final diagnosis, or a first and a second pathologist.">discordance</a> trend policy</strong> (<a href="04-tier3-workflow-engines.html#screen-qa_trend_policy">Chapter 4</a>), the <strong>AI discordance</strong> tab (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Chapter 4</a>) and <strong>Cytology <a class="term" href="99-glossary.html#g-qc" title="Quality control, the checks that confirm a process works as intended, such as a second review of screened slides.">QC</a> rules</strong> (<a href="04-tier3-workflow-engines.html#screen-cytology_qc_rules">Chapter 4</a>).</li>
+</ul>
+<p>Not built: a statistical or machine-learning anomaly detector that watches turnaround times, volumes or results across cases.</p>
+<h3 id="screen-clinical_mismatch_rules"><a class="anchor" href="#screen-clinical_mismatch_rules" aria-label="Link to this section">#</a> Clinical Mismatch Rules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Clinical Mismatch Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Clinical Mismatch Rules</span></nav>
+
+<p><strong>Status:</strong> Built. It works on the demonstration data and has a server contract (<code>CONFIG_SERVICES_API.md</code>, <code>/api/clinical/clinical-mismatch-rule/*</code>).</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Clinical Mismatch Rules</p>
+<p><strong>3. Business purpose and scope.</strong> At sign-out the model compares what the clinician told the lab with what the pathologist diagnosed, and returns a kind of mismatch and a confidence from 0 to 100. These rules turn that confidence into an outcome. Below the display threshold the result is dropped. From the display threshold up to the action threshold it is low risk: the pathologist sees an alert and the <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> log records it. At or above the action threshold the rule's action applies: <strong>Block</strong> makes it high risk and holds sign-out until a decision is recorded, <strong>Warn</strong> alerts, and <strong>Log</strong> records it. Decisions are recorded as RESOLVED, UNRESOLVED or DEFERRED. The full workflow is in <code>docs/product/CLINICAL_MISMATCH_CHECK.md</code>. One rule per kind of mismatch covers all <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> types, and you can add a rule for one specimen type.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The check calls the AI service set up on the AI Behavior tab, and the per-specimen-type rules pick from the active specimen types. With no AI service, or one the vendor policy refuses, the check does not run. Skip the Specimen Dictionary and the <strong>Add a rule for one specimen type</strong> list is empty.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 6</p><dl><dt>Configure first</dt><dd><a href="#screen-tab-ai">AI Behavior (tab)</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimen Dictionary</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-clinical_mismatch_rules.webp" alt="Clinical Mismatch Rules table and add-rule control" loading="lazy"><figcaption>Clinical Mismatch Rules table and add-rule control</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> Thresholds save when you leave the box or press Enter. The action saves when you choose it.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-clinical_mismatch_rules-kind-of-mismatch"><td><strong>Kind of mismatch</strong></td>
+<td>Read-only: unexpected malignancy, cause of death, site or organ, expected malignancy absent, other</td>
+<td>Not applicable</td>
+<td>One row per kind for all specimen types, plus any specimen-type rows.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-specimen-type"><td><strong>Specimen type</strong></td>
+<td>Read-only: all specimen types, or one type from the Specimen Dictionary</td>
+<td>Not applicable</td>
+<td>The scope of the row.</td>
+<td>All specimen types</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-alert-from"><td><strong>Alert from</strong></td>
+<td>Whole number 0 to 100 (display threshold, %)</td>
+<td>Required</td>
+<td>Results below this are suppressed.</td>
+<td>60 for every kind</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action-at"><td><strong>Action at</strong></td>
+<td>Whole number 0 to 100 (action threshold, %)</td>
+<td>Optional</td>
+<td>Must be at least <strong>Alert from</strong>. Blank means the action starts at the <strong>Alert from</strong> value.</td>
+<td>unexpected malignancy 70, cause of death 70, site or organ 65, expected malignancy absent blank, other 65</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action"><td><strong>Action</strong></td>
+<td>Choice: <strong>Block</strong>, <strong>Warn</strong>, <strong>Log</strong></td>
+<td>Required</td>
+<td>What happens at or above <strong>Action at</strong>.</td>
+<td>unexpected malignancy Block, cause of death Block, site or organ Block, expected malignancy absent Log, other Log</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-remove"><td><strong>Remove</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Deletes a specimen-type rule. The all-specimens rule of a kind cannot be removed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-add-a-rule-for-one-specimen-type"><td><strong>Add a rule for one specimen type</strong></td>
+<td>Choice of kind and choice of active specimen type</td>
+<td>Optional</td>
+<td>Creates a rule that starts as a copy of the all-types rule of that kind. A second rule for the same kind and specimen type is refused.</td>
+<td>None</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-amendments-corrections-and-addenda"><td><strong>Amendments, corrections and addenda</strong></td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>When on, "A high-risk mismatch holds the release until a decision is recorded" also applies to amendments, corrections and addenda.</td>
+<td>On</td>
+</tr>
+</tbody>
+</table>
+<p>A refused entry shows one of these problems: threshold out of range, action below display, duplicate, cannot remove the default, unknown action or unknown category.</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. See it: <code>config:clinical-mismatch-rules:view</code> (Pathologist, QA Reviewer and Lab Director by default). Change it: <code>config:clinical-mismatch-rules:manage</code>, which requires <code>view</code> and has no default <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>, so grant it deliberately. Without <code>manage</code> the screen is view-only. Changes are audited as <code>CLINICAL_MISMATCH_RULE_CHANGED</code>. <code>case:clinical-mismatch:record</code> (record a decision at sign-out) goes to Pathologist and Fellow. Separation of duties: nobody may hold <code>config:clinical-mismatch-rules:manage</code> together with <code>config:ai-prompt:approve</code>, and Superadmin is not exempt.</p>
+<p><strong>Known limits.</strong> The model can be wrong; the thresholds are the lab's control over how much a pathologist is interrupted. A mismatch at sign-out is advisory unless a rule's action is <strong>Block</strong>. In the default documentation profile this screen shows only a note that the rules are inactive, because every mismatch is a plain low-risk <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>; the rules apply again under the <code>clinical_support</code> profile. The flag shows the words it relied on from the clinical side and the pathology side, checked against the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> text; both quotes and whether each was found are saved in the QA record (<code>evidenceClinical</code>, <code>evidenceClinicalFound</code>, <code>evidencePathology</code>, <code>evidencePathologyFound</code>) and shown in the secondary-review queue. A flag made before Batch 685 has no quotes, and a lab whose Clinical-Pathologic Correlation activity type was saved earlier must add the four fields in Quality settings to see them labelled in exports; they hold clinical text from the case, so treat an export like the clinical indication.</p>
+<h2 id="ch5-governance"><a class="anchor" href="#ch5-governance" aria-label="Link to this section">#</a> AI governance, human-in-the-loop thresholds and calibration</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span></nav>
+
+<p><strong>Status:</strong> Built for governance and thresholds. Weight calibration: none exists.</p>
+<p>PathScribe's controls keep a person between the model and the record.</p>
+<ul>
+<li><strong>Approved instructions.</strong> The text the clinical mismatch check sends to the model is versioned, and a second person must approve it (<a href="#screen-ai_instructions">AI Instructions</a>).</li>
+<li><strong>Evidence.</strong> A Validation Study measures how often pathologists accept the model's suggestions unchanged, and a PASS grade is what lets a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> pin a model or a voice model become the default (<a href="#screen-tab-validation">Validation Studies</a>).</li>
+<li><strong>Thresholds.</strong> Every threshold in the product is listed here.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Threshold</th>
+<th>Value</th>
+<th>Where set</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Confidence Threshold (suggestions)</td>
+<td>0 to 100, default 75</td>
+<td><strong>AI Behavior</strong> tab; per-model override in <strong>Model Settings</strong></td>
+</tr>
+<tr>
+<td>Auto-insert at or above the threshold</td>
+<td>Off by default</td>
+<td><strong>AI Behavior</strong> tab, <strong>Advanced</strong></td>
+</tr>
+<tr>
+<td>Clinical mismatch display and action thresholds</td>
+<td>0 to 100, display default 60</td>
+<td><a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a></td>
+</tr>
+<tr>
+<td>Synoptic and <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> template assignment</td>
+<td>Fixed 60</td>
+<td>Code; no setting</td>
+</tr>
+<tr>
+<td>History extraction field cut-off</td>
+<td>Fixed 30</td>
+<td>Code; no setting</td>
+</tr>
+<tr>
+<td>Study target acceptance rate and maximum mean edit ratio</td>
+<td>70% and 30% by default</td>
+<td><a href="#screen-validation-studies">Validation Studies: Studies</a></td>
+</tr>
+<tr>
+<td>Stalled AI screening result</td>
+<td>Whole hours 1 to 720, default 24</td>
+<td><a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> <strong>AI <a class="term" href="99-glossary.html#g-discordance" title="A difference between two reads of the same material, such as a preliminary and a final diagnosis, or a first and a second pathologist.">discordance</a></strong> tab (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Chapter 4</a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Weight calibration and internal-only settings.</strong> There is no model weight calibration, fine-tuning or recalibration setting anywhere in PathScribe, and no AI setting is limited to ForMedrixAI staff. A search of the code finds only equipment and cytology calibration, which are unrelated. No <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> in the catalogue is marked platform-only for AI. Two related facts are worth knowing. The <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> key is rotated by ForMedrixAI support in the server's secret store, and there is no screen for it. The model catalogue that the ForMedrixAI store offers is owned by the platform, and there is no staff screen for it either. Because no such setting exists, this chapter has no section marked ForMedrixAI internal only.</p>
+<h3 id="screen-ai_instructions"><a class="anchor" href="#screen-ai_instructions" aria-label="Link to this section">#</a> AI Instructions</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; AI Instructions"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>AI Instructions</span></nav>
+
+<p><strong>Status:</strong> Demonstration. The rules run in the browser over injected storage and the service has no server route of its own (<code>HTTP_SERVICES_REMAINING.md</code>).</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> AI Instructions</p>
+<p><strong>3. Business purpose and scope.</strong> The clinical mismatch check sends the model an instruction text. This screen controls that text for each of three disciplines: Surgical, Cytology and Autopsy (shown as tabs). A change goes through edit, then approval by a different person, so no one can change what the model is told alone. The <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> and the <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> answer format are fixed in code and cannot be edited here. Only the approved version is used. Version 0 is PathScribe's built-in text.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The text is used by the check on the AI Behavior tab's service, so the AI service is set up first. Skip it and an approved text has nothing to run on, and <strong>Test this text</strong> reports the AI as unavailable.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 5</p><dl><dt>Configure first</dt><dd><a href="#screen-tab-ai">AI Behavior (tab)</a></dd><dt>This unlocks</dt><dd><a href="#screen-clinical_mismatch_rules">Clinical Mismatch Rules</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-ai_instructions.webp" alt="AI Instructions discipline tabs with In use, Awaiting approval, Edit, Test and History cards" loading="lazy"><figcaption>AI Instructions discipline tabs with In use, Awaiting approval, Edit, Test and History cards</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ai_instructions-discipline-tabs"><td>Discipline tabs</td>
+<td>Choice: Surgical, Cytology, Autopsy</td>
+<td>Required</td>
+<td>Each discipline has its own text and history.</td>
+<td>Surgical</td>
+</tr>
+<tr id="f-ai_instructions-in-use-version-n"><td><strong>In use: version N</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The approved version the check uses now.</td>
+<td>Version 0 (built-in text)</td>
+</tr>
+<tr id="f-ai_instructions-awaiting-approval"><td><strong>Awaiting approval</strong></td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The pending version, if any. A new edit withdraws the previous pending one.</td>
+<td>None</td>
+</tr>
+<tr id="f-ai_instructions-approve"><td><strong>Approve</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Makes the pending version the one in use. Refused for anyone who edited the text since the last approval (SELF_APPROVAL). Needs <code>config:ai-prompt:approve</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-ai_instructions-reject-reason"><td>Reject reason</td>
+<td>Text</td>
+<td>Required to reject</td>
+<td>The reason is kept in the history.</td>
+<td>None</td>
+</tr>
+<tr id="f-ai_instructions-reject"><td><strong>Reject</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Disabled until a reason is entered. The approved version stays in use.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-ai_instructions-edit-text"><td>Edit text</td>
+<td>Text area, up to 6000 characters, with a counter</td>
+<td>Required</td>
+<td>Must not be empty, not over 6000 characters and different from the current text (otherwise: empty, too long or unchanged).</td>
+<td>The text in use</td>
+</tr>
+<tr id="f-ai_instructions-save-for-approval"><td><strong>Save for approval</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Creates a new pending version.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-ai_instructions-clinical-indication"><td><strong>Clinical indication</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Sample input for the test. Filled from a built-in sample.</td>
+<td>Sample text</td>
+</tr>
+<tr id="f-ai_instructions-clinical-history"><td><strong>Clinical history</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Sample input for the test.</td>
+<td>Sample text</td>
+</tr>
+<tr id="f-ai_instructions-findings"><td><strong>Findings</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Sample input for the test.</td>
+<td>Sample text</td>
+</tr>
+<tr id="f-ai_instructions-diagnosis"><td><strong>Diagnosis</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Sample input for the test.</td>
+<td>Sample text</td>
+</tr>
+<tr id="f-ai_instructions-pathologist-confirmed-malignant-finding"><td><strong>Pathologist-confirmed malignant finding</strong></td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>Sample input for the test.</td>
+<td>Off</td>
+</tr>
+<tr id="f-ai_instructions-test-this-text"><td><strong>Test this text</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Runs the pending or edited text on the sample once. The result is mismatch, none, not allowed (by the vendor policy) or unavailable.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-ai_instructions-history"><td>History</td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Every version with its status: pending, approved, rejected, superseded or withdrawn.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>, plus <code>config:ai-prompt:edit</code> or <code>config:ai-prompt:approve</code>. Listing versions needs <code>config:ai-prompt:view</code> (<a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer and Lab Director). <code>config:ai-prompt:edit</code> has no built-in <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> and requires <code>view</code>. <code>config:ai-prompt:approve</code> goes to Lab Director only and is withheld from Superadmin; it requires <code>view</code>. Superadmin holds <code>view</code> and <code>edit</code>. Separation of duties: <code>config:ai-prompt:approve</code> cannot be held with <code>config:clinical-mismatch-rules:manage</code>. Audited as <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code> and <code>AI_PROMPT_REJECTED</code>.</p>
+<p><strong>Known limits.</strong> The server side is Not built. A person who holds only <code>view</code>, such as a QA Reviewer, cannot open the screen even though the list would load for them.</p>
+<h3 id="screen-tab-validation"><a class="anchor" href="#screen-tab-validation" aria-label="Link to this section">#</a> Validation Studies (tab)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span></nav>
+
+<p><strong>Status:</strong> Built. It works on the demonstration data and has a server contract (<code>QUALITY_API.md</code>, <code>/api/validation-studies/...</code>).</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Validation Studies</strong>
+<strong>2. Maintenance item:</strong> Validation Studies (the whole tab)</p>
+<p><strong>3. Business purpose and scope.</strong> A validation study gathers evidence that an AI model works on your own cases. Pathologists work as normal; at sign-out PathScribe records, for each AI suggestion, whether it was accepted unchanged and how much it was edited. The signals are de-identified. When the study is closed the report grades the model, and only a PASS grade lets a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> pin that model. The tab has three sub-tabs, <strong>Studies</strong>, <strong>Dashboard</strong> and <strong>Reports</strong>, chosen by <code>?section=studies</code>, <code>dashboard</code> or <code>reports</code>. The studies are advisory: <code>validationMode</code> is always advisory. A banner says so, and a <strong>How this works - with an example</strong> toggle explains the process.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A study validates a model chosen on the AI Behavior tab and enrols facilities from the Facility Dictionary. Skip the models and the facilities and the study form has nothing to choose.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 2</p><dl><dt>Configure first</dt><dd><a href="#screen-tab-ai">AI Behavior (tab)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-validation-studies">Validation Studies: Studies</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/tab-validation.webp" alt="Validation Studies tab with the advisory banner and the three sub-tabs" loading="lazy"><figcaption>Validation Studies tab with the advisory banner and the three sub-tabs</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-validation-advisory-banner"><td>Advisory banner</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>States that a study is advisory.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-tab-validation-how-this-works-with-an-example"><td><strong>How this works - with an example</strong></td>
+<td>Toggle</td>
+<td>Optional</td>
+<td>Shows or hides the worked explanation.</td>
+<td>Hidden</td>
+</tr>
+<tr id="f-tab-validation-sub-tabs-studies-dashboard-reports"><td>Sub-tabs <strong>Studies</strong>, <strong>Dashboard</strong>, <strong>Reports</strong></td>
+<td>Choice</td>
+<td>Required</td>
+<td>Opens the matching screen below.</td>
+<td>Studies</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> The tab appears only for a person whose <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> is admin, pathologist-admin or superadmin. That is a role check, not a <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> check. Inside, the tab is view-only without <code>config:validation-studies:manage</code> and <code>validation:approval:record</code>. Both are held by Admin and Lab Director through the quality configuration group. The Lab Director role is not in the role check, so it holds the capabilities but cannot open the tab.</p>
+<p><strong>Known limits.</strong> See <a href="#screen-validation-studies">Validation Studies: Studies</a>.</p>
+<h3 id="screen-validation-studies"><a class="anchor" href="#screen-validation-studies" aria-label="Link to this section">#</a> Validation Studies: Studies</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<p><strong>Status:</strong> Built.</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Validation Studies</strong> &gt; sub-tab <strong>Studies</strong>
+<strong>2. Maintenance item:</strong> Studies</p>
+<p><strong>3. Business purpose and scope.</strong> The list of studies and the form to create one. A study moves through the states draft, pending approval, approved, active, closed and reported. Buttons depend on the state: a draft has <strong>Edit</strong>, <strong>Submit for Review</strong> and <strong>Delete</strong>; a pending study has <strong>Record Approval</strong>; an approved study has <strong>Activate</strong> (refused without an IRB reference); an active study has <strong>Close Study</strong>.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The study form picks a model from the AI Behavior tab, active facilities, and enrolled pathologists (filtered by the facilities chosen), and optionally published report templates. Skip the physicians and the <strong>Enrolled Pathologists</strong> list is empty, so a study cannot be saved. Published templates are set up in <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Chapter 6</a>; with none, leave <strong>Report Templates</strong> blank to include all templates.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 3</p><dl><dt>Configure first</dt><dd><a href="#screen-tab-validation">Validation Studies (tab)</a>, <a href="#screen-tab-ai">AI Behavior (tab)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Physicians</a></dd><dt>This unlocks</dt><dd><a href="#screen-validation-reports">Validation Studies: Reports</a>, <a href="#screen-validation-dashboard">Validation Studies: Dashboard</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/validation-studies.webp" alt="Validation Studies list with New Study" loading="lazy"><figcaption>Validation Studies list with New Study</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<h4>New Study / Edit Study form</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<figure class="shot"><img src="img/validation-studies-new.webp" alt="New Study form" loading="lazy"><figcaption>New Study form</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-study-name"><td><strong>Study Name</strong></td>
+<td>Text</td>
+<td>Required</td>
+<td>The name shown in the list and on the report.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-description"><td><strong>Description</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Purpose of the study.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-ai-model-being-validated"><td><strong>AI Model Being Validated</strong></td>
+<td>Choice of models</td>
+<td>Required</td>
+<td>Locked when you edit. A link <strong>Browse the ForMedrixAI store</strong> (new studies only) opens the store window below.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-target-acceptance-rate"><td><strong>Target Acceptance Rate</strong></td>
+<td>Slider 50% to 100%, step 5</td>
+<td>Required</td>
+<td>The share of suggestions accepted unchanged that earns a PASS.</td>
+<td>70%</td>
+</tr>
+<tr id="f-validation-studies-max-mean-edit-ratio"><td><strong>Max Mean Edit Ratio</strong></td>
+<td>Slider 10% to 90%, step 5</td>
+<td>Required</td>
+<td>The most the pathologists may edit suggestions, on average, for a PASS.</td>
+<td>30%</td>
+</tr>
+<tr id="f-validation-studies-start-date"><td><strong>Start Date</strong></td>
+<td>Date</td>
+<td>Required</td>
+<td>When the study begins.</td>
+<td>Today</td>
+</tr>
+<tr id="f-validation-studies-irb-ethics-reference"><td><strong>IRB / Ethics Reference</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Shown on the form but not saved. The reference is recorded at the approval step.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-participating-facilities"><td><strong>Participating Facilities</strong></td>
+<td>Choice of active facilities, several</td>
+<td>Required</td>
+<td>Signals count only for these.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-enrolled-pathologists"><td><strong>Enrolled Pathologists</strong></td>
+<td>Choice of pathologists, several, filtered by the facilities chosen</td>
+<td>Required</td>
+<td>Only their sign-outs generate signals. The first one chosen becomes the principal investigator; there is no field for it.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-report-templates"><td><strong>Report Templates</strong></td>
+<td>Choice of published templates, several</td>
+<td>Optional</td>
+<td>Blank means all templates.</td>
+<td>All templates</td>
+</tr>
+</tbody>
+</table>
+<h4>Submit for Ethics / IRB Review window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-ethics-irb-committee-name"><td><strong>Ethics / IRB Committee Name</strong></td>
+<td>Text</td>
+<td>Required</td>
+<td>The committee the study goes to.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-submitted-by"><td><strong>Submitted By</strong></td>
+<td>Text</td>
+<td>Required</td>
+<td>Who submitted it.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-expected-review-date"><td><strong>Expected Review Date</strong></td>
+<td>Date</td>
+<td>Optional</td>
+<td>When a decision is expected.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-notes-for-committee"><td><strong>Notes for Committee</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Free notes.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h4>Record Committee Approval window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-irb-ethics-reference-number"><td><strong>IRB / Ethics Reference Number</strong></td>
+<td>Text</td>
+<td>Required</td>
+<td>Without it the study cannot be activated.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-approved-by"><td><strong>Approved By</strong></td>
+<td>Text</td>
+<td>Required</td>
+<td>The approving person or body.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-approval-date"><td><strong>Approval Date</strong></td>
+<td>Date</td>
+<td>Required</td>
+<td>The date of approval.</td>
+<td>Today</td>
+</tr>
+<tr id="f-validation-studies-committee-minutes-reference"><td><strong>Committee Minutes Reference</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Where the minutes are filed.</td>
+<td>None</td>
+</tr>
+<tr id="f-validation-studies-conditions-attached-to-approval"><td><strong>Conditions Attached to Approval</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Any conditions.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<h4>ForMedrixAI Store window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Studies"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Studies</span></nav>
+
+<p>Lists models ForMedrixAI has published after its own regression testing that your organisation has not adopted. Each row shows the model, its publication date and ForMedrixAI benchmark figure, and an <strong>Adopt</strong> button.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-adopt"><td><strong>Adopt</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Adds the model to your organisation as Beta, never the default, with zero cases, until your own study confirms it. Refusals: store not licensed, no organisation, not in catalogue, already adopted.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> <code>config:validation-studies:manage</code> covers create, update, submit for review, activate, close and delete. <code>validation:approval:record</code> covers recording the committee approval. Adopting a model needs <code>config:ai-model:manage</code>. Admin and Lab Director hold the first two by default. The study events are audited as <code>validation_study_created</code>, <code>_submitted</code>, <code>_approval_recorded</code>, <code>_activated</code>, <code>_closed</code> and <code>_deleted</code>. Saving an edit logs <code>validation_study_created</code>, and activation records the literal name <code>admin</code> as the person.</p>
+<p><strong>Known limits.</strong> The store's licence check is a mock that always passes, and subscription authorisation is open work (PS-59). The IRB reference on the study form is not saved. The form does not record a second reviewer, only a committee name.</p>
+<h3 id="screen-validation-dashboard"><a class="anchor" href="#screen-validation-dashboard" aria-label="Link to this section">#</a> Validation Studies: Dashboard</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Dashboard"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Dashboard</span></nav>
+
+<p><strong>Status:</strong> Built.</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Validation Studies</strong> &gt; sub-tab <strong>Dashboard</strong>
+<strong>2. Maintenance item:</strong> Dashboard</p>
+<p><strong>3. Business purpose and scope.</strong> A read-only view of how a running or closed study is doing. Use it to watch the acceptance rate before the study closes.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> It shows data once a study is active and pathologists have signed out cases. With no active study the study list is empty.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-validation-studies">Validation Studies: Studies</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/validation-dashboard.webp" alt="Validation Dashboard with the study selector and performance table" loading="lazy"><figcaption>Validation Dashboard with the study selector and performance table</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-dashboard-study-selector"><td>Study selector</td>
+<td>Choice of active or closed studies</td>
+<td>Required</td>
+<td>Picks the study shown.</td>
+<td>The first study</td>
+</tr>
+<tr id="f-validation-dashboard-cases-captured"><td>Cases captured</td>
+<td>Read-only whole number</td>
+<td>Not applicable</td>
+<td>Cases with at least one signal.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals"><td>Section signals</td>
+<td>Read-only whole number</td>
+<td>Not applicable</td>
+<td>Suggestions recorded at sign-out.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-acceptance-rate-vs-target"><td>Acceptance rate vs target</td>
+<td>Read-only percentage</td>
+<td>Not applicable</td>
+<td>Compared with the study's <strong>Target Acceptance Rate</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-validation-dashboard-accepted-unchanged"><td>Accepted unchanged</td>
+<td>Read-only percentage</td>
+<td>Not applicable</td>
+<td>Suggestions kept as written.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals-acceptance-mean-edit-ratio-most-common-edit"><td><strong>Section</strong>, <strong>Signals</strong>, <strong>Acceptance</strong>, <strong>Mean Edit Ratio</strong>, <strong>Most Common Edit</strong></td>
+<td>Table columns</td>
+<td>Not applicable</td>
+<td>Performance by report section.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-validation-dashboard-advisory-notice"><td>Advisory notice</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>States the figures are advisory.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: the same tab rules as <a href="#screen-tab-validation">Validation Studies (tab)</a>. Nothing on the page changes data.</p>
+<p><strong>Known limits.</strong> None known.</p>
+<h3 id="screen-validation-reports"><a class="anchor" href="#screen-validation-reports" aria-label="Link to this section">#</a> Validation Studies: Reports</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Validation Studies &gt; Reports"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Validation Studies</span> <span aria-hidden="true">›</span> <span>Reports</span></nav>
+
+<p><strong>Status:</strong> Built.</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Validation Studies</strong> &gt; sub-tab <strong>Reports</strong>
+<strong>2. Maintenance item:</strong> Reports</p>
+<p><strong>3. Business purpose and scope.</strong> Produces the printed report that grades a closed study. The grade is PASS when the acceptance rate is at least the target and the mean edit ratio is at most the maximum; CONDITIONAL PASS when the acceptance rate is at least 85% of the target; otherwise FURTHER REVIEW. <strong>Generate &amp; Print Report</strong> opens a print window, records the output in the audit trail, moves the study to reported and saves the final grade once. The grade is never recalculated afterwards. Only a reported study graded PASS, with the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> among its participants, lets that facility pin the model as its AI override.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A report needs a closed study. Skip closing it and the study does not appear in the list.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 4, step 4</p><dl><dt>Configure first</dt><dd><a href="#screen-validation-studies">Validation Studies: Studies</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/validation-reports.webp" alt="Validation Reports preview and Generate &amp; Print Report" loading="lazy"><figcaption>Validation Reports preview and Generate &amp; Print Report</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-reports-study-selector"><td>Study selector</td>
+<td>Choice of closed or reported studies</td>
+<td>Required</td>
+<td>Picks the study to preview.</td>
+<td>The first study</td>
+</tr>
+<tr id="f-validation-reports-report-preview"><td>Report preview</td>
+<td>Read-only</td>
+<td>Not applicable</td>
+<td>The figures and grade as they will print.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-validation-reports-generate-amp-print-report"><td><strong>Generate &amp; Print Report</strong></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Prints, audits as <code>validation_report_generated</code>, sets reported and saves the final grade.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> The same tab rules as <a href="#screen-tab-validation">Validation Studies (tab)</a>. Generating the report uses <code>config:validation-studies:manage</code>.</p>
+<p><strong>Known limits.</strong> The grade is final once saved; a wrong grade cannot be recomputed from the screen.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

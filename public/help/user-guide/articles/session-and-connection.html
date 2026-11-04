@@ -1,0 +1,180 @@
+<h1 id="top">Session and Connection</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This page explains what happens when you stop working for a while, when you sign in on a second window, when you sign out with unsaved work, and when your connection drops.</p>
+<p><strong>Intended users.</strong> Everyone who signs in.</p>
+<p><strong>Where it fits.</strong> These behaviours apply on every screen.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/session-and-connection-expiring.png" alt="The Session Expiring Soon window"><figcaption>The Session Expiring Soon window</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle time allowed</td>
+<td>Set by your organisation (15 minutes if nothing is set). A facility can set a different time while you are on a case.</td>
+</tr>
+<tr>
+<td><strong>Session Expiring Soon</strong></td>
+<td>Opens 60 seconds before the end, with a countdown.</td>
+</tr>
+<tr>
+<td><strong>Unsaved Data</strong></td>
+<td>Opens when you sign out with unsaved case work.</td>
+</tr>
+<tr>
+<td>"Signed out — logged in elsewhere"</td>
+<td>Shown on the sign-in page.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Stay Logged In</strong></td>
+<td>Keeps your session.</td>
+</tr>
+<tr>
+<td><strong>Log Out</strong></td>
+<td>Ends it now.</td>
+</tr>
+<tr>
+<td><strong>Log Out &amp; Discard Changes</strong></td>
+<td>Signs out and throws away unsaved work.</td>
+</tr>
+<tr>
+<td><strong>Return to Page</strong></td>
+<td>Cancels the sign out.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Strip: Offline (red)</td>
+<td>No connection.</td>
+</tr>
+<tr>
+<td>Strip: Reconnecting… (orange)</td>
+<td>Trying again.</td>
+</tr>
+<tr>
+<td>Strip: Reconnected, "Connection restored." (green)</td>
+<td>Back.</td>
+</tr>
+<tr>
+<td>Badge: Live, Local updates, Connecting…, Offline, Reconnecting…</td>
+<td>Whether a list updates by itself.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Something went wrong on this screen.</strong> If a screen stops working because of an unexpected fault, PathScribe replaces it with this message and keeps the rest of the application running. A line says either that unsaved changes on the screen may have been lost or that they were lost; work you had already saved is safe. <strong>Try again</strong> reloads the screen; <strong>Back to worklist</strong> appears when the whole application stopped. The message ends with "Reference for support: …" and a short code. Read that code to support. If a single section of a report fails, only that section shows <strong>This panel stopped working</strong> (with the same reference and <strong>Try again</strong>) and the rest of the report stays usable.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this feature.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Keep working; any click or key press restarts the idle clock.</li>
+<li>If <strong>Session Expiring Soon</strong> appears, select <strong>Stay Logged In</strong>.</li>
+<li>When finished, select Sign out. If <strong>Unsaved Data</strong> appears, choose <strong>Return to Page</strong> and save.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Select <strong>Log Out</strong> in the warning if you have finished.</li>
+<li>If the screen says you were logged in elsewhere, sign in again where you want to work.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Offline strip.</strong> Keep the page open; PathScribe retries. Save when it shows Reconnected.</li>
+<li><strong>You were signed out while away.</strong> Sign in again; drafts kept by an idle sign-out are restored.</li>
+<li><strong>Signed in on a second tab.</strong> The first tab is signed out.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>After an expiry, reopen the case and check the last edit.</li>
+<li>After <strong>Log Out &amp; Discard Changes</strong>, the work is gone; redo it.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Save before the window ends</p>
+<p>The warning says "Please save any unsaved work now — changes are not automatically preserved." An idle sign out keeps drafts, but an explicit sign out discards them by default.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Do not sign out and discard a report you meant to keep</p>
+<p><strong>Log Out &amp; Discard Changes</strong> cannot be undone.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Walking away mid-report on a shared computer.</li>
+<li>Ignoring the Reconnecting strip and editing for a long time.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Save often with the save hotkey on the Report.</li>
+<li>Sign out when you leave; do not rely on the timer.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Laboratory managers: ask your administrator for a time that fits your bench.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/sign-in">Sign In</a></li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/notifications">Notifications</a>: the other signals.</li>
+<li><a href="/help/report">Report</a>: where unsaved work matters most.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Logged out often</td>
+<td>Short idle time set by your organisation.</td>
+</tr>
+<tr>
+<td>Signed out suddenly</td>
+<td>Same account used in another tab.</td>
+</tr>
+<tr>
+<td>Badge says Local updates</td>
+<td>Live updates are not available; the list refreshes on a timer.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the strip under the top bar.</li>
+<li>Reload the page.</li>
+<li>Sign in again.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when sessions end much sooner than your idle time or the connection strip stays red.</p>

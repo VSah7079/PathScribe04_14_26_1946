@@ -20,10 +20,21 @@ import type { StainOrder } from '@/types/case/Specimen';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { SlideLabelFitWarning } from '@/utils/labels/resolveSlideLabelFitWarnings';
+import type { PrintMode } from '../hooks/useMicrotomyWorkstation';
+
+// Batch 758: the Microtome adds Block mode (all of a block's labels print when it is scanned); the Cytology
+// Preparation bench keeps On-Demand and Batch.
+const DEFAULT_MODES: readonly PrintMode[] = ['on_demand', 'batch'];
+const MODE_KEYS: Record<PrintMode, string> = { on_demand: 'onDemand', block: 'blockMode', batch: 'batch' };
 
 export interface HardwarePrintPanelProps {
-  printMode: 'on_demand' | 'batch';
-  onSetPrintMode: (mode: 'on_demand' | 'batch') => void;
+  printMode: PrintMode;
+  onSetPrintMode: (mode: PrintMode) => void;
+  /** The modes offered (Batch 758). */
+  modes?: readonly PrintMode[];
+  /** Block mode: the block's labels not printed yet, and printing them now (a slide added after the scan). */
+  unprintedCount?: number;
+  onPrintBlock?: () => void;
   nextStain?: StainOrder;
   onPrintNext: () => void;
   batchSelectedCount: number;
@@ -38,7 +49,7 @@ export interface HardwarePrintPanelProps {
 }
 
 const HardwarePrintPanel: React.FC<HardwarePrintPanelProps> = ({
-  printMode, onSetPrintMode, nextStain, onPrintNext, batchSelectedCount, onPrintBatch,
+  printMode, onSetPrintMode, modes = DEFAULT_MODES, unprintedCount = 0, onPrintBlock, nextStain, onPrintNext, batchSelectedCount, onPrintBatch,
   printer, printerError, labelLayout, fitWarnings, previewStain, specimenLabel, blockLabel,
 }) => {
   const { t } = useTranslation();
@@ -50,15 +61,23 @@ const HardwarePrintPanel: React.FC<HardwarePrintPanelProps> = ({
       <div className="ps-microtomy-panel ps-mb-14">
         <p className="ps-microtomy-panel-title">{t('microtomyWorkstation.hardware.printMode')}</p>
         <div className="ps-microtomy-mode-switcher">
-          <button type="button" className={`ps-microtomy-mode-btn${printMode === 'on_demand' ? ' ps-microtomy-mode-btn--active' : ''}`} onClick={() => onSetPrintMode('on_demand')}>
-            {t('microtomyWorkstation.hardware.onDemand')}
-          </button>
-          <button type="button" className={`ps-microtomy-mode-btn${printMode === 'batch' ? ' ps-microtomy-mode-btn--active' : ''}`} onClick={() => onSetPrintMode('batch')}>
-            {t('microtomyWorkstation.hardware.batch')}
-          </button>
+          {modes.map(mode => (
+            <button key={mode} type="button" className={`ps-microtomy-mode-btn${printMode === mode ? ' ps-microtomy-mode-btn--active' : ''}`} onClick={() => onSetPrintMode(mode)}>
+              {t(`microtomyWorkstation.hardware.${MODE_KEYS[mode]}`)}
+            </button>
+          ))}
         </div>
 
-        {printMode === 'on_demand' ? (
+        {printMode === 'block' ? (
+          <div className="ps-mt-12">
+            <div className="ps-microtomy-context-field">{t('microtomyWorkstation.hardware.blockModeHint')}</div>
+            {unprintedCount > 0 && onPrintBlock && (
+              <button type="button" className="ps-btn-primary" onClick={onPrintBlock}>
+                🖨️ {t('microtomyWorkstation.hardware.printBlock', { count: unprintedCount })}
+              </button>
+            )}
+          </div>
+        ) : printMode === 'on_demand' ? (
           <div className="ps-mt-12">
             {nextStain ? (
               <>
@@ -116,8 +135,8 @@ const HardwarePrintPanel: React.FC<HardwarePrintPanelProps> = ({
                 <div>{previewStain.stainName}</div>
               </div>
             </div>
-            <div className="ps-microtomy-comment-meta">{labelLayout.faceWidthMm}mm × {labelLayout.faceHeightMm}mm</div>
-            {fitWarnings.map((w, i) => <div key={i} className="ps-microtomy-label-preview-warning">⚠️ {w.message}</div>)}
+            <div className="ps-microtomy-comment-meta">{t('microtomyWorkstation.hardware.labelSize', { width: labelLayout.faceWidthMm, height: labelLayout.faceHeightMm })}</div>
+            {fitWarnings.map(w => <div key={w.kind} className="ps-microtomy-label-preview-warning">⚠️ {t(`microtomyWorkstation.hardware.fit.${w.kind}`, { required: w.requiredMm, face: w.faceMm })}</div>)}
           </>
         ) : (
           <div className="ps-microtomy-context-field">{t('microtomyWorkstation.hardware.noPreview')}</div>

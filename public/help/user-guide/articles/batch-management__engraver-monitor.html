@@ -1,0 +1,210 @@
+<h1 id="top">Engraver Monitor</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Engraver Monitor is a read-only status board for the cassette engravers in your laboratory. It shows, for every engraver that has reported in, whether it is online, engraving, warning, faulted or offline, any supply warnings (cassettes low or out, a cassette colour unavailable), and when it last reported. It is a quick answer to "can I print cassettes now, and will I run out?".</p>
+<p><strong>Intended users.</strong> Histotechnologists, grossing staff who depend on cassettes, and laboratory managers.</p>
+<p><strong>Where it fits.</strong> Engravers are driven by the cassette engine, which owns the machine's detailed diagnostics. PathScribe shows only a coarse summary here, and a link to the engine's own diagnostics for anything deeper. Cassettes engraved here are the ones <a href="/help/grossing">Grossing</a> prints and that later appear in <a href="/help/batch-management/pending-load">Pending Batch Load</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>With no live engraver feed connected, the screen shows a set of example devices and a <strong>Simulated</strong> badge in the toolbar. When the badge is shown, nothing on the board is a real machine. Hopper-level detail and hardware controls are not built into PathScribe; they stay in the cassette engine.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-engraver-monitor-overview.png" alt="The Engraver Monitor with status counts and device cards"><figcaption>The Engraver Monitor with status counts and device cards</figcaption></figure>
+
+<p>The page title is <strong>Engraver Monitor</strong>. The subtitle reads: "A real, high-level status summary for every engraver the Cassette Engine reports on — status, real warning summaries, and a direct link to the Engine's own diagnostics for anything deeper. PathScribe doesn't model hopper-level detail or hardware telemetry here; that stays the Engine's own job."</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Status tiles.</strong> Five tiles each show a count: Online, Engraving, Warning, Fault and Offline. They count the devices shown (so they follow the organisation filter). They are not buttons.</p>
+<p><strong>Device cards</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>The device name, or its identifier if it has no name.</td>
+</tr>
+<tr>
+<td>Identifier and location</td>
+<td>The device ID, and its location label if one was reported.</td>
+</tr>
+<tr>
+<td>Status badge</td>
+<td>Online, Engraving, Warning, Fault or Offline.</td>
+</tr>
+<tr>
+<td>Warnings</td>
+<td>A list that appears when there is anything to report. Supply warnings read "(colour) Low", "(colour) Depleted" or "(colour) Unavailable", or just Low, Depleted or Unavailable when no colour applies. Other warnings are shown as the device sent them.</td>
+</tr>
+<tr>
+<td>Reported (time)</td>
+<td>When the device last reported.</td>
+</tr>
+<tr>
+<td>Launch Engine Diagnostics</td>
+<td>A link that opens the engine's own diagnostics for this machine in a new tab. Shown only when the engine supplied a link.</td>
+</tr>
+</tbody>
+</table>
+<p>Devices:</p>
+<ul>
+<li>"Devices (n)" counts the devices shown.</li>
+<li>"Loading real device status..." appears on the first load.</li>
+<li>"No engraver has reported status yet." appears when no device has reported.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Refresh</td>
+<td>Reads the latest status now. Reads "Refreshing..." while it works.</td>
+</tr>
+<tr>
+<td>Filter by organisation</td>
+<td>Appears only when devices belong to more than one organisation. Choose All organisations or one.</td>
+</tr>
+<tr>
+<td>Simulated badge</td>
+<td>Shown when the board is running on example data.</td>
+</tr>
+</tbody>
+</table>
+<p>The board also refreshes itself: at once when a change is announced, and otherwise every 30 seconds, without showing "Refreshing...".</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Online (green)</td>
+<td>The engraver is ready and idle.</td>
+</tr>
+<tr>
+<td>Engraving (blue)</td>
+<td>It is working on a job.</td>
+</tr>
+<tr>
+<td>Warning (amber)</td>
+<td>It is running but has something you should look at, such as low supply.</td>
+</tr>
+<tr>
+<td>Fault (red)</td>
+<td>It has stopped because of a fault.</td>
+</tr>
+<tr>
+<td>Offline (grey)</td>
+<td>It is not reporting.</td>
+</tr>
+<tr>
+<td>Simulated badge</td>
+<td>The data is demonstration data.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Engraver Monitor</strong> tile. The status tiles and device cards appear.</li>
+<li>Read the five tiles to see how many engravers are in each state.</li>
+<li>Find your engraver's card by name or location. Check the status badge.</li>
+<li>Read any warnings. A "Low" or "Depleted" warning on a colour means restock that colour of cassette before printing.</li>
+<li>Check "Reported (time)". If it is old, the engraver may be offline or the link down.</li>
+<li>For a fault, select <strong>Launch Engine Diagnostics</strong> and follow the engine's own screens. Then return and select <strong>Refresh</strong>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Leave the screen open on a bench monitor. It updates itself.</li>
+<li>In a multi-organisation setup, use the organisation filter to see only your own devices.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>No devices.</strong> "No engraver has reported status yet." Nothing has reported. Check the engraver and the cassette engine connection, or whether this is a Simulated board.</li>
+<li><strong>A device shows Offline.</strong> Check power and network at the machine. The last report time tells you how long.</li>
+<li><strong>Fault.</strong> Use the diagnostics link, if shown. If there is none, contact your engine support.</li>
+<li><strong>A colour is unavailable.</strong> Choose another cassette colour at Grossing or restock.</li>
+<li><strong>The Simulated badge shows on a live system.</strong> The live feed is not connected; contact support.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>The board looks out of date. Select <strong>Refresh</strong>.</li>
+<li>The diagnostics link does nothing. Your browser may be blocking the new tab; allow pop-ups.</li>
+<li>Counts seem wrong after filtering. The tiles follow the filter; choose All organisations.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Expecting to control the machine from here. The board is read-only.</li>
+<li>Treating a Simulated board as real.</li>
+<li>Ignoring "Reported (time)". A green badge from an hour ago may be stale.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Check supply warnings before a large grossing session, not during it.</li>
+<li>Keep the screen open on a bench monitor.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Report persistent faults to your laboratory manager with the device ID shown on the card.</li>
+<li>Use <a href="/help/batch-management/equipment-log">Equipment Log</a> to record maintenance of the engraver after a fix.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/equipment-log">Equipment Log</a>: the engraver's service history.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/grossing">Grossing</a>: printing cassettes.</li>
+<li><a href="/help/batch-management/label-reprint">Label Reprint</a>: reprinting cassette labels in bulk.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every tile shows zero</td>
+<td>No device has reported.</td>
+</tr>
+<tr>
+<td>The organisation filter is missing</td>
+<td>Only one organisation is reporting.</td>
+</tr>
+<tr>
+<td>No diagnostics link on a card</td>
+<td>The engine did not send one for that device.</td>
+</tr>
+<tr>
+<td>Colour names show as codes</td>
+<td>The colour is not in your cassette colour list.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Select <strong>Refresh</strong>.</li>
+<li>Check the machine's power and network.</li>
+<li>Open the engine diagnostics if a link is shown.</li>
+<li>Ask your laboratory manager to check the engine connection.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when engravers are working but the board shows none, or the board shows Simulated on a live system. Have the device ID and the last report time ready.</p>

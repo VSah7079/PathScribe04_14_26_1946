@@ -27,6 +27,23 @@ export type SlideDistributionOperationResult =
 export type SlideExceptionReason = 'Unreadable Barcode' | 'Unassigned Accession' | 'Missing Glass';
 export const SLIDE_EXCEPTION_REASONS: readonly SlideExceptionReason[] = ['Unreadable Barcode', 'Unassigned Accession', 'Missing Glass'];
 
+/** Batch 402 (Pete): a slide label reprint needs a reason, as at the Microtome and
+ *  Embedding. Stored in English on the chain-of-custody record. */
+export type SlideLabelReprintReason = 'Damaged Label' | 'Unreadable Barcode' | 'Smudged Print' | 'Other';
+export const SLIDE_LABEL_REPRINT_REASONS: readonly SlideLabelReprintReason[] = ['Damaged Label', 'Unreadable Barcode', 'Smudged Print', 'Other'];
+
+/** Batch 402: stored English values → `slideDistribution.*` locale keys, so the screen shows them translated. */
+export const SLIDE_EXCEPTION_REASON_KEYS: Readonly<Record<SlideExceptionReason, string>> = {
+  'Unreadable Barcode': 'unreadableBarcode', 'Unassigned Accession': 'unassignedAccession', 'Missing Glass': 'missingGlass',
+};
+export const SLIDE_LABEL_REPRINT_REASON_KEYS: Readonly<Record<SlideLabelReprintReason, string>> = {
+  'Damaged Label': 'damagedLabel', 'Unreadable Barcode': 'unreadableBarcode', 'Smudged Print': 'smudgedPrint', 'Other': 'other',
+};
+export const DISTRIBUTION_STATUS_KEYS: Readonly<Record<NonNullable<StainOrder['distributionStatus']>, string>> = {
+  'Assigned': 'assigned', 'Checked Out': 'checkedOut', 'In Scanning Queue': 'inScanningQueue', 'Loaded on Scanner': 'loadedOnScanner', 'Scanned': 'scanned',
+};
+export const CASE_PRIORITY_KEYS: Readonly<Record<string, string>> = { STAT: 'stat', Rush: 'rush', Routine: 'routine' };
+
 function findBlockAndStain(specimen: Specimen, blockId: string, stainId: string): { block: HistologyBlock; stain: StainOrder } | undefined {
   const block = (specimen.blocks ?? []).find(b => b.id === blockId);
   const stain = block?.stains?.find(s => s.id === stainId);
@@ -186,17 +203,20 @@ export function resolveSlideException(specimen: Specimen, blockId: string, stain
 /** Real, per the spec's own "trigger a replacement label print"
  *  exception action — records the real event only; the caller
  *  dispatches the actual print (printSlideLabel, same real GS1/ZPL
- *  path PS-284's Microtomy Workstation already proved), same
+ *  path PS-284's Microtome Workstation already proved), same
  *  "function records the audited reason, caller does the real I/O"
  *  split as embeddingOperations.ts's own recordCassetteReprint. */
-export function recordLabelReprintRequest(specimen: Specimen, blockId: string, stainId: string, techUserId: string): SlideDistributionOperationResult {
+export function recordLabelReprintRequest(
+  specimen: Specimen, blockId: string, stainId: string, techUserId: string, reason: SlideLabelReprintReason,
+): SlideDistributionOperationResult {
   const found = findBlockAndStain(specimen, blockId, stainId);
   if (!found) return { ok: false, error: 'Slide not found.' };
+  if (!reason || !SLIDE_LABEL_REPRINT_REASONS.includes(reason)) return { ok: false, error: 'A reprint reason is required.' };
   const { stain } = found;
   return {
     ok: true,
     specimen: replaceStain(specimen, blockId, stainId, {
-      distributionEvents: appendEvent(stain.distributionEvents, 'label_reprint_requested', techUserId, 'Replacement label requested from Slide Distribution Station'),
+      distributionEvents: appendEvent(stain.distributionEvents, 'label_reprint_requested', techUserId, `Replacement label requested from Slide Distribution Station: ${reason}`),
     }),
   };
 }
@@ -205,6 +225,8 @@ export interface SplitDestinationWarning {
   routed: StainOrder[];
   conflict: boolean;
   detail: string;
+  /** Batch 402: which case applies, for the screen's locale key (`slideDistribution.splitWarning.<kind>`). */
+  kind: 'none' | 'physicalAndDigital' | 'differentPhysical' | 'differentScanners';
 }
 
 /** Real, per the spec's own "Split-Destination Warnings: visual alert
@@ -238,5 +260,21 @@ export function resolveSplitDestinationWarning(specimen: Specimen, blockId: stri
         ? 'Slides on this block are checked out to different pathologists/locations.'
         : 'Slides on this block are loaded on different scanners.';
 
-  return { routed, conflict, detail };
+  const kind: SplitDestinationWarning['kind'] = !conflict ? 'none'
+    : destinations.size > 1 ? 'physicalAndDigital'
+      : physicalTargets.size > 1 ? 'differentPhysical' : 'differentScanners';
+  return { routed, conflict, detail, kind };
+}
+
+/** Batch 402 (moved out of DestinationControlPanel): the quick-picker's
+ *  pathologists and pools matching the search text (by name, case-insensitive). */
+export function filterRoutingDirectory<P extends { firstName: string; lastName: string }, S extends { name: string }>(
+  pathologists: readonly P[], subspecialties: readonly S[], search: string,
+): { pathologists: P[]; subspecialties: S[] } {
+  const q = search.trim().toLowerCase();
+  if (!q) return { pathologists: [...pathologists], subspecialties: [...subspecialties] };
+  return {
+    pathologists: pathologists.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q)),
+    subspecialties: subspecialties.filter(sp => sp.name.toLowerCase().includes(q)),
+  };
 }

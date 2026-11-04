@@ -19,11 +19,14 @@
  *   it is the difference between one slow morning and a self-sustaining
  *   throttle.
  *
- * - VITE_NCBI_API_KEY, when set, raises the shared limit from 3 to 10 req/sec.
- *   Note this key is inlined into the client bundle and is therefore public.
+ * - No API key (Batch 499, PS-476): the browser no longer reads an NCBI
+ *   key, so no provider key ships in the bundle. E-utilities work without
+ *   one at 3 req/sec per IP; the 30-minute park below covers a throttled
+ *   hospital gateway. A keyed, server-side fetch can come with the
+ *   terminology/AI proxy (PS-488).
  *
  * - Endpoints, the article URL template and the search query are NOT
- *   hardcoded here. They come from mockResearchFeedConfigService, so an NCBI
+ *   hardcoded here. They come from researchFeedConfigService, so an NCBI
  *   restructure is an admin edit rather than a release — the same lesson
  *   services/externalResources/ was built from. Every outcome is stamped via
  *   recordHealth(), so a permanently dead feed is distinguishable from a
@@ -35,7 +38,7 @@
  */
 
 import type { IResearchFeedService, ResearchArticle } from './IResearchFeedService';
-import { mockResearchFeedConfigService } from './mockResearchFeedConfigService';
+import { researchFeedConfigService } from './researchFeedConfigServiceInstance';
 
 /** Identifies us to NCBI, per their usage guidelines. */
 const TOOL = 'PathScribe';
@@ -62,8 +65,11 @@ const CACHE_KEY_BASE = 'pathscribe_pubmed_ticker_cache';
 function isSameLocalDay(a: number, b: number): boolean {
   const da = new Date(a);
   const db = new Date(b);
+  // eslint-disable-next-line no-restricted-properties -- "today's article" is the reader's own day
   return da.getFullYear() === db.getFullYear()
+    // eslint-disable-next-line no-restricted-properties -- as above
     && da.getMonth() === db.getMonth()
+    // eslint-disable-next-line no-restricted-properties -- as above
     && da.getDate() === db.getDate();
 }
 
@@ -99,12 +105,6 @@ interface CacheEnvelope {
    *  calendar day rolls over, same as any other cache entry — a
    *  pinned choice is "for today," not permanent. */
   pinned?: boolean;
-}
-
-function apiKey(): string | undefined {
-  const key = (import.meta as unknown as { env?: Record<string, string> })
-    .env?.VITE_NCBI_API_KEY;
-  return key && key.trim().length > 0 ? key.trim() : undefined;
 }
 
 /* ------------------------------------------------------------------ cache */
@@ -238,12 +238,10 @@ class RateLimitedError extends Error {}
 
 function buildUrl(baseUrl: string, endpoint: string, params: Record<string, string>): string {
   const url = new URL(`${baseUrl}/${endpoint}`);
-  const key = apiKey();
   Object.entries({
     ...params,
     tool: TOOL,
     email: CONTACT,
-    ...(key ? { api_key: key } : {}),
   }).forEach(([k, v]) => url.searchParams.set(k, v));
   return url.toString();
 }
@@ -325,7 +323,7 @@ export const pubmedResearchFeedService: IResearchFeedService = {
     // URLs and query come from admin config, so an NCBI restructure is an
     // admin edit rather than a release. Every field falls back to its
     // built-in default independently — see the config service.
-    const config = await mockResearchFeedConfigService.getConfig();
+    const config = await researchFeedConfigService.getConfig();
     if (!config.enabled) return null;
 
     const cacheKey = cacheKeyFor(subspecialtyNames);
@@ -359,20 +357,20 @@ export const pubmedResearchFeedService: IResearchFeedService = {
       if (!article) article = await fetchLatestForTerm(config, config.query, signal);
 
       if (!article) {
-        mockResearchFeedConfigService.recordHealth('empty');
+        researchFeedConfigService.recordHealth('empty');
         writeCache(cacheKey, null);
         return null;
       }
 
-      mockResearchFeedConfigService.recordHealth('success');
+      researchFeedConfigService.recordHealth('success');
       writeCache(cacheKey, article);
       return article;
     } catch (error) {
       if (error instanceof RateLimitedError) {
         startBackoff();
-        mockResearchFeedConfigService.recordHealth('rate-limited');
+        researchFeedConfigService.recordHealth('rate-limited');
       } else {
-        mockResearchFeedConfigService.recordHealth('error');
+        researchFeedConfigService.recordHealth('error');
       }
       // Offline, blocked by network policy, timed out, rate limited,
       // malformed payload, or aborted on unmount. All are non-events: the
@@ -399,7 +397,7 @@ export async function setFeaturedArticle(
   subspecialtyNames?: string[],
   signal?: AbortSignal,
 ): Promise<ResearchArticle | null> {
-  const config = await mockResearchFeedConfigService.getConfig();
+  const config = await researchFeedConfigService.getConfig();
   try {
     const summary = await getJson(
       buildUrl(config.apiBaseUrl, 'esummary.fcgi', { db: 'pubmed', id: pmid, retmode: 'json' }),
@@ -444,7 +442,7 @@ export async function refreshFeaturedArticle(
   subspecialtyNames?: string[],
   signal?: AbortSignal,
 ): Promise<ResearchArticle | null> {
-  const config = await mockResearchFeedConfigService.getConfig();
+  const config = await researchFeedConfigService.getConfig();
   if (!config.enabled) return null;
 
   try {
@@ -453,18 +451,18 @@ export async function refreshFeaturedArticle(
     if (!article) article = await fetchLatestForTerm(config, config.query, signal, currentPmid);
 
     if (!article) {
-      mockResearchFeedConfigService.recordHealth('empty');
+      researchFeedConfigService.recordHealth('empty');
       return null;
     }
-    mockResearchFeedConfigService.recordHealth('success');
+    researchFeedConfigService.recordHealth('success');
     writeCache(cacheKeyFor(subspecialtyNames), article, /* pinned */ false);
     return article;
   } catch (error) {
     if (error instanceof RateLimitedError) {
       startBackoff();
-      mockResearchFeedConfigService.recordHealth('rate-limited');
+      researchFeedConfigService.recordHealth('rate-limited');
     } else {
-      mockResearchFeedConfigService.recordHealth('error');
+      researchFeedConfigService.recordHealth('error');
     }
     return null;
   }

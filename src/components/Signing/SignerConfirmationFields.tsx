@@ -41,13 +41,15 @@ export const SignerConfirmationFields: React.FC<Props> = ({ signer, onSubmit, va
           : t('signerConfirmation.signingAs', { name: signer.signerName })}
       </p>
 
-      {signer.method === 'password' && (
+      {signer.sessionValid && <p className="ps-signer-note" role="status">{t('signOutPolicy.sessionNote')}</p>}
+
+      {!signer.sessionValid && signer.method === 'password' && (
         <p className="ps-signer-note">
           {signer.needsUsername ? t('signerConfirmation.promptUsernamePassword') : t('signerConfirmation.promptPassword')}
         </p>
       )}
 
-      {signer.method === 'password' && (
+      {!signer.sessionValid && signer.method === 'password' && (
         <div className="ps-signer-fields">
           {signer.needsUsername && (
             <div className="ps-signer-field">
@@ -86,7 +88,26 @@ export const SignerConfirmationFields: React.FC<Props> = ({ signer, onSubmit, va
         </div>
       )}
 
-      {signer.method === 'sso' && (
+      {!signer.sessionValid && signer.mfaCodeNeeded && (
+        <div className="ps-signer-field ps-signer-mfa">
+          <label className="ps-modal-dark-label" htmlFor={`${id}-mfa`}>{t('signerConfirmation.mfaCode')}</label>
+          <input
+            id={`${id}-mfa`}
+            type="text"
+            autoComplete="one-time-code"
+            value={signer.mfaCode}
+            onChange={e => signer.setMfaCode(e.target.value)}
+            onKeyDown={onKeyDown}
+            placeholder={t('signerConfirmation.mfaCodePlaceholder')}
+            aria-invalid={invalid}
+            aria-describedby={signer.error ? errorId : undefined}
+            className={`ps-modal-dark-input${signer.error ? ' ps-modal-dark-input--error' : ''}`}
+          />
+          <p className="ps-signer-note">{t('signerConfirmation.mfaNote')}</p>
+        </div>
+      )}
+
+      {!signer.sessionValid && signer.method === 'sso' && (
         <p className="ps-signer-note">
           {t('signerConfirmation.ssoNote')}
         </p>

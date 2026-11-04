@@ -7,17 +7,18 @@
 //
 //   resetAllDemoData(deps)  every tester's demo data. Needs the capability
 //                           config:demo-data:reset (checked and audited).
-//   executeUserReset(id)    only the signed-in user's own hospital's data;
-//                           no capability, since it touches nothing of
-//                           anyone else's.
+//                           (Batch 455: the per-user reset was removed; see below.)
 //
-// Both refuse to run unless IS_MOCK_BACKEND: a real database is never reset
-// from the browser. The key lists are what DemoResetTab.auditTest.ts
+// It refuses to run unless IS_MOCK_BACKEND: a real database is never reset
+// from the browser. The key lists are what demoResetKeys.guard.test.ts
 // checks against every storage key in src/.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { IS_MOCK_BACKEND } from '../index';
 import type { IAuthorizationService } from '../authorization/authorizationService';
+import { BILLING_RULE_SEED_VERSIONS } from '../billing/mockBillingRuleService';
+import { UI_PREFERENCE_PREFIX } from '@/utils/uiPreferences';
+import { MODIFIER_DICTIONARY_SEED_VERSIONS } from '../billing/mockModifierDictionaryService';
 
 export const DEMO_RESET_CAPABILITY = 'config:demo-data:reset';
 
@@ -43,7 +44,7 @@ export const ACTIVE_SESSION_KEY_PREFIX = 'pathscribe_active_session_';
 // Real, per direct follow-up: "review the whole system, you may
 // likely find other gaps." A real, exported single source of truth
 // for every key confirmed to exist but deliberately left out of every
-// list below — so the audit test (DemoResetTab.auditTest.ts) checks
+// list below — so the audit test (demoResetKeys.guard.test.ts) checks
 // against this real, documented list directly, rather than a second,
 // separate list in the test file that could silently drift out of
 // sync with this one's own reasoning.
@@ -57,6 +58,34 @@ export const DELIBERATELY_NOT_RESET: Record<string, string> = {
   rvu_code_map_versions_v1: 'same real reasoning as billing_rule_versions_v1 above — an admin-configured billing dictionary.',
   billing_code_import_jobs_v1: 'the import-job ledger for billing_rule_versions_v1 (PS-89) — it must stay in step with the rules it created and supports their rollback, so it is kept with them.',
 };
+
+/**
+ * Batch 455 (demo baseline): the billing rule and modifier dictionaries are
+ * kept through a Full Reset (above), but their SEEDED records go back to their
+ * seeded state, so the pending approvals they come with can be demoed again.
+ * Records anyone created (new versions, uploads) are kept as they are.
+ */
+export function restoreSeedRecords<T>(stored: readonly T[], seeds: readonly T[], keyOf: (record: T) => string): T[] {
+  const seedKeys = new Set(seeds.map(keyOf));
+  return [...seeds.map(s => JSON.parse(JSON.stringify(s)) as T), ...stored.filter(r => !seedKeys.has(keyOf(r)))];
+}
+
+const SEEDED_KEPT_DICTIONARIES: readonly { key: string; seeds: readonly unknown[]; keyOf: (r: any) => string }[] = [
+  { key: 'billing_rule_versions_v1', seeds: BILLING_RULE_SEED_VERSIONS, keyOf: r => `${r.billingCode}@${r.version}` },
+  { key: 'modifier_dictionary_versions_v1', seeds: MODIFIER_DICTIONARY_SEED_VERSIONS, keyOf: r => r.id },
+];
+
+function restoreSeededDictionaries(cleared: string[]): void {
+  for (const { key, seeds, keyOf } of SEEDED_KEPT_DICTIONARIES) {
+    const storageKey = `${MOCK_PREFIX}${key}`;
+    const raw = localStorage.getItem(storageKey);
+    if (raw === null) continue; // never stored: the service starts from its seed anyway
+    let stored: unknown[] = [];
+    try { stored = JSON.parse(raw); } catch { stored = []; }
+    localStorage.setItem(storageKey, JSON.stringify(restoreSeedRecords(Array.isArray(stored) ? stored : [], seeds, keyOf)));
+    cleared.push(`${storageKey} (seeded versions restored)`);
+  }
+}
 
 /** A key that survives a Full Reset: named in DELIBERATELY_NOT_RESET, bare or under MOCK_PREFIX. */
 export function keptThroughReset(storageKey: string): boolean {
@@ -96,9 +125,31 @@ export const VERSIONED_KEYS = [
   'cytologyQcSettings_seed_version', 'facilityRegistryOverrides_seed_version',
   'facilityCytologyNomenclatureOverrides_seed_version', 'facilityCytologyRegistryOverrides_seed_version',
   'facilityCytologyScreeningStrategyOverrides_seed_version',
+  // Batch 442: written straight to localStorage, so the prefix sweep missed it.
+  'pathscribe_deficiency_types_version',
 ];
 
 export const SETTINGS_KEYS = [
+  // Batch 612: registered workstations and their token fingerprints (services/workstationRegistry).
+  'workstationRegistry',
+  // Batch 613 (PS-787): the reporting feed's settings and token fingerprints (services/biFeed).
+  'biFeedSettings',
+  'biFeedTokens',
+  // Batch 611 (#157): second-factor policy, enrolments and failed-code counts (services/auth/mfa/mfaStores.ts).
+  'ps_mfa_policy_v1',
+  'ps_mfa_enrolments_v1',
+  'ps_mfa_locks_v1',
+  // Batch 611 (#189): the Smart Capture prototype switch and production checklist (services/smartCapture).
+  'smartCaptureSettings',
+  // Batch 612: the vendor profiles of the Interface Dictionary (services/interfaceDictionary).
+  'interfaceDictionaryProfiles',
+  // Batch 610 (#87, #164): performance targets and client service levels (services/performanceTargets, services/clientSLA).
+  'performance_targets_v1',
+  'client_sla_v1',
+  // Batch 552: the demo's site agent printers and shares (services/siteAgent/siteAgentAdminInstance.ts).
+  'site_agent_config',
+  // Batch 442: the concordance review settings, written straight to localStorage.
+  'pathscribe_concordance_review_org_config',
   'specimen_dictionary',
   'container_types',
   'reagent_lots',
@@ -107,6 +158,7 @@ export const SETTINGS_KEYS = [
   'pathscribe_delegation_types_v2',
   'pathscribe_internal_notes_v2',
   'pathscribe_subspecialties',
+  'pathscribe_subspecialties_demo_members', // Batch 455: the demo pathologists' pool membership marker
   'pathscribe_report_templates',
   'pathscribe_participation_types_v2', // the real, canonical key (services/participationTypes/mockParticipationTypeService.ts)
   'pathscribe_participation_types',    // orphaned old key from ParticipationTypesSection.tsx's now-removed separate local list -- included so any stale leftover data gets cleared too
@@ -123,6 +175,8 @@ export const SETTINGS_KEYS = [
   'pathscribe_roles',
   'pathscribe_users',
   'pathscribe_facilities',
+  'pathscribe_secure_messaging', // Batch 517 (PS-143): each lab's secure messaging gateways (demo seeds come back)
+  'pathscribe_label_reprint_runs', // Batch 518 (PS-123): batch label reprint runs (each label's print is also in the document-output audit, which stays)
   'pathscribe_physicians',
   'pathscribe_protocols',
   'pathscribe_macros',
@@ -138,6 +192,17 @@ export const SETTINGS_KEYS = [
   'pathscribe_specimen_crosswalk',
   'pathscribe_specimen_deficiencies',
   'pathscribe_grossing_routing_overrides',
+  'delivery_schedules_v1', // Batch 619 (PS-800)
+  'outbound_holds_v1', // Batch 619 (PS-800): holds, overrides and retractions on the Outbound Queue
+  'billing_release_rules_v1', // Batch 619 (PS-800)
+  'us_epath_profiles_v1', // Batch 620 (part E, PS-800)
+  'us_epath_assignments_v1', // Batch 620 (part E, PS-800)
+  'batch_registry_profiles_v1', // Batch 620 (PS-800)
+  'batch_registry_runs_v1', // Batch 620 (PS-800)
+  'cosd_destinations_v1', // Batch 620 part C (PS-800)
+  'history_extraction_settings_v1', // Batch 621 (the AI extraction of historical reports setting)
+  'history_extractions_v1', // Batch 621 (what the AI read from historical reports)
+  'history_extraction_flags_v1', // Batch 621 ("flag as wrong" records)
   'pathscribe_incoming_orders',
   'pathscribe_management_reviews',
 
@@ -168,9 +233,11 @@ export const SETTINGS_KEYS = [
   'pathscribe_validation_studies_v1',
   'pathscribe_pubmed_ticker_backoff', 'pathscribe_pubmed_ticker_cache', 'pathscribe_research_feed_config', 'pathscribe_research_feed_health',
   // Org-level config toggles/settings
-  'pathscribe_orchestrator_mode', 'pathscribe_idle_timeout_minutes',
+  'pathscribe_orchestrator_mode', 'pathscribe_idle_timeout_minutes', 'pathscribe_signout_policy',
   'pathscribe_release_buffer_org_config',
   'pathscribe_org_document_style_footer', 'pathscribe_org_document_style_header', 'pathscribe_org_document_style_body',
+  // Batch 431: the lab's page size and margins (services/reportAppearance/pageSetup.ts).
+  'pathscribe_org_page_setup',
   'pathscribe_governing_bodies', 'pathscribe_tat_entries_v2', 'pathscribe_retention_policy',
   'pathscribe_external_resources', 'pathscribe_encounters',
   // Real feature, per direct follow-up: dispatched-event log for the
@@ -216,6 +283,8 @@ export const SETTINGS_KEYS = [
   'cytologyNomenclatureSettings', 'cytologyQcSettings', 'cytologyRegistrySettings',
   'cytologyRoutingSettings', 'cytologyScreeningStrategy', 'cytologyWorkloadCapSettings',
   'cytologyInstrumentation', 'nonGynCytologyCategories',
+  // Batch 608: screening intervals (config) and proficiency-test panels.
+  'cytology_screening_intervals_v1', 'cytology_pt_panels_v1',
   'facilityCytologyNomenclatureOverrides', 'facilityCytologyQcOverrides',
   'facilityCytologyRegistryOverrides', 'facilityCytologyRoutingOverrides',
   'facilityCytologyScreeningStrategyOverrides', 'facilityCytologyWorkloadCapOverrides',
@@ -226,12 +295,18 @@ export const SETTINGS_KEYS = [
   'facilityCytologyInstrumentationOverrides',
   'staffCytologyQcOverrides', 'staffCytologyWorkloadCapOverrides', 'staffConcordanceReviewOverrides',
   // Cancer registry settings + facility overrides.
-  'cancerRegistrySettings', 'facilityCancerRegistryOverrides', 'registrySettings', 'facilityRegistryOverrides',
+  'cancerRegistrySettings', 'facilityCancerRegistryOverrides', 'registrySettings', 'facilityRegistryOverrides', 'screeningRegistryConfigs', 'cytologyComplianceFeatures',
+  // Batch 423: registry go-live requests and approvals, and the go-live approval settings.
+  'registryGoLiveRecords', 'registryGoLiveGovernance',
+  // Batch 424: data-sharing agreements, the engine adapter's local rules, validation records.
+  'registryAgreements', 'registryAdapterRules', 'registryValidationRecords',
   // Equipment/hardware dictionaries — real seed data confirmed for
   // each; a lab's own configured scan stations, cassette colors, and
   // grossing hardware profiles, same real category as the Stain/
   // Protocol Dictionary already above.
   'scan_stations', 'cassette_colors', 'cassette_routing_rules', 'pathscribe_grossing_hardware_profiles',
+  // Structured Inking, Module 3 (PS-359 follow-up): the margin ink-colour admin palette.
+  'ink_colors',
   // Batch 358: the equipment register (services/equipment/), and Batch 356's
   // instrument list it reads once when migrating.
   'equipment', 'instruments',
@@ -289,6 +364,7 @@ export const SETTINGS_KEYS = [
   // before adding: WSI viewer vendors, Image Management System
   // vendors, and Gross/Macro Imaging & Telepathology vendors.
   'wsiViewerVendorDictionary', 'imageManagementSystemVendorDictionary', 'grossImagingVendorDictionary',
+  'slide_previews', // Batch 750: slide previews the interface delivered (digitalPathology/mockSlidePreviewService.ts)
   // Real, per the Automated Cytopathology QC Assignment Engine — the
   // admin-configurable rule set itself. Has real, international seed
   // data (7 real rules) — confirmed safe to reset, same pattern as
@@ -304,9 +380,51 @@ export const SETTINGS_KEYS = [
   // same discipline as every other entry in this list.
   'cytologyQcRules',
   'pathscribe_asset_locations',
+  // Batch 491: the Tumor Board auto-flagging rules — org-wide baseline and
+  // per-facility threshold/active overrides (services/tumorBoardRules/).
+  // Real, admin-configured dictionary with a real seed fallback
+  // (DEFAULT_TUMOR_BOARD_RULES), same category as every other entry above.
+  'tumor_board_auto_flag_rules', 'facility_tumor_board_rule_overrides', 'tumor_board_criteria_rules', 'ai_stalled_result_settings',
+  // Batch 494 (PS-359 follow-up — MDT Self-Service Assignment & Batching
+  // redesign): the one enterprise-wide batch-lock cut-off
+  // (tumorBoardBatchSettings), same real admin-configured category as the
+  // two keys just above it — DemoResetTab.coverage.test.ts's static scan
+  // for storage-key literals is what actually catches a key missing here.
+  'tumor_board_batch_settings',
+  // Batch 491 (disclosed, pre-existing gap found while auditing the new
+  // keys above against this file's own established pattern): these four
+  // keys — the cytology-histology and surgical biopsy-to-resection
+  // correlation-window settings and their facility overrides, both built
+  // by createCorrelationSettingsServices since Batch 452/453 — were never
+  // added here, meaning this admin config has silently survived every
+  // "Demo Reset" since. Both have real DEFAULT_* seed fallbacks, same as
+  // every other entry in this file.
+  'cytologyHistologyCorrelationSettings', 'facilityCytologyHistologyCorrelationOverrides',
+  'biopsyResectionCorrelationSettings', 'facilityBiopsyResectionCorrelationOverrides',
 ];
 
 export const CASE_KEYS = [
+  // Batch 611 (#189): Smart Capture reviews, one per case (services/smartCapture).
+  'smartCaptureRecords',
+  // Batch 612: the vendor fields applied to cases (services/interfaceDictionary).
+  'interfaceDictionaryFieldValues',
+  // Batch 605: the frozen section code decisions and the simulated engine's received-message log reset with the cases.
+  'frozenSectionSuggestionDecisions', 'simulatedEngineReceived',
+  // Batch 609: the images attached to case reports (links only: no image is stored).
+  'caseReportImages',
+  // Batch 742: the files and links attached to cases (pointers only).
+  'caseAttachments',
+  // Batch 613: the related released cases chosen for a report, and the patient summaries printed (counts only).
+  'relatedCaseAttachments',
+  // Batch 442: found by the widened scan in DemoResetTab.coverage.test.ts —
+  // written straight to localStorage, so the pathscribe_mock_ sweep missed
+  // them: the used-signature memory (signatures reset with their cases) and
+  // the interface engine's dispatch outcomes. The trend recommendations go
+  // through storageGet (already swept) but are listed like the other KEY
+  // constants.
+  'pathscribe_signature_used',
+  'pathscribe_interface_engine_dispatch_outcomes',
+  'pathscribe_qa_trend_recommendations',
   'cases', // CRITICAL FIX: was 'ps_cases', which mockCaseService.ts never actually wrote to — Demo Reset had never actually been clearing primary case data
   'orch_cases_v3',
   // Batch 345: signature records belong to the cases they sign, so they
@@ -318,8 +436,10 @@ export const CASE_KEYS = [
   'discordance_records',
   'amendment_records',
   'report_version_records',
+  'released_report_pdfs',       // Batch 392: report PDFs kept from release for ORU^R01 retries
   'lis_amendment_notices',
   'intraop_entries',
+  'pathscribe_intraop_critical_results', // Batch 399: the critical intraoperative results dictionary
   'pathscribe_drafts',
   // Real fix, found ahead of a live demo: the Charge Capture ledger
   // (mockServiceChargeService.ts) is real, per-case transactional data
@@ -356,17 +476,27 @@ export const CASE_KEYS = [
   'cytology_outbound_result_queue_v1', 'cytology_registry_outbound_queue_v1',
   'molecular_order_outbound_queue_v1', 'outbound_charge_queue_v1', 'outbound_lis_sync_queue_v1',
   'outbound_patient_adt_queue_v1', 'outbound_result_queue_v1', 'referral_outbound_queue_v1', 'print_queue_v1', 'reportReleasedEventLog',
+  'report_delivery_queue_v1', // Batch 520 (PS-280): e-fax and file-drop deliveries
+  'delivery_retry_records_v1', // Batch 521 (PS-281): automatic retries and the delivery exception queue
   // Real, per-case/per-tester records, requests, and assignments —
   // all genuinely accumulate during demo/test usage; none of these
   // are admin-configured dictionaries.
-  'access_requests', 'aiScreeningResults', 'batches', 'billing_deficiency_records_v1',
-  'code_review_pool_v1', 'countersign_records', 'critical_result_notifications_v1',
+  'access_requests', 'aiScreeningResults', 'batches', 'stationScanEvents', 'addOnLabelPrintRoutes', 'itemEndStates', 'billing_deficiency_records_v1',
+  'code_review_pool_v1', 'countersign_records', 'critical_findings_by_case_v1', 'critical_result_notifications_v1',
   'critical_alert_dispatches_v1',
-  'cytology_review_records', 'cytology_sign_out_records', 'cytology_workload_ledger_v1',
-  'fppe_assignments', 'informal_review_requests', 'migrationJobs', 'migrationRecordResults',
+  'cytology_review_records', 'cytology_sign_out_records', 'held_report_releases', 'report_documents', 'cytology_workload_ledger_v1', 'cytology_screening_hours_signoff_v1',
+  'informal_review_requests', 'migrationJobs', 'migrationRecordResults',
   'molecular_batches', 'pathscribe_abnormal_detection_signals', 'pathscribe_interface_exceptions',
   'pathscribe_messages', 'ps_case_masks_v1', 'qa_activity_records', 'qa_supervision_assignments',
   'reconciliation_records', 'referral_tracking_v1', 'telemetryReadings',
+  // Batch 489: Tumor Board/MDT listings (tumorBoard/mockTumorBoardService.ts)
+  // — per-case nominations, the same real accumulating shape as the
+  // deficiency/review records above.
+  'tumor_board_listings',
+  // Batch 490: margin-distance extraction shadow attributes and review-
+  // queue exceptions (marginExtraction/mockMarginExtractionService.ts) —
+  // same real per-case accumulating shape.
+  'margin_shadow_attributes', 'margin_extraction_exceptions',
   // Real, per the same "review the whole system" follow-up — two
   // more real, per-run accumulating records the same programmatic
   // audit found: WSI scanner batches and molecular QC run records,
@@ -381,8 +511,10 @@ export const CASE_KEYS = [
   // per-case assignment records, genuinely correct to reset to empty
   // (a fresh case starts with no QC assignment history at all).
   'cytologyQcCaseAssignments',
+  // Batch 501: each QC rule's sampling counters.
+  'cytologyQcSamplingStates',
   // Real, per the same follow-up — this app's own real, systematic
-  // audit test (DemoResetTab.auditTest.ts) found this one on its
+  // audit test (demoResetKeys.guard.test.ts) found this one on its
   // first real run, beyond what the earlier manual pass caught. Real,
   // per-run accumulating data with a real SEED fallback confirmed —
   // same shape as intraop_entries above.
@@ -407,9 +539,15 @@ export const STATE_KEYS = [
   'pathscribe-tab-width', 'pathscribe_header_compact_manual', 'pathscribe_voice_accent',
   // Batch 381: the report page's display preferences moved to utils/uiPreferences.
   'ps_ui_reportHeaderCompact', 'ps_ui_reportSidebarCollapsed', 'ps_ui_reportTabWidth',
+  // Batch 431: the preview window's position moved to utils/uiPreferences.
+  // Batch 497: that window was retired; the key stays so a reset still clears
+  // a position saved in a browser before then.
+  'ps_ui_previewWindowGeometry',
   'pathscribe:desktopViewOverride', 'ps_sidebar_collapsed', 'ps_preview_margins', 'ps_preview_page_size',
   'pathscribe:savedSearches', 'pathscribe:lastSearch', 'ps_post_signout_pref',
   'pathscribe_show_superseded_notice', 'pathscribe_footpedal_bindings', 'ps_voice_ai_available',
+  // Batch 735: this computer's touch layout override (utils/touch/touchLayout.ts); a reset returns it to Auto.
+  'pathscribe_touch_layout',
   // Real, per the same follow-up as orEventLog above — the OR Suite
   // Live Board's own terminal binding (useCurrentOrTerminal.ts).
   // Exact same real reasoning already established for
@@ -443,6 +581,8 @@ export const STATE_KEYS = [
   // either way" posture as the pathscribe_participation_types/
   // pathscribe_participation_types_v2 pair in SETTINGS_KEYS above.
   'pathscribe_savedSearches',
+  // Batch 613: report schedules (services/scheduledReports/createScheduledReportService.ts).
+  'pathscribe_scheduledReports',
   // Real, per the same "review the whole system" follow-up — a
   // comment-modal position preference (pages/Synoptic/Comments/
   // CommentModalShell.tsx) and the UI language selection (i18n/
@@ -457,28 +597,6 @@ export const STATE_KEYS = [
   'pathscribe:savedBillingLogQueries', 'ps-editor-theme-preference',
   'ps_preview_window_geometry', 'worklistSort',
 ];
-
-// Hospital → user mapping (mirrors mockCaseService USER_HOSPITAL_MAP)
-export const HOSPITAL_MAP: Record<string, string> = {
-  'PATH-001':    'HOSP-001',   // Pete Nimmo — US demo
-  'PATH-UK-001': 'HOSP-MFT',  // Paul Carter   — UK
-  'PATH-UK-002': 'HOSP-MFT',
-  'PATH-US-001': 'HOSP-MPA',  // Amber Fehrs-Battey — US
-  'PATH-US-002': 'HOSP-HFHS',  // J. Mark Tuthill
-  'PATH-RB-001': 'HOSP-RB',    // Rossana Babakhani
-};
-
-/** Read current user id from localStorage session */
-export function getCurrentUserId(): string | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.id ?? parsed?.userId ?? null;
-  } catch {
-    return null;
-  }
-}
 
 /** Full reset — clears all mock data for all users */
 function executeFullReset(): string[] {
@@ -530,69 +648,38 @@ function executeFullReset(): string[] {
   // (ps_rpart_ — Report Part Builder's own per-part draft storage;
   // ps_orch_sections_ — Orchestrator draft sections, keyed by real
   // caseId), never a single, fixed key name a literal list could
-  // ever fully enumerate.
+  // ever fully enumerate. Batch 431: also template review work (ps_answers_,
+  // ps_comments_, services/templates/templateReviewWork.ts) and old
+  // reviewer-page state copies (ps_state_).
   Object.keys(localStorage)
-    .filter(k => k.startsWith('ps_rpart_') || k.startsWith('ps_orch_sections_'))
+    .filter(k => RUNTIME_KEY_PREFIXES.some(p => k.startsWith(p)))
     .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
 
+  // Batch 508 (Pete, Oct 10): every screen display preference goes too
+  // (utils/uiPreferences.ts: saved filters, page size, editor theme,
+  // collapsed worklist pools, organ-map view, print margins, sidebar),
+  // for the test-ready baseline the reset promises. Before, only the four
+  // listed in STATE_KEYS were cleared.
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(UI_PREFERENCE_PREFIX))
+    .forEach(k => { localStorage.removeItem(k); cleared.push(k); });
+
+  // Batch 455: put the seeded billing and modifier versions back (pending approvals included).
+  restoreSeededDictionaries(cleared);
+
   sessionStorage.clear();
   return cleared;
 }
 
-/**
- * Partial reset — removes only the current user's cases from the mock case
- * store, then forces a version bump so their cases re-seed from defaults.
- * Other users' work is preserved.
- */
-export function executeUserReset(userId: string): string[] {
-  // Same real, critical, defense-in-depth guard as executeFullReset —
-  // see that function's own comment for the full reasoning.
-  if (!IS_MOCK_BACKEND) {
-    throw new Error('Demo Reset is disabled — this app is connected to a real, non-mock backend. Refusing to risk deleting real customer data.');
-  }
-  const cleared: string[] = [];
-  const hospitalId = HOSPITAL_MAP[userId];
+/** Key families built at run time (per case, per template, per part). */
+export const RUNTIME_KEY_PREFIXES: readonly string[] = ['ps_rpart_', 'ps_orch_sections_', 'ps_answers_', 'ps_comments_', 'ps_state_'];
 
-  // Load and filter the cases store
-  const casesKey = `${MOCK_PREFIX}cases`;
-  const raw = localStorage.getItem(casesKey);
-  if (raw) {
-    try {
-      const cases = JSON.parse(raw);
-      const filtered = cases.filter(
-        (c: any) => c.originHospitalId !== hospitalId && c.hospitalId !== hospitalId
-      );
-      if (filtered.length !== cases.length) {
-        localStorage.setItem(casesKey, JSON.stringify(filtered));
-        cleared.push(`${casesKey} (removed ${cases.length - filtered.length} cases)`);
-      }
-    } catch {
-      // If corrupt, remove the whole store — it will re-seed
-      localStorage.removeItem(casesKey);
-      cleared.push(casesKey);
-    }
-  }
-
-  // Clear the cases version so the full seed re-runs on next load
-  // (seed data is additive — it won't duplicate cases already present)
-  localStorage.removeItem('pathscribe_mock_cases_version');
-  cleared.push('pathscribe_mock_cases_version (version reset)');
-
-  // Real fix — same gap as executeFullReset above, scoped correctly
-  // here: only this user's own marker, since other testers' sessions
-  // must survive a "my data only" reset.
-  const ownActiveSessionKey = `${ACTIVE_SESSION_KEY_PREFIX}${userId}`;
-  if (localStorage.getItem(ownActiveSessionKey) !== null) {
-    localStorage.removeItem(ownActiveSessionKey);
-    cleared.push(ownActiveSessionKey);
-  }
-
-  // Clear any user-specific session state
-  sessionStorage.clear();
-  cleared.push('sessionStorage');
-
-  return cleared;
-}
+// Batch 455: executeUserReset ("My data only") was removed. It cleared the
+// cases version marker, so mockCaseService re-seeded every LIS case for every
+// tester (the hospital filter did nothing), and it left orchestrator cases,
+// signatures, amendments, drafts, cytology reviews, QC assignments,
+// delegations, charges and claims as they were, out of step with the fresh
+// cases. The Full Reset below is the one reset.
 
 export type FullResetResult = { ok: true; cleared: string[] } | { ok: false; reason: 'notPermitted' };
 

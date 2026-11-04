@@ -21,17 +21,22 @@
  * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  */
 
-import { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
+import type { EditorTemplate } from '../../components/Config/Protocols/SynopticEditor';
 import { PROTOCOL_REGISTRY, Protocol, LifecycleState, notifyRegistryChanged, saveRegistryOverride } from '../../components/Config/Protocols/protocolShared';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { fromLegacyName, formatFullDisplayName } from '../../utils/personName';
 import { inheritedCopyAttributes } from './protocolLifecycle';
+import { mohsTemplateProblems } from './mohsStages';
 import {
-  calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, isTemplateApprover, withEditor, SNOMED_PUBLISH_THRESHOLD,
+  calcTemplateCoverage, canDraftTemplates, decideApprove, decidePublish, withEditor, SNOMED_PUBLISH_THRESHOLD,
   type TemplateActor,
 } from './templatePublishingRules';
-import { roleIdsForNames } from '../roles/systemRoles';
 import { getTemplateGovernanceSettings } from './templateGovernanceSettings';
+import { dataStorage } from '../browserData/dataStorage';
+import { auditService } from '../auditlog/auditServiceInstance';
+import { DEMO_CHECKLIST_LOADERS } from './demoChecklistLoaders';
+import { checklistCopyRefusal } from './demoChecklists';
+import { templateLifecycleAuditEntry, type TemplateLifecycleEvent, type TemplateLifecycleSubject } from './templateLifecycleAudit';
 
 // â”€â”€â”€ Shared types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -127,7 +132,7 @@ const EDITOR_STORE_KEY = 'ps_editor_store_v1';
 
 function loadEditorStoreOverrides(): Record<string, EditorTemplate> {
   try {
-    const raw = localStorage.getItem(EDITOR_STORE_KEY);
+    const raw = dataStorage.getItem(EDITOR_STORE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
@@ -136,7 +141,7 @@ function saveEditorStoreOverride(id: string, template: EditorTemplate): void {
   try {
     const overrides = loadEditorStoreOverrides();
     overrides[id] = template;
-    localStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
+    dataStorage.setItem(EDITOR_STORE_KEY, JSON.stringify(overrides));
   } catch { /* storage unavailable */ }
 }
 
@@ -148,27 +153,21 @@ const now = () => new Date().toISOString();
 
 // ─── PS-63 review governance helpers ────────────────────────────────────────
 
-/** The signed-in user as the publishing rules see them. Roles are read
- *  live from the staff record and the role catalog at the moment of the
- *  action (not from the login session), and matched to built-in role ids
- *  (services/roles/systemRoles.ts). `displayName` is the name the reviewer
+/** The signed-in user as the publishing rules see them: the capabilities held at the moment of the
+ *  action (Batch 664: no role names). `displayName` is the name the reviewer
  *  page shows (AuthContext user.name). */
 async function currentActor(displayName?: string): Promise<TemplateActor | null> {
   const session = getSessionUser();
   if (!session) return null;
-  let roleIds: string[] = [];
-  try {
-    const { userService, roleService } = await import('../../services');
-    const [users, roles] = await Promise.all([userService.getAll(), roleService.getAll()]);
-    const staff = users.ok ? users.data.find(u => u.id === session.id) : undefined;
-    if (staff && roles.ok) roleIds = roleIdsForNames(staff.roles, roles.data);
-  } catch { /* no staff record or catalog: app role only */ }
-  return {
-    id: session.id,
-    name: displayName ?? resolveOwnerDisplayName(),
-    appRole: session.role,
-    roleIds,
-  };
+  let capabilities: string[] = [];
+  try { capabilities = [...await (await authz()).grantedCapabilities()]; } catch { /* none: nothing is permitted */ }
+  return { id: session.id, name: displayName ?? resolveOwnerDisplayName(), capabilities };
+}
+
+/** Batch 428: the protocol capabilities are checked at each action, audited
+ *  (config:protocol:draft / approve / publish / retire). */
+async function authz() {
+  return (await import('../authorization/defaultAuthorizationService')).authorizationService;
 }
 
 /** Whether the signed-in user may draft templates (Template Author, or
@@ -181,12 +180,23 @@ export async function canCurrentUserDraftTemplates(): Promise<boolean> {
  *  translated text for each code. */
 const GOVERNANCE_MESSAGES: Record<string, string> = {
   NOT_TEMPLATE_AUTHOR:    'Drafting templates requires the Template Author role.',
-  NOT_APPROVER:           'Only a Template Approver, Lab Director or Admin can approve or publish templates.',
+  NOT_APPROVER:           'Approving, publishing or returning a template needs that permission (Template Approver, Lab Director and Admin hold it).',
+  NOT_PERMITTED:          'Retiring or restoring a protocol needs the permission to retire protocols.',
   SELF_APPROVAL:          'This template requires independent review before publication. Please assign a reviewer or request sign-off from a Lab Director.',
   ALREADY_APPROVED:       'You have already approved this template.',
   NOT_ENOUGH_APPROVALS:   'This template does not yet have the required number of independent approvals.',
   SNOMED_BELOW_THRESHOLD: `Templates require at least ${SNOMED_PUBLISH_THRESHOLD}% SNOMED coverage before publishing.`,
+  MOHS_HISTOLOGY_SOURCE:  'A Mohs stage question takes its default histology from a question that no longer exists or is not a choice question.',
+  DEMO_CHECKLIST_COPY:    'A checklist with demonstration wording cannot be copied until a pathologist has reviewed it.',
 };
+
+/** Batch 463b: a template whose Mohs stage question names a missing or
+ *  non-choice default-histology source can't go to review or be published. */
+async function assertMohsHistologySources(id: string): Promise<void> {
+  await ensureSeedTemplate(id);
+  const stored = editorStore.get(id);
+  if (stored && mohsTemplateProblems(stored as never).length) throw governanceError('MOHS_HISTOLOGY_SOURCE');
+}
 
 function governanceError(code: string, extra: { coverage?: number; approvalCount?: number } = {}): ServiceError {
   return {
@@ -198,7 +208,8 @@ function governanceError(code: string, extra: { coverage?: number; approvalCount
 }
 
 /** Field-level SNOMED % used by the publish check: from the template's own
- *  content when the editor has it, else the registry's seeded figure. */
+ *  content when the editor has it, else the registry's seeded figure.
+ *  publishTemplate has already loaded the seed (assertMohsHistologySources). */
 function publishCoverage(id: string, entry: Protocol): number {
   const stored = editorStore.get(id);
   if (stored && stored.sections?.some(sec => sec.fields.length > 0)) return calcTemplateCoverage(stored).snomed;
@@ -313,6 +324,7 @@ export async function getTemplate(id: string): Promise<TemplateDetail> {
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
+  await ensureSeedTemplate(id);
   const storedTemplate = editorStore.get(id);
 
   // Fallback: template seeded directly into editorStore but not in PROTOCOL_REGISTRY
@@ -379,11 +391,18 @@ function resolveOwnerDisplayName(): string {
   return formatFullDisplayName(fromLegacyName(session.firstName ?? '', session.lastName ?? ''));
 }
 
+/** Batch 609 (#39): a lifecycle step goes to the Audit Log (it used to go to the console only). Never blocks the step. */
+async function auditLifecycle(event: TemplateLifecycleEvent, subject: TemplateLifecycleSubject): Promise<void> {
+  try { await auditService.logEvent(templateLifecycleAuditEntry(event, subject, resolveOwnerDisplayName())); } catch { /* the audit service is best-effort here */ }
+}
+
 export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResult> {
   await delay(400);
   // PS-63 (Batch 329): drafting is limited to Template Author (Admin inherits).
   const author = await currentActor();
-  if (!canDraftTemplates(author)) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!author || !(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  // Batch 755a: a first save of a copy whose source is a demonstration checklist is refused (whatever the screen allowed).
+  if (!registryEntry(template.id) && checklistCopyRefusal(template.copiedFromId)) throw governanceError('DEMO_CHECKLIST_COPY');
 
   // â”€â”€ MOCK â”€â”€
   const ts = now();
@@ -413,7 +432,7 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
     approvals:    [],
   });
 
-  console.info(`[templateService] Draft saved: ${template.name} (${template.id})`);
+  await auditLifecycle('TEMPLATE_DRAFT_SAVED', { id: template.id, name: template.name, version: template.version, to: 'draft' });
   return { id: template.id, status: 'draft', updatedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -428,16 +447,17 @@ export async function saveDraft(template: EditorTemplate): Promise<SaveDraftResu
 // â”€â”€â”€ POST /api/templates/:id/submit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function submitForReview(id: string, note?: string): Promise<SubmitResult> {
   await delay(500);
-  if (!canDraftTemplates(await currentActor())) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
+  await assertMohsHistologySources(id);
 
   const ts = now();
   upsertRegistry({ id, status: 'in_review', lastModified: ts.slice(0, 10), reviewNote: note, approvals: [] });
 
-  console.info(`[templateService] Submitted for review: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_SUBMITTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'in_review', noted: !!note?.trim() });
   return { id, status: 'in_review', submittedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -452,6 +472,7 @@ export async function submitForReview(id: string, note?: string): Promise<Submit
 // â”€â”€â”€ POST /api/templates/:id/approve â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function approveTemplate(id: string, note?: string, reviewedBy?: string): Promise<TransitionResult> {
   await delay(500);
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -473,7 +494,7 @@ export async function approveTemplate(id: string, note?: string, reviewedBy?: st
     lastModified: ts.slice(0, 10), reviewNote: note,
   });
 
-  console.info(`[templateService] Approval recorded: ${entry.name} (${decision.approvalCount}, now ${decision.status})`);
+  await auditLifecycle('TEMPLATE_APPROVED', { id, name: entry.name, version: entry.version, from: entry.status, to: decision.status, approvals: decision.approvalCount, noted: !!note?.trim() });
   return { id, status: decision.status, updatedAt: ts, approvalCount: decision.approvalCount };
 
   // â”€â”€ REAL â”€â”€
@@ -488,17 +509,20 @@ export async function approveTemplate(id: string, note?: string, reviewedBy?: st
 // â”€â”€â”€ POST /api/templates/:id/publish â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function publishTemplate(id: string, _note?: string, publishedBy?: string): Promise<TransitionResult> {
   await delay(600);
+  if (!(await (await authz()).enforce('config:protocol:publish')).allowed) throw governanceError('NOT_APPROVER');
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
+  await assertMohsHistologySources(id);
   const ts = now();
   // PS-63: approver role, no self-publishing (unless the site allows it),
   // enough approvals, and ≥80% SNOMED coverage for diagnostic templates.
   const actor = await currentActor(publishedBy);
   const decision = decidePublish(entry, actor, getTemplateGovernanceSettings(), publishCoverage(id, entry));
   if (decision.ok === false) throw governanceError(decision.code, decision);
+  if (!actor) throw governanceError('NOT_APPROVER'); // decidePublish already refuses a missing actor
 
   upsertRegistry({ id, status: 'published', reviewNote: undefined, lastModified: ts.slice(0, 10), publishedById: actor.id, publishedAt: ts });
 
@@ -507,11 +531,10 @@ export async function publishTemplate(id: string, _note?: string, publishedBy?: 
   const predecessor = entry.supersedesId ? registryEntry(entry.supersedesId) : undefined;
   if (predecessor && predecessor.status === 'published') {
     upsertRegistry({ id: predecessor.id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-    clearReviewerStateOverride(predecessor.id);
-    console.info(`[templateService] Archived ${predecessor.name} v${predecessor.version} (superseded by v${entry.version})`);
+    await auditLifecycle('TEMPLATE_SUPERSEDED', { id: predecessor.id, name: predecessor.name, version: predecessor.version, from: 'published', to: 'archived' });
   }
 
-  console.info(`[templateService] Published: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_PUBLISHED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'published' });
 
   // Notify the requester if template was built from a request
   // Requester info stored in reviewNote as NOTIFY_REQUESTER:{...} marker
@@ -546,6 +569,10 @@ caseNumber: '',
 // â”€â”€â”€ POST /api/templates/:id/request-changes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function requestChanges(id: string, note: string, reviewedBy?: string): Promise<TransitionResult> {
   await delay(500);
+  // Batch 428: a reviewer's decision (it clears the round's approvals).
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
+  // Recorded the way an approval is (the reviewer page passes the signed-in person's name).
+  const reviewer = await currentActor(reviewedBy);
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
@@ -554,13 +581,13 @@ export async function requestChanges(id: string, note: string, reviewedBy?: stri
   const ts = now();
   upsertRegistry({
     id, status: 'needs_changes', reviewNote: note,
-    reviewedBy: reviewedBy ?? 'Unknown User',
+    reviewedBy: reviewer?.name ?? reviewedBy ?? 'Unknown User',
     reviewedAt: ts,
     lastModified: ts.slice(0, 10),
     approvals: [],
   });
 
-  console.info(`[templateService] Changes requested: ${entry.name} â€” "${note}"`);
+  await auditLifecycle('TEMPLATE_CHANGES_REQUESTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'needs_changes', noted: !!note?.trim() });
   return { id, status: 'needs_changes', reviewNote: note, updatedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -576,16 +603,25 @@ export async function requestChanges(id: string, note: string, reviewedBy?: stri
 export async function resubmitForReview(id: string, _note?: string): Promise<SubmitResult> {
   await delay(500);
   // The author resubmits; a reviewer may also move it back into review.
-  { const a = await currentActor(); if (!canDraftTemplates(a) && !isTemplateApprover(a)) throw governanceError('NOT_TEMPLATE_AUTHOR'); }
+  {
+    // Batch 428: checked against whichever of the two the person holds.
+    const a = await authz();
+    const granted = await a.grantedCapabilities();
+    const ok = granted.has('config:protocol:draft')
+      ? (await a.enforce('config:protocol:draft')).allowed
+      : (await a.enforce('config:protocol:approve')).allowed;
+    if (!ok) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  }
 
   // â”€â”€ MOCK â”€â”€
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
 
+  await assertMohsHistologySources(id);
   const ts = now();
   upsertRegistry({ id, status: 'in_review', reviewNote: undefined, lastModified: ts.slice(0, 10), approvals: [] });
 
-  console.info(`[templateService] Resubmitted: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_RESUBMITTED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'in_review' });
   return { id, status: 'in_review', submittedAt: ts };
 
   // â”€â”€ REAL â”€â”€
@@ -600,7 +636,7 @@ export async function resubmitForReview(id: string, _note?: string): Promise<Sub
 // â”€â”€â”€ DELETE /api/templates/:id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
   await delay(300);
-  if (!canDraftTemplates(await currentActor())) throw governanceError('NOT_TEMPLATE_AUTHOR');
+  if (!(await (await authz()).enforce('config:protocol:draft')).allowed) throw governanceError('NOT_TEMPLATE_AUTHOR');
 
   // â”€â”€ MOCK â”€â”€
   const idx = PROTOCOL_REGISTRY.findIndex(p => p.id === id);
@@ -608,18 +644,20 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
   if (PROTOCOL_REGISTRY[idx].status !== 'draft') {
     throw { code: 'FORBIDDEN', message: 'Only draft templates can be deleted' } as ServiceError;
   }
+  const removed = PROTOCOL_REGISTRY[idx];
   PROTOCOL_REGISTRY.splice(idx, 1);
   editorStore.delete(id);
+  deletedSeeds.add(id);
 
   // Remove from localStorage persistence store
   try {
     const { loadRegistryOverrides } = await import('../../components/Config/Protocols/protocolShared');
     const overrides = loadRegistryOverrides();
     delete overrides[id];
-    localStorage.setItem('ps_registry_overrides_v1', JSON.stringify(overrides));
+    dataStorage.setItem('ps_registry_overrides_v1', JSON.stringify(overrides));
   } catch { /* storage unavailable */ }
 
-  console.info(`[templateService] Deleted draft: ${id}`);
+  await auditLifecycle('TEMPLATE_DRAFT_DELETED', { id, name: removed.name, version: removed.version, from: 'draft' });
   return { deleted: true };
 
   // â”€â”€ REAL â”€â”€
@@ -634,37 +672,33 @@ export async function deleteTemplate(id: string): Promise<{ deleted: true }> {
 // keep their content. Restore brings it back as a DRAFT, so it goes through
 // review again before anyone can report with it. Rules:
 // services/templates/protocolLifecycle.ts.
-/** TemplateRenderer.tsx (the reviewer page) keeps its own copy of a
- *  protocol's lifecycle state in localStorage (`ps_state_<id>`) and prefers
- *  it over the registry. Archive/restore/supersede move a protocol
- *  backwards, which nothing could do before, so that copy must be dropped or
- *  a restored draft would still show as 'published' there, with no way back
- *  into review. */
-function clearReviewerStateOverride(id: string): void {
-  try { localStorage.removeItem(`ps_state_${id}`); } catch { /* storage unavailable */ }
-}
+// Batch 431: the reviewer page no longer keeps its own copy of a protocol's
+// lifecycle state (the old `ps_state_<id>` browser value), so archive,
+// restore and supersede have nothing to clear; old copies are removed at
+// start-up (services/browserCleanup/retiredBrowserKeys.ts).
 
 export async function archiveTemplate(id: string): Promise<TransitionResult> {
   await delay(300);
+  // Batch 428: retiring a protocol, even a published one, is its own capability.
+  if (!(await (await authz()).enforce('config:protocol:retire')).allowed) throw governanceError('NOT_PERMITTED');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status === 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is already archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'archived', archivedAt: ts, lastModified: ts.slice(0, 10) });
-  clearReviewerStateOverride(id);
-  console.info(`[templateService] Archived: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_ARCHIVED', { id, name: entry.name, version: entry.version, from: entry.status, to: 'archived' });
   return { id, status: 'archived', updatedAt: ts };
 }
 
 export async function restoreTemplate(id: string): Promise<TransitionResult> {
   await delay(300);
+  if (!(await (await authz()).enforce('config:protocol:retire')).allowed) throw governanceError('NOT_PERMITTED');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status !== 'archived') throw { code: 'INVALID_TRANSITION', message: `Template ${id} is not archived` } as ServiceError;
   const ts = now();
   upsertRegistry({ id, status: 'draft', archivedAt: undefined, lastModified: ts.slice(0, 10) });
-  clearReviewerStateOverride(id);
-  console.info(`[templateService] Restored to draft: ${entry.name}`);
+  await auditLifecycle('TEMPLATE_RESTORED', { id, name: entry.name, version: entry.version, from: 'archived', to: 'draft' });
   return { id, status: 'draft', updatedAt: ts };
 }
 
@@ -674,6 +708,8 @@ export async function restoreTemplate(id: string): Promise<TransitionResult> {
  *  reviewer page's local copy and the registry never moved.) */
 export async function resetToDraft(id: string): Promise<TransitionResult> {
   await delay(300);
+  // Batch 428: a reviewer's decision (it clears the round's approvals).
+  if (!(await (await authz()).enforce('config:protocol:approve')).allowed) throw governanceError('NOT_APPROVER');
   const entry = registryEntry(id);
   if (!entry) throw { code: 'NOT_FOUND', message: `Template ${id} not found` } as ServiceError;
   if (entry.status === 'published' || entry.status === 'archived') {
@@ -681,6 +717,7 @@ export async function resetToDraft(id: string): Promise<TransitionResult> {
   }
   const ts = now();
   upsertRegistry({ id, status: 'draft', approvals: [], lastModified: ts.slice(0, 10) });
+  await auditLifecycle('TEMPLATE_RESET_TO_DRAFT', { id, name: entry.name, version: entry.version, from: entry.status, to: 'draft' });
   return { id, status: 'draft', updatedAt: ts };
 }
 
@@ -869,94 +906,69 @@ export async function validateTerminologyCodes(
 // section counts) is preserved so the editor/validation UI still exercises
 // the same code paths. Restore real CAP-derived content only once a CAP
 // license is confirmed in place.
-// Each is seeded into editorStore at module load so getTemplate() returns
-// real field data during development. Remove when backend API is wired in.
-
-import BREAST_INVASIVE_JSON      from '../../data/templates/generic/breast_invasive.json';
-import BREAST_DCIS_JSON          from '../../data/templates/generic/breast_dcis_resection.json';
-import LUNG_ADENO_JSON           from '../../data/templates/generic/lung_adeno.json';
-import PROSTATE_NEEDLE_JSON      from '../../data/templates/generic/prostate_needle_biopsy.json';
-import COLON_RESECTION_JSON      from '../../data/templates/generic/colon_resection.json';
-import SKIN_MELANOMA_JSON        from '../../data/templates/generic/skin_melanoma_bx.json';
-import PROSTATE_RESECTION_JSON   from '../../data/templates/generic/prostate_resection.json';
-import LUNG_RESECTION_JSON       from '../../data/templates/generic/lung_resection.json';
-import KIDNEY_RESECTION_JSON    from '../../data/templates/generic/kidney_resection.json';
-import KIDNEY_BIOPSY_JSON       from '../../data/templates/generic/kidney_biopsy.json';
-import WILMS_RESECTION_JSON     from '../../data/templates/generic/wilms_resection.json';
-import WILMS_BIOPSY_JSON        from '../../data/templates/generic/wilms_biopsy.json';
-import AUTOPSY_GROSS_EXAM_JSON  from '../../data/templates/Autopsy/autopsy_gross_examination.json';
-
-// Seed all generic templates (see comment block above)
-editorStore.set('breast_invasive',        BREAST_INVASIVE_JSON   as any);
-editorStore.set('breast_dcis_resection',  BREAST_DCIS_JSON       as any);
-editorStore.set('lung_adeno',             LUNG_ADENO_JSON        as any);
-editorStore.set('prostate_needle_biopsy', PROSTATE_NEEDLE_JSON   as any);
-editorStore.set('colon_resection',        COLON_RESECTION_JSON   as any);
-editorStore.set('skin_melanoma_bx',          SKIN_MELANOMA_JSON       as any);
-editorStore.set('kidney_resection',    KIDNEY_RESECTION_JSON    as unknown as EditorTemplate);
-editorStore.set('kidney_biopsy',       KIDNEY_BIOPSY_JSON       as unknown as EditorTemplate);
-editorStore.set('wilms_resection',     WILMS_RESECTION_JSON     as unknown as EditorTemplate);
-editorStore.set('wilms_biopsy',        WILMS_BIOPSY_JSON        as unknown as EditorTemplate);
-editorStore.set('autopsy_gross_examination', AUTOPSY_GROSS_EXAM_JSON as unknown as EditorTemplate);
-editorStore.set('prostate_resection',        PROSTATE_RESECTION_JSON  as any);
-editorStore.set('lung_resection',            LUNG_RESECTION_JSON      as any);
-// Alias — internal protocol ID used by the generic seed template above
-editorStore.set('skin_invasive_melanoma_biopsy', SKIN_MELANOMA_JSON as any);
-
-// UK generic templates (formerly RCPath-derived; see comment block above --
-// same content-licensing cleanup applies. Ids/filenames were also renamed
-// to drop the "rcpath_" prefix and RCPath's internal document numbering,
-// e.g. rcpath_g148_breast_surgical_excision -> breast_surgical_excision.)
-import UK_BREAST_JSON         from '../../data/templates/generic/breast_surgical_excision.json';
-import UK_COLORECTAL_RES_JSON from '../../data/templates/generic/colorectal_resection_b.json';
-import UK_COLORECTAL_LOC_JSON from '../../data/templates/generic/colorectal_local_excision.json';
-import UK_COLORECTAL_FI_JSON  from '../../data/templates/generic/colorectal_further_investigations.json';
-import UK_PROSTATE_BX_JSON    from '../../data/templates/generic/prostate_biopsy.json';
-import UK_PROSTATE_RP_JSON    from '../../data/templates/generic/prostate_radical_prostatectomy.json';
-import UK_PROSTATE_TURP_JSON  from '../../data/templates/generic/prostate_turp_enucleation.json';
-
-editorStore.set('breast_surgical_excision',            UK_BREAST_JSON         as any);
-editorStore.set('colorectal_resection_b',               UK_COLORECTAL_RES_JSON as any);
-editorStore.set('colorectal_local_excision',            UK_COLORECTAL_LOC_JSON as any);
-editorStore.set('colorectal_further_investigations',    UK_COLORECTAL_FI_JSON  as any);
-editorStore.set('prostate_biopsy',                      UK_PROSTATE_BX_JSON   as any);
-editorStore.set('prostate_radical_prostatectomy',       UK_PROSTATE_RP_JSON   as any);
-editorStore.set('prostate_turp_enucleation',            UK_PROSTATE_TURP_JSON as any);
-
-// Grossing Templates
-// NOTE: unlike the generic template imports above, these do NOT rely on the
-// getTemplate() fallback path (the "seeded into editorStore but not in
-// PROTOCOL_REGISTRY" case) — each has an explicit PROTOCOL_REGISTRY entry
-// in protocolShared.tsx (see "Grossing Templates" section there), set to
-// status: 'published' so they show in Active Protocols / are selectable
-// for assignment, the same as any other Base/Custom template. Both files
-// must be kept in sync by id.
 //
-// Three peer templates (Route A/B/C), not one generic + variants — see the
-// "Grossing Templates" comment block in protocolShared.tsx for why there's
-// no parent/child relationship between them; Stage 0's AI assignment picks
-// the right one per specimen, the same way CAP_TO_REPORT picks a Report
-// Template in TemplateRoutingService.ts.
-import GROSSING_STANDARD_TISSUE_JSON from '../../data/templates/Grossing/grossing_standard_tissue.json';
-import GROSSING_FLUID_CYTOLOGY_JSON  from '../../data/templates/Grossing/grossing_fluid_cytology.json';
-import THYROID_FNA_CYTOLOGY_JSON     from '../../data/templates/Cytology/cytology_thyroid_fna_cytology.json';
-import SALIVARY_GLAND_FNA_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json';
-import URINE_CYTOLOGY_JSON           from '../../data/templates/Cytology/cytology_urine_cytology.json';
-import PANCREATICOBILIARY_CYTOLOGY_JSON from '../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json';
-import LYMPH_NODE_FNA_CYTOLOGY_JSON  from '../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json';
-import GROSSING_HISTOLOGY_ONLY_JSON  from '../../data/templates/Grossing/grossing_histology_only.json';
+// Batch 505 (PS-475): seeds load ON DEMAND. They used to be imported
+// statically and put into editorStore at module load, which put about
+// 420 KB of template JSON into every first page load. Now each file is
+// its own small chunk, fetched the first time something asks for that id
+// (ensureSeedTemplate, awaited by every function that reads editorStore).
+// Saved edits still win: hydration below puts them in editorStore first,
+// and a seed never overwrites an id that's already there.
+// Remove when the backend API is wired in.
+//
+// UK generic templates were formerly RCPath-derived (same licensing
+// cleanup; ids and filenames dropped the "rcpath_" prefix and RCPath's
+// document numbering, e.g. rcpath_g148_breast_surgical_excision ->
+// breast_surgical_excision).
+//
+// Grossing templates do NOT rely on the getTemplate() "in editorStore but
+// not in PROTOCOL_REGISTRY" fallback: each has an explicit, published
+// PROTOCOL_REGISTRY entry in protocolShared.tsx ("Grossing Templates"),
+// kept in sync by id. Three peer templates (Route A/B/C), not one generic
+// plus variants: Stage 0's AI assignment picks one per specimen, the way
+// CAP_TO_REPORT picks a Report Template in TemplateRoutingService.ts.
+type SeedLoader = () => Promise<{ default: unknown }>;
+// Batch 754: the 19 demonstration checklists (demoChecklists.ts) load from demoChecklistLoaders.ts, and only in builds
+// that carry them: a customer build (mode "server") leaves them, and their files, out.
+const SEED_TEMPLATE_LOADERS: Record<string, SeedLoader> = {
+  // The mode is written in literally (not DEMO_CHECKLISTS_IN_BUILD) so the bundler can drop the branch and its files.
+  ...(import.meta.env.MODE !== 'server' ? DEMO_CHECKLIST_LOADERS : {}),
+  autopsy_gross_examination:  () => import('../../data/templates/Autopsy/autopsy_gross_examination.json'),
+  // Batch 463: PathScribe's own Mohs synoptic (labs copy and customise it like any other).
+  mohs_micrographic_surgery:  () => import('../../data/templates/generic/mohs_micrographic_surgery.json'),
+  // Batch 465: PathScribe's head and neck synoptics.
+  oral_cavity_resection:      () => import('../../data/templates/generic/oral_cavity_resection.json'),
+  neck_dissection:            () => import('../../data/templates/generic/neck_dissection.json'),
+  // Grossing and cytology templates
+  grossing_standard_tissue:    () => import('../../data/templates/Grossing/grossing_standard_tissue.json'),
+  grossing_fluid_cytology:     () => import('../../data/templates/Grossing/grossing_fluid_cytology.json'),
+  grossing_histology_only:     () => import('../../data/templates/Grossing/grossing_histology_only.json'),
+  thyroid_fna_cytology:        () => import('../../data/templates/Cytology/cytology_thyroid_fna_cytology.json'),
+  salivary_gland_fna_cytology: () => import('../../data/templates/Cytology/cytology_salivary_gland_fna_cytology.json'),
+  urine_cytology:              () => import('../../data/templates/Cytology/cytology_urine_cytology.json'),
+  pancreaticobiliary_cytology: () => import('../../data/templates/Cytology/cytology_pancreaticobiliary_cytology.json'),
+  lymph_node_fna_cytology:     () => import('../../data/templates/Cytology/cytology_lymph_node_fna_cytology.json'),
+};
 
-editorStore.set('grossing_standard_tissue', GROSSING_STANDARD_TISSUE_JSON as any);
-editorStore.set('grossing_fluid_cytology',  GROSSING_FLUID_CYTOLOGY_JSON  as any);
-editorStore.set('thyroid_fna_cytology',     THYROID_FNA_CYTOLOGY_JSON     as any);
-editorStore.set('salivary_gland_fna_cytology', SALIVARY_GLAND_FNA_CYTOLOGY_JSON as any);
-editorStore.set('urine_cytology',           URINE_CYTOLOGY_JSON           as any);
-editorStore.set('pancreaticobiliary_cytology', PANCREATICOBILIARY_CYTOLOGY_JSON as any);
-editorStore.set('lymph_node_fna_cytology',  LYMPH_NODE_FNA_CYTOLOGY_JSON  as any);
-editorStore.set('grossing_histology_only',  GROSSING_HISTOLOGY_ONLY_JSON  as any);
+/** Ids of the seed templates PathScribe ships (loaded on demand). */
+export const SEED_TEMPLATE_IDS: readonly string[] = Object.keys(SEED_TEMPLATE_LOADERS);
 
-// Hydrate from localStorage on module load — merges saved template content
-// on top of the seed data, same timing and same reasoning as
+/** Seeds deleted this session: not fetched again (before Batch 505 a deleted
+ *  seed also stayed gone until the page reloaded). */
+const deletedSeeds = new Set<string>();
+
+/** Puts a seed template's content into editorStore the first time it's needed.
+ *  Never overwrites what's already there (a saved edit, or a draft). */
+async function ensureSeedTemplate(id: string): Promise<void> {
+  if (editorStore.has(id) || deletedSeeds.has(id)) return;
+  const load = SEED_TEMPLATE_LOADERS[id];
+  if (!load) return;
+  const content = (await load()).default as EditorTemplate;
+  if (!editorStore.has(id) && !deletedSeeds.has(id)) editorStore.set(id, content);
+}
+
+// Hydrate from localStorage on module load — saved template content takes
+// precedence over the seed data (ensureSeedTemplate never overwrites it), same timing and same reasoning as
 // protocolShared.tsx's registry hydration: reflects prior-session edits
 // immediately, and restores any template that only ever existed at
 // runtime (never had a hardcoded seed import at all).

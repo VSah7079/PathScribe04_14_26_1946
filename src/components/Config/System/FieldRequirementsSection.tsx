@@ -11,13 +11,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import {
-  fieldRequirementService, FIELD_REQUIREMENT_PAGE_IDS,
-  type FieldRequirementPageId, type FieldGroup, type ResolvedFieldRequirement,
+  fieldRequirementService, FIELD_REQUIREMENT_PAGE_IDS, FIELD_GROUP_ORDER,
+  type FieldRequirementPageId, type ResolvedFieldRequirement,
 } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 
-const GROUPS: FieldGroup[] = ['patient', 'order', 'specimens', 'blocks', 'fixation', 'specimenDetails', 'revisions', 'criticalFindings',
-  'holds', 'comments', 'delegation', 'biopsyArray', 'blockChanges', 'discordance', 'billingChanges'];
+// Batch 397: the group order lives with the catalog (FIELD_GROUP_ORDER).
+const GROUPS = FIELD_GROUP_ORDER;
 
 const FieldRequirementsSection: React.FC = () => {
   const { t } = useTranslation();
@@ -52,7 +52,7 @@ const FieldRequirementsSection: React.FC = () => {
 
       <div className="ps-fieldreq-toolbar">
         <label className="ps-conf-label" htmlFor="fieldreq-page">{t('fieldRequirements.page')}</label>
-        <select id="fieldreq-page" className="ps-conf-select ps-fieldreq-page" value={page} onChange={e => setPage(e.target.value as FieldRequirementPageId)}>
+        <select data-config-nav id="fieldreq-page" className="ps-conf-select ps-fieldreq-page" value={page} onChange={e => setPage(e.target.value as FieldRequirementPageId)}>
           {FIELD_REQUIREMENT_PAGE_IDS.map(p => <option key={p} value={p}>{t(`fieldRequirements.pages.${p}`)}</option>)}
         </select>
         {organisation && <span className="ps-fieldreq-org">{t('fieldRequirements.forOrganisation', { organisation: organisation.name })}</span>}

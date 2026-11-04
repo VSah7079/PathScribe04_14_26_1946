@@ -133,7 +133,7 @@ describe('editorTextBlocks (PS-342)', () => {
 
 describe('buildSpellMenuModel (PS-342 AC5)', () => {
   it('leads with the convention form for a regional variant and de-duplicates', () => {
-    const m = buildSpellMenuModel({ word: 'color', reason: 'regionalVariant', preferred: 'colour' }, ['colour', 'colon', 'color'], { role: 'pathologist' });
+    const m = buildSpellMenuModel({ word: 'color', reason: 'regionalVariant', preferred: 'colour' }, ['colour', 'colon', 'color'], { canManageFacility: false });
     expect(m.suggestions).toEqual(['colour', 'colon']);
     expect(m.preferred).toBe('colour');
   });
@@ -145,9 +145,9 @@ describe('buildSpellMenuModel (PS-342 AC5)', () => {
 
   it('offers the facility dictionary only to admin roles, and only when the lab is known', () => {
     const base = { word: 'HPF', reason: 'misspelled' as const };
-    expect(buildSpellMenuModel(base, [], { role: 'pathologist', facilityDictionaryId: 'lab-uk' }).canAddFacility).toBe(false);
-    expect(buildSpellMenuModel(base, [], { role: 'admin' }).canAddFacility).toBe(false);
-    const ok = buildSpellMenuModel(base, [], { role: 'admin', facilityDictionaryId: 'lab-uk', facilityDictionaryLabel: 'Fenwick Pathology' });
+    expect(buildSpellMenuModel(base, [], { canManageFacility: false, facilityDictionaryId: 'lab-uk' }).canAddFacility).toBe(false);
+    expect(buildSpellMenuModel(base, [], { canManageFacility: true }).canAddFacility).toBe(false);
+    const ok = buildSpellMenuModel(base, [], { canManageFacility: true, facilityDictionaryId: 'lab-uk', facilityDictionaryLabel: 'Fenwick Pathology' });
     expect(ok).toMatchObject({ canAddFacility: true, facilityLabel: 'Fenwick Pathology', canIgnore: true, canAddPersonal: true });
   });
 });
@@ -166,7 +166,9 @@ describe('report free text stays on the spell checker (PS-342, Batch 338)', () =
     'pages/SynopticReportPage/modals/DiscordanceReconciliationModal.tsx',
     'pages/SynopticReportPage/modals/AiNarrativeReviewModal.tsx',
     'pages/IntraopQueuePage.tsx',
-    'pages/CytologyWorklistPage/CytologyScreeningPage.tsx',
+    'pages/CytologyWorklistPage/components/CytologyReviewForm.tsx', // the page's notes fields moved here (Batch 386)
+    'pages/CytologyWorklistPage/components/CytologyCisoeAForm.tsx',
+    'pages/CytologyWorklistPage/components/CytologyRevisionPanel.tsx', // the correction/addendum reason and text (Batch 390)
     'pages/CytologyWorklistPage/components/CytologySynopticFormView.tsx',
     'pages/CytologyWorklistPage/components/CytologyRoseView.tsx',
   ];

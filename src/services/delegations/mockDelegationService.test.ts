@@ -12,6 +12,9 @@ vi.mock('../authorization/defaultAuthorizationService', () => ({
   authorizationService: { enforce: vi.fn(async (capability: string) => ({ capability, allowed: allowed.current, grantedBy: [], missingRequirements: [], context: {} })) },
 }));
 
+const { logEvent } = vi.hoisted(() => ({ logEvent: vi.fn(async () => ({ ok: true })) }));
+vi.mock('../auditlog/mockAuditService', () => ({ mockAuditService: { logEvent } }));
+
 import { mockDelegationService } from './mockDelegationService';
 import { DELEGATION_STORE_KEY, appendDelegation, markPendingDelegationAccepted, loadDelegations } from './delegationStore';
 import { assignSynoptic, delegateCase } from '../cases/mockCaseService';
@@ -26,9 +29,29 @@ describe('mockDelegationService', () => {
     expect(delegateCase).not.toHaveBeenCalled();
   });
 
+  it('Batch 651: a made delegation is audited once; a refused one writes nothing', async () => {
+    allowed.current = false;
+    await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'POOL', recipient: { kind: 'pool', id: 'P1', name: 'GI' } });
+    expect(logEvent).not.toHaveBeenCalled();
+    allowed.current = true;
+    await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'POOL', recipient: { kind: 'pool', id: 'P1', name: 'GI' } });
+    expect(logEvent).toHaveBeenCalledTimes(1);
+    expect((logEvent.mock.calls[0] as any[])[0]).toMatchObject({ event: 'Case delegated', caseId: 'C1' });
+  });
+
+  it('Batch 441: a case can\'t be delegated to a cytotechnologist (every delegation is a pathologist slot); a pathologist is fine', async () => {
+    const toCt = await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'TRANSFER', recipient: { kind: 'user', id: 'CT-001', name: 'Priya Desai' } });
+    expect(toCt).toEqual({ ok: false, error: 'recipientIsCytotechnologist' });
+    const toSynoptic = await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'SYNOPTIC_ASSIGN', synopticInstanceId: 'S1', recipient: { kind: 'user', id: 'CT-001', name: 'Priya Desai' } });
+    expect(toSynoptic).toEqual({ ok: false, error: 'recipientIsCytotechnologist' });
+    expect(delegateCase).not.toHaveBeenCalled();
+    expect(assignSynoptic).not.toHaveBeenCalled();
+    expect((await mockDelegationService.delegate({ caseId: 'C1', requestorId: 'A', delegationType: 'TRANSFER', recipient: { kind: 'user', id: 'PATH-001', name: 'Pete Nimmo' } })).ok).toBe(true);
+  });
+
   it('lists the seeded demo delegations, all or one case', async () => {
     const all = await mockDelegationService.list();
-    expect(all.ok && all.data.length).toBe(5);
+    expect(all.ok && all.data.length).toBe(7); // Batch 455: + two pending second opinions between Sarah Johnson and Pete Nimmo
     const one = await mockDelegationService.list({ caseId: 'S26-4404' });
     expect(one.ok && one.data.map(d => d.id)).toEqual(['deleg-seed-2']);
   });

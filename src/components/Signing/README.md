@@ -30,3 +30,7 @@ Batch 344 (PS-60 follow-up): confirming who is signing, at the moment of signing
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 642
+
+`SignatureConfirmModal` takes `orderingFacilityId`; the confirm button reads "… (Password Required)" with an explanatory tooltip when the facility's sign-out policy asks for a password, and `SignerConfirmationFields` shows a session note instead of the password fields inside a valid sign-out session.

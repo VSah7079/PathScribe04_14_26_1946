@@ -31,6 +31,10 @@ import { consumeSupersededNotice } from '@/services/session/sessionSupersedeServ
 import { resolvePostSignInPath } from '@/services/auth/sessionRole';
 import { isSsoDenialReason } from '@/services/auth/externalIdentity';
 import type { SsoProviderId } from '@/services/auth/authConfig';
+import { staffPasswordService, passwordConfirmProblem, PASSWORD_MIN_LENGTH, signInRefusalNotice } from '@/services/signIn';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
+import MfaSignInStep from '@/components/Auth/MfaSignInStep';
+import PasswordResetRequest from '@/components/Auth/PasswordResetRequest';
 
 /** Route state LoginPage reads: where the user was going, and why an SSO sign-in was refused. */
 export interface LoginRouteState {
@@ -71,7 +75,7 @@ const ENVIRONMENTS: Record<string, { labelKey: string; tone: string }> = {
 };
 
 const resolveEnvironment = () => {
-  const raw = String(import.meta.env.VITE_APP_ENV ?? '').toLowerCase().trim();
+  const raw = String(appEnv().VITE_APP_ENV ?? '').toLowerCase().trim();
   return ENVIRONMENTS[raw] ?? null;
 };
 
@@ -108,7 +112,7 @@ const MicrosoftIcon = () => (
 
 const LoginPage: React.FC = () => {
   const { t } = useTranslation();
-  const { login, passwordSignInEnabled, ssoProviders, beginSsoSignIn } = useAuth();
+  const { login, passwordSignInEnabled, ssoProviders, beginSsoSignIn, mfa } = useAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const routeState = (location.state ?? {}) as LoginRouteState;
@@ -120,6 +124,13 @@ const LoginPage: React.FC = () => {
   const [loading,  setLoading]  = useState(false);
   const [showSessionConflict, setShowSessionConflict] = useState(false);
   const [showSupersededNotice, setShowSupersededNotice] = useState(false);
+  // Batch 448: a password set from the Staff screen that must be changed
+  // before the session starts.
+  const [changing, setChanging] = useState<{ email: string; current: string } | null>(null);
+  // Batch 711: the "ask my administrator to reset my password" step (password sign-in only).
+  const [resetting, setResetting] = useState(false);
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
 
   // Real fix, per direct bug report: "Sometimes when I log in it fails
   // to copy the user name and password into the login form... after I
@@ -136,7 +147,8 @@ const LoginPage: React.FC = () => {
   // filled, and clicking Sign In submits the stale, empty state.
   //
   // Two-part fix: (1) a CSS animation on the real, standard
-  // :-webkit-autofill pseudo-class (see login-brand.css) fires a real,
+  // :-webkit-autofill pseudo-class (see pathscribe.css; Batch 517 corrected
+  // this pointer from login-brand.css, a file never loaded) fires a real,
   // detectable animationstart DOM event the instant autofill happens
   // — far faster than any polling interval — and syncs React state
   // from the real DOM value immediately. (2) A ref-based fallback:
@@ -181,8 +193,20 @@ const LoginPage: React.FC = () => {
       navigate(resolvePostSignInPath(routeState.from), { replace: true });
     } else if (result === 'session_conflict') {
       setShowSessionConflict(true);
+    } else if (result === 'mfa_required') {
+      // Batch 611 (#157): the second-factor step shows in place of the form.
+      setPassword('');
+      setError('');
+    } else if (result === 'mfa_unavailable') {
+      setError(t('login.mfa.unavailable'));
+    } else if (result === 'password_change_required') {
+      setChanging({ email: overrideEmail ?? email, current: overridePassword ?? password });
+      setPassword('');
+      setError('');
     } else {
-      setError(t('login.invalidCredentials'));
+      // Batch 456: the lockout warning or lock (services/auth/signInLockout.ts).
+      const notice = signInRefusalNotice(result, new Date());
+      setError(t(notice.key, notice.values));
     }
   };
 
@@ -203,6 +227,51 @@ const LoginPage: React.FC = () => {
     setError('');
     await attemptLogin(false, realEmail, realPassword);
   };
+
+  const submitNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!changing) return;
+    if (passwordConfirmProblem(newPw, confirmPw)) { setError(t('login.changePassword.errors.mismatch')); return; }
+    setLoading(true);
+    const r = await staffPasswordService.changeAtSignIn(changing.email, changing.current, newPw);
+    setLoading(false);
+    if (r.ok === false) { setError(t(`login.changePassword.errors.${r.error}`, { defaultValue: t('login.changePassword.errors.generic'), min: PASSWORD_MIN_LENGTH })); return; }
+    const signInEmail = changing.email;
+    setChanging(null); setConfirmPw(''); setError('');
+    const next = newPw;
+    setNewPw('');
+    await attemptLogin(false, signInEmail, next);
+  };
+
+  // Batch 611 (#157): a password sign-in waiting for its second factor.
+  if (mfa.pending) {
+    return (
+      <div className="ps-login-page">
+        <div className="ps-login-bg" aria-hidden="true" />
+        <div className="ps-login-wrap">
+          <div className="ps-login-card">
+            <MfaSignInStep
+              mfa={mfa}
+              onSignedIn={() => navigate(resolvePostSignInPath(routeState.from), { replace: true })}
+              onSessionConflict={() => setShowSessionConflict(true)}
+            />
+          </div>
+        </div>
+        <ConfirmModal
+          show={showSessionConflict}
+          title={t('login.sessionConflictTitle')}
+          message={t('login.sessionConflictMessage')}
+          confirmLabel={t('login.signInHere')}
+          cancelLabel={t('common.cancel')}
+          onConfirm={() => {
+            setShowSessionConflict(false);
+            if (mfa.finish(true) === 'success') navigate(resolvePostSignInPath(routeState.from), { replace: true });
+          }}
+          onCancel={() => setShowSessionConflict(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="ps-login-page">
@@ -229,7 +298,34 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Email + password: demo builds only (VITE_AUTH_MODE unset or "demo"). */}
-          {passwordSignInEnabled && (
+          {passwordSignInEnabled && changing && (
+          <form onSubmit={submitNewPassword}>
+            <p className="ps-login-change-intro">{t('login.changePassword.intro')}</p>
+            <div className="ps-login-field">
+              <label className="ps-login-field-label" htmlFor="login-new-password">{t('login.changePassword.newPassword')}</label>
+              <input id="login-new-password" type="password" value={newPw} onChange={e => setNewPw(e.target.value)} autoComplete="new-password" autoFocus className="ps-login-input" />
+            </div>
+            <div className="ps-login-field">
+              <label className="ps-login-field-label" htmlFor="login-confirm-password">{t('login.changePassword.confirmPassword')}</label>
+              <input id="login-confirm-password" type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} autoComplete="new-password" className="ps-login-input" />
+            </div>
+            <p className="ps-login-change-hint">{t('login.changePassword.hint', { min: PASSWORD_MIN_LENGTH })}</p>
+            {error && (
+              <div className="ps-login-error" role="alert">
+                {error}
+              </div>
+            )}
+            <button type="submit" disabled={loading} className="ps-login-submit">
+              {loading ? t('login.signingIn') : t('login.changePassword.submit')}
+            </button>
+          </form>
+          )}
+
+          {passwordSignInEnabled && !changing && resetting && (
+            <PasswordResetRequest initialEmail={email} onBack={() => setResetting(false)} />
+          )}
+
+          {passwordSignInEnabled && !changing && !resetting && (
           <form onSubmit={handleSubmit}>
             <div className="ps-login-field">
               <label className="ps-login-field-label" htmlFor="login-email">{t('login.email')}</label>
@@ -252,7 +348,7 @@ const LoginPage: React.FC = () => {
                   competing with the primary action below. */}
               <div className="ps-login-label-row">
                 <label className="ps-login-field-label" htmlFor="login-password">{t('login.password')}</label>
-                <a href="#" className="ps-login-forgot" onClick={e => { e.preventDefault(); setError(t('login.passwordResetUnavailable')); }}>
+                <a href="#" className="ps-login-forgot" onClick={e => { e.preventDefault(); setError(''); setResetting(true); }}>
                   {t('login.forgotPassword')}
                 </a>
               </div>
@@ -362,7 +458,7 @@ const LoginPage: React.FC = () => {
           <div className="ps-login-colophon">
             <img
               src="/formedrix-logo-capM-dark.png"
-              alt="ForMedrixAI — Precision, Care, Innovation"
+              alt={t('login.colophonLogoAlt')}
               width={175}
               height={44}
               className="ps-login-colophon-logo"

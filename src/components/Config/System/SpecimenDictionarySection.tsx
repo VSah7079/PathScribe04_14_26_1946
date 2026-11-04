@@ -31,6 +31,7 @@ import { buildSpecimenEntry, type SpecimenEntryDraft } from '@/services/specimen
 import { duplicateSpecimenEntry } from '@/services/duplication/duplicateEntities';
 import type { Department } from '../../../services/departments/IDepartmentService';
 import type { Protocol } from '../../../services/protocols/IProtocolService';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Draft type ─────────────────────────────────────────────────────────────
 
@@ -128,29 +129,29 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.nameLabel')} <span className="ps-conf-required">*</span></label>
-              <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`} value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.namePlaceholder')} />
+              <input aria-label={t('specimenDictionarySection.editorModal.nameLabel')} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`} value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.namePlaceholder')} />
               {errors.name && <span className="ps-conf-error-text">{errors.name}</span>}
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.specimenCodeLabel')}</label>
-              <input className="ps-conf-input" value={draft.specimenCode ?? ''} onChange={e => set('specimenCode', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.specimenCodePlaceholder')} />
+              <input aria-label={t('specimenDictionarySection.editorModal.specimenCodeLabel')} className="ps-conf-input" value={draft.specimenCode ?? ''} onChange={e => set('specimenCode', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.specimenCodePlaceholder')} />
             </div>
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.descriptionPlaceholder')} />
+            <textarea aria-label={t('specimenDictionarySection.editorModal.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.descriptionPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.typeLabel')} <span className="ps-conf-required">*</span></label>
-              <input className={`ps-conf-input ${errors.type ? 'ps-conf-input--error' : ''}`} value={draft.type} onChange={e => set('type', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.typePlaceholder')} />
+              <input aria-label={t('specimenDictionarySection.editorModal.typeLabel')} className={`ps-conf-input ${errors.type ? 'ps-conf-input--error' : ''}`} value={draft.type} onChange={e => set('type', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.typePlaceholder')} />
               {errors.type && <span className="ps-conf-error-text">{errors.type}</span>}
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.procedureLabel')} <span className="ps-conf-required">*</span></label>
-              <input className={`ps-conf-input ${errors.procedure ? 'ps-conf-input--error' : ''}`} value={draft.procedure} onChange={e => set('procedure', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.procedurePlaceholder')} />
+              <input aria-label={t('specimenDictionarySection.editorModal.procedureLabel')} className={`ps-conf-input ${errors.procedure ? 'ps-conf-input--error' : ''}`} value={draft.procedure} onChange={e => set('procedure', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.procedurePlaceholder')} />
               {errors.procedure && <span className="ps-conf-error-text">{errors.procedure}</span>}
             </div>
           </div>
@@ -158,7 +159,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.categoryLabel')}</label>
-              <select className="ps-conf-select" value={draft.specimenCategory ?? ''} onChange={e => set('specimenCategory', (e.target.value || undefined) as any)}>
+              <select aria-label={t('specimenDictionarySection.editorModal.categoryLabel')} className="ps-conf-select" value={draft.specimenCategory ?? ''} onChange={e => set('specimenCategory', (e.target.value || undefined) as any)}>
                 <option value="">{t('specimenDictionarySection.editorModal.categoryNone')}</option>
                 <option value="SURGICAL_TISSUE">{t(SPECIMEN_CATEGORY_LABEL_KEY.SURGICAL_TISSUE)}</option>
                 <option value="GYN_CYTOLOGY">{t(SPECIMEN_CATEGORY_LABEL_KEY.GYN_CYTOLOGY)}</option>
@@ -175,7 +176,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.siteLabel')}</label>
-              <input className="ps-conf-input" value={draft.site ?? ''} onChange={e => set('site', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.sitePlaceholder')} />
+              <input aria-label={t('specimenDictionarySection.editorModal.siteLabel')} className="ps-conf-input" value={draft.site ?? ''} onChange={e => set('site', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.sitePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label" htmlFor="specdict-laterality">{t('specimenDictionarySection.editorModal.lateralityLabel')}</label>
@@ -210,12 +211,12 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.synonymsLabel')}</label>
-            <input className="ps-conf-input" value={draft.synonymsText} onChange={e => set('synonymsText', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.synonymsPlaceholder')} />
+            <input aria-label={t('specimenDictionarySection.editorModal.synonymsLabel')} className="ps-conf-input" value={draft.synonymsText} onChange={e => set('synonymsText', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.synonymsPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.baseCptLabel')}</label>
-            <input
+            <input aria-label={t('specimenDictionarySection.editorModal.baseCptLabel')}
               className="ps-conf-input"
               value={draft.defaultBaseCptCode ?? ''}
               onChange={e => set('defaultBaseCptCode', e.target.value.trim() || undefined)}
@@ -228,19 +229,19 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.defaultStainsLabel')}</label>
-            <input className="ps-conf-input" value={draft.defaultStainsText} onChange={e => set('defaultStainsText', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.defaultStainsPlaceholder')} />
+            <input aria-label={t('specimenDictionarySection.editorModal.defaultStainsLabel')} className="ps-conf-input" value={draft.defaultStainsText} onChange={e => set('defaultStainsText', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.defaultStainsPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.processingNotesLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.processingNotes ?? ''} onChange={e => set('processingNotes', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.processingNotesPlaceholder')} />
+            <textarea aria-label={t('specimenDictionarySection.editorModal.processingNotesLabel')} className="ps-conf-input ps-conf-textarea" value={draft.processingNotes ?? ''} onChange={e => set('processingNotes', e.target.value)} placeholder={t('specimenDictionarySection.editorModal.processingNotesPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.statusLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+                <div {...switchable(draft.active, () => set('active', !draft.active), t('specimenDictionarySection.editorModal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
                 <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -249,7 +250,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, subspecialties, 
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('specimenDictionarySection.editorModal.requiresFixativeLabel')}</label>
               <div className="ps-conf-toggle-row">
-                <div onClick={() => set('requireFixativeTimeBeforeSignout', !draft.requireFixativeTimeBeforeSignout)}
+                <div {...switchable(draft.requireFixativeTimeBeforeSignout, () => set('requireFixativeTimeBeforeSignout', !draft.requireFixativeTimeBeforeSignout), t('specimenDictionarySection.editorModal.requiresFixativeLabel'))}
                   className={`ps-conf-toggle-track ${draft.requireFixativeTimeBeforeSignout ? 'ps-conf-toggle-track--active' : ''}`}>
                   <div className="ps-conf-toggle-thumb" />
                 </div>
@@ -463,12 +464,12 @@ const SpecimenDictionarySection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row--3">
-        <input type="text" placeholder={t('specimenDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-        <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label={t('specimenDictionarySection.filterByTypeAria')} className="ps-conf-select">
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('specimenDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <select data-dirty-ignore data-config-nav value={typeFilter} onChange={e => setTypeFilter(e.target.value)} aria-label={t('specimenDictionarySection.filterByTypeAria')} className="ps-conf-select">
           <option value="All">{t('specimenDictionarySection.allTypesOption')}</option>
           {types.map(ty => <option key={ty} value={ty}>{ty}</option>)}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('specimenDictionarySection.filterByStatusAria')} className="ps-conf-select">
+        <select data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} aria-label={t('specimenDictionarySection.filterByStatusAria')} className="ps-conf-select">
           <option value="All">{t('specimenDictionarySection.allStatusesOption')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

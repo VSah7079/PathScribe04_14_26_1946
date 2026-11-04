@@ -103,8 +103,8 @@ describe('parseAdtMessage — real fix: the first real inbound HL7 parsing this 
   it('correctly extracts real, multiple identifiers from a real, repeating PID-3, each with its own real assigning authority', () => {
     const result = parseAdtMessage(buildAdtA01());
     expect(result.patient.identifiers).toEqual([
-      { identifierValue: 'MRN30456', assigningAuthority: 'MAIN_CAMPUS' },
-      { identifierValue: 'ALT789', assigningAuthority: 'PAYER_X' },
+      { identifierValue: 'MRN30456', assigningAuthority: 'MAIN_CAMPUS', identifierTypeCode: 'MR' },
+      { identifierValue: 'ALT789', assigningAuthority: 'PAYER_X', identifierTypeCode: 'SS' }, // Batch 417: CX.5 kept
     ]);
   });
 

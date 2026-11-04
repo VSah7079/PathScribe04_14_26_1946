@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/printRouting/
 
 **Real, per PS-278 ("Print Destination Routing Engine — multi-criteria
@@ -144,7 +146,35 @@ into the System config tab under `print_routing_rules`. See that
 component's own header comment and
 `components/Config/System/README.md` for the UI-layer account.
 
+## Batch 428: Configuration permissions
+
+- `mockPrintRoutingRuleService`: `create`, `update`, `remove` need `config:print-routing:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the
 whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+Batch 553 (PS-539 phase 2d; `SITE_AGENT_API.md` §3): a rule's `printDestination` is a **site agent printer** (`{ agentPrinter: { siteId, destinationId }, displayName? }`) or a printer address.
+- **`printDestinationRules.ts` (new, pure, tested):**
+  - the edit draft (a new destination is an agent printer);
+  - the problems, and the list text;
+  - the audit text, which always names the printer's id and site;
+  - which printer to pick when the site has only one;
+  - which site applies: the facility on a facility-tier rule; the jobs' own lab for Redirect (`redirectSites`, `redirectSiteAllowed`);
+  - the message for a refused save.
+- **`mockPrintRoutingRuleService.ts`** refuses:
+  - an unusable destination;
+  - another site's agent printer on a facility-tier rule (`routingRuleDestinationProblem`);
+  - a site's printer without `config:print-routing:manage` at that site.
+- **Tests:** `printDestinationRules.test.ts`, `mockPrintRoutingRuleService.test.ts`.
+
+- **Batch 612:** `resolveRealPrintRoutingContext.ts` defaults `workstationId` to the registered workstation this browser is bound to (setting `pathscribe_registered_workstation_id`), only while that workstation is active. An explicit override still wins.
+
+## Batch 616 (part E) — server version
+
+API-server version of `PrintRoutingRule` (`httpPrintRoutingRuleService.ts`, contract `ROUTING_API.md`), picked by `printRoutingRuleServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

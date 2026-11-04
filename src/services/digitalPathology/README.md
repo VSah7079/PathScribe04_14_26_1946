@@ -1,3 +1,9 @@
+**Batch 749:** `mockAiScreeningResultService.ts`: completed AI gallery reads for S26-5501 and S26-5503 (seed row S5); a seed result missing from storage is added.
+
+**Batch 747:** `mockWsiScanBatchService.ts`: the wall display's scanner runs (`batches/wallDisplayDemoBatches.ts`) are added when missing; the two September runs still scanning now have times relative to the reset.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/digitalPathology/
 
 Real, shared home for computational-pathology/AI vendor integration
@@ -218,6 +224,52 @@ scan-batch status; nothing launched a real vendor's actual viewer.
 
 `services/facilityOpsDashboard/computeDiagnosticSignOutSummary.ts` reads `mockWsiScanBatchService.getAll()` for the Diagnostic Sign-Out/Scanner department dashboard's real pending/scanning/completed/failed slide counts, plus a real "Scan QC Failed" alert whenever a completed slide's own `qcPassed` is `false`. Confirmed directly before building: `WsiScanBatch` carries no direct `facilityId` — only each real slide has a `caseId` — so facility scoping joins per-slide through `Case.originHospitalId`, the same real pattern `services/facilityOpsDashboard/resolveBatchFacilityId.ts` uses for `Batch`. Read-only; nothing in this folder's own files changed.
 
+## Batch 428: Configuration permissions
+
+- `mockDpVendorService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:vendor-integrations:manage`.
+- `mockWsiViewerVendorService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:vendor-integrations:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 434 — WSI scan batches have a screen (PS-359, PS-345)
+
+Pete: a scan batch takes its slides from the scanning queue; scanners come from the Equipment register; the Batch Management roles load, send and unload.
+
+| File | What it does |
+|---|---|
+| `wsiScanQueue.ts` | Pure. `buildScanQueue` (slides the Slide Distribution Station routed to Digital, not in a batch; STAT first), `planScanLoad` (positions: rack-slot when recorded, else the order chosen), `stainLoaded` / `stainUnloaded` (the slide record and its chain-of-custody line), `scanBatchProgress`, `scanBatchActions`. |
+| `wsiScanBatchWorkflow.ts` | `loadScanBatch` (`wsi:scan-batch:load`), `sendScanBatch` (`wsi:scan-batch:send`; the manifest goes through `dispatchInterfaceMessage` as `WSI_SCAN_MANIFEST`; a failed send keeps the batch loaded with `sendError`), `unloadScanBatch` (`wsi:scan-batch:unload`; slides that scanned and passed image QC become `Scanned`, the rest go back to the queue). Each checks the permission against the scanner's lab and writes one audit entry. |
+
+**The unload bug is fixed.** `markUnloaded` used to set the batch to `completed` or `failed` and never `unloaded`. Now the inbound status updates move a scanning batch to `completed` (or `failed`) once every slide has its outcome, and unloading sets `unloaded`. A batch that was never sent can be unloaded as it is. The two seeded batches with an unload time are now `unloaded`, and seeded batches name scanners by their register code (`APERIO_GT450_01`, `APERIO_GT450_02`, `GENIUS_01`).
+
+`IWsiScanBatchService.ts` gains: per-slide `blockId`, `stainId`, `slideLabel`; per-batch `facilityId`, `loadedBy`, `sentBy`, `unloadedBy`, `sendError`; `recordSendFailure`; the helpers `allSlidesScanned` and `slideScannedOk`.
+
+Tests: `wsiScanQueue.test.ts`, `wsiScanBatchWorkflow.test.ts`; `mockWsiScanBatchService.test.ts` rewritten for the corrected lifecycle (its old tests expected the bug).
+
+## Batch 435
+
+`mockWsiScanBatchService.ts` publishes `WsiScanBatchChanged` after every write (as the API server will after its commit), so the Slide scanning page updates when the scanner reports.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+WSI scan batch stain updates are versioned; the count of slides sent back comes from the save that landed.
+
+## Batch 610 (#78)
+
+`aiStalledResultRule.ts` and `mockAiStalledResultSettingsService` (how long an AI result may wait before it counts as stalled), and `aiQaReportRows.ts` (discordance and concordance rows for the AI Discordance tab).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-502): server versions of AiScreeningResultService, AiStalledResultSettingsService, DpVendorService, WsiScanBatchService, WsiViewerVendorService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/DIGITAL_PATHOLOGY_API.md`.
+
+## Batch 624
+
+`resolveWorklistDpBadges.ts`: each badge also returns a translatable label (`summaryLabel`, `primaryLabel`: a key plus values) for the wording PathScribe writes, and `dpLabelText` picks it or the received text. Scanner and AI vendor wording is never translated: `primaryLabel` is absent when the headline is the vendor's, and a scanner failure reason is only inserted as a value. The English `summaryText` / `primaryText` stay (voice summaries, tests).
+
+## Batch 750
+
+PathScribe has no slide viewer (Pete, Oct 31, 2026). `slideImages.ts` (new, pure): the slide image settings (`EnterpriseConfig.slideImages`: viewer and preview address templates with `{{slideId}}` and `{{accession}}`, per facility), which address applies (facility, laboratory, the WSI Viewers list for opening only, the deployment's `VITE_SLIDE_*`), the image state from the slide's scanner fields (No image yet, Queued, Scanning, Scan failed, Failed image quality, available), and the thumbnail (a delivered preview, else the template; never altered). `slideImageOpen.ts` (new): `case:slide-image:open`, the address, the audit event Slide Image Opened. `ISlidePreviewService.ts`, `mockSlidePreviewService.ts` (no seed), `httpSlidePreviewService.ts`, `slidePreviewServiceInstance.ts` (new): previews the interface delivers (feed Planned). `wsiScanQueue.stainUnloaded` now records `lastScanOutcome`. `mockWsiViewerVendorService.ts`: the example.com demo entry removed. `buildWsiViewerLaunchUrl.ts` and `WsiViewerLaunchButton.tsx` (described above) are deleted; the launch is `components/SlideImage/SlideImagePreview.tsx`. Contract: `docs/architecture/SLIDE_IMAGES.md`.

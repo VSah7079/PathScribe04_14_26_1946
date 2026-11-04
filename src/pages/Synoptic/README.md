@@ -1,3 +1,5 @@
+**Batch 651 and 652:** `Codes/AddCodeModal.tsx` and `Codes/CaseCodingDisplay.tsx` (AI code suggestions moved to `services/coding/aiCodeSuggestions.ts`, OPCS-4 demonstration notice, confidence shown as 0 to 100) and `Delegate/DelegateModal.tsx` (Teaching Case to several people). See the sub-folder READMEs.
+
 # pages/Synoptic/
 
 Shared types and extracted hooks/modals originally split out of `SynopticReportPage.tsx` to keep that file to layout/wiring. Not to be confused with `SynopticReportPage/` itself — this folder holds smaller, more general-purpose pieces; the big, page-specific hooks/modals/components live in `SynopticReportPage/`.
@@ -42,6 +44,50 @@ Subfolders converted their last inline styles to `pathscribe.css` classes (see e
 
 - **`Comments/`, `Delegate/`:** Field Requirements checks and voice commands (PS-359). Delegating needs `case:delegation:create`.
 
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`Comments/`: comment modal tests (PS-312).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`useSynopticFlags.ts` builds the Flag Manager's view with `services/flags/caseFlagView.ts` (no `as any`) and reaches its services through `@/services` (PS-57).
+
+## Batch 491 — real `appliedBy`/`deletedBy` (disclosed since Batch 452; PS-359 follow-up)
+
+`useSynopticFlags.ts` now reads the signed-in user itself (`useAuth()`) and passes `user.name` through to `applyFlags`/`deleteFlags` as `byUserName`, closing the hardcoded `'current-user'` gap in `api/caseFlagsApi.ts` (see `api/README.md`). The hook's own public signature and its 3 call sites are unchanged.
+
+## Batch 500 (PS-473)
+
+`Comments/`: comment HTML is sanitised before it is rendered. See [Comments/README.md](./Comments/README.md).
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`AddCodeModal`'s pending-code builder is typed to return `PendingCode | null`, which it already did.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `Codes/AddCodeModal`: SNOMED filter hints are translated (the old unused English labels are removed). `synopticTypes.ts`: the participant label is a key.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 536
+
+`Codes/AddCodeModal.tsx`: the AI coding call is checked against the jurisdiction's AI vendor policy.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `Delegate/`: loading text through `LoadingState`.
+
+## Batch 567 (WCAG 2.1 AA)
+
+- `Codes/AddCodeModal.tsx`, `Delegate/DelegateModal.tsx`: no control inside another.
+
+## Batch 669 (everyday-22)
+
+`useSynopticFlags.ts` gains `applyStatFlag()`: applies the STAT flag to the open case (`services/flags/applyStatFlag.ts`), audited, and returns the outcome and the case's flags for the report page's toast and header.

@@ -30,4 +30,10 @@ describe('resolveSlideLabelFitWarnings', () => {
     const { DEFAULT_SLIDE_LABEL_LAYOUT } = await import('@/services/printSettings/IPrintSettingsService');
     expect(resolveSlideLabelFitWarnings(DEFAULT_SLIDE_LABEL_LAYOUT)).toEqual([]);
   });
+
+  it('each warning carries the numbers the screen prints (Batch 389)', () => {
+    const [h, w] = resolveSlideLabelFitWarnings({ faceWidthMm: 3, faceHeightMm: 3, moduleSizeMm: 0.2, fontHeightMm: 1.2 });
+    expect(h).toMatchObject({ kind: 'height_overflow', requiredMm: '5.2', faceMm: 3 });
+    expect(w).toMatchObject({ kind: 'width_overflow', requiredMm: '5.2', faceMm: 3 });
+  });
 });

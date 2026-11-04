@@ -1,6 +1,16 @@
+import type { NationalPatientIdentifier } from '../patient/NationalPatientIdentifier';
+import type { PatientRegistryConsent } from '../patient/PatientRegistryConsent';
+
 export interface Patient {
   id: string;
+  /** The lab's own medical record number. Registries never key on it. */
   mrn?: string;
+  /** Batch 417 (SRS v2.1 FR-004.3): the national healthcare identifiers the
+   *  registries key on (NHS number, BSN, IHI…), each with its check-digit
+   *  verification. Written by services/patientIdentifiers/, mirrored in the MPI. */
+  nationalIdentifiers?: NationalPatientIdentifier[];
+  /** Batch 418 (SRS v2.1 FR-008.1): the patient's registry opt-outs. Absent = no opt-out recorded. */
+  registryConsent?: PatientRegistryConsent;
 
   // ── Name — medical-grade schema (June 2026) ──────────────────────────────
   // Prefix/Given/Family/Preferred/Suffix instead of rigid First/Middle/Last,
@@ -40,7 +50,7 @@ export interface Patient {
   middleName?: string;
 
   dateOfBirth?: string; // ISO date
-  sex?: 'M' | 'F' | 'U';
+  sex?: 'M' | 'F' | 'U' | 'I'; // Batch 662: 'I' = indeterminate (NHS code 9)
 
   // Optional demographic fields
   phone?: string;

@@ -35,6 +35,13 @@ describe('resolveCaseCytologyRecallNeededMembership — real, per direct guidanc
     expect(resolveCaseCytologyRecallNeededMembership(specimens, DICTIONARY, 'surgical_pathology_worklist', 'primary_hpv_reflex')).toBe(false);
   });
 
+  it('Batch 631: an Invalid result on a self-collected specimen IS a member (repeat collection); on a clinician-collected one it is not', () => {
+    const self = [{ specimenDictionaryEntryId: 'sp-cyto-hpv-self', cytologyScreening: { hpvResult: 'Invalid' } }];
+    const clin = [{ specimenDictionaryEntryId: 'sp-cyto-pap', cytologyScreening: { hpvResult: 'Invalid' } }];
+    expect(resolveCaseCytologyRecallNeededMembership(self, DICTIONARY, 'surgical_pathology_worklist', 'primary_hpv_reflex')).toBe(true);
+    expect(resolveCaseCytologyRecallNeededMembership(clin, DICTIONARY, 'surgical_pathology_worklist', 'primary_hpv_reflex')).toBe(false);
+  });
+
   it('no specimens at all — never a member', () => {
     expect(resolveCaseCytologyRecallNeededMembership(undefined, DICTIONARY, 'surgical_pathology_worklist', 'primary_hpv_reflex')).toBe(false);
   });

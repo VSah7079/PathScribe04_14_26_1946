@@ -54,6 +54,7 @@ import type { OrchestratorSection } from '../components/OrchestratorSectionEdito
 import { OrchestratorEngine } from '@/orchestrator/orchestratorEngine';
 import type { OrchestratorCallbacks } from '@/orchestrator/orchestratorEngine';
 import { buildContext } from '@/orchestrator/contextBuilder';
+import { buildManualEntrySections } from '@/services/reportEditing/orchestratorSections';
 import type { Case } from '@/types/case/Case';
 import type { StructuredContext } from '@/orchestrator/contextBuilder';
 import type { RightSynopticPanelHandle } from '../components/RightSynopticPanel';
@@ -181,8 +182,8 @@ export function useReportGeneration({
         // in `pendingDraft`, surfacing the "New AI draft available — Use
         // new draft / Keep my version" banner. Nothing is overwritten
         // until the pathologist explicitly chooses.
-        if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html };
-        return { ...s, isStreaming: false, text: html, aiGenerated: html };
+        if (s.userEdited) return { ...s, isStreaming: false, pendingDraft: html, provenance: result.provenance };
+        return { ...s, isStreaming: false, text: html, aiGenerated: html, provenance: result.provenance };
       }));
     },
     onComplete: () => {
@@ -223,47 +224,13 @@ export function useReportGeneration({
       setResolvedBy(overrideTemplateId ? 'pathologist-override' : (ctx.routingResolvedBy ?? 'gold-standard'));
       surfaceContextWarnings(ctx);
 
-      const enabledSections = (ctx.narrativeTemplate?.sections ?? [])
-        .filter((s: any) => s.enabled)
-        .sort((a: any, b: any) => a.order - b.order);
-
-      // Real feature, per direct request: "a separate section for
-      // each specimen location so that it is easier for the User to
-      // dictate the gross for each specimen. The specimen Name
-      // should display at the beginning." Scoped to Gross Description
-      // specifically (sourcePartId === 'std_body_gross') — every
-      // other narrative part (Microscopic/Ancillary/Diagnosis) stays
-      // a single, case-wide section, matching the request precisely
-      // and matching how those sections have always worked.
-      //
-      // Real fix (PS-317 — "it isn't clear at all what the field
-      // represents (should explicitly say 'Gross Description' if
-      // that's what it is)"): the original request asked for the
-      // specimen name to display "at the beginning" — a prefix — but
-      // this built the label as ONLY the specimen name/description,
-      // dropping s.title ("Gross Description") entirely. That's the
-      // real cause of the ambiguity: nothing in the label said what
-      // kind of section this was, on any of these per-specimen rows.
-      // Restored s.title as a real prefix, specimen name/description
-      // after it, matching what was actually asked for.
-      const specimens = caseData.specimens ?? [];
-      const blankSections: OrchestratorSection[] = enabledSections.flatMap((s: any) => {
-        if (s.sourcePartId === 'std_body_gross' && specimens.length > 0) {
-          return specimens.map(sp => ({
-            id: `${s.id}_${sp.id}`,
-            label: sp.description ? `${s.title} — Specimen ${sp.label}: ${sp.description}` : `${s.title} — Specimen ${sp.label}`,
-            type: 'narrative' as const,
-            text: '', aiGenerated: '', userEdited: false, isStreaming: false,
-            sourcePartId: s.sourcePartId,
-            specimenId: sp.id,
-          }));
-        }
-        return [{
-          id: s.id, label: s.title, type: 'narrative' as const,
-          text: '', aiGenerated: '', userEdited: false, isStreaming: false,
-          sourcePartId: s.sourcePartId,
-        }];
-      });
+      // Per-specimen Gross Description sections (PS-317 labels:
+      // "Gross Description — Specimen A: …") are built in
+      // services/reportEditing/orchestratorSections.ts.
+      const blankSections: OrchestratorSection[] = buildManualEntrySections(
+        (ctx.narrativeTemplate?.sections ?? []) as any[],
+        (caseData.specimens ?? []) as any[],
+      );
       setOrchSections(blankSections);
       safeSetLeftTab('draft');
     } catch (e: unknown) {

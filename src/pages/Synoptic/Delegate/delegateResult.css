@@ -1,0 +1,5 @@
+/* Batch 655: the Delegate dialog's result when some recipients were delegated and some refused. */
+.ps-delegate-result { display: flex; flex-direction: column; gap: 4px; margin: 8px 0 0; font-size: 12px; color: #e2e8f0; }
+.ps-delegate-result__done { color: #86efac; }
+.ps-delegate-result__heading { color: #fbbf24; }
+.ps-delegate-result__list { margin: 0; padding-inline-start: 18px; color: #fbbf24; }

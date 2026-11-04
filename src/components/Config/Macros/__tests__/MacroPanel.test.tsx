@@ -32,6 +32,11 @@ vi.mock('@/services/auth/caseAccessControl', () => ({
   getSessionUser: () => ({ id: 'user-1', role: sessionRole }),
 }));
 
+// Batch 663: the panel asks for the capability config:macros:manage (not a role name); here the test role stands in for the grant.
+vi.mock('@/hooks/useCapabilities', () => ({
+  useCapabilities: () => ({ loading: false, decide: () => null, has: (c: string) => c === 'config:macros:manage' && ['admin', 'pathologist-admin', 'superadmin'].includes(sessionRole ?? '') }),
+}));
+
 vi.mock('@/utils/performingLabs', () => ({
   getActivePerformingLabs: () => Promise.resolve([]),
 }));
@@ -69,7 +74,7 @@ afterEach(() => {
 
 function renderPanel(setDirty = vi.fn()) {
   render(
-    <ConfigDirtyGuardContext.Provider value={{ setDirty }}>
+    <ConfigDirtyGuardContext.Provider value={{ setDirty, report: () => {}, guard: (a: () => void) => a() }}>
       <MacroPanel approvedFonts={['Arial']} />
     </ConfigDirtyGuardContext.Provider>
   );
@@ -98,7 +103,7 @@ describe('MacroPanel — PS-128 real dirty-state reporting', () => {
   it('reports clean again on unmount, so a stale dirty flag never outlives the tab that set it', async () => {
     const setDirty = vi.fn();
     const { unmount } = render(
-      <ConfigDirtyGuardContext.Provider value={{ setDirty }}>
+      <ConfigDirtyGuardContext.Provider value={{ setDirty, report: () => {}, guard: (a: () => void) => a() }}>
         <MacroPanel approvedFonts={['Arial']} />
       </ConfigDirtyGuardContext.Provider>
     );

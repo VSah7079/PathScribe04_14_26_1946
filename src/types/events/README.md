@@ -11,9 +11,21 @@ PathScribe-owned internal event contracts for the LIS/middleware integration sea
 - **`CassetteDispatchOutcomeEventPayload.ts`** — inbound: receiving the real outcome of a cassette color/hopper dispatch (dispatched / fallback used / prompted / error) from the Cassette Engine, so PathScribe can surface a real notification rather than silently assuming its own routing rule was honored.
 - **`EngraverStatusEventPayload.ts`** — inbound: receiving high-level engraver/fleet device status (online / engraving / warning / fault / offline) from the Cassette Engine. Deliberately excludes raw hardware telemetry (hopper fill percentages, laser hours, temperature) — that stays the Engine's own "Hardware & Fleet Layer," per the confirmed Engraver Monitor architectural boundary. Real, per direct guidance's own explicit correction: even the *supply* status is structured, not raw telemetry — `supplyWarnings` is a closed set of real functional states (`CASSETTE_SUPPLY_LOW`/`CASSETTE_SUPPLY_DEPLETED`/`COLOR_UNAVAILABLE`), each optionally tied to a real `CassetteColorDefinition.key`, never a per-hopper fill percentage. `warnings` (free text) is kept separately for non-supply operational issues (e.g. "Cover Open") that aren't a small, closed set worth a real enum.
 
+Also in this folder, not described above (each file's header has the full account):
+- Inbound: `HpvResultEventPayload.ts` (hrHPV results), `MolecularBatchResultEventPayload.ts`, `MolecularRunResultsPayload.ts` (molecular run results), `CytologyInstrumentStatusEventPayload.ts` (ThinPrep processor status), `StainingInstrumentStatusEventPayload.ts` (stainer status), `WsiScanStatusUpdateEventPayload.ts` (slide scanner status), `CytologyProficiencyTestResultEventPayload.ts` (proficiency-test scores), `AiScreeningResultEventPayload.ts` (AI screening results), `ClinicalHistoryAccessionEventPayload.ts` (an order with structured clinical history), `ReferralResultEventPayload.ts` (reference-lab results), `TelemetryReadingEventPayload.ts` (cold-chain temperature/humidity/GPS readings).
+- Outbound: `MolecularWorklistPayload.ts` (molecular worklist to the instrument), `ReferralManifestEventPayload.ts` (referral manifest to a reference lab).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the file list named 6 of the folder's 19 payload files; the other 13 are listed above. Ingestion functions are no longer all in `services/hl7/`.*
+
 ## Notes
 
-- Each inbound payload has a corresponding `process<X>Event.ts` ingestion function in `services/hl7/` — same idempotent-on-`messageId` pattern across all of them — **except `EngraverStatusEventPayload.ts`**, which is device-scoped rather than case-scoped and has no frontend "Sim" trigger or `process*Event.ts` counterpart at all; it's ingested entirely backend-side (`api/webhooks/engine/engraver-status.ts` + `upsertEngraverStatus.ts` — see that folder's own README).
+- Each inbound payload has a corresponding `process<X>Event.ts` / `processInbound<X>Event.ts` ingestion function — most in `services/hl7/`, some in their own domain folder (e.g. `services/coldChain/processInboundTelemetryReadingEvent.ts`, `services/referral/processInboundReferralResultEvent.ts`) — same idempotent-on-`messageId` pattern across all of them — **except `EngraverStatusEventPayload.ts`**, which is device-scoped rather than case-scoped and has no frontend "Sim" trigger or `process*Event.ts` counterpart at all; it's ingested entirely backend-side (`api/webhooks/engine/engraver-status.ts` + `upsertEngraverStatus.ts` — see that folder's own README).
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- `MolecularWorklistPayload` and `MolecularRunResultsPayload`: `order_id` on sample wells and results.
+- `ReferralManifestEventPayload.molecularOrders`.
+- `ReferralResultEventPayload.orderResults`.
 
 ---
 *See [types/README.md](../README.md) for how this folder fits the whole types/ layer.*

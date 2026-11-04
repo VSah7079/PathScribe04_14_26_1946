@@ -27,6 +27,9 @@ export interface TelemetryReading {
    *  status stays honest even if a StorageConditionType's own
    *  threshold is later edited. */
   isExcursion: boolean;
+  /** Batch 610: true when the reading came from the labelled Simulated feed
+   *  (services/coldChain/simulatedTelemetryFeed.ts) rather than a sensor. */
+  simulated?: boolean;
 }
 
 export interface ITelemetryReadingService {

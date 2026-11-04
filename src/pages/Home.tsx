@@ -16,6 +16,10 @@ import { useAuth } from "@contexts/AuthContext";
 import PubMedTicker from '@/components/Common/PubMedTicker';
 import { visibleTiles, type HomeTileId } from '@/services/screens/screenAccess';
 import { useCapabilities } from '@/hooks/useCapabilities';
+import { describeNoScreens } from '@/services/authorization/noScreensDiagnostic';
+import { useRegistryExceptionCount } from '@/hooks/useRegistryExceptionCount';
+import { pressable } from '@/utils/a11y/pressable';
+import SystemStatusIndicator from '@/components/Common/SystemStatusIndicator';
 
 interface Card {
   /** Batch 374: which screen (or hub) the tile opens, for the access check. */
@@ -32,6 +36,8 @@ export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const capabilities = useCapabilities();
+  // Batch 425: registry submissions needing a person (own organisation), on the tile that leads to them.
+  const registryExceptionCount = useRegistryExceptionCount();
 
   // --- UI State ---
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
@@ -97,6 +103,22 @@ export default function Home() {
 
     // — Alphabetical from here down —
 
+    // ⭐ New tile — Batch 488 (Pete): the dedicated bench-contribution page
+    // for the four bench roles (Accessioner, Histotechnologist,
+    // Cytotechnologist, Molecular Technologist), replacing the My
+    // Contribution access they were given then had revoked in Batch 486.
+    // Color #7FB800 (lime green): verified by the same computational
+    // colorblind-simulation pass as the rest of this palette (see the
+    // header comment above) against all 8 existing tile colors — the
+    // Wong (2011) 8-color set above is already fully used, so this 9th
+    // color was chosen and checked individually, not drawn from it.
+    {
+      id: 'benchContributions', title: t('home.benchContributionsTile.title'),
+      description: t('home.benchContributionsTile.description'),
+      route: '/bench-contributions',
+      color: '#7FB800',
+      image: '/bench_contributions.webp'
+    },
     // Batch 375 (Pete): Add-On Orders is no longer a tile. It's an action on
     // a case (the report page's block row, "Add-on order"), which opens
     // /add-on-orders with that case already loaded (PS-287's station).
@@ -115,6 +137,17 @@ export default function Home() {
     // route, just a real, discoverable Configuration entry point
     // instead of a flat top-level Home tile aimed at every user.
     { id: 'intraopQueue', title: t('home.intraopQueueTile.title'), description: t('home.intraopQueueTile.description'), route: '/intraop-queue', color: '#38BDF8', image: '/intraop.webp' },
+    // ⭐ New tile — Batch 645 (Pete): Lockbox Drop-Off, the after-hours specimen kiosk and the Overnight folder for the
+    // morning team (/lockbox-drop-off, screen:lockbox-drop-off:open). Alphabetical: after Intraop Queue, before My
+    // Contribution. Color #86EFAC (a light green): the 11th color, chosen and checked the way the header comment says. A
+    // from-scratch search over hue, saturation and lightness for the color with the largest minimum distance to the ten
+    // others, in normal vision and under protanopia, deuteranopia and tritanopia (Viénot linear-RGB projection and the
+    // Machado matrices, as simulated sRGB distance), keeping 3:1 against both dark surfaces (#0B1120, #0D1829). Result:
+    // minimum distance ≈90 in every simulation (≈120 in normal vision; the nearest tile is Intraop Queue, Search or Bench Contributions), against
+    // ≈34–37 for the Tumor Board violet, and contrast ≈12.7:1 on the dark tile. It is light where the other ten are
+    // mid-tone, which is why it survives the simulations (the ten were already crowded in hue). Home.tileColors.test.tsx
+    // repeats the check on the colors the page really renders, so a twelfth tile or a changed color is caught.
+    { id: 'lockboxDropOff', title: t('home.lockboxDropOffTile.title'), description: t('home.lockboxDropOffTile.description'), route: '/lockbox-drop-off', color: '#86EFAC', image: '/lockbox.webp' },
     // ⭐ New tile
     {
       id: 'myContributions', title: t('home.myContributionTile.title'),
@@ -124,7 +157,7 @@ export default function Home() {
       image: '/my_contributions.webp'
     },
     // ⭐ New tile — real, per "Homepage Changes part 1" (direct
-    // request): Cytology Workspace, Microtomy Workstation (renamed
+    // request): Cytology Workspace, Microtome Workstation (renamed
     // "Microtomy Workspace"), Embedding Station (renamed "Embedding
     // Workspace"), and Slide Distribution Station (renamed "Slide
     // Distribution Workspace") were each their own flat top-level tile
@@ -147,7 +180,7 @@ export default function Home() {
     // audience — Molecular Workspace's own molecular-tech bench
     // workflow is genuinely distinct from the other four tiles' own
     // histology-bench/cytology-screening audiences, same real
-    // reasoning already true of e.g. Cytology vs. Microtomy within
+    // reasoning already true of e.g. Cytology vs. Microtome within
     // this same hub. Molecular Order Queue (/molecular-order-queue)
     // deliberately NOT moved — per direct guidance, only "Molecular"
     // itself was named for this move.
@@ -188,7 +221,29 @@ export default function Home() {
       color: '#D55E00',
       image: '/logs.webp'
     },
-    { id: 'search', title: t('home.searchTile.title'), description: t('home.searchTile.description'), route: '/search', color: '#CC79A7', image: '/search.webp' }
+    { id: 'search', title: t('home.searchTile.title'), description: t('home.searchTile.description'), route: '/search', color: '#CC79A7', image: '/search.webp' },
+    // ⭐ New tile — Batch 489 (Module 1 of Pete's Tumor Board / MDT
+    // Workspace spec). Color #9816D9 (violet): the Wong (2011) 8-color
+    // set plus #7FB800 (Batch 488) already fill out the full palette, so
+    // this 10th color was chosen and verified the same way as #7FB800 —
+    // a from-scratch Brettel/Vienot-style dichromat simulation (sRGB →
+    // linear → LMS → project out the missing cone response → back to
+    // sRGB) against protanopia, deuteranopia and tritanopia, plus a WCAG
+    // contrast check against the page background. With 9 colors already
+    // spread across the hue wheel, the margins are real but tighter than
+    // #7FB800's own: minimum simulated distance ≈34 (deuteranopia, vs.
+    // #38BDF8) and ≈37 (tritanopia, vs. #B24592), vs. ≈89 in normal
+    // vision — still clearly distinct in every simulation, but Pete
+    // should know this is the last color this palette can comfortably
+    // fit; an 11th tile will need either a shape/icon cue or reusing an
+    // existing color (same precedent as #009E73/#D55E00 above).
+    {
+      id: 'tumorBoard', title: t('home.tumorBoardTile.title'),
+      description: t('home.tumorBoardTile.description'),
+      route: '/tumor-board',
+      color: '#9816D9',
+      image: '/tumor_board.webp'
+    }
     // Real, per "Homepage Changes part 1" (direct request): "Move
     // Facilities Ops Dashboards under Configuration." The former
     // Facility Ops Dashboards tile (PS-288, #84CC16 lime) that used to
@@ -203,6 +258,12 @@ export default function Home() {
   // decision is services/screens/screenAccess.ts; each route checks again.
   const shown = new Set(visibleTiles(allCards.map(c => c.id), c => capabilities.has(c)));
   const cards = allCards.filter(c => shown.has(c.id));
+  // Oct 28, 2026: when no tile shows, say why in the browser console (ids, role names and counts only).
+  const noScreens = !capabilities.loading && cards.length === 0;
+  const permissionSnapshot = capabilities.snapshot ?? null;
+  useEffect(() => {
+    if (noScreens && permissionSnapshot) console.warn('PathScribe: no Home screen is open to this session', describeNoScreens(permissionSnapshot));
+  }, [noScreens, permissionSnapshot]);
 
   return (
     <div className={`ps-page${isLoaded ? ' ps-page--loaded' : ''}`}>
@@ -230,29 +291,13 @@ export default function Home() {
               return (
                 <div
                   key={card.title}
-                  onClick={() => navigate(card.route)}
+                  {...pressable(() => navigate(card.route))}
                   onMouseEnter={() => setHoveredCard(index)}
                   onMouseLeave={() => setHoveredCard(null)}
                   onFocus={() => setHoveredCard(index)}
                   onBlur={() => setHoveredCard(null)}
-                  // Real, per direct UI-review follow-up ("Fix them
-                  // all" — keyboard accessibility): this was a plain
-                  // <div onClick> — unreachable via Tab, no keyboard
-                  // activation, no visible focus state. role="button"
-                  // + tabIndex + onKeyDown makes it a genuine keyboard
-                  // control (Enter/Space activate, matching real
-                  // <button> semantics); onFocus/onBlur reuse the
-                  // existing hoveredCard state so a keyboard user gets
-                  // the same visible highlight a mouse user already
-                  // does, not a second, separate visual language.
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      navigate(card.route);
-                    }
-                  }}
+                  // Batch 568: pressable gives the card its button role, tab stop and Enter / Space (the hand-written
+                  // copies of those that sat here are gone); focus shows the same highlight as hover.
                   className={`ps-home-card${hovered ? ' ps-home-card--hovered' : ''}`}
                   style={{ '--card-accent': card.color } as React.CSSProperties}
                 >
@@ -267,6 +312,9 @@ export default function Home() {
                   {/* Text Content */}
                   <div className="ps-home-card-text">
                     <h3 className="ps-home-card-title">{card.title}</h3>
+                    {card.id === 'qualityCompliance' && !!registryExceptionCount && (
+                      <span className="ps-home-card-badge" title={t('home.registryExceptionsBadge', { count: registryExceptionCount })}>{t('home.registryExceptionsBadge', { count: registryExceptionCount })}</span>
+                    )}
                     <p className="ps-home-card-desc">{card.description}</p>
                   </div>
                 </div>
@@ -278,10 +326,7 @@ export default function Home() {
         {/* Footer Status */}
         <footer className="ps-home-footer">
           <div>{t('home.footerCopyright')}</div>
-          <div className="ps-home-footer-status">
-            <span className="ps-home-status-dot" />
-            {t('home.systemsOperational')}
-          </div>
+          <SystemStatusIndicator />
         </footer>
       </div>
     </div>

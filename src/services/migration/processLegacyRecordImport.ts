@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveMigrationFieldMapping } from './resolveMigrationFieldMapping';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
+import { patientIndexService } from '../patients/patientServicesInstance';
 import type { MigrationFieldMapping } from './IMigrationFieldMappingService';
 import type { MigrationCaseDraft } from '@/types/migration/MigrationCaseDraft';
 
@@ -58,7 +58,7 @@ export async function processLegacyRecordImport(
     return { outcome: 'failed', draft, unmappedSourceFields, errorMessage: validationError };
   }
 
-  const mpiResult = await mockPatientIndexService.resolveOrCreatePatient({
+  const mpiResult = await patientIndexService.resolveOrCreatePatient({
     organisationId,
     mrn: draft.patientMrn ?? '',
     firstName: draft.patientFirstName!,

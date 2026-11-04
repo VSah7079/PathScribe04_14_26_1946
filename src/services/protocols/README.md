@@ -1,3 +1,11 @@
+**Batch 741:** `Protocol.divisionPurposes` (the aliquots Divide specimen suggests); set on the fluid and FNA demo protocols.
+
+**Batch 739:** `IProtocolService.ts`: a decant track's `decantType` and `aliquotPurpose`. `cytologyDemoProtocols.ts`: HPV tracks make aliquots; new ThinPrep and SurePath Pap protocols.
+
+**Batch 738:** `surgicalDemoProtocols.ts` (new): seven surgical grossing protocols for the demo (colon resection for tumor and without, small biopsy, skin biopsy, breast core and excision, prostate cores) and `SURGICAL_DEMO_PROTOCOL_BY_ENTRY` / `applySurgicalDemoProtocols`, which link them to starter dictionary entries; seeded in `mockProtocolService.ts`. Test: `surgicalDemoProtocols.test.ts`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/protocols/
 
 Standalone processing-protocol dictionary (e.g. 'Standard Small Biopsy — 1 block, 1 H&E') — deliberately NOT embedded per specimen type.
@@ -54,6 +62,20 @@ match was scoped accordingly (`!p.performingLabFacilityId && ...`) so a
 re-import can't silently collide with or overwrite a lab-specific
 protocol that happens to share a name with a global one.
 
+## Batch 428: Configuration permissions
+
+- `mockProtocolService`: `add`, `update`, `restoreVersion` need `config:processing-protocols:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `Protocol` (`httpProtocolService.ts`, contract `PROTOCOLS_API.md`); `FixativeDictionary` (`httpFixativeDictionaryService.ts`, contract `PROTOCOLS_API.md`); `ProcessingFormatDictionary` (`httpProcessingFormatDictionaryService.ts`, contract `PROTOCOLS_API.md`), picked by `protocolServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.
+
+## Batch 716: cytology demo protocols
+
+`cytologyDemoProtocols.ts` (seeded by `mockProtocolService`): Pap with HPV co-test and HPV-only swab (an HPV aliquot decant whose task has `sendOutboundOrder`, so Accession queues the HPV order), Non-GYN fluid with cell block (2 decants by default) and FNA cell block (1). Seed data only: no `sendOutboundOrder` setting exists in the Protocols screen, slides and smears are not generated, and `generateDefaultMaterial` records every generated decant as type cell block.

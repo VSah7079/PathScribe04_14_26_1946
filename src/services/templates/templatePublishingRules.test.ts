@@ -1,17 +1,18 @@
 // src/services/templates/templatePublishingRules.test.ts — PS-63 (Batch 328).
 import { describe, it, expect } from 'vitest';
 import {
-  calcTemplateCoverage, canDraftTemplates, countingApprovals, decideApprove, decidePublish, isTemplateApprover,
+  calcTemplateCoverage, canDraftTemplates, canPublishTemplates, countingApprovals, decideApprove, decidePublish, isTemplateApprover,
   normalizeGovernanceSettings, withEditor, DEFAULT_TEMPLATE_GOVERNANCE, SNOMED_PUBLISH_THRESHOLD,
   type GovernedTemplate, type TemplateActor,
 } from './templatePublishingRules';
 
 const field = (snomed = '', options: { snomed?: string }[] = [], icd = '') => ({ snomed, icd, options });
 const AT = '2026-09-25T12:00:00.000Z';
-const author: TemplateActor   = { id: 'author', name: 'Author', appRole: 'admin' };
-const reviewer: TemplateActor = { id: 'rev-1', name: 'Reviewer One', roleIds: ['template-approver'] };
-const reviewer2: TemplateActor = { id: 'rev-2', name: 'Reviewer Two', roleIds: ['lab-director'] };
-const pathologist: TemplateActor = { id: 'path', name: 'Pathologist', appRole: 'pathologist', roleIds: ['pathologist'] };
+const DRAFT = 'config:protocol:draft'; const APPROVE = 'config:protocol:approve'; const PUBLISH = 'config:protocol:publish';
+const author: TemplateActor   = { id: 'author', name: 'Author', capabilities: [DRAFT, APPROVE, PUBLISH] };
+const reviewer: TemplateActor = { id: 'rev-1', name: 'Reviewer One', capabilities: [APPROVE, PUBLISH] };
+const reviewer2: TemplateActor = { id: 'rev-2', name: 'Reviewer Two', capabilities: [APPROVE, PUBLISH] };
+const pathologist: TemplateActor = { id: 'path', name: 'Pathologist', capabilities: [] };
 const inReview = (over: Partial<GovernedTemplate> = {}): GovernedTemplate => ({ status: 'in_review', editorIds: ['author'], approvals: [], ...over });
 
 describe('calcTemplateCoverage', () => {
@@ -30,24 +31,24 @@ describe('settings and roles', () => {
     expect(normalizeGovernanceSettings({ requiredReviewers: 'x' as never }).requiredReviewers).toBe(1);
   });
 
-  it('recognises Template Approver, Lab Director, Admin (by role id) and administrator accounts', () => {
+  it('approving follows config:protocol:approve, whatever the role is called', () => {
     expect(isTemplateApprover(reviewer)).toBe(true);
     expect(isTemplateApprover(reviewer2)).toBe(true);
-    expect(isTemplateApprover({ id: 'x', roleIds: ['admin'] })).toBe(true);
-    expect(isTemplateApprover({ id: 'x', appRole: 'superadmin' })).toBe(true);
+    expect(isTemplateApprover({ id: 'x', capabilities: [APPROVE] })).toBe(true);
     expect(isTemplateApprover(pathologist)).toBe(false);
     expect(isTemplateApprover(null)).toBe(false);
   });
 
-  it('lets Template Author draft, with Admin inheriting it (Batch 329)', () => {
-    expect(canDraftTemplates({ id: 'a', roleIds: ['template-author'] })).toBe(true);
-    expect(canDraftTemplates({ id: 'a', roleIds: ['admin'] })).toBe(true);
-    expect(canDraftTemplates({ id: 'a', appRole: 'pathologist-admin' })).toBe(true);
+  it('publishing and drafting each follow their own capability (Batch 664: role names and app roles decide nothing)', () => {
+    expect(canPublishTemplates({ id: 'a', capabilities: [APPROVE] })).toBe(false);
+    expect(canPublishTemplates({ id: 'a', capabilities: [PUBLISH] })).toBe(true);
+    expect(canDraftTemplates({ id: 'a', capabilities: [DRAFT] })).toBe(true);
     expect(canDraftTemplates(reviewer)).toBe(false);
     expect(canDraftTemplates(pathologist)).toBe(false);
     expect(canDraftTemplates(null)).toBe(false);
-    // a Template Author can't approve
-    expect(isTemplateApprover({ id: 'a', roleIds: ['template-author'] })).toBe(false);
+    expect(isTemplateApprover({ id: 'a', capabilities: [DRAFT] })).toBe(false);
+    // an old-style actor carrying only a role name holds nothing
+    expect(isTemplateApprover({ id: 'a', capabilities: [], appRole: 'admin', roleIds: ['admin'] } as unknown as TemplateActor)).toBe(false);
   });
 
   it('records each editor once', () => {

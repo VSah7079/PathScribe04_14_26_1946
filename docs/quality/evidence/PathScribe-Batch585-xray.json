@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 585 — review tests (Playwright) for PS-60, PS-269, PS-292, PS-474, PS-475",
+    "description": "Playwright review tests (Chromium, against the demo on the Vite dev server) at Batch 585: 13 passed, 1 skipped (PS-60 step 3 needs PS_DEMO_PASSWORD; written, never run). Run 2026-10-16."
+  },
+  "tests": [
+    {
+      "testKey": "PS-731",
+      "start": "2026-10-16T13:20:00Z",
+      "finish": "2026-10-16T13:45:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: e2e/review/ps-60.sso-login.spec.ts › Step 1: Google and Microsoft show \"Soon\", are disabled and do nothing\nPASSED: e2e/review/ps-60.sso-login.spec.ts › Step 2: a wrong password and an unknown e-mail are refused with the same message\nSKIPPED: e2e/review/ps-60.sso-login.spec.ts › Step 3: a deep link while signed out lands back on that page after sign-in (PS_DEMO_PASSWORD is not set; written, never run)\nPASSED: e2e/review/ps-60.sso-login.spec.ts › Step 6: Configuration → Staff → Pete Nimmo shows the \"Linked sign-in accounts\" panel\nPASSED: e2e/review/ps-269.i18n-sweep.spec.ts › Steps 1–2: Korean on Home, the Worklist and a case report\nPASSED: e2e/review/ps-269.i18n-sweep.spec.ts › Step 3: French, the MRN label reads \"IPP\" on the Worklist and a case\nPASSED: e2e/review/ps-292.preliminary-release.spec.ts › Step 1: the button shows on an open case and not on a closed one\nPASSED: e2e/review/ps-292.preliminary-release.spec.ts › Step 2: Release as Preliminary gives a result and the case is not finalised\nPASSED: e2e/review/ps-292.preliminary-release.spec.ts › Steps 3–4: add a delivery rule, then Resolve shows the action and the matched rule\nPASSED: e2e/review/ps-474.security-headers.spec.ts › Step 1: the README exists and names each generated file\nPASSED: e2e/review/ps-474.security-headers.spec.ts › Step 2: the generator writes the five files\nPASSED: e2e/review/ps-474.security-headers.spec.ts › Steps 2–3 (file side): every file carries the same strict header set\nPASSED: e2e/review/ps-475.load-size-languages.spec.ts › Steps 2–3: sign-in and Home fetch only the English language file\nPASSED: e2e/review/ps-475.load-size-languages.spec.ts › Step 5: German, Korean, French (Belgium) and Dutch (Belgium) each download once, with no raw keys"
+    }
+  ]
+}

@@ -79,17 +79,17 @@ describe('detectIdentifierType — real, direct branch verification', () => {
 describe('resolveIdentifierApplication — real, structured result, never a direct side effect', () => {
   it('a real, pipe-delimited slide payload with both ACC and SPEC navigates with a specimen param', () => {
     const res = resolveIdentifierApplication('ACC:S26-4200|SPEC:A1', 'slide', ALL_FORMATS, '^[A-Z]\\d{2}-\\d{4,6}$');
-    expect(res).toEqual({ action: 'navigate', path: '/case/S26-4200/synoptic?specimen=A1' });
+    expect(res).toEqual({ action: 'openCase', caseId: 'S26-4200', specimen: 'A1' });
   });
 
   it('a real, pipe-delimited slide payload with only ACC navigates without a specimen param', () => {
     const res = resolveIdentifierApplication('ACC:S26-4200|OTHER:x', 'slide', ALL_FORMATS, '^[A-Z]\\d{2}-\\d{4,6}$');
-    expect(res).toEqual({ action: 'navigate', path: '/case/S26-4200/synoptic' });
+    expect(res).toEqual({ action: 'openCase', caseId: 'S26-4200' });
   });
 
   it('a real 1D slide barcode extracts its own accession prefix and navigates', () => {
     const res = resolveIdentifierApplication('S26-4200-A1-1', 'slide', ALL_FORMATS, '^[A-Z]\\d{2}-\\d{4,6}$');
-    expect(res).toEqual({ action: 'navigate', path: '/case/S26-4200/synoptic' });
+    expect(res).toEqual({ action: 'openCase', caseId: 'S26-4200' });
   });
 
   it('a slide value matching neither real slide shape falls back to setting accessionNo directly', () => {

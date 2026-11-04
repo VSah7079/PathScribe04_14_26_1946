@@ -1,7 +1,9 @@
 // src/services/stains/mockStainTypeService.ts
 
 import type { ServiceResult, ID } from '../types';
+import { REFERENCE_LAB_IDS } from '../facilities/referenceLabSeeds';
 import type { IStainTypeService, StainType } from './IStainService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 let STAIN_TYPES: StainType[] = [
   { id: 'st-he',    name: 'H&E',                     category: 'Routine',       version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
@@ -32,7 +34,7 @@ let STAIN_TYPES: StainType[] = [
   // 2 real, default targets -> billingRule resolves to 1 unit base +
   // 1 unit add-on (see calculateMolecularUnits.ts's own worked test
   // for this exact case).
-  { id: 'st-her2-fish', name: 'HER2 FISH', category: 'Molecular', methodology: 'FISH_ANATOMIC', description: 'Dual-probe HER2/CEP17 FISH — manual direct count.', defaultTargets: [
+  { id: 'st-her2-fish', name: 'HER2 FISH', category: 'Molecular', referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, methodology: 'FISH_ANATOMIC', description: 'Dual-probe HER2/CEP17 FISH — manual direct count.', defaultTargets: [
       { id: 'mt-erbb2', symbol: 'ERBB2', detail: '17q12', targetType: 'PROBE', active: true },
       { id: 'mt-cep17', symbol: 'CEP17', detail: '17p11.1-q11.1', targetType: 'PROBE', active: true },
     ], billingRule: { billingModel: 'BASE_ADDON', baseCptCode: 'FISH-MANUAL-BASE', addOnCptCode: 'FISH-MANUAL-ADDL', multiplexCptCode: 'FISH-MANUAL-MULTIPLEX' },
@@ -42,7 +44,7 @@ let STAIN_TYPES: StainType[] = [
   // (Default Count: 4)." 4 real, default targets -> billingRule
   // resolves to 1 unit of the real multiplex code (>= the default
   // 3-target threshold), not base+addon stacked.
-  { id: 'st-lymphoma-fish-panel', name: 'Lymphoma FISH Panel', category: 'Molecular', methodology: 'FISH_ANATOMIC', description: 'Order-group FISH panel — specific probe subset selected per clinical indication or preliminary flow/morphology findings.', defaultTargets: [
+  { id: 'st-lymphoma-fish-panel', name: 'Lymphoma FISH Panel', category: 'Molecular', referenceLabFacilityIds: [REFERENCE_LAB_IDS.greatLakes], methodology: 'FISH_ANATOMIC', description: 'Order-group FISH panel — specific probe subset selected per clinical indication or preliminary flow/morphology findings.', defaultTargets: [
       { id: 'mt-igh', symbol: 'IGH', detail: '14q32', targetType: 'PROBE', active: true },
       { id: 'mt-bcl2', symbol: 'BCL2', detail: '18q21', targetType: 'PROBE', active: true },
       { id: 'mt-myc', symbol: 'MYC', detail: '8q24', targetType: 'PROBE', active: true },
@@ -61,7 +63,9 @@ let STAIN_TYPES: StainType[] = [
   // duplicated here.
   { id: 'st-pap-conventional', name: 'Pap Smear, Conventional', category: 'Cytology', description: 'Conventional (direct) Pap smear, Bethesda system reporting.', defaultBillingCode: 'PAP-CONVENTIONAL', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pap-thinprep', name: 'Pap Smear, Liquid-Based (ThinPrep)', category: 'Cytology', description: 'Liquid-based Pap using the ThinPrep method - requires a ThinPrep/PreservCyt Vial at collection (Container Type dictionary).', defaultBillingCode: 'PAP-THINPREP', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
-  // Real, per PS-284 (Microtomy Workstation)'s own Cytology & Decanting
+  // Batch 739 (fluid decision 4): the SurePath liquid-based Pap, beside ThinPrep.
+  { id: 'st-pap-surepath', name: 'Pap Smear, Liquid-Based (SurePath)', category: 'Cytology', description: 'Liquid-based Pap using the SurePath method - requires a CytoRich (SurePath) vial at collection (Container Type dictionary).', defaultBillingCode: 'PAP-SUREPATH', defaultTurnaroundHours: 48, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Real, per PS-284 (Microtome Workstation)'s own Cytology & Decanting
   // panel: "Stain Quick-Toggle: Pap Stain, Diff-Quik/Wright-Giemsa,
   // H&E." Pap (both methods) and H&E (st-he, Routine) already existed
   // in this dictionary; Diff-Quik/Wright-Giemsa (the standard rapid,
@@ -99,6 +103,8 @@ let STAIN_TYPES: StainType[] = [
   { id: 'st-msh2',  name: 'MSH2',                     category: 'IHC', antibodyClone: 'G219-1129', vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-msh6',  name: 'MSH6',                     category: 'IHC', antibodyClone: 'SP93',      vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   { id: 'st-pms2',  name: 'PMS2',                     category: 'IHC', antibodyClone: 'EPR3947',   vendor: 'Ventana', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Colon (normal mucosa)', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 744 (S14): TTF-1, the lung and thyroid lineage marker added to an EBUS FNA cell block.
+  { id: 'st-ttf1',  name: 'TTF-1',                    category: 'IHC', antibodyClone: '8G7G3/1',   vendor: 'Agilent Dako', defaultTurnaroundHours: 24, requiresTargetControl: true, allowControlAutoAppend: true, defaultControlTissueType: 'Lung (normal) or thyroid', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
   // Immunofluorescence conjugates — the standard renal biopsy IF panel.
   // Genuinely different technique from IHC (fluorescent-conjugated,
   // not chromogenic), hence the separate category rather than folding
@@ -117,11 +123,25 @@ let STAIN_TYPES: StainType[] = [
   // current Block/StainOrder shape has no separate concept for this;
   // flagged honestly rather than silently mislabeled.
   { id: 'st-uranyl-lead', name: 'Uranyl Acetate / Lead Citrate', category: 'Other', description: 'Electron microscopy contrast staining, not a light-microscopy stain.', version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 403 (Pete): send-out tests linked to the demo reference labs
+  // (services/facilities/referenceLabSeeds.ts). HER2 FISH (above) has two
+  // approved labs and a default; the Lymphoma FISH Panel one lab (it fills
+  // in); the NGS panel two labs and no default (the pathologist picks from
+  // those two); MSI by PCR none (every reference lab is offered).
+  { id: 'st-ngs-solid-tumor', name: 'NGS Solid Tumor Panel', category: 'Molecular', methodology: 'NGS_PANEL', description: 'Targeted DNA/RNA panel for solid tumours — send-out.', referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultTurnaroundHours: 240, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 467 (Pete: in-house molecular): run in-house at Desert Valley (its real-time PCR analyser), or sent out.
+  { id: 'st-egfr-pcr', name: 'EGFR mutation PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'EGFR exon 18–21 mutations by real-time PCR — in-house at Desert Valley, or send-out.', inHouseFacilityIds: ['c-ent-dvmc'], referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, defaultTurnaroundHours: 72, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-msi-pcr', name: 'MSI by PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'Microsatellite instability by PCR — send-out.', defaultTurnaroundHours: 120, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  // Batch 467b: the colorectal mutation tests the Colorectal Further Investigations synoptic's molecular questions are
+  // filled from. KRAS and NRAS run in-house at Desert Valley (or are sent out); BRAF V600E is sent out.
+  { id: 'st-kras-pcr', name: 'KRAS mutation PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'KRAS codon 12, 13, 61, 117 and 146 mutations by real-time PCR — in-house at Desert Valley, or send-out.', inHouseFacilityIds: ['c-ent-dvmc'], referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, defaultTurnaroundHours: 72, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-nras-pcr', name: 'NRAS mutation PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'NRAS codon 12, 13, 61, 117 and 146 mutations by real-time PCR — in-house at Desert Valley, or send-out.', inHouseFacilityIds: ['c-ent-dvmc'], referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, defaultTurnaroundHours: 72, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
+  { id: 'st-braf-v600e-pcr', name: 'BRAF V600E mutation PCR', category: 'Molecular', methodology: 'PCR_SINGLE', description: 'BRAF V600E by real-time PCR — send-out.', referenceLabFacilityIds: [REFERENCE_LAB_IDS.summit, REFERENCE_LAB_IDS.pacific], defaultReferenceLabFacilityId: REFERENCE_LAB_IDS.summit, defaultTurnaroundHours: 96, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
 ];
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockStainTypeService: IStainTypeService = {
+const stainTypeServiceUnchecked: IStainTypeService = {
   async getAll() {
     return ok([...STAIN_TYPES]);
   },
@@ -145,3 +165,8 @@ export const mockStainTypeService: IStainTypeService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockStainTypeService: IStainTypeService = guardConfigWrites(stainTypeServiceUnchecked, [
+  ['config:stain-dictionary:manage', ['add', 'update']],
+]);

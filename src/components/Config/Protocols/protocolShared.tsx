@@ -29,6 +29,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { TemplateApproval } from '../../../services/templates/templatePublishingRules';
+import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
+import { pressable } from '@/utils/a11y/pressable';
+import { validateProtocolUpload, draftFromUpload, type ProtocolUploadResult } from '../../../services/templates/protocolUploadValidation';
+import { findProtocolNameConflict, copySourceCandidates } from '../../../services/templates/protocolLifecycle';
+import { isDemoChecklist, DEMO_CHECKLISTS_IN_BUILD } from '../../../services/templates/demoChecklists';
+import { DEMO_CHECKLIST_REGISTRY } from '../../../services/templates/demoChecklistRegistry';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -132,25 +138,23 @@ export function isDiagnosticProtocol(p: Protocol): boolean {
 // templateService mutates this array directly during the mock phase.
 // Replace with a useProtocols() hook backed by API once the backend is ready.
 //
-// localStorage bridge: on module load we merge any saved protocol overrides
-// back into the registry so that lifecycle transitions survive page reloads.
+// Saved overrides: on module load we merge any saved protocol overrides back
+// into the registry so that lifecycle transitions survive page reloads.
 // Key: ps_registry_overrides_v1  Value: Record<id, Partial<Protocol>>
+// Batch 431: kept in the lab settings store (services/labSettings/), so every
+// workstation sees the same protocol state once the API server holds it (PS-345).
 
 const REGISTRY_STORE_KEY = 'ps_registry_overrides_v1';
 
 export function loadRegistryOverrides(): Record<string, Partial<Protocol>> {
-  try {
-    const raw = localStorage.getItem(REGISTRY_STORE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
+  const saved = readLabSetting<Record<string, Partial<Protocol>> | null>(REGISTRY_STORE_KEY, null);
+  return saved && typeof saved === 'object' ? saved : {};
 }
 
 export function saveRegistryOverride(patch: Partial<Protocol> & { id: string }): void {
-  try {
-    const overrides = loadRegistryOverrides();
-    overrides[patch.id] = { ...(overrides[patch.id] ?? {}), ...patch };
-    localStorage.setItem(REGISTRY_STORE_KEY, JSON.stringify(overrides));
-  } catch { /* storage unavailable */ }
+  const overrides = loadRegistryOverrides();
+  overrides[patch.id] = { ...(overrides[patch.id] ?? {}), ...patch };
+  saveLabSetting(REGISTRY_STORE_KEY, overrides);
 }
 
 export let PROTOCOL_REGISTRY: Protocol[] = [
@@ -176,8 +180,8 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     lastModified: '2026-07-17', owner: 'System',
   },
   // 19 generic templates below -- registered here for the first time (see
-  // this file's own comment above: these were seeded into editorStore at
-  // module load but never had a PROTOCOL_REGISTRY entry, so they were
+  // this file's own comment above: these were seeded into editorStore
+  // (on demand since Batch 505) but never had a PROTOCOL_REGISTRY entry, so they were
   // reachable only by direct URL, invisible to normal browsing/assignment).
   // Content is genericized placeholder (CAP/RCPath-derived structure, no
   // licensed wording) pending a confirmed CAP/RCPath license -- version
@@ -185,125 +189,35 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   // version number at the same time real licensed content replaces the
   // placeholder options, rather than tracking a separate status for the
   // interim period.
+  // Batch 754: the 19 demonstration checklists (services/templates/demoChecklistRegistry.ts); a customer build
+  // (mode "server") leaves them out. The mode is written in literally so the bundler drops them.
+  ...(import.meta.env.MODE !== 'server' ? DEMO_CHECKLIST_REGISTRY : []),
+  // Batch 463: PathScribe's own Mohs synoptic (stage maps). Labs copy and customise it like any other.
   {
-    id: 'breast_invasive', name: 'Generic Template — Breast Invasive',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 44, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
+    id: 'mohs_micrographic_surgery', name: 'PathScribe — Mohs Micrographic Surgery',
+    category: 'SKIN', version: '1.0.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 15, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-10-05', owner: 'System',
+  },
+  // Batch 465: PathScribe's head and neck synoptics (oral cavity map; neck levels map). Modular: a composite
+  // resection carries both on one case. Labs copy and customise them like any other.
+  {
+    id: 'oral_cavity_resection', name: 'PathScribe — Oral Cavity Resection',
+    category: 'HEAD_NECK', version: '1.0.0', source: 'PathScribe', type: 'Base template',
+    status: 'published', fields: 17, snomedPct: 0, icdPct: 0,
+    lastModified: '2026-10-05', owner: 'System',
   },
   {
-    id: 'breast_dcis_resection', name: 'Generic Template — Breast Dcis Resection',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 20, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'lung_adeno', name: 'Generic Template — Lung Adeno',
-    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_needle_biopsy', name: 'Generic Template — Prostate Needle Biopsy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colon_resection', name: 'Generic Template — Colon Resection',
-    category: 'COLON', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 46, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'skin_melanoma_bx', name: 'Generic Template — Skin Melanoma Bx',
-    category: 'SKIN', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'kidney_resection', name: 'Generic Template — Kidney Resection',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 25, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'kidney_biopsy', name: 'Generic Template — Kidney Biopsy',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 10, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'wilms_resection', name: 'Generic Template — Wilms Resection',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 32, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'wilms_biopsy', name: 'Generic Template — Wilms Biopsy',
-    category: 'KIDNEY', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
+    id: 'neck_dissection', name: 'PathScribe — Neck Dissection',
+    category: 'HEAD_NECK', version: '1.0.0', source: 'PathScribe', type: 'Base template',
     status: 'published', fields: 8, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
+    lastModified: '2026-10-05', owner: 'System',
   },
   {
     id: 'autopsy_gross_examination', name: 'Autopsy Gross Examination — Whole Body / Multi-Cavity',
     category: 'AUTOPSY', version: '0.4.0-draft', source: 'Custom', type: 'Base template',
     status: 'in_review', fields: 98, snomedPct: 0, icdPct: 0,
     lastModified: '2026-09-13', owner: 'System',
-  },
-  {
-    id: 'prostate_resection', name: 'Generic Template — Prostate Resection',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 28, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'lung_resection', name: 'Generic Template — Lung Resection',
-    category: 'LUNG', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'breast_surgical_excision', name: 'Generic Template — Breast Surgical Excision',
-    category: 'BREAST', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 96, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_resection_b', name: 'Generic Template — Colorectal Resection B',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 39, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_local_excision', name: 'Generic Template — Colorectal Local Excision',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 34, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'colorectal_further_investigations', name: 'Generic Template — Colorectal Further Investigations',
-    category: 'COLORECTAL', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 26, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_biopsy', name: 'Generic Template — Prostate Biopsy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 45, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_radical_prostatectomy', name: 'Generic Template — Prostate Radical Prostatectomy',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 38, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
-  },
-  {
-    id: 'prostate_turp_enucleation', name: 'Generic Template — Prostate Turp Enucleation',
-    category: 'PROSTATE', version: '0.1.0-generic', source: 'Custom', type: 'Base template',
-    status: 'published', fields: 22, snomedPct: 0, icdPct: 0,
-    lastModified: '2026-07-25', owner: 'System',
   },
   {
     id: 'liver_biopsy_medical', name: 'Liver Biopsy -- Medical (Native)',
@@ -416,7 +330,7 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
   },
 ];
 
-// Hydrate from localStorage on module load — merges saved overrides so that
+// Hydrate from the lab settings store on module load — merges saved overrides so that
 // transitions made in previous sessions are reflected immediately on reload.
 // This is the mock-phase bridge; remove when the backend API is wired in.
 {
@@ -431,6 +345,8 @@ export let PROTOCOL_REGISTRY: Protocol[] = [
     }
   });
 }
+// Batch 754: a customer build (mode "server") lists none of the 19 demonstration checklists (services/templates/demoChecklists.ts).
+if (import.meta.env.MODE === 'server') PROTOCOL_REGISTRY = PROTOCOL_REGISTRY.filter(p => !isDemoChecklist(p.id));
 
 // ─── Registry subscriber ──────────────────────────────────────────────────────
 // Allows components to re-render when templateService mutates PROTOCOL_REGISTRY.
@@ -575,12 +491,41 @@ export const UploadProtocolModal: React.FC<{
   const [govBody,  setGovBody]  = React.useState<GoverningBody>('CAP');
   const [file,     setFile]     = React.useState<File | null>(null);
   const [dragging, setDragging] = React.useState(false);
+  // Batch 609 (#39): the file is read and checked as soon as it is chosen.
+  const [result,   setResult]   = React.useState<ProtocolUploadResult | null>(null);
+  const [checking, setChecking] = React.useState(false);
+  const [importing, setImporting] = React.useState(false);
+  const [importedName, setImportedName] = React.useState<string | null>(null);
+  const [importError, setImportError] = React.useState<'failed' | 'nameExists' | null>(null);
+
+  const chooseFile = async (chosen: File) => {
+    setFile(chosen); setResult(null); setImportedName(null); setImportError(null); setChecking(true);
+    try {
+      const bytes = new Uint8Array(await chosen.arrayBuffer());
+      setResult(await validateProtocolUpload({ name: chosen.name, size: chosen.size }, bytes));
+    } catch {
+      setResult({ format: 'unknown', ok: false, findings: [{ level: 'error', code: 'EMPTY_FILE' }], verifiedAgainstGoverningBody: false });
+    } finally { setChecking(false); }
+  };
+
+  // Only a PathScribe protocol file can be saved; it becomes a draft that goes through review like any other.
+  const importAsDraft = async () => {
+    if (!result?.importable) return;
+    setImporting(true); setImportError(null);
+    try {
+      const draft = draftFromUpload(result.importable, govBody, `tmpl-upload-${Date.now()}`);
+      if (findProtocolNameConflict(PROTOCOL_REGISTRY, draft)) { setImportError('nameExists'); return; }
+      const { saveDraft } = await import('../../../services/templates/templateService');
+      await saveDraft(draft);
+      setImportedName(draft.name);
+    } catch { setImportError('failed'); } finally { setImporting(false); }
+  };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
     const dropped = e.dataTransfer.files[0];
-    if (dropped) setFile(dropped);
+    if (dropped) void chooseFile(dropped);
   };
 
   return (
@@ -614,15 +559,15 @@ export const UploadProtocolModal: React.FC<{
             <div className="ps-pshare-pill-desc">{GOVERNING_BODIES.find(g => g.id === govBody)?.desc}</div>
           </div>
 
-          {/* Drop zone */}
+          {/* Drop zone. Batch 568: its hidden file input sits beside it, not inside it (no control inside a button). */}
+          <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => { const chosen = e.target.files?.[0]; if (chosen) void chooseFile(chosen); }} />
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true); }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            onClick={() => document.getElementById('ps-upload-input')?.click()}
+            {...pressable(() => document.getElementById('ps-upload-input')?.click())}
             className={`ps-pshare-dropzone${dragging ? ' ps-pshare-dropzone--dragging' : file ? ' ps-pshare-dropzone--filled' : ''}`}
           >
-            <input id="ps-upload-input" type="file" accept=".json,.xml,.xlsx" className="ps-pshare-hidden-file-input" onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
             {file ? (
               <>
                 <div className="ps-pshare-dropzone-icon">✅</div>
@@ -638,6 +583,33 @@ export const UploadProtocolModal: React.FC<{
             )}
           </div>
 
+          {/* Batch 609 (#39): the result of reading the file. The format is checked; the content is not verified against CAP or RCPath. */}
+          {file && (
+            <div className="ps-pshare-check" role="status" aria-live="polite">
+              {checking || !result ? (
+                <div className="ps-pshare-check-head">{t('protocolShared.uploadModal.check.checking')}</div>
+              ) : (
+                <>
+                  <div className="ps-pshare-check-head">
+                    <span className={`ps-pshare-check-badge ${result.ok ? 'ps-pshare-check-badge--ok' : 'ps-pshare-check-badge--bad'}`}>
+                      {result.ok ? t('protocolShared.uploadModal.check.formatOk') : t('protocolShared.uploadModal.check.formatProblems')}
+                    </span>
+                    <span className="ps-pshare-check-unverified">{t('protocolShared.uploadModal.check.unverified')}</span>
+                  </div>
+                  <ul className="ps-pshare-check-list">
+                    {result.findings.map((f, i) => (
+                      <li key={`${f.code}-${i}`} className={`ps-pshare-check-item ps-pshare-check-item--${f.level}`}>
+                        {t(`protocolShared.uploadModal.check.codes.${f.code}`, f.params)}
+                      </li>
+                    ))}
+                  </ul>
+                  {importedName && <div className="ps-pshare-check-item ps-pshare-check-item--info" role="status">{t('protocolShared.uploadModal.check.imported', { name: importedName })}</div>}
+                  {importError && <div className="ps-pshare-check-item ps-pshare-check-item--error" role="alert">{t(`protocolShared.uploadModal.check.importErrors.${importError}`)}</div>}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Warning */}
           <div className="ps-pshare-warning">
             <span className="ps-pshare-warning-prefix">ℹ️ {t('protocolShared.uploadModal.warningPrefix')} </span>
@@ -648,10 +620,11 @@ export const UploadProtocolModal: React.FC<{
           <div className="ps-pshare-actions">
             <button onClick={onClose} className="ps-conf-btn-secondary">{t('common.cancel')}</button>
             <button
-              disabled={!file} onClick={onClose}
+              disabled={importedName ? false : !result?.importable || importing || checking}
+              onClick={importedName ? onClose : () => { void importAsDraft(); }}
               className="ps-conf-btn-teal-accent"
             >
-              {t('protocolShared.uploadModal.uploadButton')}
+              {importedName ? t('common.close') : t('protocolShared.uploadModal.importButton')}
             </button>
           </div>
         </div>
@@ -672,7 +645,7 @@ export const BuildCustomiseModal: React.FC<{
   const { t } = useTranslation();
   const [selectedTpl, setSelectedTpl] = React.useState<string | null>(null);
   const [search,      setSearch]      = React.useState('');
-  const publishedTemplates = PROTOCOL_REGISTRY.filter(p => p.status === 'published');
+  const publishedTemplates = copySourceCandidates(PROTOCOL_REGISTRY);
   const filtered = search.trim()
     ? publishedTemplates.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -698,7 +671,7 @@ export const BuildCustomiseModal: React.FC<{
 
           {/* Blank */}
           <div
-            onClick={onBuildBlank}
+            {...pressable(onBuildBlank)}
             className="ps-pshare-scratch-card"
           >
             <div className="ps-pshare-scratch-icon">🧩</div>
@@ -719,11 +692,12 @@ export const BuildCustomiseModal: React.FC<{
           {/* Template picker */}
           <div>
             <div className="ps-pshare-section-label">{t('protocolShared.buildModal.existingTemplateLabel')}</div>
+            {DEMO_CHECKLISTS_IN_BUILD && <div className="ps-pshare-scratch-desc">{t('demoChecklists.pickerNote')}</div>}
 
             {/* Search */}
             <div className="ps-pshare-search-wrap">
               <span className="ps-pshare-search-icon">🔍</span>
-              <input
+              <input data-dirty-ignore data-config-nav
                 type="text"
                 placeholder={t('protocolShared.buildModal.searchPlaceholder')}
                 value={search}
@@ -744,7 +718,7 @@ export const BuildCustomiseModal: React.FC<{
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setSelectedTpl(selected ? null : p.id)}
+                    {...pressable(() => setSelectedTpl(selected ? null : p.id))}
                     className={`ps-pshare-template-row${selected ? ' ps-pshare-template-row--selected' : ''}`}
                   >
                     <span className={`ps-pshare-template-source ${sourceBadgeClass(p.source)}`}>{p.source}</span>

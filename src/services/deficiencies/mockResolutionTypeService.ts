@@ -3,6 +3,7 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ResolutionType, IResolutionTypeService } from './IDeficiencyService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_RESOLUTION_TYPES: ResolutionType[] = [
   { id: 'res-matched-existing', name: 'Matched to Existing Dictionary Entry', description: 'Accessioner identified the correct existing Specimen Dictionary entry.', status: 'Active' },
@@ -35,9 +36,17 @@ const SEED_RESOLUTION_TYPES: ResolutionType[] = [
     id: 'res-preanalytic-administrative-override', name: 'Administrative Override — Date Not Recoverable', status: 'Active',
     description: 'The real collection and/or laboratory-receipt date/time could not be recovered. Report authorization proceeded on the jurisdiction\u2019s own designated administrative code, with the required disclaimer applied — per direct guidance\u2019s own per-country research (UKAS/RCPath, CAP/CLIA, EU IVDR/ISO 15189, IANZ, KAZA/KSP/KSLM, NATA/NPAAC).',
   },
+  // Batch 762: closes a Missing Requisition deficiency PathScribe raised, when the scan arrives or someone records that
+  // no paper requisition is coming (services/requisitions/requisitionService.ts).
+  { id: 'res-requisition-received', name: 'Requisition Received or Not Required', description: 'A scanned requisition was linked to the case, or a person recorded why no paper requisition is coming (see the comment).', status: 'Active' },
 ];
 
-const load    = () => storageGet<ResolutionType[]>('pathscribe_resolution_types', SEED_RESOLUTION_TYPES);
+// Batch 762: a seed added after a browser stored its list is added to it (an administrator's own changes are kept).
+const load = () => {
+  const stored = storageGet<ResolutionType[]>('pathscribe_resolution_types', SEED_RESOLUTION_TYPES);
+  const have = new Set(stored.map(t => t.id));
+  return [...stored, ...SEED_RESOLUTION_TYPES.filter(t => !have.has(t.id))];
+};
 const persist = (data: ResolutionType[]) => storageSet('pathscribe_resolution_types', data);
 let TYPES: ResolutionType[] = load();
 
@@ -45,7 +54,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockResolutionTypeService: IResolutionTypeService = {
+const resolutionTypeServiceUnchecked: IResolutionTypeService = {
   async getAll() { await delay(); return ok([...TYPES]); },
 
   async add(type) {
@@ -64,6 +73,11 @@ export const mockResolutionTypeService: IResolutionTypeService = {
     return ok({ ...TYPES[idx], ...changes });
   },
 
-  async deactivate(id) { return mockResolutionTypeService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockResolutionTypeService.update(id, { status: 'Active' }); },
+  async deactivate(id) { return resolutionTypeServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return resolutionTypeServiceUnchecked.update(id, { status: 'Active' }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockResolutionTypeService: IResolutionTypeService = guardConfigWrites(resolutionTypeServiceUnchecked, [
+  ['config:deficiency-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

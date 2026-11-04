@@ -25,7 +25,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DigitalAsset, DigitalAssetKind } from '@/types/case/Material';
-import { mockImageUploadService } from '@/services/imageAssociation/mockImageUploadService';
+import { imageUploadService } from '@/services';
+
 
 const IMAGE_TYPE_BY_KIND: Record<DigitalAssetKind, string> = {
   gross_photo: 'Gross Specimen',
@@ -100,7 +101,7 @@ const CameraCaptureControl: React.FC<CameraCaptureControlProps> = ({ kind, captu
 
     setUploading(true);
     setError(null);
-    const uploadResult = await mockImageUploadService.upload(capturedFrame, IMAGE_TYPE_BY_KIND[kind]);
+    const uploadResult = await imageUploadService.upload(capturedFrame, IMAGE_TYPE_BY_KIND[kind]);
     setUploading(false);
 
     if (!uploadResult.ok) {

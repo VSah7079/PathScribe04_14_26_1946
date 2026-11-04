@@ -31,10 +31,13 @@ import { governingBodyService, authorizationService } from '@/services';
 import { saveGoverningBodies } from '@/services/governingBodies/governingBodyAdministration';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import type { GoverningBody, RetentionPolicyVersion } from '@/services/governingBodies/IGoverningBodyService';
+import { isUnverifiedRetentionPlaceholder } from '@/services/governingBodies/retentionPlaceholder';
 import type { RetainableMaterialType } from '@/services/retentionPolicy/RetentionPolicy';
 import { MATERIAL_TYPE_LABEL, formatRetentionPeriod } from '@/services/retentionPolicy/RetentionPolicy';
 import type { Jurisdiction } from '@/types/systemConfig';
 import { JURISDICTION_LABELS } from '@/types/systemConfig';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { switchable } from '@/utils/a11y/pressable';
 
 // MATERIAL_TYPE_LABEL (RetentionPolicy.ts) and JURISDICTION_LABELS
 // (types/systemConfig.ts) are both shared constants also consumed by
@@ -57,7 +60,8 @@ const Toggle: React.FC<{
   onChange:  (v: boolean) => void;
   disabled?: boolean;
   color?:    string;
-}> = ({ checked, onChange, disabled = false, color = '#0891B2' }) => {
+  label:     string;
+}> = ({ checked, onChange, disabled = false, color = '#0891B2', label }) => {
   // Only two colors are ever actually passed in this file (the
   // default cyan and BodyRow's sync-toggle purple), so these map to
   // two small, scoped modifier classes rather than a genuinely
@@ -65,7 +69,7 @@ const Toggle: React.FC<{
   const colorClass = color === '#a78bfa' ? 'ps-gov-toggle--purple' : 'ps-gov-toggle--cyan';
   return (
     <div
-      onClick={() => !disabled && onChange(!checked)}
+      {...switchable(checked, () => onChange(!checked), label, disabled)}
       className={`ps-toggle-track ${colorClass}${checked ? ' on' : ' off'}${disabled ? ' disabled' : ''}`}
     >
       <div className="ps-toggle-thumb" />
@@ -141,7 +145,7 @@ const BodyModal: React.FC<{
               {t('governingBodiesSection.bodyModal.abbreviationLabel')} <span className="ps-body-modal-label-req">*</span>
               {isEdit && <span className="ps-body-modal-label-note">{t('governingBodiesSection.bodyModal.cannotBeChangedNote')}</span>}
             </label>
-            <input
+            <input aria-label={t('governingBodiesSection.bodyModal.abbreviationLabel')}
               value={label}
               onChange={e => !isEdit && setLabel(e.target.value)}
               disabled={isEdit}
@@ -164,7 +168,7 @@ const BodyModal: React.FC<{
             <label className="ps-body-modal-label">
               {t('governingBodiesSection.bodyModal.fullNameLabel')} <span className="ps-body-modal-label-req">*</span>
             </label>
-            <input
+            <input aria-label={t('governingBodiesSection.bodyModal.fullNameLabel')}
               value={fullName}
               onChange={e => setFullName(e.target.value)}
               placeholder={t('governingBodiesSection.bodyModal.fullNamePlaceholder')}
@@ -175,7 +179,7 @@ const BodyModal: React.FC<{
           <div className="ps-body-modal-field-row">
             <div className="ps-body-modal-field">
               <label className="ps-body-modal-label">{t('governingBodiesSection.bodyModal.regionLabel')}</label>
-              <input
+              <input aria-label={t('governingBodiesSection.bodyModal.regionLabel')}
                 value={region}
                 onChange={e => setRegion(e.target.value)}
                 placeholder={t('governingBodiesSection.bodyModal.regionPlaceholder')}
@@ -184,7 +188,7 @@ const BodyModal: React.FC<{
             </div>
             <div className="ps-body-modal-field">
               <label className="ps-body-modal-label">{t('governingBodiesSection.bodyModal.websiteLabel')}</label>
-              <input
+              <input aria-label={t('governingBodiesSection.bodyModal.websiteLabel')}
                 value={website}
                 onChange={e => setWebsite(e.target.value)}
                 placeholder={t('governingBodiesSection.bodyModal.websitePlaceholder')}
@@ -237,6 +241,7 @@ const VersionRow: React.FC<{ v: RetentionPolicyVersion }> = ({ v }) => {
         <span className={`ps-gov-version-badge ${v.applyToExistingInventory ? 'ps-gov-version-badge--retroactive' : 'ps-gov-version-badge--prospective'}`}>
           {v.applyToExistingInventory ? t('governingBodiesSection.versionRow.retroactiveBadge') : t('governingBodiesSection.versionRow.prospectiveBadge')}
         </span>
+        {isUnverifiedRetentionPlaceholder(v) && <span className="ps-gov-version-badge ps-gov-version-badge--unverified">{t('governingBodiesSection.versionRow.unverifiedBadge')}</span>}
       </div>
       <div className="ps-gov-version-figures">
         {t('governingBodiesSection.figuresLine', { block: formatRetentionPeriod(v.block), slide: formatRetentionPeriod(v.slide), wet: formatRetentionPeriod(v.wet_tissue) })}
@@ -362,7 +367,7 @@ const RetentionModal: React.FC<{
               <div className="ps-body-modal-field-row">
                 <div className="ps-body-modal-field">
                   <label className="ps-body-modal-label">{t('governingBodiesSection.retentionModal.effectiveDateLabel')}</label>
-                  <input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} className="ps-body-modal-input ps-body-modal-input--mono" />
+                  <input aria-label={t('governingBodiesSection.retentionModal.effectiveDateLabel')} type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} className="ps-body-modal-input ps-body-modal-input--mono" />
                 </div>
               </div>
 
@@ -370,7 +375,7 @@ const RetentionModal: React.FC<{
                 {ALL_MATERIAL_TYPES.map(mt => (
                   <div className="ps-body-modal-field" key={mt}>
                     <label className="ps-body-modal-label">{MATERIAL_TYPE_LABEL[mt]} {t('governingBodiesSection.retentionModal.daysUnit')}</label>
-                    <input
+                    <input aria-label={t('governingBodiesSection.retentionModal.daysUnit')}
                       value={days[mt]}
                       onChange={e => setDays(prev => ({ ...prev, [mt]: e.target.value }))}
                       placeholder={t('governingBodiesSection.retentionModal.daysPlaceholder')}
@@ -387,7 +392,7 @@ const RetentionModal: React.FC<{
                 <label className="ps-body-modal-label">
                   {t('governingBodiesSection.retentionModal.sourceLabel')} <span className="ps-body-modal-label-req">*</span>
                 </label>
-                <textarea
+                <textarea aria-label={t('governingBodiesSection.retentionModal.sourceLabel')}
                   value={sourceNote}
                   onChange={e => setSourceNote(e.target.value)}
                   placeholder={t('governingBodiesSection.retentionModal.sourcePlaceholder')}
@@ -477,6 +482,7 @@ const BodyRow: React.FC<{
         checked={body.enabled}
         onChange={v => onUpdate({ enabled: v, syncEnabled: v ? body.syncEnabled : false })}
         disabled={!isSuperAdmin}
+        label={t('a11y.cellLabel', { column: t('a11y.fields.enabled'), row: body.label })}
       />
 
       <Toggle
@@ -484,6 +490,7 @@ const BodyRow: React.FC<{
         onChange={v => onUpdate({ syncEnabled: v })}
         disabled={!isSuperAdmin || !body.enabled}
         color="#a78bfa"
+        label={t('a11y.cellLabel', { column: t('governingBodiesSection.columnHeaders.autoSync'), row: body.label })}
       />
 
       <div className="ps-gov-row-actions">
@@ -520,6 +527,8 @@ const GoverningBodiesSection: React.FC = () => {
   const [retentionTarget, setRetentionTarget] = useState<GoverningBody | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveError,  setSaveError]  = useState<string | null>(null);
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(hasChanges);
 
   // Real load — the empty array above is only the pre-load fallback
   // so the list isn't empty for one render (was previously its own,

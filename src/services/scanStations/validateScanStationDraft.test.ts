@@ -11,17 +11,17 @@ describe('validateScanStationDraft — real fix, extracted out of ScanStationsSe
 
   it('requires a real name', () => {
     const errors = validateScanStationDraft({ ...validDraft, name: '' });
-    expect(errors.name).toBe('Required');
+    expect(errors.name).toBe('nameRequired');
   });
 
   it('requires a real barcodeCode', () => {
     const errors = validateScanStationDraft({ ...validDraft, barcodeCode: '' });
-    expect(errors.barcodeCode).toBeDefined();
+    expect(errors.barcodeCode).toBe('barcodeRequired');
   });
 
   it('real fix, per direct guidance: requires a real facilityId — genuinely unvalidated before the free-text field was replaced with a real dropdown', () => {
     const errors = validateScanStationDraft({ ...validDraft, facilityId: '' });
-    expect(errors.facilityId).toBeDefined();
+    expect(errors.facilityId).toBe('facilityRequired');
   });
 
   it('every real error is reported together, not just the first', () => {
@@ -33,7 +33,7 @@ describe('validateScanStationDraft — real fix, extracted out of ScanStationsSe
 
   it('real, deliberate domain rule: supportsPrinting on with no real printer profile is rejected', () => {
     const errors = validateScanStationDraft({ ...validDraft, supportsPrinting: true, cassetteSlidePrinterProfileId: '' });
-    expect(errors.cassetteSlidePrinterProfileId).toBe('Required when Supports Printing is on');
+    expect(errors.cassetteSlidePrinterProfileId).toBe('printerProfileRequired');
   });
 
   it('supportsPrinting on WITH a real printer profile is valid', () => {

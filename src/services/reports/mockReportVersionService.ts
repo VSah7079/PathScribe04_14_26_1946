@@ -5,12 +5,16 @@
 // doesn't match how this service is actually used elsewhere in the
 // app. No new methods needed — instanceId is just a field now, and the
 // banner can filter getByCaseId()'s results client-side.
+import { skipResearchCaseDispatch } from '../interfaceDispatch/resolveDispatchOrganisation';
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ReportVersionRecord } from '@/types/reports/ReportVersionRecord';
 import type { PatientEncounterSnapshot } from '@/types/reports/PatientEncounterSnapshot';
 import type { IReportVersionService } from './IReportVersionService';
 import { caseRouter } from '../cases/CaseRouter';
+import { organMapFiguresForVersion } from '../organMapping/organMapFigures';
+import { autoFigureVersion, autoOrganMapFigures, reportTranslateFor } from '../organMapping/organMapAutoFigures';
+import { pdfSha256 } from '../reportDocuments/reportDocuments';
 import { mockPatientIndexService } from '../patients/mockPatientIndexService';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
@@ -77,13 +81,16 @@ export const mockReportVersionService: IReportVersionService = {
     return ok(load().filter(r => r.caseId === caseId).sort((a, b) => a.versionNumber - b.versionNumber));
   },
 
-  async create(record) {
-    const existing = load().filter(r => r.caseId === record.caseId);
+  async create(record, context) {
+    // Batch 558: with the API server, its versions count too (numbering, CORRECTED vs ADDENDUM).
+    const own = load().filter(r => r.caseId === record.caseId);
+    const ownIds = new Set(own.map(r => r.id));
+    const existing = [...own, ...(context?.priorVersions ?? []).filter(r => r.caseId === record.caseId && !ownIds.has(r.id))];
     const patientEncounterSnapshot = await captureSnapshot(record.caseId);
     const newRecord: ReportVersionRecord = {
       ...record,
       id: `ver-${Date.now().toString(36)}`,
-      versionNumber: existing.length + 1,
+      versionNumber: existing.reduce((n, r) => Math.max(n, r.versionNumber), existing.length) + 1,
       createdAt: new Date().toISOString(),
       patientEncounterSnapshot,
       // Real feature, per direct follow-up: "Stamp every saved
@@ -92,6 +99,22 @@ export const mockReportVersionService: IReportVersionService = {
       // patientEncounterSnapshot immediately above.
       createdFromStation: getEffectiveScanStationId(),
     };
+    // Batch 461: the report's organ-map images as signed, with their hashes,
+    // and the PDF's hash. Never blocks the sign-out.
+    try {
+      const signed = await caseRouter.getCase(record.caseId);
+      // Batch 463: maps that are part of the report (Mohs) are drawn now, as signed.
+      const auto = (await autoOrganMapFigures(signed, await reportTranslateFor(signed?.order?.facilityId)))
+        .filter(a => !record.instanceId || a.instanceId === record.instanceId).map(autoFigureVersion);
+      const autoIds = new Set(auto.map(a => a.instanceId));
+      const figures = [...organMapFiguresForVersion(signed, record.instanceId).filter(f => !autoIds.has(f.instanceId)), ...auto];
+      if (figures.length) newRecord.organMapFigures = figures;
+    } catch { /* the version is still created */ }
+    // Batch 558: the hash of the PDF's bytes, as the API server and report documents record it
+    // (it was the hash of the base64 text before; reportVersionPdf.ts still accepts those).
+    if (record.pdfBase64) {
+      try { newRecord.pdfSha256 = pdfSha256(record.pdfBase64); } catch { /* not base64: no hash, the version is still created */ }
+    }
     persist([...load(), newRecord]);
 
     // Real, per direct guidance (Pathology HL7 Outbound Feature Spec,
@@ -128,6 +151,8 @@ export const mockReportVersionService: IReportVersionService = {
       (async () => {
         try {
           const caseData = await caseRouter.getCase(newRecord.caseId);
+          // Batch 728 (Decision 4): a research case sends no result to the EHR.
+          if (caseData && await skipResearchCaseDispatch(caseData, 'Surgical', resultState === 'FINAL' ? 'final' : 'amended')) return;
           const patientId = (caseData as any)?.patient?.id;
           const patient = patientId ? await mockPatientIndexService.getById(patientId) : null;
           if (!patient) return; // Honest, non-blocking skip — no real organisationId to enqueue against.

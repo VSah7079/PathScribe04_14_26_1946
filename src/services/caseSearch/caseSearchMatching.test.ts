@@ -261,7 +261,7 @@ describe('case search matching: new case data (Batch 351)', () => {
   });
 
   it('autopsy: jurisdiction, authority, which reports are signed; non-autopsy cases never match', () => {
-    const a = mk({ autopsy: { jurisdiction: 'GB_EW', caseAuthority: 'medicolegal_forensic', padSnapshot: { signedAt: 'x' } } });
+    const a = mk({ autopsy: { jurisdiction: 'GB_EW', caseAuthority: 'statutory_judicial', padSnapshot: { signedAt: 'x' } } });
     expect(on(a, { autopsyJurisdictions: ['GB_EW'] })).toBe(true);
     expect(on(a, { autopsyAuthorities: ['hospital_consented'] })).toBe(false);
     expect(on(a, { autopsyReports: ['pad'] })).toBe(true);

@@ -18,7 +18,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockClinicalHistoryDictionaryService } from './mockClinicalHistoryDictionaryService';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
+import { clinicalHistoryDictionaryService } from './clinicalHistoryDictionaryServiceInstance';
 import { validateClinicalHistoryAccessionPayload } from './validateClinicalHistoryAccessionPayload';
 import type { ClinicalHistoryAccessionEventPayload } from '@/types/events/ClinicalHistoryAccessionEventPayload';
 import type { ClinicalHistoryValidationError } from './validateClinicalHistoryAccessionPayload';
@@ -58,16 +59,20 @@ export async function processInboundClinicalHistoryAccessionEvent(
     return { messageId: payload.messageId, outcome: 'order-not-found' };
   }
 
-  const dictRes = await mockClinicalHistoryDictionaryService.getAll();
+  const dictRes = await clinicalHistoryDictionaryService.getAll();
   const dictionary = dictRes.ok ? dictRes.data : [];
   const validation = validateClinicalHistoryAccessionPayload(payload.clinicalHistory, dictionary);
   if (!validation.valid) {
     return { messageId: payload.messageId, outcome: 'invalid-payload', caseId: caseData.id, errors: validation.errors };
   }
 
-  await caseRouter.updateCase(caseData.id, {
-    order: { ...(caseData as any).order, clinicalHistory: payload.clinicalHistory },
-  } as any);
+  // PS-71 (Batch 458): the order is rebuilt from the newest case on every
+  // try, so a concurrent change to another order field is kept, and the
+  // save carries that case's version. If every try conflicts, the
+  // ConcurrencyConflictError propagates and the messageId stays unprocessed.
+  await updateCaseWithRetryOrThrow(caseData.id, current => ({
+    order: { ...(current as any).order, clinicalHistory: payload.clinicalHistory },
+  } as any), caseRouter);
 
   processedMessageIds.add(payload.messageId);
   return { messageId: payload.messageId, outcome: 'applied', caseId: caseData.id };

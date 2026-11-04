@@ -33,16 +33,19 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
 import { printSettingsService, facilityPrintSettingsService, printerProfileService } from '@/services/index';
-import type { PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
+import { MICROTOME_PRINT_BEHAVIORS, type PrintSettingsConfig } from '@/services/printSettings/IPrintSettingsService';
+import { microtomePrintModeOf } from '@/services/printSettings/microtomePrintMode';
 import type { FacilityPrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
 import { resolveEffectivePrintSettings } from '@/services/printSettings/IFacilityPrintSettingsService';
-import { LABEL_SIZE_PRESETS } from '@/types/labels/LabelSizePreset';
+import { containerLabelSizePresets, requisitionLabelSizePresets, isPrintSettingsReadOnly, savePrintSettingsChanges } from '@/services/printSettings/printSettingsForm';
 import type { LabelBarcodeSymbology } from '@/types/labels/LabelSizePreset';
 import { CONTAINER_TYPES } from '@/services/hardwareContainers/IHardwareContainerRegistryService';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
 import type { Facility } from '@/services';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import CassetteLabelLayoutEditor from './CassetteLabelLayoutEditor';
+import SlideLabelLayoutEditor from './SlideLabelLayoutEditor';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Data-key-stays-English, label-is-translated: the stored
 // LabelBarcodeSymbology values ('code128'/'qr'/'datamatrix') stay the
@@ -90,18 +93,16 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
 
   // Real, deliberate branch — see this file's own header for the full
   // "why" behind read-only-when-inheriting.
-  const readOnly = !!selectedFacilityId && !hasOverride;
+  // PS-233 (Batch 451): the read-only rule and where a change is saved live in
+  // services/printSettings/printSettingsForm.ts.
+  const readOnly = isPrintSettingsReadOnly(selectedFacilityId, facilityOverride);
 
   const update = async (changes: Partial<PrintSettingsConfig>) => {
     if (!effective || readOnly) return;
     setSaving(true);
-    if (selectedFacilityId) {
-      const res = await facilityPrintSettingsService.update(selectedFacilityId, changes);
-      if (res.ok) setFacilityOverride(res.data);
-    } else {
-      const res = await printSettingsService.update(changes);
-      if (res.ok) setGlobalConfig(res.data);
-    }
+    const res = await savePrintSettingsChanges(changes, selectedFacilityId, { printSettingsService, facilityPrintSettingsService });
+    if (res.saved === 'facility') setFacilityOverride(res.override);
+    else if (res.saved === 'global') setGlobalConfig(res.config);
     setSaving(false);
   };
 
@@ -125,9 +126,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
   };
 
   if (loading || !effective) return (
-    <div className="ps-conf-loading">
-      {t('printSettingsSection.loading')}
-    </div>
+    <LoadingState label={t('printSettingsSection.loading')} />
   );
 
   const facilityName = selectedFacilityId ? (labs.find(l => l.id === selectedFacilityId)?.name ?? selectedFacilityId) : '';
@@ -183,6 +182,27 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         </div>
       </div>
 
+      {/* ── Batch 758: Microtome Print Behavior (apart from Grossing's) ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-card-title">{t('printSettingsSection.microtomeBehavior.title')}</div>
+        <div className="ps-conf-card-description">{t('printSettingsSection.microtomeBehavior.description')}</div>
+        <div className="ps-conf-radio-group">
+          {MICROTOME_PRINT_BEHAVIORS.map(mode => (
+            <label key={mode} className="ps-conf-radio-label">
+              <input
+                type="radio"
+                name="microtomePrintBehavior"
+                checked={microtomePrintModeOf(effective) === mode}
+                onChange={() => update({ microtomePrintBehavior: mode })}
+                disabled={readOnly}
+                className="ps-conf-radio-input"
+              />
+              <span className="ps-conf-option-text">{t(`printSettingsSection.microtomeBehavior.options.${mode}`)}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       {/* ── Enforce Guardrails ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-row">
@@ -225,6 +245,48 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         </div>
       </div>
 
+      {/* ── Batch 720 (Pete): print the labels when a case is saved ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-row">
+          <div>
+            <div className="ps-conf-card-title">
+              {t('printSettingsSection.printOnAccession.title')}
+            </div>
+            <div className="ps-conf-card-description--tight">
+              {t('printSettingsSection.printOnAccession.description')}
+            </div>
+          </div>
+          <label className="ps-conf-toggle-label-row">
+            <input type="checkbox" checked={effective.printLabelsOnAccession !== false}
+              onChange={e => update({ printLabelsOnAccession: e.target.checked })}
+              disabled={readOnly}
+              className="ps-conf-radio-input" />
+            <span className="ps-conf-option-text">{t('printSettingsSection.enabledLabel')}</span>
+          </label>
+        </div>
+      </div>
+
+      {/* ── PS-282 (Batch 437): reason for a report reprint ── */}
+      <div className="ps-conf-card ps-conf-card--spaced">
+        <div className="ps-conf-row">
+          <div>
+            <div className="ps-conf-card-title">
+              {t('printSettingsSection.reprintReason.title')}
+            </div>
+            <div className="ps-conf-card-description--tight">
+              {t('printSettingsSection.reprintReason.description')}
+            </div>
+          </div>
+          <label className="ps-conf-toggle-label-row">
+            <input type="checkbox" checked={effective.requireReprintReason === true}
+              onChange={e => update({ requireReprintReason: e.target.checked })}
+              disabled={readOnly}
+              className="ps-conf-radio-input" />
+            <span className="ps-conf-option-text">{t('printSettingsSection.enabledLabel')}</span>
+          </label>
+        </div>
+      </div>
+
       {/* ── Container Label Size ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">
@@ -239,12 +301,13 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
             display-label constant left untouched" precedent as
             MATERIAL_TYPE_LABEL/BILLING_TYPE_LABEL elsewhere in this sweep. */}
         <select
+          aria-label={t('printSettingsSection.containerLabelSize.title')}
           value={effective.containerLabelPresetId}
           onChange={e => update({ containerLabelPresetId: e.target.value })}
           disabled={readOnly}
           className="ps-input-dark ps-conf-select-wide"
         >
-          {LABEL_SIZE_PRESETS.filter(p => p.id !== 'requisition_full_page_letter' && p.id !== 'requisition_full_page_a4').map(preset => (
+          {containerLabelSizePresets().map(preset => (
             <option key={preset.id} value={preset.id}>{preset.name}</option>
           ))}
         </select>
@@ -258,13 +321,13 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.requisitionLabelSize.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.requisitionLabelSize.title')}
           value={effective.requisitionLabelPresetId}
           onChange={e => update({ requisitionLabelPresetId: e.target.value })}
           disabled={readOnly}
           className="ps-input-dark ps-conf-select-wide"
         >
-          {LABEL_SIZE_PRESETS.map(preset => (
+          {requisitionLabelSizePresets().map(preset => (
             <option key={preset.id} value={preset.id}>{preset.name}</option>
           ))}
         </select>
@@ -278,7 +341,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.containerPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.containerPrinterProfile.title')}
           value={effective.containerLabelPrinterProfileId ?? ''}
           onChange={e => update({ containerLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -298,7 +361,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.molecularPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.molecularPrinterProfile.title')}
           value={effective.molecularLabelPrinterProfileId ?? ''}
           onChange={e => update({ molecularLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -318,7 +381,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.requisitionPrinterProfile.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.requisitionPrinterProfile.title')}
           value={effective.requisitionLabelPrinterProfileId ?? ''}
           onChange={e => update({ requisitionLabelPrinterProfileId: e.target.value || undefined })}
           disabled={readOnly}
@@ -338,7 +401,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.containerBarcodeSymbology.description')}
         </div>
-        <select
+        <select aria-label={t('printSettingsSection.containerBarcodeSymbology.title')}
           value={effective.containerBarcodeSymbology}
           onChange={e => update({ containerBarcodeSymbology: e.target.value as LabelBarcodeSymbology })}
           disabled={readOnly}
@@ -366,7 +429,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-prefix-row">
           <div>
             <label className="ps-conf-prefix-field-label">{t('printSettingsSection.barcodePrefixConventions.disposableLabel')}</label>
-            <input
+            <input aria-label={t('printSettingsSection.barcodePrefixConventions.disposableLabel')}
               className="ps-input-dark ps-conf-input-code"
               value={effective.disposableBarcodePrefix}
               onChange={e => update({ disposableBarcodePrefix: e.target.value.toUpperCase() })}
@@ -376,7 +439,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
           </div>
           <div>
             <label className="ps-conf-prefix-field-label">{t('printSettingsSection.barcodePrefixConventions.reusableRackLabel')}</label>
-            <input
+            <input aria-label={t('printSettingsSection.barcodePrefixConventions.reusableRackLabel')}
               className="ps-input-dark ps-conf-input-code"
               value={effective.rackBarcodePrefix}
               onChange={e => update({ rackBarcodePrefix: e.target.value.toUpperCase() })}
@@ -402,7 +465,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         <div className="ps-conf-card-description">
           {t('printSettingsSection.gs1Gtin.description')}
         </div>
-        <input
+        <input aria-label={t('printSettingsSection.gs1Gtin.title')}
           className="ps-input-dark ps-conf-input-gtin"
           value={effective.gs1Gtin}
           onChange={e => update({ gs1Gtin: e.target.value })}
@@ -421,6 +484,13 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         onChange={changes => update({ cassetteLabelLayout: { ...effective.cassetteLabelLayout, ...changes } })}
       />
 
+      {/* Batch 606 (PS-15 / PS-165): the slide layout now drives the slide ZPL. */}
+      <SlideLabelLayoutEditor
+        value={effective.slideLabelLayout}
+        readOnly={readOnly}
+        onChange={changes => update({ slideLabelLayout: { ...effective.slideLabelLayout, ...changes } })}
+      />
+
       {/* ── Container Type Codes ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">
@@ -432,7 +502,7 @@ const PrintSettingsSection: React.FC<{ selectedFacilityId?: string }> = ({ selec
         {CONTAINER_TYPES.map(type => (
           <div key={type} className="ps-conf-container-type-row">
             <span className="ps-conf-container-type-label">{type}</span>
-            <input
+            <input aria-label={type}
               className="ps-input-dark ps-conf-input-code"
               value={effective.containerTypeCodes[type]}
               onChange={e => update({ containerTypeCodes: { ...effective.containerTypeCodes, [type]: e.target.value.toUpperCase() } })}

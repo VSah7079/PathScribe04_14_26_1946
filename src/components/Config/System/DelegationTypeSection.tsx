@@ -10,7 +10,7 @@
  * columns that is the standard."
  *
  * Real fix in the same pass: the "ID" field's own value used to be
- * silently discarded on save (mockDelegationTypeService.ts's add()
+ * silently discarded on save (delegationTypeService.ts's add()
  * always assigned a random 'CUSTOM_' + Date.now() id, regardless of
  * the real, validated, label-derived id shown and editable on
  * screen) — the on-screen "ID already exists" check was validating a
@@ -21,11 +21,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockDelegationTypeService } from '../../../services/delegationTypes/mockDelegationTypeService';
+
 import type { DelegationType } from '../../../services/delegationTypes/IDelegationTypeService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { findDuplicate } from '../../../utils/validateUnique';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
+import { delegationTypeService } from '@/services';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const PRESET_COLORS = [
   '#0891B2','#6366f1','#f59e0b','#10b981',
@@ -47,11 +50,11 @@ const BLANK = (): DelegationType => ({
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
-const Toggle: React.FC<{checked:boolean; onChange:(v:boolean)=>void; label?:string; disabled?:boolean}> =
-({ checked, onChange, label, disabled=false }) => (
+const Toggle: React.FC<{checked:boolean; onChange:(v:boolean)=>void; label?:string; ariaLabel:string; disabled?:boolean}> =
+({ checked, onChange, label, ariaLabel, disabled=false }) => (
   <div className={`ps-sub-toggle-wrap${disabled ? ' ps-sub-toggle-wrap--disabled' : ''}`}>
     <div
-      onClick={() => !disabled && onChange(!checked)}
+      {...switchable(checked, () => onChange(!checked), ariaLabel, disabled)}
       className={checked ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
     >
       <div className={checked ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
@@ -134,7 +137,7 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
           <div className="ps-del-form-row-2col">
             <div className="ps-sub-field">
               <label className="ps-sub-label">{t('delegationTypeSection.modal.labelField')} <span className="ps-sub-label-req">*</span></label>
-              <input
+              <input aria-label={t('delegationTypeSection.modal.labelField')}
                 className={errors.label ? 'ps-sub-input ps-sub-input--error' : 'ps-sub-input'}
                 value={form.label}
                 placeholder={t('delegationTypeSection.modal.labelPlaceholder')}
@@ -146,7 +149,7 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
               <label className="ps-sub-label">
                 {t('delegationTypeSection.modal.idField')} {isNew && <span className="ps-sub-label-opt">{t('delegationTypeSection.modal.idAutoHint')}</span>}
               </label>
-              <input
+              <input aria-label={t('delegationTypeSection.modal.idField')}
                 className={`ps-sub-input ps-del-id-input${errors.id ? ' ps-sub-input--error' : ''}${!isNew ? ' ps-del-id-input--locked' : ''}`}
                 value={form.id}
                 disabled={!isNew}
@@ -166,7 +169,7 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
           {/* Description */}
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('delegationTypeSection.modal.descriptionField')} <span className="ps-sub-label-req">*</span></label>
-            <textarea
+            <textarea aria-label={t('delegationTypeSection.modal.descriptionField')}
               className={`ps-sub-input ps-del-textarea${errors.description ? ' ps-sub-input--error' : ''}`}
               value={form.description}
               rows={2}
@@ -179,7 +182,7 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
           {/* CPT Hint */}
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('delegationTypeSection.modal.cptHintField')} <span className="ps-sub-label-opt">({t('common.optional')})</span></label>
-            <input
+            <input aria-label={t('delegationTypeSection.modal.cptHintField')}
               className="ps-sub-input"
               value={form.cptHint ?? ''}
               placeholder={t('delegationTypeSection.modal.cptHintPlaceholder')}
@@ -211,7 +214,7 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
                   title={c}
                 />
               ))}
-              <input
+              <input aria-label={t('a11y.fields.colour')}
                 type="color"
                 value={form.color}
                 onChange={e => set('color', e.target.value)}
@@ -225,10 +228,10 @@ const Form: React.FC<FormProps> = ({ mode, initial, existingEntries, labs, onSav
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('delegationTypeSection.modal.optionsField')}</label>
             <div className="ps-del-toggle-stack">
-              <Toggle checked={form.active}               onChange={v => set('active', v)}               label={t('common.active')} />
-              <Toggle checked={!!form.transfersOwnership} onChange={v => set('transfersOwnership', v)}   label={t('delegationTypeSection.modal.toggles.transfersOwnership')} />
-              <Toggle checked={!!form.requiresNote}       onChange={v => set('requiresNote', v)}         label={t('delegationTypeSection.modal.toggles.requiresNote')} />
-              <Toggle checked={!!form.multiAssign}        onChange={v => set('multiAssign', v)}          label={t('delegationTypeSection.modal.toggles.multiAssign')} />
+              <Toggle checked={form.active}               onChange={v => set('active', v)}               label={t('common.active')} ariaLabel={t('a11y.fields.active')} />
+              <Toggle checked={!!form.transfersOwnership} onChange={v => set('transfersOwnership', v)}   label={t('delegationTypeSection.modal.toggles.transfersOwnership')} ariaLabel={t('delegationTypeSection.modal.toggles.transfersOwnership')} />
+              <Toggle checked={!!form.requiresNote}       onChange={v => set('requiresNote', v)}         label={t('delegationTypeSection.modal.toggles.requiresNote')} ariaLabel={t('delegationTypeSection.modal.toggles.requiresNote')} />
+              <Toggle checked={!!form.multiAssign}        onChange={v => set('multiAssign', v)}          label={t('delegationTypeSection.modal.toggles.multiAssign')} ariaLabel={t('delegationTypeSection.modal.toggles.multiAssign')} />
             </div>
           </div>
 
@@ -265,7 +268,7 @@ const DelegationTypeSection: React.FC = () => {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const result = await mockDelegationTypeService.getAll();
+    const result = await delegationTypeService.getAll();
     if (result.ok) setTypes(result.data);
     setLoading(false);
   }, []);
@@ -278,17 +281,17 @@ const DelegationTypeSection: React.FC = () => {
   const labName = (id?: string) => id ? (labs.find(l => l.id === id)?.name ?? id) : t('delegationTypeSection.allLabsLabel');
 
   const handleToggle = async (dt: DelegationType) => {
-    await mockDelegationTypeService.update(dt.id, { active: !dt.active });
+    await delegationTypeService.update(dt.id, { active: !dt.active });
     await load();
   };
 
   const handleSave = async (dt: DelegationType) => {
     if (modal?.mode === 'add') {
       const { isSystem: _isSystem, sortOrder: _sortOrder, ...rest } = dt;
-      await mockDelegationTypeService.add(rest);
+      await delegationTypeService.add(rest);
     } else {
       const { id: _id, isSystem: _isSystem, ...rest } = dt;
-      await mockDelegationTypeService.update(dt.id, rest);
+      await delegationTypeService.update(dt.id, rest);
     }
     setModal(null);
     await load();
@@ -329,7 +332,7 @@ const DelegationTypeSection: React.FC = () => {
       </td>
       <td className="ps-conf-td">{labName(dt.performingLabFacilityId)}</td>
       <td className="ps-conf-td">
-        <Toggle checked={dt.active} onChange={() => handleToggle(dt)} label={dt.active ? t('common.active') : t('common.inactive')} />
+        <Toggle checked={dt.active} onChange={() => handleToggle(dt)} label={dt.active ? t('common.active') : t('common.inactive')} ariaLabel={t('a11y.cellLabel', { column: t('a11y.fields.active'), row: dt.label })} />
       </td>
       <td className="ps-conf-td">
         <div className="ps-conf-row-actions">
@@ -340,7 +343,7 @@ const DelegationTypeSection: React.FC = () => {
             deleteConfirm === dt.id ? (
               <span className="ps-del-confirm-row">
                 <span className="ps-del-confirm-label">{t('delegationTypeSection.confirmDeleteLabel')}</span>
-                <button className="ps-sub-btn-inactivate" onClick={async () => { await mockDelegationTypeService.remove(dt.id); setDeleteConfirm(null); await load(); }}>{t('common.yes')}</button>
+                <button className="ps-sub-btn-inactivate" onClick={async () => { await delegationTypeService.remove(dt.id); setDeleteConfirm(null); await load(); }}>{t('common.yes')}</button>
                 <button className="fm-btn-cancel" onClick={() => setDeleteConfirm(null)}>{t('common.no')}</button>
               </span>
             ) : (
@@ -366,7 +369,7 @@ const DelegationTypeSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('delegationTypeSection.allLabsLabel')}</option>
           <option value="Global">{t('delegationTypeSection.labFilter.globalOnly')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -385,10 +388,11 @@ const DelegationTypeSection: React.FC = () => {
       )}
 
       {loading ? (
-        <div className="ps-del-loading">{t('common.loading')}</div>
+        <LoadingState variant="inline" className="ps-del-loading" label={t('common.loading')} />
       ) : (
         <div className="ps-conf-table-wrap">
-          <div className="ps-conf-table-scroll">
+          {/* Batch 524 (PS-491): a scrolling region keyboard users can reach. */}
+          <div className="ps-conf-table-scroll" tabIndex={0} role="region" aria-label={t('a11y.scrollableTable')}>
             <table className="ps-conf-table">
               <thead className="ps-conf-thead-sticky">
                 <tr>

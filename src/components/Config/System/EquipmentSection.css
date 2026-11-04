@@ -1,0 +1,2 @@
+/* Batch 732 (spec §11.1): the "takes large-format slides" box in the Equipment window. */
+.ps-conf-checkbox-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 4px 0 10px; }

@@ -4,6 +4,8 @@ import type { ServiceResult } from '../types';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 import { mockStaffConcordanceReviewOverrideService } from './mockStaffConcordanceReviewOverrideService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 /** Real, per direct decision this session ("we could make it
  *  configurable so it can be avoided" — an opt-out, not opt-in,
@@ -20,7 +22,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
 function readOrgConfig(): ConcordanceReviewOrgConfig {
   try {
-    const stored = localStorage.getItem(ORG_CONFIG_STORAGE_KEY);
+    const stored = dataStorage.getItem(ORG_CONFIG_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       if (typeof parsed?.aiComparisonEnabled === 'boolean' && typeof parsed?.reviewScreenEnabled === 'boolean') {
@@ -34,14 +36,14 @@ function readOrgConfig(): ConcordanceReviewOrgConfig {
   return FALLBACK_ORG_CONFIG;
 }
 
-export const mockConcordanceReviewSettingsService: IConcordanceReviewSettingsService = {
+const concordanceReviewSettingsServiceUnchecked: IConcordanceReviewSettingsService = {
   async getOrgDefault() {
     return ok(readOrgConfig());
   },
 
   async setOrgDefault(config) {
     try {
-      localStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
+      dataStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
     } catch {
       // ignore write failures — same posture as every other real
       // setOrgDefault-shaped method in this app.
@@ -78,3 +80,8 @@ export const mockConcordanceReviewSettingsService: IConcordanceReviewSettingsSer
     return ok(facilityLayer);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockConcordanceReviewSettingsService: IConcordanceReviewSettingsService = guardConfigWrites(concordanceReviewSettingsServiceUnchecked, [
+  ['config:concordance-review:manage', ['setOrgDefault']],
+]);

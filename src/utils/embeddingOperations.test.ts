@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   confirmPieceCount, flagEmbeddingDiscrepancy, setMoldAndOrientation, groupSplitBlocks,
   resolveSplitBlockGroupStatus, recordCassetteReprint, addEmbeddingBlockComment, resolveEmbeddingAlertBadges,
+  clearEmbeddingDiscrepancy, hasOpenEmbeddingDiscrepancy, buildEmbeddingDiscrepancyClearedAudit, blockStatusLabelKey,
 } from './embeddingOperations';
 import type { Specimen } from '@/types/case/Specimen';
 
@@ -169,5 +170,51 @@ describe('resolveEmbeddingAlertBadges', () => {
   it('never fabricates a badge when nothing is actually flagged', () => {
     const block = specimen().blocks!.find(b => b.id === 'blk-1')!;
     expect(resolveEmbeddingAlertBadges(block)).toEqual([]);
+  });
+});
+
+// Batch 669 (ws-10)
+describe('clearEmbeddingDiscrepancy', () => {
+  const flagged = () => {
+    const r = flagEmbeddingDiscrepancy(specimen(), 'blk-1', 'Extra Tissue Found', 'tech-1');
+    if (!r.ok) throw new Error('flag failed');
+    return r.specimen;
+  };
+  it('clears the flag, its reporter and its time, and leaves the block\'s status alone', () => {
+    const result = clearEmbeddingDiscrepancy(flagged(), 'blk-1');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const block = result.specimen.blocks!.find(b => b.id === 'blk-1')!;
+    expect(block.lastDiscrepancyReason).toBeUndefined();
+    expect(block.lastDiscrepancyReportedBy).toBeUndefined();
+    expect(block.lastDiscrepancyReportedAt).toBeUndefined();
+    expect(block.status).toBe('Grossed');
+    expect(hasOpenEmbeddingDiscrepancy(block)).toBe(false);
+  });
+  it('refuses when nothing is flagged, or the block is gone', () => {
+    expect(clearEmbeddingDiscrepancy(specimen(), 'blk-1').ok).toBe(false);
+    expect(clearEmbeddingDiscrepancy(flagged(), 'nope').ok).toBe(false);
+  });
+  it('a flagged block reports an open discrepancy', () => {
+    const block = flagged().blocks!.find(b => b.id === 'blk-1')!;
+    expect(hasOpenEmbeddingDiscrepancy(block)).toBe(true);
+  });
+  it('the audit entry is literal English, names the flag, who raised it and who cleared it, and carries no patient data', () => {
+    const block = flagged().blocks!.find(b => b.id === 'blk-1')!;
+    const entry = buildEmbeddingDiscrepancyClearedAudit({ caseId: 'c1', accession: 'S26-0001', specimenLabel: 'A', block, actor: { id: 'u-9', name: 'Lee Tran' } });
+    expect(entry.event).toBe('Embedding discrepancy cleared');
+    expect(entry.detail).toContain('Block AA1');
+    expect(entry.detail).toContain('Extra Tissue Found');
+    expect(entry.detail).toContain('raised by tech-1');
+    expect(entry.detail).toContain('cleared by u-9');
+    expect(entry.user).toBe('Lee Tran');
+    expect(entry.caseId).toBe('S26-0001');
+  });
+});
+
+describe('blockStatusLabelKey', () => {
+  it('maps the stored English status to its locale key', () => {
+    expect(blockStatusLabelKey('Grossed')).toBe('embeddingStation.blockStatus.grossed');
+    expect(blockStatusLabelKey('Embedded')).toBe('embeddingStation.blockStatus.embedded');
   });
 });

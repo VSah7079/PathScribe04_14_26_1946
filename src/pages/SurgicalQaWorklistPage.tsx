@@ -29,161 +29,45 @@
 // CytologyQcQueuePage.tsx, which had copy-pasted the identical logic.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect, useCallback } from 'react';
+// Batch 396: loading, recording and dismissing now go through
+// hooks/useSurgicalQaReview.ts and services/quality/surgicalQaReview.ts, so the
+// case's report page can record the same review (Pete: "I would not want to
+// force the pathologist to go to 2 screens"). Each row can also open the
+// case's report, which has the same buttons.
+
+import { useOpenCase } from '@/hooks/useOpenCase';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
-import { useAuth } from '@contexts/AuthContext';
-import { caseRouter } from '@/services/cases/CaseRouter';
-import { qaActivityRecordService } from '@/services';
-import {
-  mockQaActivityTypeService,
-  SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID,
-  SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID,
-} from '@/services/quality/mockQaActivityTypeService';
-import { resolveSurgicalPeerReviewPoolMembership } from '@/services/quality/resolveSurgicalPeerReviewPoolMembership';
-import { resolveSurgicalBiopsyToResectionCorrelationPoolMembership } from '@/services/quality/resolveSurgicalBiopsyToResectionCorrelationPoolMembership';
-import { QaReviewCaptureForm, type QaReviewCaptureSubmission } from '@/components/QualityAssurance/QaReviewCaptureForm';
+import { useSurgicalQaReview } from '@/hooks/useSurgicalQaReview';
+import { SurgicalQaReviewModal } from '@/components/QualityAssurance/SurgicalQaReviewModal';
 import { resolvePatientFullDisplayName } from '@/utils/personName';
-import type { QaActivityType } from '@/types/quality/QaActivityType';
-import type { Case } from '@/types/case/Case';
-import type { Specimen } from '@/types/case/Specimen';
-
-interface PeerReviewRow {
-  kind: 'peer_review';
-  caseId: string;
-  specimenId: string;
-  caseData: Case;
-}
-
-interface CorrelationRow {
-  kind: 'correlation';
-  caseId: string;
-  specimenId: string;
-  candidateCaseId: string;
-  candidateSpecimenId: string;
-  caseData: Case;
-}
-
-type Row = PeerReviewRow | CorrelationRow;
+import type { SurgicalQaRow } from '@/services/quality/surgicalQaReview';
+import { useMismatchSecondaryReview } from '@/hooks/useMismatchSecondaryReview';
+import { deferredMismatchDetails } from '@/services/clinical/clinicalMismatchInputs';
+import { ClinicalMismatchDecisionForm } from '@/components/ClinicalMismatch/ClinicalMismatchDecisionForm';
+import { formatDateTime } from '@/utils/formatDate';
 
 const SurgicalQaWorklistPage: React.FC = () => {
-  const { t } = useTranslation();
-  const { user } = useAuth();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [activityTypes, setActivityTypes] = useState<QaActivityType[]>([]);
-  const [activeRow, setActiveRow] = useState<Row | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const refresh = useCallback(async () => {
-    const [casesRes, typesRes] = await Promise.all([caseRouter.getAll(), mockQaActivityTypeService.getAll()]);
-    if (typesRes.ok) setActivityTypes(typesRes.data);
-    if (!casesRes.ok) return;
-
-    const nextRows: Row[] = [];
-    for (const c of casesRes.data) {
-      for (const s of c.specimens ?? []) {
-        const spr = (s as Specimen).surgicalPeerReview;
-        if (resolveSurgicalPeerReviewPoolMembership(spr)) {
-          nextRows.push({ kind: 'peer_review', caseId: c.id, specimenId: s.id, caseData: c });
-        }
-        if (resolveSurgicalBiopsyToResectionCorrelationPoolMembership(spr?.biopsyToResectionCandidates)) {
-          for (const cand of spr!.biopsyToResectionCandidates!.filter(x => x.recordedActivityRecordId === undefined && !x.dismissedAsNotRelevant)) {
-            nextRows.push({
-              kind: 'correlation', caseId: c.id, specimenId: s.id,
-              candidateCaseId: cand.candidateCaseId, candidateSpecimenId: cand.candidateSpecimenId, caseData: c,
-            });
-          }
-        }
-      }
-    }
-    setRows(nextRows);
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
-
-  const activityTypeForRow = (row: Row): QaActivityType | undefined =>
-    activityTypes.find(t => t.id === (row.kind === 'peer_review' ? SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID : SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID));
-
-  const patchSpecimen = async (caseId: string, specimenId: string, mutate: (s: Specimen) => Specimen) => {
-    const freshCase = await caseRouter.getCase(caseId);
-    if (!freshCase) return;
-    const patched = (freshCase.specimens ?? []).map(s => (s.id === specimenId ? mutate(s) : s));
-    await caseRouter.updateCase(caseId, { specimens: patched });
-  };
-
-  const handleSubmit = async (row: Row, submission: QaReviewCaptureSubmission) => {
-    if (!user) return;
-    setBusy(true);
-    try {
-      const activityType = activityTypeForRow(row);
-      if (!activityType) return;
-
-      const record = await qaActivityRecordService.create({
-        activityTypeId: activityType.id,
-        caseId: row.caseId,
-        specimenId: row.specimenId,
-        caseType: row.caseData.specimens?.find(s => s.id === row.specimenId)?.description || row.caseData.id,
-        subspecialtyId: row.caseData.subspecialtyId,
-        fieldValues: submission.fieldValues,
-        outcome: submission.outcome,
-        delta: submission.delta,
-        severity: submission.severity,
-        rootCause: submission.rootCause,
-        rootCauseNote: submission.rootCauseNote,
-        comments: submission.comments,
-        recordedBy: { userId: user.id, userName: user.name },
-      });
-      if (!record.ok) return;
-
-      if (row.kind === 'peer_review') {
-        await patchSpecimen(row.caseId, row.specimenId, s => ({
-          ...s,
-          surgicalPeerReview: { ...s.surgicalPeerReview, peerReviewRecordedActivityRecordId: record.data.id },
-        }));
-      } else {
-        await patchSpecimen(row.caseId, row.specimenId, s => ({
-          ...s,
-          surgicalPeerReview: {
-            ...s.surgicalPeerReview,
-            biopsyToResectionCandidates: (s.surgicalPeerReview?.biopsyToResectionCandidates ?? []).map(c =>
-              c.candidateCaseId === row.candidateCaseId && c.candidateSpecimenId === row.candidateSpecimenId
-                ? { ...c, recordedActivityRecordId: record.data.id }
-                : c
-            ),
-          },
-        }));
-      }
-      setActiveRow(null);
-      await refresh();
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleDismissCandidate = async (row: CorrelationRow) => {
-    await patchSpecimen(row.caseId, row.specimenId, s => ({
-      ...s,
-      surgicalPeerReview: {
-        ...s.surgicalPeerReview,
-        biopsyToResectionCandidates: (s.surgicalPeerReview?.biopsyToResectionCandidates ?? []).map(c =>
-          c.candidateCaseId === row.candidateCaseId && c.candidateSpecimenId === row.candidateSpecimenId
-            ? { ...c, dismissedAsNotRelevant: true }
-            : c
-        ),
-      },
-    }));
-    await refresh();
-  };
+  const { t, i18n } = useTranslation();
+  const openCasePage = useOpenCase();
+  const { rows, busy, message, activityTypeFor, record, dismiss } = useSurgicalQaReview();
+  const [activeRow, setActiveRow] = useState<SurgicalQaRow | null>(null);
+  const activeType = activeRow ? activityTypeFor(activeRow) : undefined;
+  // Batch 530 (PS-554): the secondary review queue (deferred low-risk clinical mismatches).
+  const mismatchQueue = useMismatchSecondaryReview();
+  const [reviewing, setReviewing] = useState<string | null>(null);
 
   return (
     <div className="ps-qcqueue-page">
       <h1 className="ps-qcqueue-title">{t('surgicalQaWorklist.pageTitle')}</h1>
+      {message && <div className="ps-qcqueue-error" role="alert">{t(`surgicalQaWorklist.error.${message}`)}</div>}
 
       <div className="ps-qcqueue-list">
         {rows.map((row, i) => (
           <div key={`${row.kind}-${row.caseId}-${row.specimenId}-${i}`} className="ps-qcqueue-row">
             <div className="ps-qcqueue-row-patient" data-phi="true">
-              {resolvePatientFullDisplayName(row.caseData.patient) ?? row.caseData.id}
+              {resolvePatientFullDisplayName(row.caseData.patient, i18n.language) ?? row.caseData.id}
               <span className="ps-qcqueue-row-accession" data-phi="accession">{row.caseData.accession?.accessionNumber}</span>
             </div>
             <div className="ps-qcqueue-row-badges">
@@ -198,9 +82,12 @@ const SurgicalQaWorklistPage: React.FC = () => {
               )}
             </div>
             <div className="ps-qcqueue-row-actions">
+              <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(row.caseId, 'report', { state: { returnTo: '/worklist?view=surgicalQa' } })}>
+                {t('surgicalQaWorklist.openCaseBtn')}
+              </button>
               <button className="ps-conf-btn-primary" onClick={() => setActiveRow(row)}>{t('surgicalQaWorklist.recordReviewBtn')}</button>
               {row.kind === 'correlation' && (
-                <button className="ps-conf-btn-secondary" onClick={() => handleDismissCandidate(row)}>{t('surgicalQaWorklist.notRelevantBtn')}</button>
+                <button className="ps-conf-btn-secondary" disabled={busy} onClick={() => void dismiss(row)}>{t('surgicalQaWorklist.notRelevantBtn')}</button>
               )}
             </div>
           </div>
@@ -208,24 +95,58 @@ const SurgicalQaWorklistPage: React.FC = () => {
         {rows.length === 0 && <div className="ps-conf-empty-row">{t('surgicalQaWorklist.emptyRow')}</div>}
       </div>
 
-      {activeRow && (() => {
-        const activityType = activityTypeForRow(activeRow);
-        if (!activityType) return null;
-        return (
-          <div data-capture-hide="true" className="ps-conf-backdrop" onClick={() => setActiveRow(null)}>
-            <div className="ps-conf-modal" onClick={e => e.stopPropagation()}>
-              <div className="ps-conf-modal-header">{activityType.name}</div>
-              <div className="ps-conf-modal-body">
-                <QaReviewCaptureForm
-                  activityType={activityType}
-                  busy={busy}
-                  onSubmit={submission => handleSubmit(activeRow, submission)}
-                />
+      <h2 className="ps-qcqueue-subtitle">{t('surgicalQaWorklist.mismatch.title')}</h2>
+      <p className="ps-conf-field-hint">{t('surgicalQaWorklist.mismatch.description')}</p>
+      <div className="ps-qcqueue-list">
+        {mismatchQueue.queue.map(rec => {
+          const d = deferredMismatchDetails(rec);
+          return (
+            <div key={rec.id} className="ps-qcqueue-row ps-qcqueue-row--stacked">
+              <div className="ps-qcqueue-row-patient">
+                <span className="ps-qcqueue-row-accession" data-phi="accession">{d.caseId}</span>
               </div>
+              <div className="ps-qcqueue-row-badges">
+                <span className="ps-qcqueue-badge-pill">{t(`clinicalMismatch.kinds.${d.kind}`)}</span>
+                <span className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.deferredBy', { name: d.deferredBy ?? '—', date: formatDateTime(d.deferredAt, i18n.language) })}</span>
+              </div>
+              {d.evidence
+                ? (['clinical', 'pathology'] as const).map(side => d.evidence?.[side] && (
+                  <p key={side} className="ps-specreq-meta">
+                    {t(`clinicalMismatch.evidence.${side}`, { quote: d.evidence[side]!.text })}
+                    {!d.evidence[side]!.found && <> <span className="ps-syn-source-notfound">{t('clinicalMismatch.evidence.notFound')}</span></>}
+                  </p>))
+                : <p className="ps-specreq-meta">{t('surgicalQaWorklist.mismatch.noEvidence')}</p>}
+              <div className="ps-qcqueue-row-actions">
+                <button className="ps-conf-btn-secondary" onClick={() => void openCasePage(d.caseId, 'report', { state: { returnTo: '/worklist?view=surgicalQa' } })}>
+                  {t('surgicalQaWorklist.openCaseBtn')}
+                </button>
+                <button className="ps-conf-btn-primary" aria-expanded={reviewing === rec.id} onClick={() => setReviewing(r => (r === rec.id ? null : rec.id))}>
+                  {t('surgicalQaWorklist.mismatch.reviewBtn')}
+                </button>
+              </div>
+              {reviewing === rec.id && (
+                <ClinicalMismatchDecisionForm
+                  idPrefix={`mismatch-review-${rec.id}`}
+                  caseId={d.caseId} caseType={d.caseType} subspecialtyId={d.subspecialtyId} clinicalIndication={d.clinicalIndication}
+                  kind={d.kind} source={d.source} confidence={d.confidence} risk="low" discipline={d.discipline} specimenId={d.specimenId}
+                  reviewOf={d.recordId} choices={['RESOLVED', 'UNRESOLVED']}
+                  onRecorded={() => { setReviewing(null); void mismatchQueue.reload(); }}
+                />
+              )}
             </div>
-          </div>
-        );
-      })()}
+          );
+        })}
+        {mismatchQueue.queue.length === 0 && <div className="ps-conf-empty-row">{t('surgicalQaWorklist.mismatch.empty')}</div>}
+      </div>
+
+      {activeRow && activeType && (
+        <SurgicalQaReviewModal
+          activityType={activeType}
+          busy={busy}
+          onClose={() => setActiveRow(null)}
+          onSubmit={async submission => { if (await record(activeRow, submission)) setActiveRow(null); }}
+        />
+      )}
     </div>
   );
 };

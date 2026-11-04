@@ -1,0 +1,3 @@
+/* Batch 659: the box for adding a frozen diagnosis to a saved specimen. */
+.ps-intraop-late-dx { display: flex; flex-direction: column; gap: 6px; margin-block-start: 8px; }
+.ps-intraop-late-dx .ps-conf-btn-row { align-self: flex-start; }

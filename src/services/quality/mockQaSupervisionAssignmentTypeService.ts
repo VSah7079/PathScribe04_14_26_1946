@@ -17,6 +17,8 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { IQaSupervisionAssignmentTypeService } from './IQaSupervisionAssignmentTypeService';
 import type { QaSupervisionAssignmentType } from '@/types/quality/QaSupervisionAssignmentType';
 import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './mockQaSupervisionAssignmentService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { standardQaTypeChangeRefusal } from './standardQaTypeRules';
 
 const STORAGE_KEY = 'qa_supervision_assignment_types';
 
@@ -57,7 +59,7 @@ const persist = (data: QaSupervisionAssignmentType[]) => storageSet(STORAGE_KEY,
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockQaSupervisionAssignmentTypeService: IQaSupervisionAssignmentTypeService = {
+const qaSupervisionAssignmentTypeServiceUnchecked: IQaSupervisionAssignmentTypeService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -78,6 +80,8 @@ export const mockQaSupervisionAssignmentTypeService: IQaSupervisionAssignmentTyp
     const types = load();
     const idx = types.findIndex(t => t.id === id);
     if (idx === -1) return err(`Supervision assignment type ${id} not found.`);
+    // Batch 428: a standard type can't be switched off or made custom.
+    { const refusal = standardQaTypeChangeRefusal(types[idx], changes); if (refusal) return err(refusal); }
     const updated = { ...types[idx], ...changes };
     const withUpdate = [...types];
     withUpdate[idx] = updated;
@@ -86,10 +90,15 @@ export const mockQaSupervisionAssignmentTypeService: IQaSupervisionAssignmentTyp
   },
 
   async deactivate(id) {
-    return mockQaSupervisionAssignmentTypeService.update(id, { active: false });
+    return qaSupervisionAssignmentTypeServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id) {
-    return mockQaSupervisionAssignmentTypeService.update(id, { active: true });
+    return qaSupervisionAssignmentTypeServiceUnchecked.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockQaSupervisionAssignmentTypeService: IQaSupervisionAssignmentTypeService = guardConfigWrites(qaSupervisionAssignmentTypeServiceUnchecked, [
+  ['config:qa-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

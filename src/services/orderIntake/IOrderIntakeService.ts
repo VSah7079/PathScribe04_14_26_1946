@@ -26,6 +26,7 @@
 import type { ServiceResult, ID } from '../types';
 import type { Icd10Code } from '../diagnosisCodes/IDiagnosisCodesService';
 import type { InboundProviderIdentifierType } from '../physicians/resolveProviderName';
+import type { ClinicalIndicationSourceId } from './clinicalIndicationFromOrder';
 
 // ─── Crosswalk ──────────────────────────────────────────────────────────────
 
@@ -79,6 +80,8 @@ export interface SpecimenCodeCrosswalkEntry {
 
 export interface IncomingOrderSpecimen {
   description: string;
+  /** Batch 645: the container's barcode, when the order carries one. Lockbox Drop-Off matches a scan against this and the order number. */
+  containerBarcode?: string;
   /** The client's local code for this specimen type, if the source
    *  message carried one (not all sources will — manual/API orders may
    *  arrive as description-only). */
@@ -182,9 +185,15 @@ export interface IncomingOrder {
     mrn?: string;
   };
   encounterNumber?: string;
+  /** Sending site (Site.id) as supplied by the interface engine. Optional: when present, a site-specific
+   *  crosswalk entry is preferred over an organisation-wide one. */
+  siteId?: string;
   requestingProvider: IncomingOrderProvider;
   priority?: 'Routine' | 'STAT';
   clinicalIndication?: string;
+  /** Batch 714: which order field `clinicalIndication` came from (OBR-31, ORC-16, DG1, NTE, FHIR reasonCode or reasonReference),
+   *  set by the server through clinicalIndicationFromOrder(). Undefined when the sender did not say. */
+  clinicalIndicationSource?: ClinicalIndicationSourceId;
   /** Diagnosis codes as received on the referral, if any — real orders
    *  frequently carry these already. Auto-populates the Accession
    *  form's ICD-10 field the same way clinicalIndication already does,

@@ -243,4 +243,4 @@ export function buildCountryProfileAuditEntry(change: CountryProfileChange, juri
 
 /** Every jurisdiction PathScribe supports, in the order the country
  *  picker shows them (names come from `jurisdictionNames.*`). */
-export const COUNTRY_RULE_JURISDICTIONS: readonly Jurisdiction[] = ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'AU', 'NZ', 'KR', 'BE', 'NL', 'DE', 'FR'];
+export const COUNTRY_RULE_JURISDICTIONS: readonly Jurisdiction[] = ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'AU', 'NZ', 'KR', 'BE', 'NL', 'DE', 'FR', 'ES'];

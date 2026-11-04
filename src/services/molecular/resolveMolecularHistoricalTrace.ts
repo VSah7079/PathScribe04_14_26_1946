@@ -17,12 +17,15 @@
 // lookup instead of manual cross-referencing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MolecularBatch, MolecularMovementRecord, MolecularReagentLot } from './IMolecularBatchService';
+import type { MolecularBatch, MolecularControlInfo, MolecularMovementRecord, MolecularReagentLot } from './IMolecularBatchService';
 import type { MolecularWellResult } from '@/types/events/MolecularRunResultsPayload';
 
 export interface MolecularHistoricalTraceQuery {
   specimenUuid?: string;
   accessionNumber?: string;
+  /** Batch 608 (#62): a control or calibrator well has no specimen, so it is found by its position
+   *  on the plate. Only used when no specimen identifier is given. */
+  wellPosition?: string;
 }
 
 export interface MolecularHistoricalTrace {
@@ -38,6 +41,8 @@ export interface MolecularHistoricalTrace {
   wellPosition: string;
   movementHistory: MolecularMovementRecord[];
   result?: MolecularWellResult;
+  /** Batch 608 (#62): set for a control or calibrator well: its control ID, lot and expiry. */
+  control?: MolecularControlInfo;
 }
 
 /**
@@ -52,10 +57,10 @@ export function resolveMolecularHistoricalTrace(
   query: MolecularHistoricalTraceQuery,
 ): MolecularHistoricalTrace | null {
   for (const batch of batches) {
-    const well = batch.wells.find(w =>
-      (query.specimenUuid && w.specimenUuid === query.specimenUuid) ||
-      (query.accessionNumber && w.accessionNumber === query.accessionNumber),
-    );
+    const bySpecimen = !!(query.specimenUuid || query.accessionNumber);
+    const well = batch.wells.find(w => bySpecimen
+      ? (query.specimenUuid && w.specimenUuid === query.specimenUuid) || (query.accessionNumber && w.accessionNumber === query.accessionNumber)
+      : !!query.wellPosition && w.wellPosition === query.wellPosition && !!w.controlInfo);
     if (!well) continue;
 
     const result = batch.results?.find(r => r.well_position === well.wellPosition);
@@ -73,6 +78,7 @@ export function resolveMolecularHistoricalTrace(
       wellPosition: well.wellPosition,
       movementHistory: well.movementHistory ?? [],
       result,
+      control: well.controlInfo,
     };
   }
   return null;

@@ -40,6 +40,18 @@ export interface SyntheticCodingTerm {
   display: string;
 }
 
+/** Batch 623 (PS-130): a real code from a licence the customer holds. Only ever used while that
+ *  licence is on and unexpired (services/terminologyLicence/). SNOMED CT is a numeric string
+ *  ("254837009"); ICD-O-3 morphology is "8500/3". */
+export interface LicensedCodingTerm {
+  system: 'SNOMED-CT' | 'ICD-O-3';
+  code: string;
+  display: string;
+}
+
+/** Either kind of code a finding can carry: a test code (no licence) or a licensed one. */
+export type CodingTerm = SyntheticCodingTerm | LicensedCodingTerm;
+
 export interface AbnormalTriggerRule {
   id: ID;
   /** The synoptic field label this rule matches against — compared to
@@ -83,6 +95,10 @@ export interface AbnormalTriggerRule {
    *  none configured falls back to resolveSyntheticCoding's own,
    *  severity-keyed default. */
   syntheticCoding?: SyntheticCodingTerm[];
+  /** Batch 623 (PS-130): the customer's real codes for this rule, entered once they hold the
+   *  licence. Used in place of the test codes only while that code system's licence is on and
+   *  unexpired (Configuration > Terminology services); otherwise the test codes still apply. */
+  licensedCoding?: LicensedCodingTerm[];
 }
 
 export interface IAbnormalTriggerRuleService {

@@ -83,6 +83,11 @@ export interface QaActivityRecord {
    *  documented: TypeScript can't cleanly express "required when a
    *  sibling field has a specific value." */
   rootCauseNote?: string;
+  /** Batch 438 (PS-144): how a disagreement ended. 'consensus-reached' (a
+   *  third opinion, multi-head review or outside expert resolved it) never
+   *  recommends a CAPA; 'unresolved' always does. Absent: not a peer review
+   *  with a consensus step. */
+  consensus?: 'consensus-reached' | 'unresolved';
   /** True whenever severity is 'high' - stored explicitly, not
    *  recomputed on every read, same real reason as
    *  isTeachingOnboardingCase below: "cases needing mandatory
@@ -123,4 +128,12 @@ export interface QaActivityRecord {
 
   recordedAt: string;
   recordedBy: { userId: string; userName: string };
+  /** Batch 439 (PS-144): the pathologist whose read was reviewed, when it
+   *  isn't the person recording (a peer review: recordedBy is the
+   *  reviewer). What PS-147 will trend on. */
+  reviewedPathologist?: { userId: string; userName: string };
+  /** Batch 439 (PS-148): the review happened after the report was
+   *  released. A major discordance then is its own CAPA moment; before
+   *  sign-out it is consultation working as designed. */
+  postSignOut?: boolean;
 }

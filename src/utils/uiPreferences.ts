@@ -14,7 +14,9 @@
 // quota fall back to the default rather than throwing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PREFIX = 'ps_ui_';
+/** Every display preference is stored under this prefix (Batch 508: Full Reset clears them all). */
+export const UI_PREFERENCE_PREFIX = 'ps_ui_';
+const PREFIX = UI_PREFERENCE_PREFIX;
 
 export function getUiPreference<T>(key: string, fallback: T): T {
   try {
@@ -50,6 +52,16 @@ export function getSessionFlag(key: string): string | null {
     return sessionStorage.getItem(key);
   } catch {
     return null;
+  }
+}
+
+/** Batch 431: sets a per-tab value for this browser session (worklist
+ *  filters, the messages drawer, a blocked pop-up). */
+export function setSessionFlag(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable: lasts until the page reloads */
   }
 }
 

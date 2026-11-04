@@ -31,15 +31,18 @@ Which admin screens offer **Duplicate**, and what a copy keeps or clears (Jira P
 | Offers Duplicate | Screens |
 |---|---|
 | Complex configuration | Facility, Stain Dictionary (types, sectioning protocols, macros, molecular targets), Processing Protocols, synoptic protocols (All/Active), Case Pool routing, Routing Rules, Cassette Routing, TAT/escalation, Abnormal Trigger Rules, QA Configuration Center, Cytology QC Rules, Role Dictionary, Billing Dictionary, Participation Types |
-| Template entity | Specimen Categories, Specimen Dictionary, Report Parts, Report Templates, Action Groups |
+| Template entity | Specimen Dictionary, Report Parts, Report Templates, Action Groups |
 | Multi-site variant | Printer Profiles, Workstation Groups |
 
 | No Duplicate | Why |
 |---|---|
 | Physicians | A real person; a copy is a wrong person. |
-| Container Types, Delegation Types, RVU code map rows, Cassette Colors | Flat lookups of a few fields. |
+| Container Types, Delegation Types, RVU code map rows, Cassette Colors, Grossing Hardware | Flat lookups of a few fields. |
+| Equipment | One physical device with its own code, serial number and history. |
 
 Two copies deliberately start **inactive**: cassette routing rules and abnormal trigger rules. An unchanged copy of either matches exactly what its source matches, so it must not act on real cases until the admin has made the change it was copied for.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): removed Specimen Categories (screen deleted, Batch 428) and added Grossing Hardware and Equipment to the no-Duplicate list, matching `DUPLICATE_POLICY`.*
 
 ## Adding Duplicate to a new screen
 
@@ -50,7 +53,7 @@ Two copies deliberately start **inactive**: cassette routing rules and abnormal 
 
 ## Batch 356
 
-**Instruments** (`InstrumentsSection.tsx`) are recorded as no-Duplicate (`real-person-or-entity`). An instrument is one physical device with its own code on batches and labels.
+**Instruments** (`InstrumentsSection.tsx`, *renamed `EquipmentSection.tsx` in Batch 358, see below*) are recorded as no-Duplicate (`real-person-or-entity`). An instrument is one physical device with its own code on batches and labels.
 
 ## Batch 358
 
@@ -67,6 +70,10 @@ The Instruments entry became **Equipment** (`EquipmentSection.tsx`), no-Duplicat
 ## Batch 371
 
 `duplicateRole` drops ForMedrixAI platform-only capabilities, since a copy is always a hospital role.
+
+## Batch 428: Configuration permissions
+
+Removed the deleted `SpecimenCategoriesSection.tsx` from the policy.
 
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*

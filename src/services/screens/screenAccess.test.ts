@@ -18,7 +18,7 @@ describe('screen access (Batch 374)', () => {
   });
   it('every screen is reached from exactly one Home tile (Batch 375)', () => {
     const reached = Object.values(TILE_SCREENS).flat().sort();
-    expect(reached).toEqual(Object.keys(SCREEN_CAPABILITY).sort().filter(k => k !== 'addOnOrders'));
+    expect(reached).toEqual(Object.keys(SCREEN_CAPABILITY).sort());
     expect(Object.keys(TILE_SCREENS)).not.toContain('batchManagement');
     expect(HUB_SCREENS.pathologyWorkspace).toContain('batchManagement');
   });
@@ -32,12 +32,43 @@ describe('screen access (Batch 374)', () => {
   });
   it('the route check asks the authorization service for the screen\'s capability', async () => {
     const asked: string[] = [];
-    const svc = createScreenAccessService({ authorization: { enforce: async (c: string) => { asked.push(c); return { capability: c, allowed: c === 'screen:embedding:open', grantedBy: [], missingRequirements: [], context: {} }; } } });
+    const decide = async (c: string) => { asked.push(c); return { capability: c, allowed: c === 'screen:embedding:open', grantedBy: [], missingRequirements: [], context: {} }; };
+    const svc = createScreenAccessService({ authorization: { enforce: decide, evaluate: decide } });
     expect(await svc.canOpen('configuration')).toBe(false);
     expect(await svc.canOpen('embedding')).toBe(true);
     expect(await svc.canOpen('pathologyWorkspace')).toBe(true);
     expect(await svc.canOpen('qualityCompliance')).toBe(false);
-    expect(asked).toEqual(['screen:configuration:open', 'screen:embedding:open', 'screen:cytology-workspace:open', 'screen:microtomy:open', 'screen:embedding:open', 'screen:audit-log:open', 'screen:quality-assurance:open']);
+    expect(asked).toEqual(['screen:configuration:open', 'screen:embedding:open', 'screen:grossing:open', 'screen:add-on-orders:open', 'screen:margin-exception-review:open', 'screen:cytology-workspace:open', 'screen:cytology-prep:open', 'screen:microtomy:open', 'screen:embedding:open', 'screen:audit-log:open', 'screen:quality-assurance:open', 'screen:registry-exceptions:open', 'screen:autopsy-dashboards:open', 'screen:outbound-queue:open']);
     expect(await svc.canOpen('batchManagement')).toBe(false);
+  });
+
+  it('Batch 432: the Cytology QC supervisor bypass opens the QC queue (and the Worklist tile) for the override', async () => {
+    const has = (...caps: string[]) => (c: string) => caps.includes(c);
+    expect(worklistViews(has('cytology:qc-review:bypass'))).toEqual(['cytologyQc']);
+    expect(canOpenTile('worklist', has('cytology:qc-review:bypass'))).toBe(true);
+    expect(worklistViews(has())).toEqual([]);
+    const enforced: string[] = []; const evaluated: string[] = [];
+    const svc = createScreenAccessService({ authorization: {
+      enforce: async (c: string) => { enforced.push(c); return { capability: c, allowed: false, grantedBy: [], missingRequirements: [], context: {} }; },
+      evaluate: async (c: string) => { evaluated.push(c); return { capability: c, allowed: c === 'cytology:qc-review:bypass', grantedBy: [], missingRequirements: [], context: {} }; },
+    } });
+    expect(await svc.canOpen('cytologyQcQueue')).toBe(true);
+    expect(enforced).toEqual(['screen:cytology-qc-queue:open']);
+    expect(evaluated).toEqual(['cytology:qc-review:bypass']);
+  });
+
+  it('Batch 669 (ctl): Control Rules opens for view or manage, without the Molecular screen', async () => {
+    const has = (...caps: string[]) => (c: string) => caps.includes(c);
+    expect(canOpenTile('molecularControlRules', has('config:molecular-control-rules:view'))).toBe(true);
+    expect(canOpenTile('molecularControlRules', has('config:molecular-control-rules:manage'))).toBe(true);
+    expect(canOpenTile('molecularControlRules', has('screen:molecular:open'))).toBe(false);
+    expect(canOpenTile('molecularControlRules', has())).toBe(false);
+    // It is a sub-screen: not a Home tile, in no hub.
+    expect(Object.values(TILE_SCREENS).flat()).not.toContain('molecularControlRules');
+    const decider = (...held: string[]) => async (c: string) => ({ capability: c, allowed: held.includes(c), grantedBy: [], missingRequirements: [], context: {} });
+    const make = (...held: string[]) => createScreenAccessService({ authorization: { enforce: decider(...held), evaluate: decider(...held) } });
+    expect(await make('config:molecular-control-rules:view').canOpen('molecularControlRules')).toBe(true);
+    expect(await make('config:molecular-control-rules:manage').canOpen('molecularControlRules')).toBe(true);
+    expect(await make('screen:molecular:open').canOpen('molecularControlRules')).toBe(false);
   });
 });

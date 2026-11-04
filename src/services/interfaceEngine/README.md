@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/interfaceEngine/
 
 Real feature, per direct follow-up: "Did we want to implement the
@@ -44,8 +46,8 @@ orders to lab hardware) — not into case creation at all.
   same real, generic receiving endpoint every other real outbound
   transaction type in this app now uses
   (`services/interfaceDispatch/dispatchInterfaceMessage.ts` →
-  `receive_interface_message`, `functions/main.py` in the separate
-  Firebase Functions repository). `delivered` now means what its own
+  `receive_interface_message`, `functions/main.py` at this repo's
+  root). `delivered` now means what its own
   original doc comment always said it eventually should — a real
   dispatch genuinely succeeded, not just that the mock recorded it
   locally; a new `error` field names the real reason when it didn't.
@@ -55,7 +57,9 @@ orders to lab hardware) — not into case creation at all.
   anything. 8 tests (2 new — the real dispatch success and failure
   paths, `fetch` mocked to keep every other test in this file focused
   on its own original concern without also depending on network
-  reachability).
+  reachability). Batch 318 added three more; the file has 11 today.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `functions/main.py` is in this repo, not a separate one; current test count added.*
 
 ## Real call site
 
@@ -133,3 +137,27 @@ guessed at — a real, scoped follow-up if either becomes necessary.
 *See [services/README.md](../README.md) for how this folder fits the
 whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`buildOrderCreationPayload` falls back to the case id for the placer order number and to `''` for a missing MRN. Its only caller always sets both, so nothing changes today.
+
+## Batch 545 (PS-539 phase 2c, decision D6): the engine edge contract
+
+`engineEdgeContract.ts` (new, pure) is the source of truth for `docs/architecture/INTERFACE_ENGINE_EDGE.md`, the contract between BridgeLink and the API server. It contains:
+- the inbound envelope;
+- the answer table and `engineActionForStatus`;
+- `inboundIdempotencyKey`, `updateStaleness` and `processingIdProblem`;
+- the inbound and outbound retry limits;
+- the outbound ACK rules (`outboundOutcomeForAck`);
+- the health endpoints, the heartbeat, and `engineStatus`.
+
+Nothing in the app uses it yet: the API server implements it (phase 2e).
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- Batch 554: `engineStatus` treats a stopped channel (a listener not taking messages) as degraded, and a heartbeat time that can't be read as offline (`INTERFACE_ENGINE_EDGE.md` §8).
+
+## Batch 616 (part E) — server version
+
+API-server version of `InterfaceEngine` (`httpInterfaceEngineService.ts`, contract `INTERFACE_ENGINE_API.md`), picked by `interfaceEngineServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

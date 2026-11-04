@@ -42,6 +42,7 @@ import { resolveJurisdictionRollup, type EnterpriseRollupResult, type CaseForJur
 import { JURISDICTION_LABELS } from '@/types/systemConfig';
 import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export const EnterpriseRollupTab: React.FC = () => {
   const { t } = useTranslation();
@@ -99,10 +100,10 @@ export const EnterpriseRollupTab: React.FC = () => {
       'Total Case Avg (hrs)': r.totalCaseAvgHrs,
       'On-Target %': r.onTargetPct,
     }));
-    void exportQaReportRows('qa:enterprise-rollup:export', rows, `enterprise-rollup-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:enterprise-rollup:export', rows, `enterprise-rollup-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(), {});
   };
 
-  if (loading) return <div className="ps-conf-page">{t('common.loading')}</div>;
+  if (loading) return <LoadingState label={t('common.loading')} />;
   if (!result) return <div className="ps-conf-page">{t('enterpriseRollupTab.unableToLoad')}</div>;
 
   return (

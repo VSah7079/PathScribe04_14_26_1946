@@ -8,7 +8,11 @@ here since "quality" means both to different readers of this folder.
 
 ## Part 1 — The application's own Quality Assurance feature
 
-`/quality-assurance` — eight distinct compliance report groups, each
+`/quality-assurance` — organised into seven pillars (Operations,
+Financials, CAPA Engine, Cytology QA, Enterprise Rollup, QA Dashboard,
+Inspection Mode). The original eight compliance report groups, listed
+below, are tiles on the Operations pillar (Management Reviews is on the
+CAPA Engine pillar), each
 with a real, group-specific status vocabulary (not one fake shared
 set) and a compliance-grade CSV export (notice/filters/requester/
 record-count header, PHI-safe by construction — no patient name/MRN/
@@ -35,12 +39,14 @@ scope (`DeficiencyType.level: 'case' | 'specimen' | 'both'`) — not
 every deficiency type applies at both levels, and the admin dictionary
 enforces that.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the page is now pillar-based with more tiles than the eight groups (`src/pages/QualityAssurancePage.tsx`); the status table was not re-checked.*
+
 ## Part 2 — Testing this codebase
 
 ```bash
 npm test              # Full suite (excludes firestore.rules.test.ts)
 npm run test:rules    # Firestore security rules, run separately
-npm run type-check    # Real strict-mode compile check, run separately from tests
+npm run type-check    # tsc against the project tsconfig (full strict mode since Batch 511), run separately from tests
 ```
 
 See `../developer/GETTING_STARTED.md` for why `type-check` and `test`
@@ -48,6 +54,8 @@ need to run separately (esbuild's transform used by `vitest` is more
 lenient than the project's real `tsconfig.json`), and for the specific
 gotcha around React-hook tests needing the local `vitest` binary
 directly.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `type-check` was not a strict-mode check then. Updated in Batch 511 (PS-478): `tsconfig.json` now has `"strict": true`.*
 
 ### What "tested" means in this codebase
 

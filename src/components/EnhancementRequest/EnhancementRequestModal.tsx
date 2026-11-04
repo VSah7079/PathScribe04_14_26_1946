@@ -20,6 +20,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import ReactDOM from 'react-dom';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   EnhancementRequestPayload,
@@ -27,12 +28,14 @@ import {
   RequestPriority,
   captureMetadata,
   submitEnhancementRequest,
-  loadEnhancementConfig,
+  loadEnhancementConfigForSubmit,
 } from '../../services/enhancementRequestService';
 import { useScreenCapture, ScreenCaptureResult } from '../../hooks/useScreenCapture';
-import { caseService, supportReferenceService } from '@/services';
-import { supportReferencesForCaseNumbers } from '../../services/enhancementRequestService';
-import { findIdentifiersInText, replaceIdentifiers, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
+import { caseService, supportReferenceService, loadValidationLinkOptions, templatesForStudy, buildValidationLinks, type ValidationLinkOptions } from '@/services';
+import { VALIDATION_CATEGORY } from '@/services/feedback/validationRouting';
+import { replaceCaseNumbersWithReferences } from '../../services/enhancementRequestService';
+import { identifierWarningOnSend, canReplaceCaseNumbers, findIdentifiersInText, findPatientNameInText, supportPageOf, type IdentifierInText } from '../../services/supportReferences/supportTicketRules';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
 
 // ─── Screenshot compression ───────────────────────────────────────────────────
 // Resizes and re-encodes to JPEG to stay under EmailJS 50KB request limit.
@@ -53,7 +56,7 @@ async function compressScreenshot(dataUrl: string, maxWidth = 800, quality = 0.5
 }
 
 const ENHANCEMENT_CATEGORIES: RequestCategory[] = ['UI', 'Workflow', 'Reporting', 'Integrations', 'Other'];
-const QA_CATEGORIES: RequestCategory[] = ['UI Bug', 'Functional Issue', 'Data Issue', 'Performance', 'Other'];
+const QA_CATEGORIES: RequestCategory[] = ['UI Bug', 'Functional Issue', 'Data Issue', 'Performance', VALIDATION_CATEGORY, 'Other'];
 const PRIORITIES: RequestPriority[]  = ['Low', 'Medium', 'High'];
 
 // The real category/priority values stay untouched — they're embedded in
@@ -71,6 +74,7 @@ const CATEGORY_LABEL_KEY: Record<RequestCategory, string> = {
   'Functional Issue': 'enhancementRequestModal.categories.functionalIssue',
   'Data Issue':       'enhancementRequestModal.categories.dataIssue',
   Performance:        'enhancementRequestModal.categories.performance',
+  [VALIDATION_CATEGORY]: 'enhancementRequestModal.categories.aiTemplateValidation',
 };
 
 const PRIORITY_LABEL_KEY: Record<RequestPriority, string> = {
@@ -87,7 +91,9 @@ const PRIORITY_STYLES: Record<RequestPriority, { color: string; bg: string; bord
 
 // ─── Success screen ───────────────────────────────────────────────────────────
 
-const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ ticketUrl, onClose }) => {
+interface SentNotes { destinationHost?: string; routedTo?: 'validation' | 'qa' }
+
+const SuccessScreen: React.FC<{ ticketUrl?: string; simulated?: boolean; notes?: SentNotes; onClose: () => void }> = ({ ticketUrl, simulated, notes, onClose }) => {
   const { t } = useTranslation();
   return (
     <div className="erm-success">
@@ -98,6 +104,10 @@ const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ 
       <p className="erm-success-text">
         {t('enhancementRequestModal.submittedMessage')}
       </p>
+      {simulated && <p className="erm-success-text" role="status" data-testid="erm-simulated">{notes?.destinationHost ? t('enhancementRequestModal.simulatedDestinationNotice', { host: notes.destinationHost }) : t('enhancementRequestModal.simulatedNotice')}</p>}
+      {!simulated && notes?.destinationHost && <p className="erm-success-text" role="status" data-testid="erm-delivered">{t('enhancementRequestModal.deliveredNotice', { host: notes.destinationHost })}</p>}
+      {notes?.routedTo === 'validation' && <p className="erm-success-text" role="status" data-testid="erm-validation-routed">{t('enhancementRequestModal.validationRoutedNotice')}</p>}
+      {notes?.routedTo === 'qa' && <p className="erm-success-text" role="status" data-testid="erm-validation-fallback">{t('enhancementRequestModal.validationFallbackNotice')}</p>}
       {ticketUrl && (
         <a href={ticketUrl} target="_blank" rel="noopener noreferrer" className="erm-success-link">
           {t('enhancementRequestModal.viewTicket')}
@@ -112,13 +122,17 @@ const SuccessScreen: React.FC<{ ticketUrl?: string; onClose: () => void }> = ({ 
 
 // ─── Screenshot preview ───────────────────────────────────────────────────────
 
-const ScreenshotPreview: React.FC<{
+/** Exported for its tests (Batch 570). */
+export const ScreenshotPreview: React.FC<{
   screenshot:  ScreenCaptureResult;
   included:    boolean;
   onToggle:    () => void;
 }> = ({ screenshot, included, onToggle }) => {
   const { t } = useTranslation();
   const [lightbox, setLightbox] = React.useState(false);
+  // Batch 568: focus stays in the full-size view while it is open, and goes back to the picture when it closes.
+  const lightboxRef = React.useRef<HTMLDivElement>(null);
+  useFocusTrap(lightboxRef, lightbox);
   return (
   <div>
     <label className="erm-label">
@@ -133,7 +147,7 @@ const ScreenshotPreview: React.FC<{
         '--erm-shot-border':  included ? 'rgba(8,145,178,0.3)' : '#334155',
         '--erm-shot-opacity': included ? 1 : 0.4,
       } as React.CSSProperties}
-      onClick={() => setLightbox(true)}
+      {...pressable(() => setLightbox(true))}
       title={t('enhancementRequestModal.clickToViewFullSize')}
     >
       <img
@@ -146,13 +160,17 @@ const ScreenshotPreview: React.FC<{
 
     {/* Lightbox */}
     {lightbox && ReactDOM.createPortal(
-      <div onClick={() => setLightbox(false)} className="erm-lightbox">
+      // Batch 568 (axe nested-interactive): the picture's full-size view was a button holding its Close button.
+      // It is a dialog now: clicking anywhere still closes it, Close takes focus (useFocusTrap), Escape closes it too.
+      <div ref={lightboxRef} {...clickableContainer(() => setLightbox(false))} className="erm-lightbox" role="dialog" aria-modal="true"
+        aria-label={t('enhancementRequestModal.screenCaptureFullSizeAlt')}
+        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setLightbox(false); } }}>
         <img
           src={screenshot.dataUrl}
           alt={t('enhancementRequestModal.screenCaptureFullSizeAlt')}
           className="erm-lightbox-img"
         />
-        <button onClick={() => setLightbox(false)} className="erm-lightbox-close">
+        <button type="button" onClick={e => { e.stopPropagation(); setLightbox(false); }} className="erm-lightbox-close">
           {'✕ '}{t('enhancementRequestModal.close')}
         </button>
       </div>,
@@ -217,27 +235,53 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
   const [error,           setError]           = useState<string | null>(null);
   const [submitted,       setSubmitted]       = useState(false);
   const [ticketUrl,       setTicketUrl]       = useState<string | undefined>();
+  const [simulated,       setSimulated]       = useState(false);
+  const [sentNotes,       setSentNotes]       = useState<SentNotes>({});
+  // 'AI / Template validation': the two optional links, and what they can offer (loaded when that category is chosen).
+  const [linkOptions,     setLinkOptions]     = useState<ValidationLinkOptions | null>(null);
+  const [studyId,         setStudyId]         = useState('');
+  const [templateId,      setTemplateId]      = useState('');
+  const isValidation = isQA && category === VALIDATION_CATEGORY;
+  React.useEffect(() => {
+    if (!isValidation || linkOptions) return;
+    let alive = true;
+    loadValidationLinkOptions().then(o => { if (alive) setLinkOptions(o); }).catch(() => { if (alive) setLinkOptions({ studies: [], templates: [] }); });
+    return () => { alive = false; };
+  }, [isValidation, linkOptions]);
+  const templateChoices = linkOptions ? templatesForStudy(linkOptions, studyId) : [];
 
   const canSubmit = title.trim().length > 0 && description.trim().length > 0 && !submitting;
 
+  // Batch 450 (PS-349): the replace step and the warn-or-send decision live in
+  // enhancementRequestService.ts / supportReferences/supportTicketRules.ts.
   const handleReplaceCaseNumbers = async () => {
-    const caseNumbers = (identifiersFound ?? []).filter(f => f.kind === 'accession').map(f => f.text);
-    const refs = await supportReferencesForCaseNumbers(caseNumbers, { caseService, supportReferenceService });
-    const nextTitle = replaceIdentifiers(title, refs);
-    const nextDescription = replaceIdentifiers(description, refs);
-    setTitle(nextTitle);
-    setDescription(nextDescription);
-    setReplacedCount(refs.size);
-    const remaining = findIdentifiersInText(`${nextTitle}\n${nextDescription}`);
-    setIdentifiersFound(remaining.length > 0 ? remaining : null);
+    const out = await replaceCaseNumbersWithReferences({ title, description, found: identifiersFound ?? [] }, { caseService, supportReferenceService });
+    setTitle(out.title);
+    setDescription(out.description);
+    setReplacedCount(out.replacedCount);
+    setIdentifiersFound(out.remaining);
+  };
+
+  /** The open case's patient name words (empty when no case is open). */
+  const openCasePatientNameParts = async (): Promise<string[]> => {
+    const caseId = supportPageOf(window.location.pathname).caseId;
+    if (!caseId) return [];
+    const found = await caseService.getCase(caseId).catch(() => null);
+    const p = found?.patient;
+    return p ? [p.givenNames, p.familyNames, p.firstName, p.lastName, p.preferredName].filter((x): x is string => !!x) : [];
   };
 
   const handleSubmit = async (sendAnyway = false) => {
     if (!canSubmit) return;
-    if (!sendAnyway) {
-      const found = findIdentifiersInText(`${title}\n${description}`);
-      if (found.length > 0) { setIdentifiersFound(found); setReplacedCount(null); return; }
-    }
+    // Batch 604 (PS-349): also the open case's patient named in the text, and an attached screenshot.
+    const nameParts = sendAnyway ? [] : await openCasePatientNameParts();
+    const withScreenshot = !!(screenshot && includeScreenshot);
+    const warnAbout = identifierWarningOnSend({ title, description, sendAnyway }, text => [
+      ...findIdentifiersInText(text),
+      ...findPatientNameInText(text, nameParts),
+      ...(withScreenshot ? [{ text: 'screenshot', kind: 'screenshot' as const }] : []),
+    ]);
+    if (warnAbout) { setIdentifiersFound(warnAbout); setReplacedCount(null); return; }
     setIdentifiersFound(null);
     setSubmitting(true);
     setError(null);
@@ -261,6 +305,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
       attachments,
       includeSystem,
       mode,
+      validationLinks: isValidation && linkOptions ? buildValidationLinks(linkOptions, studyId, templateChoices.some(x => x.id === templateId) ? templateId : '') : undefined,
       screenshotDataUrl: (screenshot && includeScreenshot) ? await compressScreenshot(screenshot.dataUrl, 400, 0.3) : undefined,
       metadata: includeSystem && user
         ? await captureMetadata({ id: user.id, name: user.name, role: user.role })
@@ -268,13 +313,15 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     };
 
     try {
-      const config = loadEnhancementConfig();
+      const config = await loadEnhancementConfigForSubmit();
       const result = await submitEnhancementRequest(payload, config);
       if (result.success) {
         setTicketUrl(result.ticketUrl);
+        setSimulated(!!result.simulated);
+        setSentNotes({ destinationHost: result.destinationHost, routedTo: result.routedTo });
         setSubmitted(true);
       } else {
-        setError(result.error ?? t('enhancementRequestModal.submissionFailed'));
+        setError(result.errorCode ? t(`enhancementRequestModal.errors.${result.errorCode}`) : result.error ?? t('enhancementRequestModal.submissionFailed'));
       }
     } catch (err: any) {
       setError(err?.message ?? t('enhancementRequestModal.unexpectedError'));
@@ -291,7 +338,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
     >
       <div onClick={e => e.stopPropagation()} className="erm-modal">
         {submitted ? (
-          <SuccessScreen ticketUrl={ticketUrl} onClose={onClose} />
+          <SuccessScreen ticketUrl={ticketUrl} simulated={simulated} notes={sentNotes} onClose={onClose} />
         ) : (
           <>
             {/* Header */}
@@ -316,7 +363,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* Title */}
               <div>
                 <label className="erm-label">{t('enhancementRequestModal.titleLabel')} <span className="erm-label-required">*</span></label>
-                <input
+                <input aria-label={t('enhancementRequestModal.titleLabel')}
                   value={title} onChange={e => setTitle(e.target.value)}
                   placeholder={t('enhancementRequestModal.titlePlaceholder')}
                   maxLength={120} className="erm-input" autoFocus
@@ -329,7 +376,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* Description */}
               <div>
                 <label className="erm-label">{t('enhancementRequestModal.descriptionLabel')} <span className="erm-label-required">*</span></label>
-                <textarea
+                <textarea aria-label={t('enhancementRequestModal.descriptionLabel')}
                   value={description} onChange={e => setDescription(e.target.value)}
                   placeholder={t('enhancementRequestModal.descriptionPlaceholder')}
                   rows={4}
@@ -340,7 +387,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
               {/* QA routing notice */}
               {isQA && (
                 <div className="erm-qa-notice">
-                  {'🐛 '}{t('enhancementRequestModal.qaRoutingNotice')}
+                  {'🐛 '}{t(isValidation ? 'enhancementRequestModal.qaRoutingNoticeValidation' : 'enhancementRequestModal.qaRoutingNotice')}
                 </div>
               )}
 
@@ -355,7 +402,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                         <button key={cat} onClick={() => setCategory(cat)} className="erm-cat-chip"
                           style={{
                             '--erm-chip-bg':     active ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.04)',
-                            '--erm-chip-color':  active ? '#0891B2' : '#64748b',
+                            '--erm-chip-color':  active ? '#22d3ee' : '#8794a8',
                             '--erm-chip-border': active ? 'rgba(8,145,178,0.4)' : '#334155',
                           } as React.CSSProperties}
                         >{t(CATEGORY_LABEL_KEY[cat])}</button>
@@ -373,7 +420,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                         <button key={p} onClick={() => setPriority(active ? undefined : p)} className="erm-priority-btn"
                           style={{
                             '--erm-priority-bg':     active ? s.bg     : 'rgba(255,255,255,0.03)',
-                            '--erm-priority-color':  active ? s.color  : '#475569',
+                            '--erm-priority-color':  active ? s.color  : '#8794a8',
                             '--erm-priority-border': active ? s.border : '#334155',
                           } as React.CSSProperties}
                         >{t(PRIORITY_LABEL_KEY[p])}</button>
@@ -382,6 +429,24 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                   </div>
                 </div>
               </div>
+
+              {/* AI / Template validation: optional links to a study and a template */}
+              {isValidation && (
+                <div data-testid="erm-validation-links">
+                  <div className="erm-label">{t('enhancementRequestModal.validationLinks.title')} <span className="erm-label-optional">{t('enhancementRequestModal.optionalNote')}</span></div>
+                  <label className="erm-label" htmlFor="erm-validation-study">{t('enhancementRequestModal.validationLinks.study')}</label>
+                  <select id="erm-validation-study" className="erm-input" value={studyId} onChange={e => { setStudyId(e.target.value); setTemplateId(''); }}>
+                    <option value="">{t('enhancementRequestModal.validationLinks.none')}</option>
+                    {(linkOptions?.studies ?? []).map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  </select>
+                  {linkOptions && linkOptions.studies.length === 0 && <div className="erm-capture-hint">{t('enhancementRequestModal.validationLinks.noStudies')}</div>}
+                  <label className="erm-label" htmlFor="erm-validation-template">{t('enhancementRequestModal.validationLinks.template')}</label>
+                  <select id="erm-validation-template" className="erm-input" value={templateId} onChange={e => setTemplateId(e.target.value)}>
+                    <option value="">{t('enhancementRequestModal.validationLinks.none')}</option>
+                    {templateChoices.map(tp => <option key={tp.id} value={tp.id}>{t('enhancementRequestModal.validationLinks.templateOption', { name: tp.name, version: tp.version })}</option>)}
+                  </select>
+                </div>
+              )}
 
               {/* Screen capture — opt-in */}
               {!screenshot ? (
@@ -413,7 +478,8 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
 
               {/* Include system details toggle */}
               <div
-                onClick={() => setIncludeSystem(v => !v)}
+                {...pressable(() => setIncludeSystem(v => !v), { role: 'switch' })}
+                aria-checked={includeSystem}
                 className="erm-system-toggle"
                 style={{
                   '--erm-toggle-bg':    includeSystem ? 'rgba(8,145,178,0.06)' : 'rgba(255,255,255,0.02)',
@@ -448,7 +514,7 @@ export const EnhancementRequestModal: React.FC<Props> = ({ onClose, mode = 'enha
                     <div className="erm-identifier-warning-note">{t('enhancementRequestModal.identifierWarning.replaced', { count: replacedCount })}</div>
                   )}
                   <div className="erm-identifier-warning-actions">
-                    {identifiersFound.some(f => f.kind === 'accession') && (
+                    {canReplaceCaseNumbers(identifiersFound) && (
                       <button type="button" className="ps-conf-btn-primary" onClick={handleReplaceCaseNumbers}>{t('enhancementRequestModal.identifierWarning.replaceButton')}</button>
                     )}
                     <button type="button" className="ps-conf-btn-secondary" onClick={() => setIdentifiersFound(null)}>{t('enhancementRequestModal.identifierWarning.keepEditing')}</button>

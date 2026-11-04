@@ -2,6 +2,7 @@
 import { ICytologyScreeningStrategyService, CytologyScreeningStrategyConfig, DEFAULT_CYTOLOGY_SCREENING_STRATEGY } from './ICytologyScreeningStrategyService';
 import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'cytologyScreeningStrategy';
 
@@ -12,7 +13,7 @@ let MOCK_CONFIG: CytologyScreeningStrategyConfig = load();
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockCytologyScreeningStrategyService: ICytologyScreeningStrategyService = {
+const cytologyScreeningStrategyServiceUnchecked: ICytologyScreeningStrategyService = {
   async get() {
     await delay();
     return ok({ ...MOCK_CONFIG });
@@ -30,3 +31,8 @@ export const mockCytologyScreeningStrategyService: ICytologyScreeningStrategySer
     return ok({ ...MOCK_CONFIG });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCytologyScreeningStrategyService: ICytologyScreeningStrategyService = guardConfigWrites(cytologyScreeningStrategyServiceUnchecked, [
+  ['config:cytology-screening-strategy:manage', ['update', 'reset']],
+]);

@@ -13,13 +13,20 @@
 // in mockPrintQueueService.test.ts/redispatchPrintJob.test.ts/
 // runScheduledBatchAggregation.test.ts.
 // ─────────────────────────────────────────────────────────────────────────────
+import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
+// Batch 515: the action buttons are CapabilityButtons; the permission itself is tested in the services.
+vi.mock('@/components/Common/CapabilityButton', () => ({
+  CapabilityButton: ({ children, onClick, disabled, className }: { children: React.ReactNode; onClick?: () => void; disabled?: boolean; className?: string }) =>
+    <button type="button" className={className} onClick={onClick} disabled={disabled}>{children}</button>,
+}));
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'admin-1', name: 'Admin One' } }),
 }));
@@ -42,6 +49,10 @@ const redispatch = vi.hoisted(() => ({
   redirectAndRedispatchManyPrintJobs: vi.fn(),
 }));
 vi.mock('@/services/printing/redispatchPrintJob', () => redispatch);
+
+// Batch 553: the site's agent printers (the service and its capability are tested in siteAgentAdmin.test.ts).
+const agentPrinters = vi.hoisted(() => ({ useAgentPrinters: vi.fn((siteId: string | null) => ({ printers: siteId ? [{ destinationId: 'rep-1', label: 'Front desk' }] : [], loading: false, error: null })) }));
+vi.mock('@/hooks/useAgentPrinters', () => agentPrinters);
 
 const batchAggregation = vi.hoisted(() => ({ runScheduledBatchAggregation: vi.fn() }));
 vi.mock('@/services/printing/runScheduledBatchAggregation', () => batchAggregation);
@@ -80,6 +91,26 @@ describe('PrintQueueDashboardSection', () => {
     render(<PrintQueueDashboardSection />);
     await waitFor(() => expect(queueService.getAll).toHaveBeenCalled());
     expect(await screen.findByText('printQueueDashboard.noJobs')).toBeTruthy();
+  });
+
+  it('Batch 549 (F3): a job that needs the site agent shows its reason in the user\'s language, not the stored English', async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'FAILED', errorCode: 'NEEDS_SITE_AGENT', errorMessage: 'Network printing needs the PathScribe site agent (or the API server); it cannot be sent from a browser.' } as never)] });
+    render(<PrintQueueDashboardSection />);
+    expect(await screen.findByText('printQueueDashboard.failure.needsSiteAgent')).toBeTruthy();
+    expect(screen.queryByText(/cannot be sent from a browser/)).toBeNull();
+  });
+
+  it('Batch 552: a job the site agent could only send (Raw 9100, LPR) shows "Sent to printer", not "Printed"', async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'PRINTED', confirmation: 'sent' } as never), job({ id: 'j2', status: 'PRINTED', confirmation: 'printed', caseId: 'S26-1002' } as never)] });
+    render(<PrintQueueDashboardSection />);
+    expect(await screen.findByText('printQueueDashboard.status.SENT_TO_PRINTER')).toBeTruthy();
+    expect(screen.getAllByText('printQueueDashboard.status.PRINTED').length).toBeGreaterThan(0);
+  });
+
+  it('Batch 606: a job printed through the Simulated transport says "Simulated: sent to printer"', async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'PRINTED', simulated: true } as never), job({ id: 'j2', status: 'PRINTED', caseId: 'S26-1002' } as never)] });
+    render(<PrintQueueDashboardSection />);
+    expect(await screen.findAllByText('printQueueDashboard.simulatedSent')).toHaveLength(1);
   });
 
   it('renders a real, loaded job row with its status and gates actions by its real status', async () => {
@@ -144,13 +175,49 @@ describe('PrintQueueDashboardSection', () => {
     await screen.findByText('S26-1001');
     fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.action.redirect' }));
 
-    const ipInput = await screen.findByPlaceholderText('192.168.1.50');
+    // A job queued before Batch 553 has no site, so only a printer address can be given.
+    expect(screen.getByText('printDestination.agentNoSite')).toBeTruthy();
+    const ipInput = await screen.findByPlaceholderText('printDestination.placeholders.address');
+    const confirm = screen.getByRole('button', { name: 'printQueueDashboard.redirect.confirm' }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
     fireEvent.change(ipInput, { target: { value: '10.0.0.9' } });
-    fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.redirect.confirm' }));
+    fireEvent.click(confirm);
 
     await waitFor(() => expect(redispatch.redirectAndRedispatchPrintJob).toHaveBeenCalledWith(
-      'j1', { protocol: 'RAW_9100', ipAddress: '10.0.0.9', port: undefined }, 'admin-1',
+      'j1', { protocol: 'RAW_9100', ipAddress: '10.0.0.9' }, 'admin-1',
     ));
+  });
+
+  it("Batch 553: Redirect of one lab's jobs offers that site's agent printers first; one pick and Confirm", async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'FAILED', mode: 'DIRECT_NETWORK_PRINT', performingFacilityId: 'S1' })] });
+    render(<PrintQueueDashboardSection />);
+    await screen.findByText('S26-1001');
+    fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.action.redirect' }));
+    expect((screen.getByLabelText('printDestination.kind') as HTMLSelectElement).value).toBe('agent');
+    expect(agentPrinters.useAgentPrinters).toHaveBeenCalledWith('S1', 'redirect');
+    fireEvent.change(screen.getByLabelText('printDestination.printer'), { target: { value: 'rep-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.redirect.confirm' }));
+    await waitFor(() => expect(redispatch.redirectAndRedispatchPrintJob).toHaveBeenCalledWith(
+      'j1', { agentPrinter: { siteId: 'S1', destinationId: 'rep-1' }, displayName: 'Front desk' }, 'admin-1',
+    ));
+  });
+
+  it("Batch 553: a refused redirect keeps the form open and says how many jobs weren't redirected", async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'FAILED', mode: 'DIRECT_NETWORK_PRINT', performingFacilityId: 'S1' })] });
+    redispatch.redirectAndRedispatchPrintJob.mockResolvedValue({ outcome: 'failed', jobId: 'j1', redirectError: 'PRINT_JOB_WRONG_SITE' });
+    render(<PrintQueueDashboardSection />);
+    await screen.findByText('S26-1001');
+    fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.action.redirect' }));
+    fireEvent.change(screen.getByLabelText('printDestination.printer'), { target: { value: 'rep-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'printQueueDashboard.redirect.confirm' }));
+    expect(await screen.findByText('printQueueDashboard.redirect.notRedirected:{"count":1}')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'printQueueDashboard.redirect.confirm' })).toBeTruthy();
+  });
+
+  it('Batch 553: a job sent to an agent printer shows the printer by name', async () => {
+    queueService.getAll.mockResolvedValue({ ok: true, data: [job({ id: 'j1', status: 'FAILED', mode: 'DIRECT_NETWORK_PRINT', resolvedDestination: { agentPrinter: { siteId: 'S1', destinationId: 'rep-9' }, displayName: 'Cytology desk' } })] });
+    render(<PrintQueueDashboardSection />);
+    expect(await screen.findByText('Cytology desk')).toBeTruthy();
   });
 
   it('Redirect is disabled for a real NATIVE_QZ_TRAY job — a PrintDestination only ever applies to Direct Network Print', async () => {

@@ -1,7 +1,7 @@
 // src/utils/embeddingOperations.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real, per PS-285 (Embedding Station) — the ticket's own "sibling,
-// bench-focused workstation" to PS-284's Microtomy Workstation. Pure,
+// bench-focused workstation" to PS-284's Microtome Workstation. Pure,
 // testable functions, same real shape as microtomyOperations.ts's own
 // extraction — the caller (useEmbeddingStation.ts) is responsible for
 // persisting the returned Specimen via caseRouter.updateCase and for
@@ -30,7 +30,7 @@
 // way — deliberately not a second, parallel QA mechanism.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { HistologyBlock, Specimen, EmbeddingMoldSize, EmbeddingDiscrepancyReason, CassetteReprintReason } from '@/types/case/Specimen';
+import type { HistologyBlock, Specimen, EmbeddingMoldSize, EmbeddingDiscrepancyReason, CassetteReprintReason, BlockStatus } from '@/types/case/Specimen';
 import type { MaterialComment } from '@/types/case/MaterialComment';
 
 export type EmbeddingOperationResult =
@@ -55,8 +55,35 @@ export const EMBEDDING_MOLD_SIZES: readonly EmbeddingMoldSize[] = ['7x7mm', '15x
 /** Real, per the spec's own "Orientation Instructions" examples —
  *  quick-fill suggestions for the free-text orientationInstructions
  *  field, never a closed set the field is restricted to (see that
- *  field's own doc comment on HistologyBlock). */
-export const EMBEDDING_ORIENTATION_QUICK_FILLS: readonly string[] = ['Embed on edge', 'Epithelial surface down', 'Cross-section up'];
+ *  field's own doc comment on HistologyBlock).
+ *  Batch 401: these are locale keys under
+ *  `embeddingStation.orientation.quickFill.*`. The field is free text, so
+ *  a quick fill inserts the phrase in the user's own language. */
+export const EMBEDDING_ORIENTATION_QUICK_FILLS: readonly string[] = ['onEdge', 'epitheliumDown', 'crossSectionUp'];
+
+/** Batch 401: the mold sizes, discrepancy reasons and reprint reasons are
+ *  stored as these English values (block, deficiency and audit records); the
+ *  screen shows them through these locale keys. */
+export const EMBEDDING_MOLD_SIZE_KEYS: Readonly<Record<EmbeddingMoldSize, string>> = {
+  '7x7mm': 'mold7x7', '15x15mm': 'mold15x15', '24x24mm': 'mold24x24', '24x30mm': 'mold24x30', 'Mega Mold': 'megaMold',
+};
+export const EMBEDDING_DISCREPANCY_REASON_KEYS: Readonly<Record<EmbeddingDiscrepancyReason, string>> = {
+  'Missing Tissue/Empty Cassette': 'missingTissue',
+  'Extra Tissue Found': 'extraTissue',
+  'Unopened Cassette/Unprocessed Tissue': 'unopenedCassette',
+  'Damaged Cassette/Broken Hinge': 'damagedCassette',
+};
+export const CASSETTE_REPRINT_REASON_KEYS: Readonly<Record<CassetteReprintReason, string>> = {
+  'Wax Buildup': 'waxBuildup', 'Faded Barcode': 'fadedBarcode', 'Mechanical Jam': 'mechanicalJam', 'Other': 'other',
+};
+export const BLOCK_STATUS_KEYS: Readonly<Record<BlockStatus, string>> = {
+  Pending: 'pending', Grossed: 'grossed', Embedded: 'embedded', Exhausted: 'exhausted', Cancelled: 'cancelled', Lost: 'lost', Damaged: 'damaged', Deleted: 'deleted', Invalidated: 'invalidated',
+};
+
+/** Batch 401: the blocks a split-block group can take in with this one (on the same specimen, not already grouped). */
+export function splitBlockCandidates(specimen: Specimen, blockId: string): HistologyBlock[] {
+  return (specimen.blocks ?? []).filter(b => b.id !== blockId && !b.splitBlockGroupId);
+}
 
 function findBlock(specimen: Specimen, blockId: string): HistologyBlock | undefined {
   return (specimen.blocks ?? []).find(b => b.id === blockId);
@@ -106,6 +133,45 @@ export function flagEmbeddingDiscrepancy(
       lastDiscrepancyReason: reason, lastDiscrepancyReportedBy: actor, lastDiscrepancyReportedAt: new Date().toISOString(),
     }),
   };
+}
+
+/** Batch 669 (ws-10): a flagged discrepancy stops Confirm until it is cleared. */
+export function hasOpenEmbeddingDiscrepancy(block: Pick<HistologyBlock, 'lastDiscrepancyReason'>): boolean {
+  return !!block.lastDiscrepancyReason;
+}
+
+/** Batch 669 (ws-10): clears the discrepancy flag (the supervisor's or the tech's own resolution), so Confirm can go
+ *  ahead. The Tissue Discrepancy deficiency raised with the flag is a QA record and stays with QA; the caller writes
+ *  the audit entry (buildEmbeddingDiscrepancyClearedAudit). Refused when no flag is set. */
+export function clearEmbeddingDiscrepancy(specimen: Specimen, blockId: string): EmbeddingOperationResult {
+  const block = findBlock(specimen, blockId);
+  if (!block) return { ok: false, error: 'Block not found.' };
+  if (!hasOpenEmbeddingDiscrepancy(block)) return { ok: false, error: 'No discrepancy is flagged.' };
+  return {
+    ok: true,
+    specimen: replaceBlock(specimen, blockId, { lastDiscrepancyReason: undefined, lastDiscrepancyReportedBy: undefined, lastDiscrepancyReportedAt: undefined }),
+  };
+}
+
+/** Batch 669 (ws-10): the audit entry for a cleared flag. Literal English (compliance record); ids, labels and the
+ *  stored reason only, no patient data. */
+export function buildEmbeddingDiscrepancyClearedAudit(
+  input: { caseId: string; accession: string; specimenLabel: string; block: Pick<HistologyBlock, 'label' | 'lastDiscrepancyReason' | 'lastDiscrepancyReportedBy' | 'lastDiscrepancyReportedAt'>; actor: { id: string; name: string } },
+) {
+  const { block, actor } = input;
+  return {
+    type: 'user' as const,
+    event: 'Embedding discrepancy cleared',
+    detail: `Block ${input.specimenLabel}${block.label}: flag "${block.lastDiscrepancyReason ?? 'unknown'}" raised by ${block.lastDiscrepancyReportedBy ?? 'unknown'}${block.lastDiscrepancyReportedAt ? ` at ${block.lastDiscrepancyReportedAt}` : ''} cleared by ${actor.id}.`,
+    user: actor.name,
+    caseId: input.accession,
+    confidence: null,
+  };
+}
+
+/** Batch 669 (ws-10): the locale key of a block status for display (`embeddingStation.blockStatus.<key>`). The stored value stays English. */
+export function blockStatusLabelKey(status: BlockStatus): string {
+  return `embeddingStation.blockStatus.${BLOCK_STATUS_KEYS[status] ?? 'pending'}`;
 }
 
 /** Real, per "Base Mold Size Picker" + "Orientation Instructions" —

@@ -42,6 +42,13 @@ describe('resolveCytologyTriageState — real, given "HPV-First" triage rules', 
       expect(resolveCytologyTriageState('primary_hpv_reflex', 'Negative', true)).toBe('hpv_negative_complete');
       expect(resolveCytologyTriageState('primary_hpv_reflex', undefined, true)).toBe('awaiting_hpv_result');
     });
+
+    it('Batch 631: an Invalid result on a SELF-collected specimen is repeat_collection_required, never eligible; on a clinician-collected one it stays awaiting', () => {
+      expect(resolveCytologyTriageState('primary_hpv_reflex', 'Invalid', true)).toBe('repeat_collection_required');
+      expect(isCytologyScreeningEligible('repeat_collection_required')).toBe(false);
+      expect(resolveCytologyTriageState('primary_hpv_reflex', 'Invalid', false)).toBe('awaiting_hpv_result');
+      expect(resolveCytologyTriageState('co_testing', 'Invalid', true)).toBe('not_applicable');
+    });
   });
 });
 

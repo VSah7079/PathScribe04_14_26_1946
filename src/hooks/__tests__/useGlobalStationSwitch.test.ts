@@ -26,6 +26,13 @@ vi.mock('@/services/scanStations/mockScanStationService', () => ({
   },
 }));
 
+// Batch 713: the signed-in user's facilities (empty: all), read through the authorization snapshot.
+let mockFacilityIds: string[] = [];
+vi.mock('@/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/services')>()),
+  authorizationService: { snapshot: async () => ({ subject: { facilityIds: mockFacilityIds }, roles: [] }) },
+}));
+
 const mockSetStationId = vi.fn();
 vi.mock('../useEffectiveScanStation', () => ({
   useEffectiveScanStation: () => ({ setStationId: mockSetStationId, effectiveStationId: null }),
@@ -55,6 +62,7 @@ function fireScan(raw: string) {
 describe('useGlobalStationSwitch', () => {
   beforeEach(() => {
     mockIsDirty = false;
+    mockFacilityIds = [];
     mockSetStationId.mockClear();
     mockGetByBarcodeCode.mockClear();
     mockGetSaveHandler.mockClear();
@@ -84,6 +92,21 @@ describe('useGlobalStationSwitch', () => {
     await act(async () => { fireScan('STATION:STAINING-01'); });
     expect(mockSetStationId).toHaveBeenCalledWith('station-stain-1');
     expect(result.current.pending).toBeNull();
+  });
+
+  it('Batch 713: a station barcode for a facility the user may not use is refused, with no switch and no guard', async () => {
+    mockFacilityIds = ['some-other-facility'];
+    const { result } = renderHook(() => useGlobalStationSwitch());
+    await act(async () => { fireScan('STATION:STAINING-01'); });
+    expect(mockSetStationId).not.toHaveBeenCalled();
+    expect(result.current.pending).toBeNull();
+  });
+
+  it('Batch 713: a station barcode in one of the user\'s facilities still switches', async () => {
+    mockFacilityIds = ['lab-main'];
+    renderHook(() => useGlobalStationSwitch());
+    await act(async () => { fireScan('STATION:STAINING-01'); });
+    expect(mockSetStationId).toHaveBeenCalledWith('station-stain-1');
   });
 
   it('dirty state (isDirty=true): blocks the immediate switch, sets a real pending guard instead', async () => {

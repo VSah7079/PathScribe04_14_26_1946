@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/narrativeSignals/
 
 Captures AI-vs-pathologist-edit diffs for Validation Studies, with PHI de-identification built in at capture time.
@@ -15,3 +17,7 @@ Captures AI-vs-pathologist-edit diffs for Validation Studies, with PHI de-identi
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `NarrativeSignal` (`httpNarrativeSignalService.ts`, contract `TEMPLATE_SIGNALS_API.md`), picked by `narrativeSignalServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

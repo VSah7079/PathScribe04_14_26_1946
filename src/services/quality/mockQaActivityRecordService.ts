@@ -18,10 +18,11 @@
 
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
-import { mockSpecimenDeficiencyService } from '../deficiencies/mockSpecimenDeficiencyService';
 import { mockQaActivityTypeService } from './mockQaActivityTypeService';
 import type { IQaActivityRecordService } from './IQaActivityRecordService';
 import type { QaActivityRecord, QaDiscordanceRootCause } from '@/types/quality/QaActivityRecord';
+import { qaRecordRecommendation, qaRecordSummary } from './capaRecommendationRules';
+import { DEMO_DISCORDANCE_RECORDS } from './demoDiscordanceSeed';
 
 const STORAGE_KEY = 'qa_activity_records';
 
@@ -2699,7 +2700,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-29T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2724,7 +2725,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-26T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2749,7 +2750,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-23T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2774,7 +2775,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-20T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2799,7 +2800,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-17T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2824,7 +2825,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-14T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2849,7 +2850,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-11T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2874,7 +2875,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-08T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2899,7 +2900,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-05T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2924,7 +2925,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-02T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2949,7 +2950,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-29T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2974,7 +2975,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-26T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -2999,7 +3000,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-23T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3024,7 +3025,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-20T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3049,7 +3050,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-17T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3074,7 +3075,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-14T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3099,7 +3100,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-11T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3124,7 +3125,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-08T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3149,7 +3150,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-05T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3174,7 +3175,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-02T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3199,7 +3200,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-05-30T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3230,7 +3231,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-05-27T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3255,7 +3256,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-08-08T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3280,7 +3281,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-08-04T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3305,7 +3306,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-31T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3330,7 +3331,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-27T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3355,7 +3356,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-23T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3380,7 +3381,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-19T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3405,7 +3406,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-15T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3430,7 +3431,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-11T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3455,7 +3456,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-07T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3480,7 +3481,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-07-03T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3505,7 +3506,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-29T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3530,7 +3531,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-25T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3555,7 +3556,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-21T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3586,7 +3587,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-17T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3617,7 +3618,7 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-13T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   },
   {
@@ -3642,13 +3643,15 @@ const MIGRATED_RECONCILIATION_RECORDS: QaActivityRecord[] = [
     "recordedAt": "2026-06-09T03:47:33.601Z",
     "recordedBy": {
       "userId": "PATH-UK-001",
-      "userName": "Paul Carter"
+      "userName": "Imogen Hartley"
     }
   }
 ];
 
 const SEED_RECORDS: QaActivityRecord[] = [
   ...MIGRATED_RECONCILIATION_RECORDS,
+  // PS-147: demo peer review discordance (3 minor, 2 major, 3 pathologists).
+  ...DEMO_DISCORDANCE_RECORDS,
   // Cytology-Histology — kept from the earlier illustrative seed,
   // deliberately not covered by the reconciliation migration above -
   // still the one real proof this service genuinely works across
@@ -3683,83 +3686,35 @@ export const mockQaActivityRecordService: IQaActivityRecordService = {
     const records = load();
     persist([newRecord, ...records]);
 
-    // Real, per direct guidance (PS-134): the real, generic
-    // capaTriggerRule consumption this whole mechanism was designed
-    // for (QaActivityType.ts's own doc comment) but never actually
-    // built anywhere — confirmed directly before writing this, only
-    // the type definition and the admin config UI referenced the
-    // field. Every QaActivityType with a real capaTriggerRule
-    // configured now genuinely benefits, not just the one new PS-134
-    // activity this was built for. A concordant record never checks
-    // this — there's nothing to grade — matching QaActivityRecord's
-    // own "delta/severity/rootCause only present when discordant"
-    // posture exactly. A raise failure is logged, never thrown — the
-    // real QA record itself already persisted successfully above;
-    // losing the CAPA side-effect shouldn't roll that back or block
-    // the caller.
-    if (newRecord.outcome === 'discordant' && newRecord.severity) {
+    // PS-134 built the generic capaTriggerRule consumption here; it used to
+    // open the CAPA itself. Batch 438 (PS-144–148, Pete Oct 2): it only
+    // RECOMMENDS one now. The shared engine (capaRecommendationService)
+    // puts it in the QA lead's queue, or links it to the live
+    // recommendation for the same problem (the dedup this used to do
+    // against open deficiencies). A disagreement resolved by consensus
+    // recommends nothing; an unresolved one always does
+    // (capaRecommendationRules.qaRecordRecommendation). A failure is
+    // logged, never thrown: the QA record itself is already saved.
+    if (newRecord.outcome === 'discordant') {
       const typesRes = await mockQaActivityTypeService.getAll();
       const activityType = typesRes.ok ? typesRes.data.find(t => t.id === newRecord.activityTypeId) : undefined;
-      const rule = activityType?.capaTriggerRule;
-      if (rule?.triggerSeverities?.includes(newRecord.severity) && rule.deficiencyTypeId) {
+      const recommendation = qaRecordRecommendation(newRecord, activityType);
+      if (recommendation) {
         try {
-          // Real, per direct guidance: never auto-raise a duplicate CAPA
-          // for the same real, still-open issue. A second discordant QA
-          // activity landing on a case that already has an unresolved
-          // deficiency of this same type is real, useful evidence the
-          // SAME problem is still open — not a second, separate problem
-          // to track. Piling up duplicate open CAPA records for one real
-          // issue is exactly the kind of administrative overhead a QA/
-          // CAPA system must never create, especially once more than one
-          // trigger (PS-144/PS-145/PS-146) can independently fire on the
-          // same case.
-          //
-          // Deliberately scoped to THIS auto-raise call site only — every
-          // other raise()/raiseAndResolve() caller (cold-chain telemetry,
-          // AI/human concordance, batch processing) keeps its existing,
-          // deliberate one-event-per-occurrence behavior; this file's own
-          // header comment explains why a manually/system-detected
-          // deficiency is usually a genuine, distinct workflow event each
-          // time. An automated trigger re-firing on the same case is a
-          // different situation: it can easily re-detect the exact same
-          // still-unresolved condition, not a new one.
-          //
-          // Once the existing record is actually closed (resolved AND
-          // verified effective), a fresh trigger firing again correctly
-          // raises a new one — that's a genuinely new occurrence, not
-          // overhead.
-          const existingRes = await mockSpecimenDeficiencyService.getByCaseId(newRecord.caseId);
-          const alreadyTracked = existingRes.ok && existingRes.data.some(d =>
-            d.deficiencyTypeId === rule.deficiencyTypeId &&
-            d.status !== 'closed' &&
-            (d.specimenId ?? null) === (newRecord.specimenId ?? null)
-          );
-          if (alreadyTracked) {
-            console.info(
-              `[mockQaActivityRecordService] Skipped auto-raising a duplicate CAPA deficiency for case ${newRecord.caseId} — ` +
-              `an open or pending-verification deficiency of type "${rule.deficiencyTypeId}" already exists for this case.`,
-            );
-          } else {
-            await mockSpecimenDeficiencyService.raise({
-              caseId: newRecord.caseId,
-              specimenId: newRecord.specimenId,
-              deficiencyTypeId: rule.deficiencyTypeId,
-              raisedBy: newRecord.recordedBy.userId,
-              comment: `Auto-raised from QA activity "${activityType?.name ?? newRecord.activityTypeId}" (${newRecord.severity} severity): ${newRecord.comments ?? ''}`.trim(),
-              // Real, per direct guidance (PS-119): root cause captured
-              // on the review itself is wired through onto the real CAPA
-              // record at raise time, not left stranded on the review
-              // alone (buried only in the free-text comment above). This
-              // is a deliberate, additional real use of
-              // SpecimenDeficiency.rootCause beyond its original
-              // resolve()-time-only intent — see that field's own doc
-              // comment for the full account of both real populating
-              // paths it now has.
-              rootCause: formatQaRootCauseForDeficiency(newRecord.rootCause, newRecord.rootCauseNote),
-            });
-          }
+          const { mockCapaRecommendationService } = await import('./mockCapaRecommendationService');
+          await mockCapaRecommendationService.recommend({
+            caseId: newRecord.caseId,
+            specimenId: newRecord.specimenId ?? null,
+            source: recommendation.source,
+            deficiencyTypeId: recommendation.deficiencyTypeId,
+            sourceRecordId: newRecord.id,
+            summary: qaRecordSummary(newRecord, activityType?.name ?? newRecord.activityTypeId),
+            severity: newRecord.severity,
+            rootCause: formatQaRootCauseForDeficiency(newRecord.rootCause, newRecord.rootCauseNote),
+            createdBy: newRecord.recordedBy.userId,
+          });
         } catch (e) {
-          console.error('[mockQaActivityRecordService] Failed to auto-raise CAPA deficiency for a discordant, high-severity QA activity record:', e);
+          console.error('[mockQaActivityRecordService] Failed to recommend a CAPA for a discordant QA activity record:', e);
         }
       }
     }

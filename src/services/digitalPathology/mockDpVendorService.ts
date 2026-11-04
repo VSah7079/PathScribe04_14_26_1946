@@ -14,6 +14,7 @@
 import type { IDpVendorService, DpVendorEntry, DpVendorModality, NewDpVendorEntry } from './IDpVendorService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'dpVendorDictionary';
 
@@ -46,7 +47,7 @@ const err = (message: string): ServiceResult<never> => ({ ok: false, error: mess
 const delay = () => new Promise(res => setTimeout(res, 30));
 const sorted = (entries: DpVendorEntry[]) => [...entries].sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const mockDpVendorService: IDpVendorService = {
+const dpVendorServiceUnchecked: IDpVendorService = {
   async getAll() {
     await delay();
     return ok(sorted(_cache));
@@ -88,11 +89,11 @@ export const mockDpVendorService: IDpVendorService = {
   },
 
   async deactivate(id: ID) {
-    return mockDpVendorService.update(id, { active: false });
+    return dpVendorServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockDpVendorService.update(id, { active: true });
+    return dpVendorServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -105,3 +106,8 @@ export const mockDpVendorService: IDpVendorService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDpVendorService: IDpVendorService = guardConfigWrites(dpVendorServiceUnchecked, [
+  ['config:vendor-integrations:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

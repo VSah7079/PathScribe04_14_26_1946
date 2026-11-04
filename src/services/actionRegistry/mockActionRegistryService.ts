@@ -1,11 +1,24 @@
+import { exactTriggers, fuzzyTriggers, type TriggerPoolOptions } from './voiceTriggerPool';
+import { screenFirst } from './shortcutResolution';
+import { eligibleCommands } from './commandEligibility';
+import { createTransientActionStore } from './transientActions';
+import { withRepeatConfirmation } from './repeatConfirmationCommands';
 import { IActionRegistryService, SystemAction } from './IActionRegistryService';
 import { ACTION_MAP, VOICE_CONTEXT } from '../../constants/systemActions';
 import type { VoiceProfileLanguage } from '../../constants/voiceProfiles';
-
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { getPersonalSetting, setPersonalSetting } from '../userSettings/personalSettings';
+import { getSessionUser } from '../auth/caseAccessControl';
+import { dataStorage } from '../browserData/dataStorage';
+import { withSpanishVoiceTriggers } from './spanishVoiceTriggers';
+import { findExactTriggerMatch } from './findExactTriggerMatch';
+import { migrateShortcuts } from './shortcutMigrations';
+import { LOCKBOX_SEED_ACTIONS } from './lockboxVoiceCommands'; import { GROSSING_BENCH_SEED_ACTIONS } from './grossingBenchVoiceCommands'; import { PATIENT_BANNER_SEED_ACTIONS } from './patientBannerCommands'; import { WORKLIST_ROW_SEED_ACTIONS, TRANSCRIPT_EVENT_ACTIONS } from './worklistRowCommands'; import { CASE_TEAM_SEED_ACTIONS } from './caseTeamCommands'; import { REQUISITION_SEED_ACTIONS } from './requisitionVoiceCommands';
 // ─────────────────────────────────────────────────────────────────────────────
-// Categories always eligible regardless of current context
+// Eligibility (which commands may run now) is commandEligibility.ts, shared by hotkeys and voice (Batch 650).
+// Screen-registered commands (the Report Draft's spoken section commands) are held in transientActions.ts.
 // ─────────────────────────────────────────────────────────────────────────────
-const GLOBAL_CATEGORIES = new Set(['SYSTEM', 'NAVIGATION']);
+const transientActions = createTransientActionStore();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Actions dispatched via custom DOM events rather than internalKey keyboard
@@ -21,7 +34,7 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'OPEN_DELEGATE_MODAL',
   // Page navigation (React Router)
   'OPEN_MESSAGES', 'OPEN_WORKLIST', 'OPEN_CONFIGURATION',
-  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME',
+  'OPEN_SEARCH', 'OPEN_AUDIT', 'OPEN_CONTRIBUTION', 'OPEN_HOME', 'OPEN_LOCKBOX_DROP_OFF', 'LOCKBOX_FOCUS_SCAN', 'LOCKBOX_MARK_URGENT', 'LOCKBOX_SHOW_DROP_OFF', 'LOCKBOX_SHOW_FOLDER', 'REQUISITION_RUN_NOW', 'GROSSING_PRINT_CASSETTES', 'GROSSING_TAKE_PHOTO', 'GROSSING_ASSIGN_DECAL', 'GROSSING_ADD_ON_ORDER',
   'GO_BACK', 'GO_FORWARD',
   // Case navigation (React Router)
   'NEXT_CASE', 'PREVIOUS_CASE',
@@ -79,7 +92,6 @@ const CUSTOM_EVENT_ACTIONS = new Set([
   'TABLE_FILTER_PARTICIPATING', 'TABLE_FILTER_COUNTERSIGN', 'TABLE_FILTER_POOL',
   // Config navigation
   'OPEN_ROUTING_RULES', 'TEST_ROUTING', 'OPEN_PARTICIPATION_TYPES',
-  'COMP_OPEN_SIDECAR', 'COMP_ORDER_OPEN', 'COMP_ORDER_PLACE', 'COMP_ORDER_CANCEL',
   'FLAG_OPEN_MANAGER', 'FLAG_APPLY_STAT',
   'TAT_SHOW_FIRST_TOUCH', 'TAT_SHOW_TOTAL_CASE', 'TAT_SHOW_FROZEN_SECTION',
   'TAT_SHOW_GROSSING', 'TAT_SHOW_SIGN_OUT', 'TAT_SHOW_COLD_ISCHEMIA',
@@ -133,8 +145,8 @@ const SEED_ACTIONS: SystemAction[] = [
     id: 'PRINT_CURRENT_CASSETTE',
     label: 'Print Current Cassette',
     category: 'SYNOPTIC',
-    shortcut: 'Alt+P',
-    internalKey: 'F13+PS276',
+    shortcut: 'Alt+Shift+O',
+    internalKey: ACTION_MAP['print.cassette']?.internalKey ?? 'F13+PS276',
     voiceTriggers: ['print current cassette', 'print this cassette', 'print cassette'],
     voiceTriggersByLanguage: {
       fr: ["imprimer la cassette actuelle", "imprimer cette cassette", "imprimer la cassette"],
@@ -151,7 +163,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Batch Print Case Slides',
     category: 'SYNOPTIC',
     shortcut: 'Alt+Shift+P',
-    internalKey: 'F13+PS277',
+    internalKey: ACTION_MAP['print.caseSlides']?.internalKey ?? 'F13+PS277',
     voiceTriggers: ['batch print case slides', 'print all cassettes', 'print all cassettes for case'],
     voiceTriggersByLanguage: {
       fr: ["imprimer toutes les lames", "imprimer toutes les cassettes", "imprimer toutes les cassettes du dossier"],
@@ -170,7 +182,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Open Delegation Menu', 
     category: 'SYNOPTIC',
     shortcut: 'Alt+D', 
-    internalKey: 'F13+PS150',
+    internalKey: ACTION_MAP['view.openDelegateModal']?.internalKey ?? 'F13+PS150',
     voiceTriggers: ['open delegation', 'delegate case', 'transfer case', 'show handoff'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir la délégation", "déléguer le dossier", "transférer le dossier"],
@@ -187,7 +199,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Select Peer Review', 
     category: 'SYNOPTIC',
     shortcut: 'Alt+1', 
-    internalKey: 'F13+PS151',
+    internalKey: ACTION_MAP['view.delegatePeerReview']?.internalKey ?? 'F13+PS151',
     voiceTriggers: ['request peer review', 'internal review', 'informal opinion'],
     voiceTriggersByLanguage: {
       fr: ["demander une revue par les pairs", "revue interne", "avis informel"],
@@ -204,7 +216,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Select Formal Consult', 
     category: 'SYNOPTIC',
     shortcut: 'Alt+2', 
-    internalKey: 'F13+PS152',
+    internalKey: ACTION_MAP['view.delegateFormalConsult']?.internalKey ?? 'F13+PS152',
     voiceTriggers: ['formal consultation', 'add consultant', 'official consult'],
     voiceTriggersByLanguage: {
       fr: ["consultation formelle", "ajouter un consultant", "consultation officielle"],
@@ -221,7 +233,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Select Full Transfer', 
     category: 'SYNOPTIC',
     shortcut: 'Alt+3', 
-    internalKey: 'F13+PS153',
+    internalKey: ACTION_MAP['view.delegateFullTransfer']?.internalKey ?? 'F13+PS153',
     voiceTriggers: ['full transfer', 'transfer ownership', 'assign to pool'],
     voiceTriggersByLanguage: {
       fr: ["transfert complet", "transférer la propriété", "affecter au pool"],
@@ -238,7 +250,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Confirm Delegation', 
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Enter', 
-    internalKey: 'F13+PS154',
+    internalKey: ACTION_MAP['delegation.confirm']?.internalKey ?? 'F13+PS154',
     voiceTriggers: ['confirm delegation', 'send case', 'complete transfer'],
     voiceTriggersByLanguage: {
       fr: ["confirmer la délégation", "envoyer le dossier", "terminer le transfert"],
@@ -257,7 +269,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Confirm AI Finding',
     category: 'SYNOPTIC',
     shortcut: 'Space',
-    internalKey: 'F13+PS160',
+    internalKey: ACTION_MAP['ai.confirmFinding']?.internalKey ?? 'F13+PS160',
     voiceTriggers: ['confirm', 'accept', 'agree', 'correct', 'confirm finding', 'accept finding'],
     voiceTriggersByLanguage: {
       fr: ['confirmer', 'accepter', 'd\u2019accord', 'correct', 'confirmer le résultat'],
@@ -274,10 +286,10 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Override AI Finding',
     category: 'SYNOPTIC',
     shortcut: 'O',
-    internalKey: 'F13+PS161',
+    internalKey: ACTION_MAP['ai.overrideFinding']?.internalKey ?? 'F13+PS161',
     voiceTriggers: ['override', 'incorrect', 'wrong', 'override finding', 'ai is wrong', 'change this'],
     voiceTriggersByLanguage: {
-      fr: ['annuler', 'incorrect', 'faux', 'annuler le résultat', 'l\u2019ia se trompe'],
+      fr: ['incorrect', 'faux', 'annuler le résultat', 'l\u2019ia se trompe'],
       de: ['überschreiben', 'falsch', 'inkorrekt', 'befund überschreiben', 'ki liegt falsch'],
       nl: ['overschrijven', 'onjuist', 'fout', 'bevinding overschrijven', 'ai heeft het mis'],
       ko: ['재정의', '틀림', '오류', '소견 재정의', 'AI가 틀렸어요'],
@@ -291,7 +303,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Skip AI Finding',
     category: 'SYNOPTIC',
     shortcut: 'S',
-    internalKey: 'F13+PS162',
+    internalKey: ACTION_MAP['view.aiReviewSkip']?.internalKey ?? 'F13+PS162',
     voiceTriggers: ['skip', 'skip this', 'skip finding'],
     voiceTriggersByLanguage: {
       fr: ['passer', 'passer ceci', 'passer le résultat'],
@@ -308,7 +320,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Cancel AI Review',
     category: 'SYNOPTIC',
     shortcut: 'Escape',
-    internalKey: 'F13+PS163',
+    internalKey: ACTION_MAP['view.aiReviewCancel']?.internalKey ?? 'F13+PS163',
     voiceTriggers: ['cancel review', 'exit review', 'stop review'],
     voiceTriggersByLanguage: {
       fr: ["annuler la revue", "quitter la revue", "arrêter la revue"],
@@ -327,7 +339,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Accept Pool Case',
     category: 'SYNOPTIC',
     shortcut: 'Alt+A',
-    internalKey: 'F13+PS165',
+    internalKey: ACTION_MAP['pool.claimCase']?.internalKey ?? 'F13+PS165',
     voiceTriggers: ['accept case', 'take this case', 'assign to me'],
     voiceTriggersByLanguage: {
       fr: ["accepter le dossier", "prendre ce dossier", "m'assigner"],
@@ -344,7 +356,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Log Surgeon Report',
     category: 'SYNOPTIC',
     shortcut: 'Alt+L',
-    internalKey: 'F13+PS275',
+    internalKey: ACTION_MAP['intraop.logSurgeonReport']?.internalKey ?? 'F13+PS275',
     // Only meaningful — and only listened for — while a single entry's
     // "Report to Surgeon" note field is already open (see
     // IntraopQueuePage.tsx), the same way POOL_ACCEPT_CASE is only
@@ -353,7 +365,7 @@ const SEED_ACTIONS: SystemAction[] = [
     // needed.
     voiceTriggers: ['report logged', 'surgeon notified', 'log the report', 'confirm report'],
     voiceTriggersByLanguage: {
-      fr: ["rapport enregistré", "chirurgien informé", "enregistrer le rapport"],
+      fr: ["rapport enregistré", "chirurgien informé"],
       de: ["bericht protokolliert", "chirurg benachrichtigt", "bericht protokollieren"],
       nl: ["rapport gelogd", "chirurg geïnformeerd", "rapport loggen"],
       ko: ["보고 기록됨", "집도의에게 통보됨", "보고 기록"],
@@ -367,7 +379,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Pass Pool Case',
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+P',
-    internalKey: 'F13+PS166',
+    internalKey: ACTION_MAP['pool.declineCase']?.internalKey ?? 'F13+PS166',
     voiceTriggers: ['pass case', 'skip case', 'return to pool', 'pass'],
     voiceTriggersByLanguage: {
       fr: ["passer le dossier", "ignorer le dossier", "retourner au pool"],
@@ -383,7 +395,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── SYSTEM — always available ─────────────────────────────────────────────
   {
     id: 'OPEN_HOME', label: 'Go Home', category: 'SYSTEM',
-    shortcut: 'Alt+H', internalKey: 'F13+PS300',
+    shortcut: 'Alt+H', internalKey: ACTION_MAP['view.openHome']?.internalKey ?? 'F13+PS300',
     voiceTriggers: ['go home', 'home page', 'go to home', 'open home'],
     voiceTriggersByLanguage: {
       fr: ['aller à l\u2019accueil', 'page d\u2019accueil', 'accueil', 'ouvrir l\u2019accueil'],
@@ -422,7 +434,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_INTRAOP_QUEUE', label: 'Open Intraop Queue', category: 'NAVIGATION',
-    shortcut: 'Alt+O', internalKey: 'F13+PS270',
+    shortcut: 'Alt+O', internalKey: ACTION_MAP['view.openIntraopQueue']?.internalKey ?? 'F13+PS270',
     voiceTriggers: [
       'open intraop queue', 'show intraop queue', 'open intraoperative queue',
       'unlinked intraoperative entries', 'intraop queue',
@@ -436,8 +448,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_START_NEW_ENTRY', label: 'Start New Intraop Entry', category: 'NAVIGATION',
-    shortcut: 'Alt+S', internalKey: 'F13+PS271',
+    id: 'INTRAOP_START_NEW_ENTRY', label: 'Start New Intraop Entry', category: 'INTRAOP',
+    shortcut: 'Alt+S', internalKey: ACTION_MAP['view.intraopStartNewEntry']?.internalKey ?? 'F13+PS271',
     voiceTriggers: ['start new intraop entry', 'start intraop entry', 'new intraop entry', 'start entry'],
     voiceTriggersByLanguage: {
       fr: ["démarrer une nouvelle entrée peropératoire", "nouvelle entrée peropératoire"],
@@ -448,8 +460,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_TOUCH_PREP_PERFORMED', label: 'Log Touch Prep Performed', category: 'NAVIGATION',
-    shortcut: 'Alt+L', internalKey: 'F13+PS272',
+    id: 'INTRAOP_TOUCH_PREP_PERFORMED', label: 'Log Touch Prep Performed', category: 'INTRAOP',
+    shortcut: 'Alt+Shift+Y', internalKey: ACTION_MAP['intraop.touchPrepPerformed']?.internalKey ?? 'F13+PS272',
     voiceTriggers: ['log touch prep performed', 'touch prep performed', 'touch prep done'],
     voiceTriggersByLanguage: {
       fr: ["préparation par apposition effectuée", "apposition effectuée"],
@@ -460,8 +472,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_TOUCH_PREP_SKIP', label: 'Skip Touch Prep', category: 'NAVIGATION',
-    shortcut: 'Alt+T', internalKey: 'F13+PS273',
+    id: 'INTRAOP_TOUCH_PREP_SKIP', label: 'Skip Touch Prep', category: 'INTRAOP',
+    shortcut: 'Alt+T', internalKey: ACTION_MAP['intraop.touchPrepSkip']?.internalKey ?? 'F13+PS273',
     voiceTriggers: ['skip touch prep', 'no touch prep', 'direct to frozen'],
     voiceTriggersByLanguage: {
       fr: ["ignorer l'apposition", "pas d'apposition", "directement à la coupe congelée"],
@@ -472,8 +484,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_FROZEN_SECTION_CUT', label: 'Log Frozen Section Cut', category: 'NAVIGATION',
-    shortcut: 'Alt+Shift+L', internalKey: 'F13+PS274',
+    id: 'INTRAOP_FROZEN_SECTION_CUT', label: 'Log Frozen Section Cut', category: 'INTRAOP',
+    shortcut: 'Alt+Shift+L', internalKey: ACTION_MAP['intraop.frozenSectionCut']?.internalKey ?? 'F13+PS274',
     voiceTriggers: ['log frozen section cut', 'frozen section cut', 'frozen cut logged'],
     voiceTriggersByLanguage: {
       fr: ["coupe congelée effectuée", "coupe congelée enregistrée"],
@@ -491,8 +503,8 @@ const SEED_ACTIONS: SystemAction[] = [
     // no prior action id at all. Each logs exactly ONE real
     // PreparationOutput per utterance — never a spoken count — repeat
     // the phrase to log another, same as pressing the button again.
-    id: 'INTRAOP_LOG_SQUASH_PREP', label: 'Log Squash Prep', category: 'NAVIGATION',
-    shortcut: 'Alt+Shift+S', internalKey: 'F13+PS279',
+    id: 'INTRAOP_LOG_SQUASH_PREP', label: 'Log Squash Prep', category: 'INTRAOP',
+    shortcut: 'Alt+Shift+S', internalKey: ACTION_MAP['intraop.logSquashPrep']?.internalKey ?? 'F13+PS279',
     voiceTriggers: ['log squash prep', 'squash prep', 'squash prep done'],
     voiceTriggersByLanguage: {
       fr: ["préparation par écrasement effectuée", "préparation par écrasement"],
@@ -503,8 +515,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_LOG_CYTOLOGY_FLUID', label: 'Log Cytology / Fluid Evaluation', category: 'NAVIGATION',
-    shortcut: 'Alt+Shift+C', internalKey: 'F13+PS280',
+    id: 'INTRAOP_LOG_CYTOLOGY_FLUID', label: 'Log Cytology / Fluid Evaluation', category: 'INTRAOP',
+    shortcut: 'Alt+Shift+C', internalKey: ACTION_MAP['intraop.logCytologyFluid']?.internalKey ?? 'F13+PS280',
     voiceTriggers: ['log cytology', 'cytology evaluation', 'log fluid evaluation', 'fluid evaluation done'],
     voiceTriggersByLanguage: {
       fr: ["cytologie enregistrée", "évaluation cytologique", "évaluation du liquide effectuée"],
@@ -515,8 +527,8 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
-    id: 'INTRAOP_LOG_GROSS_ONLY', label: 'Log Gross Only / Intraoperative Consultation', category: 'NAVIGATION',
-    shortcut: 'Alt+Shift+G', internalKey: 'F13+PS281',
+    id: 'INTRAOP_LOG_GROSS_ONLY', label: 'Log Gross Only / Intraoperative Consultation', category: 'INTRAOP',
+    shortcut: 'Alt+Shift+G', internalKey: ACTION_MAP['intraop.logGrossOnly']?.internalKey ?? 'F13+PS281',
     voiceTriggers: ['log gross only', 'gross only', 'intraoperative consultation only'],
     voiceTriggersByLanguage: {
       fr: ["macroscopie seule enregistrée", "macroscopie seule"],
@@ -568,12 +580,12 @@ const SEED_ACTIONS: SystemAction[] = [
   {
     id: 'OPEN_SEARCH', label: 'Open Search', category: 'NAVIGATION',
     shortcut: 'Alt+F', internalKey: ACTION_MAP['system.openSearch']?.internalKey ?? 'F13+PS008',
-    voiceTriggers: ['open search', 'go to search', 'search cases', 'find case', 'search'],
+    voiceTriggers: ['open search', 'go to search', 'search cases', 'search'],
     voiceTriggersByLanguage: {
-      fr: ['ouvrir la recherche', 'aller à la recherche', 'rechercher des dossiers', 'trouver un dossier', 'rechercher'],
-      de: ['suche öffnen', 'zur suche', 'fälle suchen', 'fall finden', 'suchen'],
-      nl: ['zoeken openen', 'naar zoeken', 'zaken zoeken', 'zaak vinden', 'zoeken'],
-      ko: ['검색 열기', '검색으로', '증례 검색', '증례 찾기', '검색'],
+      fr: ['ouvrir la recherche', 'aller à la recherche', 'rechercher des dossiers', 'rechercher'],
+      de: ['suche öffnen', 'zur suche', 'fälle suchen', 'suchen'],
+      nl: ['zoeken openen', 'naar zoeken', 'zaken zoeken', 'zoeken'],
+      ko: ['검색 열기', '검색으로', '검색'],
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
@@ -605,7 +617,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── HOME page actions — SYSTEM category (available from home screen) ───────
   {
     id: 'OPEN_ENHANCEMENT_REQUEST', label: 'Open Enhancement Request', category: 'SYSTEM',
-    shortcut: 'Alt+O', internalKey: 'F13+PS301',
+    shortcut: 'Alt+Y', internalKey: ACTION_MAP['view.openEnhancementRequest']?.internalKey ?? 'F13+PS301',
     voiceTriggers: ['open enhancement request', 'enhancement request', 'open enhancement'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir la demande d'amélioration", "demande d'amélioration"],
@@ -617,7 +629,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_TESTING_FEEDBACK', label: 'Open Testing Feedback', category: 'SYSTEM',
-    shortcut: 'Alt+T', internalKey: 'F13+PS302',
+    shortcut: 'Alt+X', internalKey: ACTION_MAP['view.openTestingFeedback']?.internalKey ?? 'F13+PS302',
     voiceTriggers: ['open testing feedback', 'testing feedback', 'QA feedback', 'open feedback'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir les retours de test", "retours de test"],
@@ -629,7 +641,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VIEW_HELP', label: 'View System Help', category: 'SYSTEM',
-    shortcut: 'Alt+V', internalKey: 'F13+PS303',
+    shortcut: 'F1', internalKey: ACTION_MAP['view.viewHelp']?.internalKey ?? 'F13+PS303',
     voiceTriggers: ['view help', 'open help', 'system help', 'show help', 'help'],
     voiceTriggersByLanguage: {
       fr: ["afficher l'aide", "ouvrir l'aide", "aide"],
@@ -641,7 +653,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_RESOURCES', label: 'Open Clinical Resources', category: 'SYSTEM',
-    shortcut: 'Alt+C', internalKey: 'F13+PS304',
+    shortcut: 'Alt+Q', internalKey: ACTION_MAP['view.openResources']?.internalKey ?? 'F13+PS304',
     voiceTriggers: ['open resources', 'clinical resources', 'open clinical resources', 'quick links', 'open quick links'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir les ressources", "ressources cliniques"],
@@ -654,7 +666,7 @@ const SEED_ACTIONS: SystemAction[] = [
   {
     // "log out" used as trigger — avoids collision with "sign out case" in reporting context
     id: 'SYSTEM_LOGOUT', label: 'Log Out', category: 'SYSTEM',
-    shortcut: 'Alt+L', internalKey: 'F13+PS308',
+    shortcut: 'Alt+L', internalKey: ACTION_MAP['view.systemLogout']?.internalKey ?? 'F13+PS308',
     voiceTriggers: ['log out', 'sign out system', 'logout', 'log me out'],
     voiceTriggersByLanguage: {
       fr: ['déconnexion', 'se déconnecter', 'déconnecter le système'],
@@ -932,7 +944,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["selecteren", "dit selecteren", "rij selecteren"],
       ko: ["선택", "이것 선택", "행 선택"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false, // Batch 663: off (and TABLE_SELECT_ALL, TABLE_DESELECT_ALL, TABLE_DELETE); docs/product/KNOWN_GAPS.md,
   },
   {
     id: 'TABLE_SELECT_ALL', label: 'Select All', category: VOICE_CONTEXT.WORKLIST,
@@ -944,7 +956,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["alles selecteren", "alles aanvinken"],
       ko: ["전체 선택", "모두 선택"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
   {
     id: 'TABLE_DESELECT_ALL', label: 'Deselect All', category: VOICE_CONTEXT.WORKLIST,
@@ -956,7 +968,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["alles deselecteren", "selectie wissen"],
       ko: ["전체 선택 해제", "선택 해제"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
   {
     id: 'TABLE_OPEN_SELECTED', label: 'Open Selected', category: VOICE_CONTEXT.WORKLIST,
@@ -1032,7 +1044,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_FILTER_PHYSICIAN', label: 'Filter by Physician', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+Shift+F', internalKey: 'F15+PS034',
+    shortcut: 'Alt+Shift+F', internalKey: ACTION_MAP['view.tableFilterPhysician']?.internalKey ?? 'F15+PS034',
     voiceTriggers: ['filter by', 'cases by', 'show cases by', 'physician filter'],
     voiceTriggersByLanguage: {
       fr: ["filtrer par", "dossiers par", "filtre médecin"],
@@ -1044,7 +1056,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'READ_FLAGS', label: 'Read Flags', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+Shift+R', internalKey: 'F15+PS035',
+    shortcut: 'Alt+Shift+R', internalKey: ACTION_MAP['view.readFlags']?.internalKey ?? 'F15+PS035',
     voiceTriggers: ['read flags', 'what are the flags', 'case flags', 'list flags'],
     voiceTriggersByLanguage: {
       fr: ["lire les indicateurs", "quels sont les indicateurs", "indicateurs du dossier"],
@@ -1056,7 +1068,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'READ_SPECIMEN', label: 'Read Specimen', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+R', internalKey: 'F15+PS036',
+    shortcut: 'Ctrl+Alt+R', internalKey: ACTION_MAP['view.readSpecimen']?.internalKey ?? 'F15+PS036',
     voiceTriggers: ['read specimen', 'what is the specimen', 'specimen type', 'confirm specimen'],
     voiceTriggersByLanguage: {
       fr: ["lire le prélèvement", "quel est le prélèvement", "type de prélèvement"],
@@ -1071,7 +1083,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // never a separate, parallel voice system for DP-relevant rows.
   {
     id: 'READ_DIGITAL_READINESS', label: 'Read Digital Readiness', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+V', internalKey: 'F15+PS040',
+    shortcut: 'Ctrl+Alt+V', internalKey: ACTION_MAP['view.readDigitalReadiness']?.internalKey ?? 'F15+PS040',
     voiceTriggers: ['read digital readiness', 'slide status', 'scan status', 'read scan status'],
     voiceTriggersByLanguage: {
       fr: ["lire la disponibilité numérique", "statut de la lame", "statut du scan"],
@@ -1083,7 +1095,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'READ_DP_TRIAGE', label: 'Read AI Triage', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+W', internalKey: 'F15+PS041',
+    shortcut: 'Ctrl+Alt+W', internalKey: ACTION_MAP['view.readDpTriage']?.internalKey ?? 'F15+PS041',
     voiceTriggers: ['read ai triage', 'ai result', 'read ai result', 'what is the ai finding'],
     voiceTriggersByLanguage: {
       fr: ["lire le triage ia", "résultat ia", "quel est le résultat ia"],
@@ -1095,7 +1107,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_SLIDE_DETAILS', label: 'Open Slide Details', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+X', internalKey: 'F15+PS042',
+    shortcut: 'Ctrl+Alt+X', internalKey: ACTION_MAP['view.openSlideDetails']?.internalKey ?? 'F15+PS042',
     voiceTriggers: ['open slide details', 'show slide details', 'slide details'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir les détails de la lame", "afficher les détails de la lame"],
@@ -1107,7 +1119,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_FILTER_DP', label: 'Filter Digital Pathology', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+Y', internalKey: 'F15+PS043',
+    shortcut: 'Ctrl+Alt+Y', internalKey: ACTION_MAP['view.tableFilterDp']?.internalKey ?? 'F15+PS043',
     voiceTriggers: ['filter dp', 'filter digital pathology', 'dp cases', 'show dp cases', 'digital pathology cases'],
     voiceTriggersByLanguage: {
       fr: ["filtrer dp", "cas de pathologie numérique", "afficher les cas dp"],
@@ -1121,7 +1133,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // ("I do not want to send the Pathologist to multiple worklist").
   {
     id: 'TABLE_FILTER_GYNCYTO', label: 'Filter GYN Cytology', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+Z', internalKey: 'F15+PS044',
+    shortcut: 'Ctrl+Alt+Z', internalKey: ACTION_MAP['view.tableFilterGyncyto']?.internalKey ?? 'F15+PS044',
     voiceTriggers: ['filter gyn cytology', 'gyn cytology cases', 'show gyn cytology', 'filter gyn'],
     voiceTriggersByLanguage: {
       fr: ["filtrer cytologie gyn", "cas de cytologie gyn"],
@@ -1133,7 +1145,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_FILTER_NONGYNCYTO', label: 'Filter Non-GYN Cytology / FNA', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+Shift+K', internalKey: 'F15+PS045',
+    shortcut: 'Alt+Shift+K', internalKey: ACTION_MAP['view.tableFilterNongyncyto']?.internalKey ?? 'F15+PS045',
     voiceTriggers: ['filter non gyn cytology', 'non gyn cytology cases', 'filter fna', 'fna cases', 'show fna'],
     voiceTriggersByLanguage: {
       fr: ["filtrer cytologie non gyn", "cas de cytologie non gyn", "filtrer fna"],
@@ -1145,7 +1157,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_FILTER_AUTOPSY', label: 'Filter Autopsy', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+Shift+Q', internalKey: 'F15+PS046',
+    shortcut: 'Alt+Shift+Q', internalKey: ACTION_MAP['view.tableFilterAutopsy']?.internalKey ?? 'F15+PS046',
     voiceTriggers: ['filter autopsy', 'autopsy cases', 'show autopsy cases'],
     voiceTriggersByLanguage: {
       fr: ["filtrer autopsie", "cas d'autopsie", "afficher les cas d'autopsie"],
@@ -1159,7 +1171,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // unread pattern.
   {
     id: 'TABLE_FILTER_NEWCASES', label: 'Filter New Cases', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+Shift+U', internalKey: 'F15+PS047',
+    shortcut: 'Alt+Shift+U', internalKey: ACTION_MAP['view.tableFilterNewcases']?.internalKey ?? 'F15+PS047',
     voiceTriggers: ['filter new cases', 'new cases', 'show new cases', 'unopened cases'],
     voiceTriggersByLanguage: {
       fr: ["filtrer les nouveaux cas", "nouveaux cas", "afficher les nouveaux cas"],
@@ -1174,7 +1186,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Filter Completed',
     category: VOICE_CONTEXT.WORKLIST,
     shortcut: 'Alt+C', 
-    internalKey: 'F15+PS037',
+    internalKey: ACTION_MAP['view.tableFilterCompleted']?.internalKey ?? 'F15+PS037',
     voiceTriggers: ['filter completed', 'show completed', 'completed cases', 'show completed cases'],
     voiceTriggersByLanguage: {
       fr: ["filtrer terminé", "afficher terminé", "dossiers terminés"],
@@ -1200,7 +1212,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_SORT_BY_COLUMN', label: 'Sort By Column', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+S', internalKey: 'F15+PS038',
+    shortcut: 'Ctrl+Alt+S', internalKey: ACTION_MAP['view.tableSortByColumn']?.internalKey ?? 'F15+PS038',
     voiceTriggers: ['sort by', 'sort column', 'order by'],
     voiceTriggersByLanguage: {
       fr: ["trier par", "trier la colonne"],
@@ -1212,7 +1224,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'TABLE_CLEAR_SORT', label: 'Clear Sort', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Ctrl+Alt+C', internalKey: 'F15+PS033',
+    shortcut: 'Ctrl+Alt+C', internalKey: ACTION_MAP['view.tableClearSort']?.internalKey ?? 'F15+PS033',
     voiceTriggers: ['clear sort', 'remove sort', 'reset sort', 'clear sorting'],
     voiceTriggersByLanguage: {
       fr: ["effacer le tri", "supprimer le tri"],
@@ -1249,7 +1261,7 @@ const SEED_ACTIONS: SystemAction[] = [
   {
     // Delete a row in a table — context guards which tables support this
     id: 'TABLE_DELETE', label: 'Delete Row', category: VOICE_CONTEXT.WORKLIST,
-    shortcut: 'Alt+D', internalKey: 'F15+PS039',
+    shortcut: 'Alt+D', internalKey: ACTION_MAP['table.deleteRow']?.internalKey ?? 'F15+PS039',
     voiceTriggers: ['delete row', 'delete this row', 'remove row', 'delete entry'],
     voiceTriggersByLanguage: {
       fr: ["supprimer la ligne", "supprimer cette ligne"],
@@ -1257,7 +1269,7 @@ const SEED_ACTIONS: SystemAction[] = [
       nl: ["rij verwijderen", "deze rij verwijderen"],
       ko: ["행 삭제", "이 행 삭제"],
     },
-    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: false,
   },
 
   // ── REPORTING ACTIONS ─────────────────────────────────────────────────────
@@ -1287,7 +1299,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_PRE_FINALISE', label: 'Finalise Report', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+F', internalKey: 'F17+PS043',
+    shortcut: 'Ctrl+Alt+Shift+F', internalKey: ACTION_MAP['view.openPreFinalise']?.internalKey ?? 'F17+PS043',
     voiceTriggers: [
       'finalise', 'finalize', 'finalise report', 'finalize report',
       'finalise case', 'finalize case', 'sign off', 'sign off report',
@@ -1303,7 +1315,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FINALISE_CONFIRM', label: 'Confirm Finalise', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+C', internalKey: 'F17+PS044',
+    shortcut: 'Ctrl+Alt+Shift+C', internalKey: ACTION_MAP['finalise.confirm']?.internalKey ?? 'F17+PS044',
     voiceTriggers: ['confirm finalise', 'confirm finalize', 'confirm sign off', 'yes finalise', 'yes finalize'],
     voiceTriggersByLanguage: {
       fr: ["confirmer la finalisation", "confirmer la validation"],
@@ -1315,7 +1327,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FINALISE_CANCEL', label: 'Cancel Finalise', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Escape', internalKey: 'F17+PS045',
+    shortcut: 'Ctrl+Alt+Escape', internalKey: ACTION_MAP['view.finaliseCancel']?.internalKey ?? 'F17+PS045',
     voiceTriggers: ['cancel finalise', 'cancel finalize', 'cancel sign off'],
     voiceTriggersByLanguage: {
       fr: ["annuler la finalisation", "annuler la validation"],
@@ -1485,7 +1497,7 @@ const SEED_ACTIONS: SystemAction[] = [
     // above (synoptic.jumpNextUnanswered's own, unchanged key) — no systemActions.ts
     // counterpart exists for this action at all, so it keeps a local literal, just a
     // fresh, never-used one.
-    shortcut: 'Ctrl+Alt+Q', internalKey: 'F17+PS054',
+    shortcut: 'Ctrl+Alt+Q', internalKey: ACTION_MAP['view.skipField']?.internalKey ?? 'F17+PS054',
     voiceTriggers: ['skip field', 'skip this field', 'move on', 'leave blank'],
     voiceTriggersByLanguage: {
       fr: ["passer le champ", "passer ce champ", "laisser vide"],
@@ -1500,7 +1512,7 @@ const SEED_ACTIONS: SystemAction[] = [
     // PS-66: renumbered from F17+PS010, which is now NEXT_REQUIRED's aliased key above
     // (synoptic.jumpNextRequired's own, unchanged key) — no systemActions.ts
     // counterpart exists for this action, so it keeps a local literal, just fresh.
-    shortcut: 'Alt+V', internalKey: 'F17+PS055',
+    shortcut: 'Alt+V', internalKey: ACTION_MAP['view.fullView']?.internalKey ?? 'F17+PS055',
     voiceTriggers: ['full view', 'show full view', 'expand view', 'all sections'],
     voiceTriggersByLanguage: {
       fr: ["vue complète", "développer la vue"],
@@ -1515,7 +1527,7 @@ const SEED_ACTIONS: SystemAction[] = [
     // PS-66: renumbered from F17+PS011 (synoptic.markDeferred's own key in
     // systemActions.ts, unrelated to this action — a coincidental collision, not a
     // shared action; markDeferred keeps F17+PS011, this moves to a fresh key instead).
-    shortcut: 'Ctrl+Alt+T', internalKey: 'F17+PS056',
+    shortcut: 'Ctrl+Alt+T', internalKey: ACTION_MAP['view.tabbedView']?.internalKey ?? 'F17+PS056',
     voiceTriggers: ['tabbed view', 'show tabbed view', 'tab view', 'collapse view'],
     voiceTriggersByLanguage: {
       fr: ["vue par onglets", "réduire la vue"],
@@ -1527,7 +1539,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'MAX_VIEW', label: 'Maximise View', category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+M', internalKey: 'F17+PS012',
+    shortcut: 'Alt+Shift+M', internalKey: ACTION_MAP['view.maxView']?.internalKey ?? 'F17+PS012',
     voiceTriggers: ['max', 'maximise', 'maximize', 'full screen', 'expand screen'],
     voiceTriggersByLanguage: {
       fr: ["maximiser", "plein écran"],
@@ -1539,7 +1551,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'MIN_VIEW', label: 'Minimise View', category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+V', internalKey: 'F17+PS013',
+    shortcut: 'Alt+Shift+V', internalKey: ACTION_MAP['view.minView']?.internalKey ?? 'F17+PS013',
     voiceTriggers: ['min', 'minimise', 'minimize', 'exit full screen', 'restore view'],
     voiceTriggersByLanguage: {
       fr: ["minimiser", "quitter le plein écran"],
@@ -1551,7 +1563,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'PREVIEW_REPORT', label: 'Preview Report', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+P', internalKey: 'F17+PS014',
+    shortcut: 'Ctrl+Alt+Shift+P', internalKey: ACTION_MAP['view.previewReport']?.internalKey ?? 'F17+PS014',
     voiceTriggers: ['preview report', 'show preview', 'report preview', 'preview'],
     voiceTriggersByLanguage: {
       fr: ["aperçu du rapport", "afficher l'aperçu"],
@@ -1563,7 +1575,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_CASE_COMMENT', label: 'Case Comment', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+C', internalKey: 'F17+PS015',
+    shortcut: 'Ctrl+Alt+C', internalKey: ACTION_MAP['view.voiceCaseComment']?.internalKey ?? 'F17+PS015',
     voiceTriggers: ['case comment', 'open case comment', 'add case comment', 'dictate case comment'],
     voiceTriggersByLanguage: {
       fr: ["commentaire du dossier", "ajouter un commentaire de dossier"],
@@ -1575,7 +1587,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_SPECIMEN_COMMENT', label: 'Specimen Comment', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+S', internalKey: 'F17+PS016',
+    shortcut: 'Ctrl+Alt+S', internalKey: ACTION_MAP['view.voiceSpecimenComment']?.internalKey ?? 'F17+PS016',
     voiceTriggers: ['specimen comment', 'open specimen comment', 'add specimen comment', 'dictate specimen comment'],
     voiceTriggersByLanguage: {
       fr: ["commentaire de prélèvement", "ajouter un commentaire de prélèvement"],
@@ -1587,7 +1599,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_INTERNAL_NOTE', label: 'Internal Note', category: 'SYNOPTIC',
-    shortcut: 'Alt+I', internalKey: 'F17+PS017',
+    shortcut: 'Alt+I', internalKey: ACTION_MAP['view.voiceInternalNote']?.internalKey ?? 'F17+PS017',
     voiceTriggers: ['internal note', 'open internal note', 'open notes'],
     voiceTriggersByLanguage: {
       fr: ["note interne", "ouvrir la note interne"],
@@ -1599,7 +1611,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_ADD_SYNOPTIC', label: 'Add Synoptic', category: 'SYNOPTIC',
-    shortcut: 'Alt+Z', internalKey: 'F17+PS018',
+    shortcut: 'Alt+Z', internalKey: ACTION_MAP['view.voiceAddSynoptic']?.internalKey ?? 'F17+PS018',
     voiceTriggers: ['add synoptic', 'open add synoptic', 'add report', 'new synoptic'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un rapport synoptique", "nouveau rapport synoptique"],
@@ -1611,7 +1623,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_ADD', label: 'Add Note', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+N', internalKey: 'F17+PS020',
+    shortcut: 'Ctrl+Alt+Shift+N', internalKey: ACTION_MAP['view.noteAdd']?.internalKey ?? 'F17+PS020',
     voiceTriggers: ['add note', 'new note', 'open add note'],
     voiceTriggersByLanguage: {
       fr: ["ajouter une note", "nouvelle note"],
@@ -1623,7 +1635,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_DICTATE', label: 'Dictate Note', category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+N', internalKey: 'F17+PS021',
+    shortcut: 'Alt+Shift+N', internalKey: ACTION_MAP['view.noteDictate']?.internalKey ?? 'F17+PS021',
     voiceTriggers: ['dictate note', 'dictate', 'dictate into note'],
     voiceTriggersByLanguage: {
       fr: ["dicter la note", "dicter"],
@@ -1635,7 +1647,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_VISIBILITY_PRIVATE', label: 'Note Visibility Private', category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+J', internalKey: 'F17+PS022',
+    shortcut: 'Alt+Shift+J', internalKey: ACTION_MAP['view.noteVisibilityPrivate']?.internalKey ?? 'F17+PS022',
     voiceTriggers: ['visibility private', 'set private', 'private note', 'make private'],
     voiceTriggersByLanguage: {
       fr: ["visibilité privée", "rendre privé"],
@@ -1647,7 +1659,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_VISIBILITY_SHARED', label: 'Note Visibility Shared', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+N', internalKey: 'F17+PS023',
+    shortcut: 'Ctrl+Alt+N', internalKey: ACTION_MAP['view.noteVisibilityShared']?.internalKey ?? 'F17+PS023',
     voiceTriggers: ['visibility shared', 'set shared', 'shared note', 'make shared'],
     voiceTriggersByLanguage: {
       fr: ["visibilité partagée", "rendre partagé"],
@@ -1659,7 +1671,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_SAVE', label: 'Save Note', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+S', internalKey: 'F17+PS024',
+    shortcut: 'Ctrl+Alt+Shift+S', internalKey: ACTION_MAP['notes.save']?.internalKey ?? 'F17+PS024',
     voiceTriggers: ['save note', 'submit note', 'save'],
     voiceTriggersByLanguage: {
       fr: ["enregistrer la note", "soumettre la note"],
@@ -1671,7 +1683,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_CANCEL', label: 'Cancel Note', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+B', internalKey: 'F17+PS025',
+    shortcut: 'Ctrl+Alt+B', internalKey: ACTION_MAP['view.noteCancel']?.internalKey ?? 'F17+PS025',
     voiceTriggers: ['cancel note', 'discard note'],
     voiceTriggersByLanguage: {
       fr: ["annuler la note", "abandonner la note"],
@@ -1683,7 +1695,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'NOTE_CLOSE', label: 'Close Notes', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+D', internalKey: 'F17+PS026',
+    shortcut: 'Ctrl+Alt+D', internalKey: ACTION_MAP['view.noteClose']?.internalKey ?? 'F17+PS026',
     voiceTriggers: ['close notes', 'close drawer', 'close internal notes'],
     voiceTriggersByLanguage: {
       fr: ["fermer les notes", "fermer le tiroir"],
@@ -1695,7 +1707,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'ADD_ADDENDUM', label: 'Add Addendum', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+B', internalKey: 'F17+PS027',
+    shortcut: 'Ctrl+Alt+Shift+B', internalKey: ACTION_MAP['report.addAddendum']?.internalKey ?? 'F17+PS027',
     voiceTriggers: ['add addendum', 'open addendum', 'addendum request', 'request addendum'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un addendum", "demande d'addendum"],
@@ -1707,7 +1719,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'ADD_AMENDMENT', label: 'Add Amendment', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+E', internalKey: 'F17+PS028',
+    shortcut: 'Ctrl+Alt+E', internalKey: ACTION_MAP['report.addAmendment']?.internalKey ?? 'F17+PS028',
     voiceTriggers: ['add amendment', 'open amendment', 'request amendment', 'amendment'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un amendement", "demande de modification"],
@@ -1845,9 +1857,59 @@ const SEED_ACTIONS: SystemAction[] = [
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
+  // Batch 383 (PS-359): the two autopsy forms' buttons and the two sign-out
+  // gates' Continue. Each modal listens while it is open.
+  {
+    id: 'AUTOPSY_AUTH_SUBMIT', label: 'Record Autopsy Authorization', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+3', internalKey: ACTION_MAP['case.recordAutopsyAuthorization']?.internalKey ?? 'F19+PS014',
+    voiceTriggers: ['record authorization', 'record autopsy authorization'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer l'autorisation"],
+      de: ['genehmigung erfassen'],
+      nl: ['machtiging vastleggen'],
+      ko: ['승인 기록'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'AUTOPSY_RELEASE_SUBMIT', label: 'Release Autopsy Body', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+4', internalKey: ACTION_MAP['case.releaseAutopsyBody']?.internalKey ?? 'F19+PS015',
+    voiceTriggers: ['release body', 'confirm body release'],
+    voiceTriggersByLanguage: {
+      fr: ['remettre le corps'],
+      de: ['leichnam freigeben'],
+      nl: ['lichaam vrijgeven'],
+      ko: ['시신 인도'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'FIXATIVE_GATE_CONTINUE', label: 'Continue Past Fixation Time Gate', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+5', internalKey: ACTION_MAP['specimen.continueFixativeGate']?.internalKey ?? 'F20+PS011',
+    voiceTriggers: ['continue fixation gate', 'continue fixation time'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer le contrôle de fixation'],
+      de: ['fixierungsprüfung fortsetzen'],
+      nl: ['fixatiecontrole voortzetten'],
+      ko: ['고정 시간 확인 계속'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'PREANALYTIC_GATE_CONTINUE', label: 'Continue Past Collection/Receipt Date Gate', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+6', internalKey: ACTION_MAP['specimen.continuePreAnalyticGate']?.internalKey ?? 'F20+PS012',
+    voiceTriggers: ['continue date gate', 'continue receipt date gate'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer le contrôle des dates'],
+      de: ['datumsprüfung fortsetzen'],
+      nl: ['datumcontrole voortzetten'],
+      ko: ['날짜 확인 계속'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
   {
     id: 'SIGNOUT_NEXT', label: 'Sign Out and Next', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+O', internalKey: 'F17+PS029',
+    shortcut: 'Ctrl+Alt+Shift+O', internalKey: ACTION_MAP['diagnosis.signOutAndNext']?.internalKey ?? 'F17+PS029',
     voiceTriggers: ['signout next', 'sign out next', 'finalize and next', 'sign out and next', 'next case sign out'],
     voiceTriggersByLanguage: {
       fr: ['signer et suivant', 'finaliser et suivant'],
@@ -1859,7 +1921,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'GOTO_CODES', label: 'Go to Codes', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+G', internalKey: 'F17+PS030',
+    shortcut: 'Ctrl+Alt+G', internalKey: ACTION_MAP['view.gotoCodes']?.internalKey ?? 'F17+PS030',
     voiceTriggers: ['goto codes', 'go to codes', 'codes tab', 'open codes'],
     voiceTriggersByLanguage: {
       fr: ["aller aux codes", "onglet codes"],
@@ -1871,7 +1933,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_ADD_CODE', label: 'Add Code', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+H', internalKey: 'F17+PS040',
+    shortcut: 'Ctrl+Alt+H', internalKey: ACTION_MAP['view.voiceAddCode']?.internalKey ?? 'F17+PS040',
     voiceTriggers: ['add code', 'open add code', 'new code', 'add medical code'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un code", "nouveau code"],
@@ -1883,7 +1945,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'SELECT_SPECIMEN', label: 'Select Specimen', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+I', internalKey: 'F17+PS031',
+    shortcut: 'Ctrl+Alt+I', internalKey: ACTION_MAP['view.selectSpecimen']?.internalKey ?? 'F17+PS031',
     voiceTriggers: ['select specimen', 'goto specimen', 'go to specimen', 'specimen one', 'specimen two', 'specimen three', 'specimen 1', 'specimen 2', 'specimen 3'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le prélèvement", "prélèvement un", "prélèvement deux", "prélèvement trois"],
@@ -1895,19 +1957,19 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'OPEN_HISTORY', label: 'Open History', category: 'SYNOPTIC',
-    shortcut: 'Alt+H', internalKey: 'F17+PS032',
+    shortcut: 'Alt+H', internalKey: ACTION_MAP['view.openHistory']?.internalKey ?? 'F17+PS032',
     voiceTriggers: ['open history', 'show history', 'prior cases', 'similar cases', 'open similar cases'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir l'historique", "dossiers antérieurs", "dossiers similaires"],
       de: ["verlauf öffnen", "frühere fälle", "ähnliche fälle"],
       nl: ["geschiedenis openen", "eerdere zaken", "vergelijkbare zaken"],
-      ko: ["이력 열기", "이전 증례", "유사 증례"],
+      ko: ["이력 열기", "과거 증례", "유사 증례"],
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
   {
     id: 'CLOSE_HISTORY', label: 'Close History', category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+H', internalKey: 'F17+PS033',
+    shortcut: 'Alt+Shift+H', internalKey: ACTION_MAP['view.closeHistory']?.internalKey ?? 'F17+PS033',
     voiceTriggers: ['close history', 'close similar cases', 'close prior cases'],
     voiceTriggersByLanguage: {
       fr: ["fermer l'historique", "fermer les dossiers similaires"],
@@ -1919,7 +1981,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'VOICE_CANCEL', label: 'Cancel', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+J', internalKey: 'F17+PS034',
+    shortcut: 'Ctrl+Alt+J', internalKey: ACTION_MAP['view.voiceCancel']?.internalKey ?? 'F17+PS034',
     voiceTriggers: ['cancel', 'close modal', 'dismiss', 'go back to report'],
     voiceTriggersByLanguage: {
       fr: ["annuler", "fermer la fenêtre", "ignorer"],
@@ -1933,7 +1995,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── SEARCH context ─────────────────────────────────────────────────────
   {
     id: 'SEARCH_EXECUTE', label: 'Execute Search', category: VOICE_CONTEXT.SEARCH,
-    shortcut: 'Alt+E', internalKey: 'F13+PS305',
+    shortcut: 'Alt+E', internalKey: ACTION_MAP['view.searchExecute']?.internalKey ?? 'F13+PS305',
     voiceTriggers: ['execute search', 'run search', 'search now', 'go', 'find'],
     voiceTriggersByLanguage: {
       fr: ["exécuter la recherche", "rechercher maintenant"],
@@ -1945,7 +2007,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'SEARCH_CLEAR', label: 'Clear Search', category: VOICE_CONTEXT.SEARCH,
-    shortcut: 'Alt+C', internalKey: 'F13+PS306',
+    shortcut: 'Alt+C', internalKey: ACTION_MAP['view.searchClear']?.internalKey ?? 'F13+PS306',
     voiceTriggers: ['clear search', 'reset search', 'clear all', 'new search'],
     voiceTriggersByLanguage: {
       fr: ["effacer la recherche", "réinitialiser la recherche"],
@@ -1957,7 +2019,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'SEARCH_LOAD_SAVED', label: 'Load Saved Search', category: VOICE_CONTEXT.SEARCH,
-    shortcut: 'Alt+L', internalKey: 'F13+PS307',
+    shortcut: 'Alt+L', internalKey: ACTION_MAP['view.searchLoadSaved']?.internalKey ?? 'F13+PS307',
     voiceTriggers: ['load search', 'open saved search', 'search protocol', 'saved search'],
     voiceTriggersByLanguage: {
       fr: ["charger la recherche", "ouvrir la recherche enregistrée"],
@@ -1971,7 +2033,7 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── FLAG MANAGER context (REPORTING) ────────────────────────────────
   {
     id: 'FLAG_SELECT_CASE', label: 'Select Case', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+K', internalKey: 'F17+PS035',
+    shortcut: 'Ctrl+Alt+K', internalKey: ACTION_MAP['view.flagSelectCase']?.internalKey ?? 'F17+PS035',
     voiceTriggers: ['select case', 'flag case', 'case flag'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le dossier", "marquer le dossier"],
@@ -1983,7 +2045,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FLAG_SELECT_ALL_SPECIMENS', label: 'Select All Specimens', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+L', internalKey: 'F17+PS036',
+    shortcut: 'Ctrl+Alt+L', internalKey: ACTION_MAP['view.flagSelectAllSpecimens']?.internalKey ?? 'F17+PS036',
     voiceTriggers: ['select all specimens', 'all specimens', 'flag all specimens'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner tous les prélèvements", "marquer tous les prélèvements"],
@@ -1995,7 +2057,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FLAG_DESELECT_ALL', label: 'Deselect All', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+M', internalKey: 'F17+PS037',
+    shortcut: 'Ctrl+Alt+M', internalKey: ACTION_MAP['view.flagDeselectAll']?.internalKey ?? 'F17+PS037',
     voiceTriggers: ['deselect all', 'clear selection', 'deselect all specimens'],
     voiceTriggersByLanguage: {
       fr: ["tout désélectionner", "effacer la sélection"],
@@ -2007,7 +2069,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FLAG_SAVE', label: 'Save Flags', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+O', internalKey: 'F17+PS038',
+    shortcut: 'Ctrl+Alt+O', internalKey: ACTION_MAP['flags.save']?.internalKey ?? 'F17+PS038',
     voiceTriggers: ['save flags', 'apply flags'],
     voiceTriggersByLanguage: {
       fr: ["enregistrer les indicateurs", "appliquer les indicateurs"],
@@ -2019,7 +2081,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'FLAG_CANCEL', label: 'Cancel Flags', category: 'SYNOPTIC',
-    shortcut: 'Ctrl+Alt+Shift+X', internalKey: 'F17+PS039',
+    shortcut: 'Ctrl+Alt+Shift+X', internalKey: ACTION_MAP['view.flagCancel']?.internalKey ?? 'F17+PS039',
     voiceTriggers: ['cancel flags', 'discard flag changes', 'close flag manager'],
     voiceTriggersByLanguage: {
       fr: ["annuler les indicateurs", "fermer le gestionnaire"],
@@ -2097,7 +2159,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'MSG_MARK_READ_ALL', label: 'Mark All as Read', category: VOICE_CONTEXT.MESSAGES,
-    shortcut: 'Alt+A', internalKey: 'F18+PS024',
+    shortcut: 'Alt+A', internalKey: ACTION_MAP['view.msgMarkReadAll']?.internalKey ?? 'F18+PS024',
     voiceTriggers: ['read all', 'mark all read', 'mark all as read', 'read all messages'],
     voiceTriggersByLanguage: {
       fr: ["tout marquer comme lu", "tout lire"],
@@ -2156,6 +2218,20 @@ const SEED_ACTIONS: SystemAction[] = [
       de: ["sichere e-mail", "sichere e-mail senden"],
       nl: ["beveiligde e-mail", "beveiligde e-mail verzenden"],
       ko: ["보안 이메일", "보안 이메일 발송"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 384 (PS-359): the secure email window's Send (the phrase "send secure
+  // email" already opens the window, so this one says "submit").
+  {
+    id: 'SECURE_EMAIL_SUBMIT', label: 'Submit Secure Email', category: VOICE_CONTEXT.MESSAGES,
+    shortcut: 'Ctrl+Alt+Shift+7', internalKey: ACTION_MAP['messages.submitSecureEmail']?.internalKey ?? 'F18+PS025',
+    voiceTriggers: ['submit secure email', 'deliver secure email'],
+    voiceTriggersByLanguage: {
+      fr: ["soumettre l'e-mail sécurisé"],
+      de: ["sichere e-mail absenden"],
+      nl: ["beveiligde e-mail indienen"],
+      ko: ["보안 이메일 제출"],
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
@@ -2229,7 +2305,7 @@ const SEED_ACTIONS: SystemAction[] = [
     voiceTriggers: ['clear message', 'erase message', 'delete message body', 'start over', 'clear body'],
     voiceTriggersByLanguage: {
       fr: ["effacer le message", "recommencer"],
-      de: ["nachricht löschen", "von vorne beginnen"],
+      de: ["von vorne beginnen"],
       nl: ["bericht wissen", "opnieuw beginnen"],
       ko: ["본문 지우기", "다시 시작"],
     },
@@ -2299,7 +2375,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'MSG_VIEW_MESSAGES', label: 'View Messages', category: VOICE_CONTEXT.MESSAGES,
-    shortcut: 'Alt+Shift+V', internalKey: 'F18+PS023',
+    shortcut: 'Alt+Shift+V', internalKey: ACTION_MAP['view.msgViewMessages']?.internalKey ?? 'F18+PS023',
     voiceTriggers: ['view messages', 'show messages list', 'back to messages', 'inbox'],
     voiceTriggersByLanguage: {
       fr: ["voir les messages", "retour aux messages", "boîte de réception"],
@@ -2340,7 +2416,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Open Case Team',
     category: 'SYNOPTIC',
     shortcut: 'Alt+T',
-    internalKey: 'F13+PS200',
+    internalKey: ACTION_MAP['view.openCaseTeam']?.internalKey ?? 'F13+PS200',
     voiceTriggers: ['open case team', 'case team', 'manage team', 'show team', 'team members'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir l'équipe du dossier", "équipe du dossier", "gérer l'équipe"],
@@ -2357,7 +2433,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Add Team Member',
     category: 'SYNOPTIC',
     shortcut: 'Alt+M',
-    internalKey: 'F13+PS201',
+    internalKey: ACTION_MAP['team.addMember']?.internalKey ?? 'F13+PS201',
     voiceTriggers: ['add team member', 'add participant', 'add to team', 'assign participant'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un membre", "ajouter un participant"],
@@ -2374,7 +2450,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Assign to Participation Type',
     category: 'SYNOPTIC',
     shortcut: 'Alt+Shift+A',
-    internalKey: 'F13+PS202',
+    internalKey: ACTION_MAP['team.assignParticipation']?.internalKey ?? 'F13+PS202',
     voiceTriggers: ['assign as', 'assign to', 'set as primary', 'set as consultant', 'set as grossing'],
     voiceTriggersByLanguage: {
       fr: ["assigner comme", "définir comme principal"],
@@ -2390,16 +2466,16 @@ const SEED_ACTIONS: SystemAction[] = [
   // ── WORKLIST — participation filters ──────────────────────────────────────
   {
     id: 'TABLE_FILTER_PARTICIPATING',
-    label: 'Filter My Cases',
+    label: 'Collaborating Cases',
     category: 'WORKLIST',
     shortcut: 'Ctrl+Alt+F',
-    internalKey: 'F15+PS030',
-    voiceTriggers: ['my cases', 'cases i am on', 'my participating cases', 'filter my cases', 'show my cases'],
+    internalKey: ACTION_MAP['view.tableFilterParticipating']?.internalKey ?? 'F15+PS030',
+    voiceTriggers: ['collaborating cases', 'show collaborations', 'show consult cases', 'cases i collaborate on', 'filter collaborating cases'],
     voiceTriggersByLanguage: {
-      fr: ["mes dossiers", "afficher mes dossiers"],
-      de: ["meine fälle", "meine fälle anzeigen"],
-      nl: ["mijn zaken", "mijn zaken tonen"],
-      ko: ["내 증례", "내 증례 표시"],
+      fr: ["dossiers en collaboration", "afficher les collaborations", "afficher les dossiers de consultation"],
+      de: ["fälle in zusammenarbeit", "zusammenarbeit anzeigen", "konsiliarfälle anzeigen"],
+      nl: ["zaken in samenwerking", "samenwerkingen tonen", "consultzaken tonen"],
+      ko: ["협업 증례", "협업 표시", "자문 증례 표시"],
     },
     learnedTriggers: [],
     requiredRole: 'All Staff',
@@ -2410,7 +2486,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Filter Awaiting Countersign',
     category: 'WORKLIST',
     shortcut: 'Alt+A',
-    internalKey: 'F15+PS031',
+    internalKey: ACTION_MAP['view.tableFilterCountersign']?.internalKey ?? 'F15+PS031',
     voiceTriggers: ['awaiting countersign', 'needs countersign', 'pending countersign', 'countersign cases'],
     voiceTriggersByLanguage: {
       fr: ["en attente de contresignature", "à contresigner"],
@@ -2427,7 +2503,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Filter Pool Cases',
     category: 'WORKLIST',
     shortcut: 'Alt+Shift+P',
-    internalKey: 'F15+PS032',
+    internalKey: ACTION_MAP['view.tableFilterPool']?.internalKey ?? 'F15+PS032',
     voiceTriggers: ['pool cases', 'show pool', 'unassigned cases', 'filter pool'],
     voiceTriggersByLanguage: {
       fr: ["dossiers du pool", "dossiers non assignés"],
@@ -2446,7 +2522,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Open Routing Rules',
     category: 'SYSTEM',
     shortcut: 'Alt+R',
-    internalKey: 'F13+PS210',
+    internalKey: ACTION_MAP['view.openRoutingRules']?.internalKey ?? 'F13+PS210',
     voiceTriggers: ['open routing rules', 'routing rules', 'case routing', 'open case routing'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir les règles de routage", "règles de routage"],
@@ -2463,7 +2539,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Test Routing Rule',
     category: 'SYSTEM',
     shortcut: 'Alt+Shift+T',
-    internalKey: 'F13+PS211',
+    internalKey: ACTION_MAP['view.testRouting']?.internalKey ?? 'F13+PS211',
     voiceTriggers: ['test routing', 'test rule', 'check routing', 'route this specimen'],
     voiceTriggersByLanguage: {
       fr: ["tester le routage", "tester la règle"],
@@ -2481,8 +2557,8 @@ const SEED_ACTIONS: SystemAction[] = [
     id: 'OPEN_PARTICIPATION_TYPES',
     label: 'Open Participation Types',
     category: 'SYSTEM',
-    shortcut: 'Alt+P',
-    internalKey: 'F13+PS220',
+    shortcut: 'Alt+Shift+W',
+    internalKey: ACTION_MAP['view.openParticipationTypes']?.internalKey ?? 'F13+PS220',
     voiceTriggers: ['participation types', 'open participation types', 'case participation', 'manage participation types'],
     voiceTriggersByLanguage: {
       fr: ["types de participation", "gérer les types de participation"],
@@ -2495,83 +2571,13 @@ const SEED_ACTIONS: SystemAction[] = [
     isActive: true,
   },
 
-  // ── Computational Sidecar ───────────────────────────────────────────────────
-  {
-    id: 'COMP_OPEN_SIDECAR',
-    label: 'Open Computational Panel',
-    category: 'SYNOPTIC',
-    shortcut: 'Alt+O',
-    internalKey: 'F13+PS230',
-    voiceTriggers: ['open computational', 'show computationals', 'open results panel', 'lab results', 'show lab panel'],
-    voiceTriggersByLanguage: {
-      fr: ["ouvrir les résultats de laboratoire", "panneau de résultats"],
-      de: ["laborergebnisse öffnen", "ergebnispanel"],
-      nl: ["laboratoriumresultaten openen", "resultatenpaneel"],
-      ko: ["검사 결과 열기", "결과 패널"],
-    },
-    learnedTriggers: [],
-    requiredRole: 'Pathologist',
-    isActive: true,
-  },
-  {
-    id: 'COMP_ORDER_OPEN',
-    label: 'Order Additional Test',
-    category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+O',
-    internalKey: 'F13+PS231',
-    voiceTriggers: ['order test', 'order additional test', 'add test', 'order panel', 'order lab test'],
-    voiceTriggersByLanguage: {
-      fr: ["commander un test", "ajouter un test"],
-      de: ["test bestellen", "test hinzufügen"],
-      nl: ["test bestellen", "test toevoegen"],
-      ko: ["검사 오더", "검사 추가"],
-    },
-    learnedTriggers: [],
-    requiredRole: 'Pathologist',
-    isActive: true,
-  },
-  {
-    id: 'COMP_ORDER_PLACE',
-    label: 'Place Computational Orders',
-    category: 'SYNOPTIC',
-    shortcut: 'Alt+C',
-    internalKey: 'F13+PS232',
-    voiceTriggers: ['place order', 'place orders', 'confirm order', 'submit order', 'send order'],
-    voiceTriggersByLanguage: {
-      fr: ["passer la commande", "confirmer la commande"],
-      de: ["bestellung aufgeben", "bestellung bestätigen"],
-      nl: ["order plaatsen", "order bevestigen"],
-      ko: ["오더 접수", "오더 확인"],
-    },
-    learnedTriggers: [],
-    requiredRole: 'Pathologist',
-    isActive: true,
-  },
-  {
-    id: 'COMP_ORDER_CANCEL',
-    label: 'Cancel Computational Order',
-    category: 'SYNOPTIC',
-    shortcut: 'Alt+Shift+C',
-    internalKey: 'F13+PS233',
-    voiceTriggers: ['cancel order', 'cancel test', 'cancel lab order', 'remove order'],
-    voiceTriggersByLanguage: {
-      fr: ["annuler la commande", "annuler le test"],
-      de: ["bestellung stornieren", "test stornieren"],
-      nl: ["order annuleren", "test annuleren"],
-      ko: ["오더 취소", "검사 취소"],
-    },
-    learnedTriggers: [],
-    requiredRole: 'Pathologist',
-    isActive: true,
-  },
-
   // ── Flag Management ─────────────────────────────────────────────────────────
   {
     id: 'FLAG_OPEN_MANAGER',
     label: 'Open Flag Manager',
     category: 'SYNOPTIC',
     shortcut: 'Alt+F',
-    internalKey: 'F13+PS240',
+    internalKey: ACTION_MAP['view.flagOpenManager']?.internalKey ?? 'F13+PS240',
     voiceTriggers: ['open flags', 'manage flags', 'show flags', 'add flag'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir les indicateurs", "gérer les indicateurs"],
@@ -2588,7 +2594,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Apply STAT Flag',
     category: 'SYNOPTIC',
     shortcut: 'Alt+S',
-    internalKey: 'F13+PS241',
+    internalKey: ACTION_MAP['flags.applyStat']?.internalKey ?? 'F13+PS241',
     voiceTriggers: ['flag stat', 'mark stat', 'stat flag', 'urgent stat', 'rush processing'],
     voiceTriggersByLanguage: {
       fr: ["marquer stat", "traitement urgent"],
@@ -2613,7 +2619,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Add Orders',
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+A',
-    internalKey: 'F24+PS040',
+    internalKey: ACTION_MAP['view.addOrders']?.internalKey ?? 'F24+PS040',
     voiceTriggers: ['add orders', 'open add orders', 'new order'],
     voiceTriggersByLanguage: {
       fr: ["ajouter des commandes", "nouvelle commande"],
@@ -2630,7 +2636,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Add Block / Recut',
     category: 'SYNOPTIC',
     shortcut: 'Alt+B',
-    internalKey: 'F24+PS041',
+    internalKey: ACTION_MAP['orders.blockRecut']?.internalKey ?? 'F24+PS041',
     voiceTriggers: ['add block', 'add recut', 'add cassette', 'order deeper levels', 'recut block'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un bloc", "ajouter une recoupe", "ajouter une cassette"],
@@ -2647,7 +2653,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Order Stain / Sectioning',
     category: 'SYNOPTIC',
     shortcut: 'Alt+Shift+S',
-    internalKey: 'F24+PS042',
+    internalKey: ACTION_MAP['orders.stainSectioning']?.internalKey ?? 'F24+PS042',
     voiceTriggers: ['order stain', 'order sectioning', 'add stain', 'order ihc', 'order levels'],
     voiceTriggersByLanguage: {
       fr: ["commander une coloration", "ajouter une coloration", "commander ihc"],
@@ -2664,7 +2670,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Add New Specimen',
     category: 'SYNOPTIC',
     shortcut: 'Alt+N',
-    internalKey: 'F24+PS043',
+    internalKey: ACTION_MAP['orders.newSpecimen']?.internalKey ?? 'F24+PS043',
     voiceTriggers: ['add new specimen', 'add specimen container', 'new tissue container'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un nouveau prélèvement", "nouveau contenant de tissu"],
@@ -2683,7 +2689,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Save Report Draft',
     category: 'SYNOPTIC',
     shortcut: 'Alt+R',
-    internalKey: 'F13+PS250',
+    internalKey: ACTION_MAP['report.saveDraft']?.internalKey ?? 'F13+PS250',
     voiceTriggers: ['save draft', 'save report', 'save changes', 'save my work'],
     voiceTriggersByLanguage: {
       fr: ['enregistrer le brouillon', 'enregistrer le rapport', 'enregistrer les modifications'],
@@ -2700,7 +2706,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Discard Unsaved Changes',
     category: 'SYNOPTIC',
     shortcut: 'Alt+U',
-    internalKey: 'F13+PS251',
+    internalKey: ACTION_MAP['report.discardChanges']?.internalKey ?? 'F13+PS251',
     voiceTriggers: ['discard changes', 'undo all changes', 'revert changes', 'cancel changes'],
     voiceTriggersByLanguage: {
       fr: ["annuler les modifications", "annuler toutes les modifications"],
@@ -2719,7 +2725,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Select Report Template',
     category: 'SYNOPTIC',
     shortcut: 'Alt+Shift+R',
-    internalKey: 'F13+PS260',
+    internalKey: ACTION_MAP['report.chooseTemplate']?.internalKey ?? 'F13+PS260',
     voiceTriggers: ['select template', 'change template', 'choose template', 'switch template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner un modèle", "changer de modèle"],
@@ -2739,8 +2745,8 @@ const SEED_ACTIONS: SystemAction[] = [
     id: 'FOCUS_CASE_SEARCH',
     label: 'Focus Case Search',
     category: 'SYSTEM',
-    shortcut: 'Alt+F',
-    internalKey: 'F13+PS011',
+    shortcut: 'Alt+Shift+B',
+    internalKey: ACTION_MAP['view.focusCaseSearch']?.internalKey ?? 'F13+PS011',
     voiceTriggers: ['search case', 'find case', 'look up case', 'case search', 'search identifier', 'open case search'],
     voiceTriggersByLanguage: {
       fr: ["rechercher un dossier", "trouver un dossier"],
@@ -2759,7 +2765,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Request Consultation',
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+R',
-    internalKey: 'F17+PS046',
+    internalKey: ACTION_MAP['delegation.requestConsultation']?.internalKey ?? 'F17+PS046',
     voiceTriggers: ['request consultation', 'request review', 'send for review', 'consult colleague', 'second opinion', 'peer review'],
     voiceTriggersByLanguage: {
       fr: ["demander une consultation", "demander un second avis"],
@@ -2784,7 +2790,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Return to Trainee',
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+Shift+T',
-    internalKey: 'F17+PS041',
+    internalKey: ACTION_MAP['report.returnToTrainee']?.internalKey ?? 'F17+PS041',
     voiceTriggers: ['return to trainee', 'reject with notes', 'send back to resident', 'return case to resident'],
     voiceTriggersByLanguage: {
       fr: ["retourner au stagiaire", "renvoyer au résident"],
@@ -2801,7 +2807,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Recall Report',
     category: 'SYNOPTIC',
     shortcut: 'Ctrl+Alt+Shift+V',
-    internalKey: 'F17+PS042',
+    internalKey: ACTION_MAP['report.recall']?.internalKey ?? 'F17+PS042',
     voiceTriggers: ['recall report', 'pull back report', 'recall the report'],
     voiceTriggersByLanguage: {
       fr: ["rappeler le rapport", "retirer le rapport"],
@@ -2920,13 +2926,210 @@ const SEED_ACTIONS: SystemAction[] = [
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
 
+  // ── Batch 614: the text editor's own commands ─────────────────────────────────────────────────────────
+  // Formatting, lists, indent, find and replace, table, signature line, ruler and formatting marks, by voice or key.
+  // The handlers are in components/Editor/editorCommands.ts and run on the editor that last had the cursor.
+  // Keys are Ctrl+Alt+digit and a few Ctrl+Alt+punctuation, so they never clash with the text-editing keys (Ctrl+B etc.).
+  {
+    id: "EDITOR_NEXT_SECTION", label: "Next Section in Text", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+.", internalKey: ACTION_MAP["editor.nextSection"]?.internalKey ?? "F16+PS003",
+    voiceTriggers: ["next section in text", "next heading"],
+    voiceTriggersByLanguage: {
+      fr: ["section suivante du texte", "titre suivant"],
+      de: ["nächster abschnitt im text", "nächste überschrift"],
+      nl: ["volgende sectie in tekst", "volgende kop"],
+      ko: ["본문 다음 구역", "다음 제목"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_PREVIOUS_SECTION", label: "Previous Section in Text", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+,", internalKey: ACTION_MAP["editor.previousSection"]?.internalKey ?? "F16+PS004",
+    voiceTriggers: ["previous section in text", "previous heading"],
+    voiceTriggersByLanguage: {
+      fr: ["section précédente du texte", "titre précédent"],
+      de: ["vorheriger abschnitt im text", "vorherige überschrift"],
+      nl: ["vorige sectie in tekst", "vorige kop"],
+      ko: ["본문 이전 구역", "이전 제목"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_INSERT_TABLE", label: "Insert Table", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+/", internalKey: ACTION_MAP["editor.insertTable"]?.internalKey ?? "F16+PS006",
+    voiceTriggers: ["insert table", "add table"],
+    voiceTriggersByLanguage: {
+      fr: ["insérer un tableau", "ajouter un tableau"],
+      de: ["tabelle einfügen", "tabelle hinzufügen"],
+      nl: ["tabel invoegen", "tabel toevoegen"],
+      ko: ["표 삽입", "표 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_INSERT_SIGNATURE", label: "Insert Signature Line", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+[", internalKey: ACTION_MAP["editor.insertSignature"]?.internalKey ?? "F16+PS007",
+    voiceTriggers: ["insert signature line", "add signature line"],
+    voiceTriggersByLanguage: {
+      fr: ["insérer une ligne de signature", "ajouter une ligne de signature"],
+      de: ["unterschriftszeile einfügen", "unterschriftszeile hinzufügen"],
+      nl: ["handtekeningregel invoegen", "handtekeningregel toevoegen"],
+      ko: ["서명란 삽입", "서명란 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_BOLD", label: "Bold", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+1", internalKey: ACTION_MAP["editor.bold"]?.internalKey ?? "F16+PS008",
+    voiceTriggers: ["make bold", "bold text", "toggle bold"],
+    voiceTriggersByLanguage: {
+      fr: ["mettre en gras", "texte en gras"],
+      de: ["fett formatieren", "text fett"],
+      nl: ["vet maken", "tekst vet"],
+      ko: ["굵게 하기", "굵은 글씨"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_ITALIC", label: "Italic", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+2", internalKey: ACTION_MAP["editor.italic"]?.internalKey ?? "F16+PS009",
+    voiceTriggers: ["make italic", "italic text", "toggle italic"],
+    voiceTriggersByLanguage: {
+      fr: ["mettre en italique", "texte en italique"],
+      de: ["kursiv formatieren", "text kursiv"],
+      nl: ["cursief maken", "tekst cursief"],
+      ko: ["기울임 하기", "기울임꼴"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_UNDERLINE", label: "Underline", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+3", internalKey: ACTION_MAP["editor.underline"]?.internalKey ?? "F16+PS010",
+    voiceTriggers: ["make underlined", "underline text", "toggle underline"],
+    voiceTriggersByLanguage: {
+      fr: ["souligner le texte", "mettre en souligné"],
+      de: ["text unterstreichen", "unterstrichen formatieren"],
+      nl: ["tekst onderstrepen", "onderstreept maken"],
+      ko: ["밑줄 하기", "텍스트 밑줄"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_BULLETS", label: "Bullets", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+4", internalKey: ACTION_MAP["editor.bullets"]?.internalKey ?? "F16+PS011",
+    voiceTriggers: ["bullet list", "make bullets", "toggle bullets"],
+    voiceTriggersByLanguage: {
+      fr: ["liste à puces", "mettre des puces"],
+      de: ["aufzählungsliste", "aufzählungszeichen"],
+      nl: ["opsommingslijst", "opsommingstekens"],
+      ko: ["글머리 기호 목록", "글머리 기호"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_NUMBERING", label: "Numbered List", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+5", internalKey: ACTION_MAP["editor.numbering"]?.internalKey ?? "F16+PS012",
+    voiceTriggers: ["numbered list", "make numbered list", "toggle numbering"],
+    voiceTriggersByLanguage: {
+      fr: ["liste numérotée", "mettre une numérotation"],
+      de: ["nummerierte liste", "nummerierung"],
+      nl: ["genummerde lijst", "nummering"],
+      ko: ["번호 매기기 목록", "번호 목록"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_INCREASE_INDENT", label: "Increase Indent", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+6", internalKey: ACTION_MAP["editor.increaseIndent"]?.internalKey ?? "F16+PS013",
+    voiceTriggers: ["indent more", "increase indent"],
+    voiceTriggersByLanguage: {
+      fr: ["augmenter le retrait", "retrait plus grand"],
+      de: ["einzug vergrößern", "mehr einrücken"],
+      nl: ["inspringen vergroten", "meer inspringen"],
+      ko: ["들여쓰기 늘리기", "들여쓰기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_DECREASE_INDENT", label: "Decrease Indent", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+7", internalKey: ACTION_MAP["editor.decreaseIndent"]?.internalKey ?? "F16+PS014",
+    voiceTriggers: ["indent less", "decrease indent"],
+    voiceTriggersByLanguage: {
+      fr: ["diminuer le retrait", "retrait plus petit"],
+      de: ["einzug verkleinern", "weniger einrücken"],
+      nl: ["inspringen verkleinen", "minder inspringen"],
+      ko: ["들여쓰기 줄이기", "내어쓰기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_FIND", label: "Find in Text", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+8", internalKey: ACTION_MAP["editor.find"]?.internalKey ?? "F16+PS015",
+    voiceTriggers: ["find in text", "find in report", "open find"],
+    voiceTriggersByLanguage: {
+      fr: ["rechercher dans le texte", "ouvrir la recherche de texte"],
+      de: ["im text suchen", "textsuche öffnen"],
+      nl: ["zoeken in tekst", "tekst zoeken openen"],
+      ko: ["본문에서 찾기", "본문 찾기 열기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_REPLACE", label: "Replace in Text", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+9", internalKey: ACTION_MAP["editor.replace"]?.internalKey ?? "F16+PS016",
+    voiceTriggers: ["replace in text", "find and replace", "open replace"],
+    voiceTriggersByLanguage: {
+      fr: ["remplacer dans le texte", "rechercher et remplacer"],
+      de: ["im text ersetzen", "suchen und ersetzen"],
+      nl: ["vervangen in tekst", "zoeken en vervangen"],
+      ko: ["본문에서 바꾸기", "찾아 바꾸기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_SELECT_ALL", label: "Select All Text", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+0", internalKey: ACTION_MAP["editor.selectAll"]?.internalKey ?? "F16+PS017",
+    voiceTriggers: ["select all text", "select all in editor"],
+    voiceTriggersByLanguage: {
+      fr: ["sélectionner tout le texte", "tout sélectionner dans l'éditeur"],
+      de: ["gesamten text markieren", "alles im editor markieren"],
+      nl: ["alle tekst selecteren", "alles in editor selecteren"],
+      ko: ["본문 전체 선택", "편집기 전체 선택"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_SHOW_RULER", label: "Show / Hide Ruler", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+]", internalKey: ACTION_MAP["editor.showRuler"]?.internalKey ?? "F16+PS018",
+    voiceTriggers: ["show ruler", "hide ruler", "toggle ruler"],
+    voiceTriggersByLanguage: {
+      fr: ["afficher la règle", "masquer la règle"],
+      de: ["lineal anzeigen", "lineal ausblenden"],
+      nl: ["liniaal tonen", "liniaal verbergen"],
+      ko: ["눈금자 표시", "눈금자 숨기기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: "EDITOR_TOGGLE_FORMATTING", label: "Show / Hide Formatting Marks", category: 'SYNOPTIC',
+    shortcut: "Ctrl+Alt+;", internalKey: ACTION_MAP["editor.toggleFormatting"]?.internalKey ?? "F16+PS019",
+    voiceTriggers: ["show formatting marks", "hide formatting marks", "toggle formatting marks"],
+    voiceTriggersByLanguage: {
+      fr: ["afficher les marques de mise en forme", "masquer les marques de mise en forme"],
+      de: ["formatierungszeichen anzeigen", "formatierungszeichen ausblenden"],
+      nl: ["opmaaktekens tonen", "opmaaktekens verbergen"],
+      ko: ["서식 기호 표시", "서식 기호 숨기기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+
   // ── TAT Trend tile switching — Contribution Dashboard ────────────────────────
   {
     id: 'TAT_SHOW_FIRST_TOUCH',
     label: 'Show First Touch TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+S',
-    internalKey: 'F25+PS001',
+    internalKey: ACTION_MAP['view.tatShowFirstTouch']?.internalKey ?? 'F25+PS001',
     voiceTriggers: ['show first touch', 'first touch trend', 'first touch tat'],
     voiceTriggersByLanguage: {
       fr: ["afficher premier contact", "tendance premier contact"],
@@ -2943,7 +3146,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Total Case TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+T',
-    internalKey: 'F25+PS002',
+    internalKey: ACTION_MAP['view.tatShowTotalCase']?.internalKey ?? 'F25+PS002',
     voiceTriggers: ['show total case', 'total case trend', 'total tat'],
     voiceTriggersByLanguage: {
       fr: ["afficher le total du dossier", "tendance totale"],
@@ -2960,7 +3163,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Frozen Section TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+F',
-    internalKey: 'F25+PS003',
+    internalKey: ACTION_MAP['view.tatShowFrozenSection']?.internalKey ?? 'F25+PS003',
     voiceTriggers: ['show frozen section', 'frozen section trend', 'frozen section tat', 'intraop trend'],
     voiceTriggersByLanguage: {
       fr: ["afficher coupe congelée", "tendance coupe congelée"],
@@ -2977,7 +3180,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Grossing TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+G',
-    internalKey: 'F25+PS004',
+    internalKey: ACTION_MAP['view.tatShowGrossing']?.internalKey ?? 'F25+PS004',
     voiceTriggers: ['show grossing', 'grossing trend', 'grossing tat'],
     voiceTriggersByLanguage: {
       fr: ["afficher macroscopie", "tendance macroscopie"],
@@ -2994,7 +3197,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Sign-Out TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+Shift+S',
-    internalKey: 'F25+PS005',
+    internalKey: ACTION_MAP['view.tatShowSignOut']?.internalKey ?? 'F25+PS005',
     voiceTriggers: ['show sign out', 'sign out trend', 'sign out tat', 'signout trend'],
     voiceTriggersByLanguage: {
       fr: ["afficher validation", "tendance validation"],
@@ -3011,7 +3214,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Cold Ischaemia TAT Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+C',
-    internalKey: 'F25+PS006',
+    internalKey: ACTION_MAP['view.tatShowColdIschemia']?.internalKey ?? 'F25+PS006',
     voiceTriggers: ['show cold ischemia', 'cold ischemia trend', 'cold ischaemia', 'ischemia trend'],
     voiceTriggersByLanguage: {
       fr: ["afficher ischémie froide", "tendance ischémie froide"],
@@ -3028,7 +3231,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show My Response Time Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+R',
-    internalKey: 'F25+PS007',
+    internalKey: ACTION_MAP['view.tatShowConsultResponse']?.internalKey ?? 'F25+PS007',
     voiceTriggers: ['show my response time', 'response time trend', 'consultation response trend', 'how fast do i respond'],
     voiceTriggersByLanguage: {
       fr: ["afficher mon temps de réponse", "tendance temps de réponse"],
@@ -3045,7 +3248,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Show Awaiting Response Trend',
     category: 'CONTRIBUTION',
     shortcut: 'Alt+A',
-    internalKey: 'F25+PS008',
+    internalKey: ACTION_MAP['view.tatShowConsultAwaiting']?.internalKey ?? 'F25+PS008',
     voiceTriggers: ['show awaiting response', 'awaiting response trend', 'how long am i waiting', 'consultation awaiting'],
     voiceTriggersByLanguage: {
       fr: ["afficher en attente de réponse", "tendance attente de réponse"],
@@ -3081,7 +3284,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Dispatch Now',
     category: 'AUDIT',
     shortcut: 'Alt+D',
-    internalKey: 'F25+PS009',
+    internalKey: ACTION_MAP['dispatch.sendNow']?.internalKey ?? 'F25+PS009',
     voiceTriggers: ['dispatch now', 'send now', 'dispatch this message'],
     voiceTriggersByLanguage: {
       fr: ["envoyer maintenant", "transmettre maintenant"],
@@ -3098,7 +3301,7 @@ const SEED_ACTIONS: SystemAction[] = [
     label: 'Retry Dispatch',
     category: 'AUDIT',
     shortcut: 'Alt+R',
-    internalKey: 'F25+PS010',
+    internalKey: ACTION_MAP['dispatch.retry']?.internalKey ?? 'F25+PS010',
     voiceTriggers: ['retry dispatch', 'retry send', 'resend'],
     voiceTriggersByLanguage: {
       fr: ["réessayer l'envoi", "renvoyer"],
@@ -3123,7 +3326,7 @@ const SEED_ACTIONS: SystemAction[] = [
 // a misrecognized voice command shouldn't be able to trigger.
   {
     id: 'CYTOLOGY_OPEN_MATERIAL', label: 'Open Material', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+E', internalKey: 'F26+PS001',
+    shortcut: 'Ctrl+Alt+Shift+E', internalKey: ACTION_MAP['view.cytologyOpenMaterial']?.internalKey ?? 'F26+PS001',
     voiceTriggers: ['open material', 'show material', 'open material drawer'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir le matériel", "afficher le matériel"],
@@ -3135,7 +3338,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_ADD_RESIDUAL_FLUID', label: 'Add Residual Fluid', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+H', internalKey: 'F26+PS002',
+    shortcut: 'Ctrl+Alt+Shift+H', internalKey: ACTION_MAP['cytology.addResidualFluid']?.internalKey ?? 'F26+PS002',
     voiceTriggers: ['add residual fluid', 'new residual fluid'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un liquide résiduel", "nouveau liquide résiduel"],
@@ -3147,7 +3350,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_ADD_CELL_BLOCK', label: 'Add Cell Block', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+I', internalKey: 'F26+PS003',
+    shortcut: 'Ctrl+Alt+Shift+I', internalKey: ACTION_MAP['cytology.addCellBlock']?.internalKey ?? 'F26+PS003',
     voiceTriggers: ['add cell block', 'new cell block'],
     voiceTriggersByLanguage: {
       fr: ["ajouter un bloc cellulaire", "nouveau bloc cellulaire"],
@@ -3159,7 +3362,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_OPEN_SYNOPTIC', label: 'Open Cytology Synoptic', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+J', internalKey: 'F26+PS004',
+    shortcut: 'Ctrl+Alt+Shift+J', internalKey: ACTION_MAP['view.cytologyOpenSynoptic']?.internalKey ?? 'F26+PS004',
     voiceTriggers: ['open synoptic', 'show synoptic', 'open synoptic form'],
     voiceTriggersByLanguage: {
       fr: ["ouvrir le rapport synoptique", "afficher le rapport synoptique"],
@@ -3171,7 +3374,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SAVE_SYNOPTIC', label: 'Save Cytology Synoptic', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+K', internalKey: 'F26+PS005',
+    shortcut: 'Ctrl+Alt+Shift+K', internalKey: ACTION_MAP['cytology.saveSynoptic']?.internalKey ?? 'F26+PS005',
     voiceTriggers: ['save synoptic', 'save template', 'save synoptic report'],
     voiceTriggersByLanguage: {
       fr: ["enregistrer le rapport synoptique", "enregistrer le modèle"],
@@ -3183,7 +3386,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_INSERT_NARRATIVE', label: 'Insert Generated Narrative', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+L', internalKey: 'F26+PS006',
+    shortcut: 'Ctrl+Alt+Shift+L', internalKey: ACTION_MAP['cytology.insertNarrative']?.internalKey ?? 'F26+PS006',
     voiceTriggers: ['insert narrative', 'insert into notes', 'insert generated narrative'],
     voiceTriggersByLanguage: {
       fr: ["insérer le récit", "insérer dans les notes"],
@@ -3195,7 +3398,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SELECT_TEMPLATE_THYROID', label: 'Select Thyroid Template', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+M', internalKey: 'F26+PS007',
+    shortcut: 'Ctrl+Alt+Shift+M', internalKey: ACTION_MAP['view.cytologySelectTemplateThyroid']?.internalKey ?? 'F26+PS007',
     voiceTriggers: ['select thyroid template', 'thyroid template', 'use thyroid template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le modèle thyroïde", "modèle thyroïde"],
@@ -3207,7 +3410,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SELECT_TEMPLATE_PANCREATICOBILIARY', label: 'Select Pancreaticobiliary Template', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+Q', internalKey: 'F26+PS008',
+    shortcut: 'Ctrl+Alt+Shift+Q', internalKey: ACTION_MAP['view.cytologySelectTemplatePancreaticobiliary']?.internalKey ?? 'F26+PS008',
     voiceTriggers: ['select pancreaticobiliary template', 'pancreaticobiliary template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le modèle pancréatobiliaire", "modèle pancréatobiliaire"],
@@ -3219,7 +3422,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SELECT_TEMPLATE_SALIVARY_GLAND', label: 'Select Salivary Gland Template', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+U', internalKey: 'F26+PS009',
+    shortcut: 'Ctrl+Alt+Shift+U', internalKey: ACTION_MAP['view.cytologySelectTemplateSalivaryGland']?.internalKey ?? 'F26+PS009',
     voiceTriggers: ['select salivary gland template', 'salivary gland template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le modèle glande salivaire", "modèle glande salivaire"],
@@ -3231,7 +3434,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SELECT_TEMPLATE_LYMPH_NODE', label: 'Select Lymph Node Template', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+W', internalKey: 'F26+PS010',
+    shortcut: 'Ctrl+Alt+Shift+W', internalKey: ACTION_MAP['view.cytologySelectTemplateLymphNode']?.internalKey ?? 'F26+PS010',
     voiceTriggers: ['select lymph node template', 'lymph node template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le modèle ganglion lymphatique", "modèle ganglion lymphatique"],
@@ -3243,7 +3446,7 @@ const SEED_ACTIONS: SystemAction[] = [
   },
   {
     id: 'CYTOLOGY_SELECT_TEMPLATE_URINE', label: 'Select Urine Template', category: 'CYTOLOGY',
-    shortcut: 'Ctrl+Alt+Shift+Y', internalKey: 'F26+PS011',
+    shortcut: 'Ctrl+Alt+Shift+Y', internalKey: ACTION_MAP['view.cytologySelectTemplateUrine']?.internalKey ?? 'F26+PS011',
     voiceTriggers: ['select urine template', 'urine template'],
     voiceTriggersByLanguage: {
       fr: ["sélectionner le modèle urinaire", "modèle urinaire"],
@@ -3253,8 +3456,270 @@ const SEED_ACTIONS: SystemAction[] = [
     },
     learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
   },
+  // Batch 386 (PS-359): the screening page's four save buttons. Each form
+  // listens while it is on screen and acts exactly as its button does, the
+  // Field Requirements check included.
+  {
+    id: 'CYTOLOGY_SAVE_REVIEW', label: 'Save Cytology Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: ACTION_MAP['cytology.saveReview']?.internalKey ?? 'F26+PS012',
+    voiceTriggers: ['save review', 'save cytology review'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer l'évaluation", "enregistrer la lecture"],
+      de: ["befundung speichern", "beurteilung speichern"],
+      nl: ["beoordeling opslaan", "screening opslaan"],
+      ko: ["판독 저장", "검토 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_SAVE_CISOEA', label: 'Save CISOE-A Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+B', internalKey: ACTION_MAP['cytology.saveCisoea']?.internalKey ?? 'F26+PS013',
+    voiceTriggers: ['save cisoe-a review', 'save cisoea'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer la lecture cisoe-a"],
+      de: ["cisoe-a-befundung speichern"],
+      nl: ["cisoe-a-beoordeling opslaan"],
+      ko: ["cisoe-a 판독 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_COMPLETE_RETROSPECTIVE', label: 'Complete Retrospective Review', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+C', internalKey: ACTION_MAP['cytology.completeRetrospective']?.internalKey ?? 'F26+PS014',
+    voiceTriggers: ['complete retrospective review', 'complete review'],
+    voiceTriggersByLanguage: {
+      fr: ["terminer la révision rétrospective"],
+      de: ["retrospektive überprüfung abschließen"],
+      nl: ["retrospectieve beoordeling voltooien"],
+      ko: ["소급 검토 완료"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'CYTOLOGY_RECORD_CORRELATION', label: 'Record Cyto-Histologic Correlation', category: 'CYTOLOGY',
+    shortcut: 'Ctrl+Alt+Shift+D', internalKey: ACTION_MAP['cytology.recordCorrelation']?.internalKey ?? 'F26+PS015',
+    voiceTriggers: ['record correlation', 'confirm correlation'],
+    voiceTriggersByLanguage: {
+      fr: ["enregistrer la corrélation"],
+      de: ["korrelation erfassen"],
+      nl: ["correlatie registreren"],
+      ko: ["상관관계 기록"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 388 (PS-359): the Microtome workstation's comment drawer and slide grid.
+  // Each acts exactly as its button does, checks included.
+  {
+    id: 'MICROTOMY_ADD_COMMENT', label: 'Add Comment (Microtome)', category: 'MICROTOMY',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: ACTION_MAP['workstation.microtomyComment']?.internalKey ?? 'F26+PS016',
+    voiceTriggers: ['add comment', 'save comment'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter le commentaire", "enregistrer le commentaire"],
+      de: ["kommentar hinzufügen", "kommentar speichern"],
+      nl: ["opmerking toevoegen", "opmerking opslaan"],
+      ko: ["코멘트 추가", "코멘트 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'MICROTOMY_ADD_STAIN', label: 'Add Stain to Slide Grid', category: 'MICROTOMY',
+    shortcut: 'Ctrl+Alt+Shift+B', internalKey: ACTION_MAP['workstation.microtomyStain']?.internalKey ?? 'F26+PS017',
+    voiceTriggers: ['add stain', 'add slide'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter la coloration", "ajouter la lame"],
+      de: ["färbung hinzufügen", "objektträger hinzufügen"],
+      nl: ["kleuring toevoegen", "glaasje toevoegen"],
+      ko: ["염색 추가", "슬라이드 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 401 (PS-359): the Embedding station. Each acts exactly as its button
+  // does, Field Requirements included.
+  {
+    id: 'EMBEDDING_CONFIRM_PIECE_COUNT', label: 'Confirm Embedding (Piece Count)', category: 'EMBEDDING',
+    shortcut: 'Ctrl+Alt+Shift+C', internalKey: ACTION_MAP['workstation.embeddingConfirm']?.internalKey ?? 'F28+PS001',
+    voiceTriggers: ['confirm count', 'confirm embedding'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer le nombre", "confirmer l'inclusion"],
+      de: ["anzahl bestätigen", "einbettung bestätigen"],
+      nl: ["aantal bevestigen", "inbedding bevestigen"],
+      ko: ["개수 확인", "포매 확인"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'EMBEDDING_ADD_COMMENT', label: 'Add Comment (Embedding)', category: 'EMBEDDING',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: ACTION_MAP['workstation.embeddingComment']?.internalKey ?? 'F28+PS002',
+    voiceTriggers: ['add comment', 'save comment'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter le commentaire", "enregistrer le commentaire"],
+      de: ["kommentar hinzufügen", "kommentar speichern"],
+      nl: ["opmerking toevoegen", "opmerking opslaan"],
+      ko: ["코멘트 추가", "코멘트 저장"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 402 (PS-359): the Slide distribution station's two routing buttons.
+  // Each acts exactly as its button does, Field Requirements included, and only
+  // while its destination (physical or digital) is the one on screen.
+  {
+    id: 'SLIDE_DIST_CONFIRM_PHYSICAL', label: 'Confirm Physical Routing (Slide Distribution)', category: 'SLIDE_DISTRIBUTION',
+    shortcut: 'Ctrl+Alt+Shift+P', internalKey: ACTION_MAP['workstation.slideCheckout']?.internalKey ?? 'F29+PS001',
+    voiceTriggers: ['confirm checkout', 'check out slide'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer la sortie", "sortir la lame"],
+      de: ["ausgabe bestätigen", "objektträger ausgeben"],
+      nl: ["uitgifte bevestigen", "glaasje uitgeven"],
+      ko: ["반출 확인", "슬라이드 반출"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'SLIDE_DIST_CONFIRM_DIGITAL', label: 'Confirm Scanner Routing (Slide Distribution)', category: 'SLIDE_DISTRIBUTION',
+    shortcut: 'Ctrl+Alt+Shift+D', internalKey: ACTION_MAP['workstation.slideScanner']?.internalKey ?? 'F29+PS002',
+    voiceTriggers: ['confirm scanner', 'send to scanner'],
+    voiceTriggersByLanguage: {
+      fr: ["confirmer le scanner", "envoyer au scanner"],
+      de: ["scanner bestätigen", "an scanner senden"],
+      nl: ["scanner bevestigen", "naar scanner sturen"],
+      ko: ["스캐너 확인", "스캐너로 보내기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 403 (PS-359): the Add-On Orders page's Add to Cart and Submit.
+  // Each acts exactly as its button does, Field Requirements included.
+  {
+    id: 'ADD_ON_ADD_TO_ORDER', label: 'Add to Add-On Order', category: 'ADD_ON_ORDER',
+    shortcut: 'Ctrl+Alt+Shift+A', internalKey: ACTION_MAP['orders.addOnAdd']?.internalKey ?? 'F30+PS001',
+    voiceTriggers: ['add to order', 'add to cart'],
+    voiceTriggersByLanguage: {
+      fr: ["ajouter à la commande", "ajouter au panier"],
+      de: ["zur bestellung hinzufügen", "zum warenkorb hinzufügen"],
+      nl: ["aan bestelling toevoegen", "aan winkelwagen toevoegen"],
+      ko: ["주문에 추가", "장바구니에 추가"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'ADD_ON_SUBMIT_ORDER', label: 'Submit Add-On Order', category: 'ADD_ON_ORDER',
+    shortcut: 'Ctrl+Alt+Shift+S', internalKey: ACTION_MAP['orders.addOnSubmit']?.internalKey ?? 'F30+PS002',
+    voiceTriggers: ['submit order', 'submit add-on order'],
+    voiceTriggersByLanguage: {
+      fr: ["soumettre la commande", "soumettre la commande complémentaire"],
+      de: ["bestellung absenden", "zusatzauftrag absenden"],
+      nl: ["bestelling indienen", "aanvullende bestelling indienen"],
+      ko: ["주문 제출", "추가 주문 제출"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 404 (PS-359): New Container's Generate button, Field Requirements
+  // included. The overrides (abort, force-complete, cold-chain acknowledge)
+  // deliberately have no voice command.
+  {
+    id: 'BATCH_CREATE_CONTAINER', label: 'Create Container (Batch Management)', category: 'BATCH_MANAGEMENT',
+    shortcut: 'Ctrl+Alt+Shift+N', internalKey: ACTION_MAP['workstation.createContainer']?.internalKey ?? 'F31+PS001',
+    voiceTriggers: ['create container', 'generate container'],
+    voiceTriggersByLanguage: {
+      fr: ["créer le conteneur", "générer le conteneur"],
+      de: ["behälter erstellen", "behälter erzeugen"],
+      nl: ["container aanmaken", "container genereren"],
+      ko: ["용기 생성", "용기 만들기"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 405 (PS-359): the molecular plate builder's Create, Field
+  // Requirements included. Clone & Supersede deliberately has no voice command.
+  {
+    id: 'MOLECULAR_CREATE_PLATE', label: 'Create Plate (Molecular)', category: 'MOLECULAR',
+    shortcut: 'Ctrl+Alt+Shift+N', internalKey: ACTION_MAP['workstation.createPlate']?.internalKey ?? 'F32+PS001',
+    voiceTriggers: ['create plate', 'create batch'],
+    voiceTriggersByLanguage: {
+      fr: ["créer la plaque", "créer le lot"],
+      de: ["platte erstellen", "charge erstellen"],
+      nl: ["plaat aanmaken", "batch aanmaken"],
+      ko: ["플레이트 생성", "배치 생성"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 406: Rack Loading's "Place on instrument", Field Requirements and
+  // deck-slot checks included, exactly as the button.
+  {
+    id: 'MOLECULAR_PLACE_RACK', label: 'Place Rack on Instrument (Molecular)', category: 'MOLECULAR',
+    shortcut: 'Ctrl+Alt+Shift+P', internalKey: ACTION_MAP['workstation.placeRack']?.internalKey ?? 'F32+PS002',
+    voiceTriggers: ['place rack', 'rack on instrument'],
+    voiceTriggersByLanguage: {
+      fr: ["placer le portoir", "portoir sur l'automate"],
+      de: ["rack platzieren", "rack ins gerät"],
+      nl: ["rek plaatsen", "rek op instrument"],
+      ko: ["랙 배치", "장비에 랙 배치"],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  // Batch 397 (PS-359): Add Orders → Blocks / Recut's Add Block, and the Intraop
+  // page's Continue (start the session), the two specimen saves and Merge. Each
+  // acts exactly as its button does, Field Requirements check included.
+  {
+    id: 'ADD_ORDERS_ADD_BLOCK', label: 'Add Block (Add Orders)', category: 'SYNOPTIC',
+    shortcut: 'Ctrl+Alt+Shift+8', internalKey: ACTION_MAP['orders.confirmBlock']?.internalKey ?? 'F20+PS013',
+    voiceTriggers: ['confirm block order', 'save block order'],
+    voiceTriggersByLanguage: {
+      fr: ['confirmer la commande de bloc'],
+      de: ['blockauftrag bestätigen'],
+      nl: ['blokorder bevestigen'],
+      ko: ['블록 주문 확인'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_START_SESSION', label: 'Start Intraop Session (Continue to Specimen)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+1', internalKey: ACTION_MAP['intraop.startSession']?.internalKey ?? 'F27+PS001',
+    voiceTriggers: ['continue to specimen', 'start the session'],
+    voiceTriggersByLanguage: {
+      fr: ['continuer vers le prélèvement', 'démarrer la session'],
+      de: ['weiter zum präparat', 'sitzung starten'],
+      nl: ['verder naar het preparaat', 'sessie starten'],
+      ko: ['검체로 계속', '세션 시작'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_SAVE_SPECIMEN_NEXT', label: 'Save Specimen and Next (Intraop)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+2', internalKey: ACTION_MAP['intraop.saveSpecimenNext']?.internalKey ?? 'F27+PS002',
+    voiceTriggers: ['save and next specimen', 'next specimen'],
+    voiceTriggersByLanguage: {
+      fr: ['enregistrer et prélèvement suivant', 'prélèvement suivant'],
+      de: ['speichern und nächstes präparat', 'nächstes präparat'],
+      nl: ['opslaan en volgend preparaat', 'volgend preparaat'],
+      ko: ['저장 후 다음 검체', '다음 검체'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_SAVE_SPECIMEN_CLOSE', label: 'Save Specimen and Close Session (Intraop)', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+3', internalKey: ACTION_MAP['intraop.saveSpecimenClose']?.internalKey ?? 'F27+PS003',
+    voiceTriggers: ['save and close session', 'close and save'],
+    voiceTriggersByLanguage: {
+      fr: ['enregistrer et fermer la session'],
+      de: ['speichern und sitzung schließen'],
+      nl: ['opslaan en sessie sluiten'],
+      ko: ['저장 후 세션 종료'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
+  {
+    id: 'INTRAOP_MERGE_CONFIRM', label: 'Merge Intraop Session into Case', category: 'INTRAOP',
+    shortcut: 'Ctrl+Alt+Shift+4', internalKey: ACTION_MAP['intraop.mergeSession']?.internalKey ?? 'F27+PS004',
+    voiceTriggers: ['merge session', 'confirm merge'],
+    voiceTriggersByLanguage: {
+      fr: ['fusionner la session', 'confirmer la fusion'],
+      de: ['sitzung zusammenführen', 'zusammenführen bestätigen'],
+      nl: ['sessie samenvoegen', 'samenvoegen bevestigen'],
+      ko: ['세션 병합', '병합 확인'],
+    },
+    learnedTriggers: [], requiredRole: 'All Staff', isActive: true,
+  },
 
-// ─────────────────────────────────────────────────────────────────────────────
+  ...LOCKBOX_SEED_ACTIONS, ...PATIENT_BANNER_SEED_ACTIONS, ...WORKLIST_ROW_SEED_ACTIONS, ...CASE_TEAM_SEED_ACTIONS, ...GROSSING_BENCH_SEED_ACTIONS, ...REQUISITION_SEED_ACTIONS, // Batches 645, 662, 663, 664, 720, 762
 ];
 
 // Action registry persistence
@@ -3283,9 +3748,9 @@ const ACTIONS_STORAGE_KEY = 'ps_action_registry';
 const ACTIONS_VERSION = '2'; // bumped: the whole "flawless" action-registry pass
 const ACTIONS_VERSION_KEY = 'pathscribe_actions_version';
 try {
-  if (localStorage.getItem(ACTIONS_VERSION_KEY) !== ACTIONS_VERSION) {
-    localStorage.removeItem(ACTIONS_STORAGE_KEY);
-    localStorage.setItem(ACTIONS_VERSION_KEY, ACTIONS_VERSION);
+  if (dataStorage.getItem(ACTIONS_VERSION_KEY) !== ACTIONS_VERSION) {
+    dataStorage.removeItem(ACTIONS_STORAGE_KEY);
+    dataStorage.setItem(ACTIONS_VERSION_KEY, ACTIONS_VERSION);
   }
 } catch {
   // localStorage unavailable (e.g. test environment) — degrade
@@ -3294,15 +3759,18 @@ try {
   // in that case anyway, so there's nothing stale to clear.
 }
 
+
+export { migrateShortcuts };
+
 function loadActions(): SystemAction[] {
   try {
-    const raw = localStorage.getItem(ACTIONS_STORAGE_KEY);
+    const raw = dataStorage.getItem(ACTIONS_STORAGE_KEY);
     if (!raw) return SEED_ACTIONS.map(a => ({ ...a }));
     const stored: SystemAction[] = JSON.parse(raw);
     const storedIds = new Set(stored.map(a => a.id));
     // Migration: add any new seed actions not yet in storage
     const newActions = SEED_ACTIONS.filter(a => !storedIds.has(a.id));
-    return [...stored, ...newActions];
+    return [...migrateShortcuts(stored), ...newActions];
   } catch {
     return SEED_ACTIONS.map(a => ({ ...a }));
   }
@@ -3310,7 +3778,7 @@ function loadActions(): SystemAction[] {
 
 function persistActions(actions: SystemAction[]) {
   try {
-    localStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(actions));
+    dataStorage.setItem(ACTIONS_STORAGE_KEY, JSON.stringify(actions));
   } catch {
     // localStorage unavailable — degrade gracefully
   }
@@ -3379,12 +3847,17 @@ let currentStationProfile: string | undefined = undefined;
 // Real, per PS-289's own comment thread — see
 // IActionRegistryService.ts's own doc comment for the full reasoning.
 let currentActionGroupActionIds: Set<string> = new Set();
+const eligibilityState = () => ({ context: currentAppContext, stationProfile: currentStationProfile, actionGroupActionIds: currentActionGroupActionIds });
 
 // ─── Live registry — loaded from storage, mutated by updateAction ─────────────
-const LIVE_ACTIONS: SystemAction[] = loadActions();
+const LIVE_ACTIONS: SystemAction[] = withRepeatConfirmation(withSpanishVoiceTriggers(loadActions()));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Learning layer — persisted to localStorage so mappings survive page refresh
+// Learning layer — persisted so mappings survive page refresh.
+// Batch 432 (Pete: per person): what the system learns from someone's speech
+// belongs to them, like their accent (Batch 430). Kept as a personal setting
+// (services/userSettings/personalSettings.ts); the mappings reload when a
+// different person signs in. The old shared list carries over the first time.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY = 'ps_learned_triggers';
@@ -3422,22 +3895,14 @@ function computeCandidates(transcript: string, actions: SystemAction[]): SystemA
     .map(s => s.action);
 }
 
-// ── localStorage helpers ──────────────────────────────────────────────────
+// ── Storage helpers (per person) ──────────────────────────────────────────
 function loadMappings(): LocalLearnedMapping[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as LocalLearnedMapping[]) : [];
-  } catch {
-    return [];
-  }
+  const saved = getPersonalSetting<LocalLearnedMapping[]>(STORAGE_KEY, []);
+  return Array.isArray(saved) ? saved.filter(m => !!m?.transcript && !!m?.actionId) : [];
 }
 
 function saveMappings(mappings: LocalLearnedMapping[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(mappings));
-  } catch {
-    // localStorage unavailable — degrade gracefully, in-memory still works
-  }
+  setPersonalSetting(STORAGE_KEY, mappings);
 }
 
 // Sync learnedTriggers from storage into LIVE_ACTIONS so findActionByTrigger
@@ -3450,8 +3915,17 @@ function syncLearnedTriggersToActions(mappings: LocalLearnedMapping[]) {
   }
 }
 
-const learnedMappings: LocalLearnedMapping[] = loadMappings().filter(m => !!m.transcript && !!m.actionId);
-syncLearnedTriggersToActions(learnedMappings);
+const learnedMappings: LocalLearnedMapping[] = [];
+let mappingsOwner: string | undefined | null = null;   // null: not loaded yet
+
+/** Loads the signed-in person's mappings when the person changes. */
+function ensureMappingsForCurrentUser(): void {
+  const owner = getSessionUser()?.id;
+  if (owner === mappingsOwner) return;
+  mappingsOwner = owner;
+  learnedMappings.splice(0, learnedMappings.length, ...loadMappings());
+  syncLearnedTriggersToActions(learnedMappings);
+}
 
 // ── Pending miss window ───────────────────────────────────────────────────
 const pendingMisses: LocalPendingMiss[] = [];
@@ -3459,7 +3933,7 @@ const pendingMisses: LocalPendingMiss[] = [];
 // ─────────────────────────────────────────────────────────────────────────────
 // Service
 // ─────────────────────────────────────────────────────────────────────────────
-export const mockActionRegistryService: IActionRegistryService = {
+const actionRegistryServiceUnchecked: IActionRegistryService = {
 
   getActions: () => LIVE_ACTIONS,
 
@@ -3476,6 +3950,7 @@ export const mockActionRegistryService: IActionRegistryService = {
   setCurrentContext: (c: string) => {
     currentAppContext = c;
   },
+  getCurrentContext: () => currentAppContext,
   // Real, per PS-289's own comment thread.
   setCurrentStationProfile: (functionalArea: string | undefined) => {
     currentStationProfile = functionalArea;
@@ -3485,44 +3960,25 @@ export const mockActionRegistryService: IActionRegistryService = {
   setCurrentActionGroupActionIds: (actionIds: string[] | undefined) => {
     currentActionGroupActionIds = new Set(actionIds ?? []);
   },
-  // Real feature, per direct follow-up: "are we not mapping keyboard
-  // commands in the Action Registry?" — the real, missing piece was a
-  // live keydown listener that actually executes an action when its
-  // shortcut is pressed (VoiceProvider.tsx now has one). Shares the
-  // exact same isActive + GLOBAL_CATEGORIES-or-current-context
-  // eligibility rule findActionByTrigger already used for voice, so
-  // keyboard and voice matching can never silently drift apart.
-  // Real, per PS-289's own comment thread — extended with a THIRD,
-  // independent "OR" branch: an action whose own stationProfiles
-  // includes the current, real station's functionalArea is eligible
-  // too, on top of (never instead of) the existing app-context rule.
-  // Real, per PS-289's own comment thread — extended again with a
-  // FOURTH, independent "OR" branch: an action whose own id is a
-  // member of the current station's resolved action group bundle is
-  // eligible too. See setCurrentActionGroupActionIds's own doc
-  // comment for why this is genuinely separate from stationProfiles
-  // matching, not a duplicate of it.
-  getEligibleActions: (): SystemAction[] =>
-    LIVE_ACTIONS.filter(a => a.isActive && (
-      GLOBAL_CATEGORIES.has(a.category)
-      || a.category === currentAppContext
-      || (!!currentStationProfile && !!a.stationProfiles?.includes(currentStationProfile))
-      || currentActionGroupActionIds.has(a.id)
-    )),
-onAction: (callback: (actionId: string) => void) => {
+  // Batch 650: the one eligibility rule (commandEligibility.ts) is used by hotkeys (here) and by voice
+  // (findActionByTrigger below); before, voice left out the station and action-group branches.
+  getEligibleActions: (): SystemAction[] => eligibleCommands([...LIVE_ACTIONS, ...transientActions.list()], eligibilityState()),
+  registerTransientActions: defs => transientActions.register(defs),
+  onAction: (callback: (actionId: string) => void) => {
     const handler = (e: any) => {
       if (e.detail?.id) callback(e.detail.id);
     };
     window.addEventListener('VOICE_ACTION_TRIGGERED', handler);
     return () => window.removeEventListener('VOICE_ACTION_TRIGGERED', handler);
   },
-  findActionByTrigger: (transcript: string, language: VoiceProfileLanguage = 'en'): SystemAction | undefined => {
-    const eligible = LIVE_ACTIONS.filter(
-      a => a.isActive && (
-        GLOBAL_CATEGORIES.has(a.category) ||
-        a.category === currentAppContext
-      )
-    );
+  findActionByTrigger: (transcript: string, language: VoiceProfileLanguage = 'en', options?: TriggerPoolOptions): SystemAction | undefined => {
+    ensureMappingsForCurrentUser();
+    // Batch 602: when a phrase belongs to both the screen's own command and an always-on one, the screen's wins,
+    // exactly as for hotkeys (shortcutResolution.ts). Screen commands are listed first in every matching tier below.
+    // Batch 650: `ignoreEligibility` (exact phrases only) lets the voice layer tell "no such command" from "a command
+    // that is not available on this screen", so the second can be refused and audited instead of becoming a miss.
+    const pool = options?.ignoreEligibility ? [...LIVE_ACTIONS, ...transientActions.list()].filter(a => a.isActive) : actionRegistryServiceUnchecked.getEligibleActions();
+    const eligible = screenFirst(pool);
 
     // Real, per src/MULTILANG_VOICE_COMMANDS_PLAN.md's own scoped
     // pieces 1-2 fix: the real, language-specific trigger set for
@@ -3534,15 +3990,12 @@ onAction: (callback: (actionId: string) => void) => {
     // existing entries has no voiceTriggersByLanguage yet, so this
     // resolves to exactly the original, English-only behavior until
     // real translated content (Phase 3 of that plan) is added.
-    const realTriggersFor = (a: SystemAction): string[] =>
-      language !== 'en' && a.voiceTriggersByLanguage?.[language]?.length
-        ? [...a.voiceTriggersByLanguage[language]!, ...a.voiceTriggers]
-        : a.voiceTriggers;
+    const realTriggersFor = (a: SystemAction): string[] => exactTriggers(a, language);
 
     // 1. Exact phrase — canonical
-    for (const a of eligible) {
-      if (realTriggersFor(a).some(t => phraseMatch(transcript, t))) return a;
-    }
+    const exact = findExactTriggerMatch(transcript, eligible, realTriggersFor, norm);   // Batch 628: best match, not first
+    if (exact) return exact;
+    if (options?.exactOnly) return undefined;
     // 2. Exact phrase — learned
     for (const a of eligible) {
       if ((a.learnedTriggers ?? []).some(t => phraseMatch(transcript, t))) return a;
@@ -3550,7 +4003,8 @@ onAction: (callback: (actionId: string) => void) => {
     // 3. Fuzzy fallback
     let best: { action: SystemAction; score: number } | null = null;
     for (const a of eligible) {
-      for (const t of [...realTriggersFor(a), ...(a.learnedTriggers ?? [])].filter(Boolean)) {
+      // Batch 609 (#179): an admin can drop the English phrases from the fuzzy step for non-English profiles.
+      for (const t of fuzzyTriggers(a, language, options)) {
         const score = fuzzyScore(transcript, t);
         if (score > 0 && (!best || score > best.score)) best = { action: a, score };
       }
@@ -3574,9 +4028,9 @@ onAction: (callback: (actionId: string) => void) => {
       return;
     }
 
-    // Special case: TABLE_FILTER_PHYSICIAN — pass transcript as detail so WorklistPage can extract the name
-    if (action.id === 'TABLE_FILTER_PHYSICIAN' && transcript) {
-      window.dispatchEvent(new CustomEvent('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', { detail: { transcript } }));
+    // Special case: commands that need what was said (physician name, row number, accession) get it as detail
+    if (TRANSCRIPT_EVENT_ACTIONS.has(action.id) && transcript) {
+      window.dispatchEvent(new CustomEvent(`PATHSCRIBE_${action.id}`, { detail: { transcript } }));
       notify();
       return;
     }
@@ -3587,6 +4041,13 @@ onAction: (callback: (actionId: string) => void) => {
       const wordToNum: Record<string, number> = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
       const n = match ? (wordToNum[match[1]] ?? parseInt(match[1], 10)) : 1;
       window.dispatchEvent(new CustomEvent('PATHSCRIBE_SELECT_SPECIMEN', { detail: { index: n - 1 } }));
+      notify();
+      return;
+    }
+
+    const transient = transientActions.dispatchFor(action.id);
+    if (transient) {
+      window.dispatchEvent(new CustomEvent(transient.event, { detail: transient.detail }));
       notify();
       return;
     }
@@ -3640,6 +4101,7 @@ onAction: (callback: (actionId: string) => void) => {
   // repeat utterance, or the VoiceMissPrompt UI tap.
   // Stores the transcript as a learned trigger so it fires next time.
   confirmMiss: (missId: string, actionId: string, method: 'shortcut' | 'repeat' | 'manual'): LocalLearnedMapping => {
+    ensureMappingsForCurrentUser();
     // Find and remove from pending window
     const missIdx = pendingMisses.findIndex(m => m.id === missId);
     if (missIdx === -1) {
@@ -3686,15 +4148,17 @@ onAction: (callback: (actionId: string) => void) => {
     window.dispatchEvent(new CustomEvent('VOICE_MAPPING_LEARNED', { detail: { mapping, action } }));
 
     // Execute the action so the user's original intent is carried out
-    if (action) mockActionRegistryService.executeAction(action, miss.transcript);
+    if (action) actionRegistryServiceUnchecked.executeAction(action, miss.transcript);
 
     return mapping;
   },
 
-  getLearnedMappings: () => [...learnedMappings],
+  getLearnedMappings: () => { ensureMappingsForCurrentUser(); return [...learnedMappings]; },
 
   // removeLearnedMapping takes transcript (the unique key) per interface
+  // Batch 432: the person's own list ("My voice commands"), so no capability.
   removeLearnedMapping: (transcript: string) => {
+    ensureMappingsForCurrentUser();
     const t = norm(transcript);
     const idx = learnedMappings.findIndex(m => m.transcript === t);
     if (idx === -1) return;
@@ -3717,3 +4181,8 @@ onAction: (callback: (actionId: string) => void) => {
     return () => window.removeEventListener('VOICE_MISS_RECORDED', h);
   },
 };
+
+/** Batch 428: changing the lab's shortcuts and voice commands needs config:actions:manage. */
+export const mockActionRegistryService: IActionRegistryService = guardConfigWrites(actionRegistryServiceUnchecked, [
+  ['config:actions:manage', ['updateAction']],
+]);

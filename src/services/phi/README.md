@@ -1,8 +1,10 @@
+**Batch 649:** `phiSelectors.guard.test.ts` reads every `data-phi` / `data-pii` value in `src/` (including values chosen at run time, `data-phi={kind}`) and fails if the screenshot redaction would not cover it, with non-vacuity checks so the scan cannot pass by finding nothing. `hooks/useScreenCapture.ts` gives an element that matches several selectors one overlay.
+
 # services/phi/
 
 Keeping patient data out of support-ticket screenshots (PS-72).
 
-When a user sends an Enhancement Request, `hooks/useScreenCapture.ts` takes a screenshot and covers every element matching `services/phiSelectors.ts`: mostly `data-phi="…"` attributes. Patient data the UI shows *outside* such an element ends up in the screenshot. This folder finds those places and keeps them from coming back.
+When a user sends an Enhancement Request, `hooks/useScreenCapture.ts` takes a screenshot and covers every element matching `services/phiSelectors.ts`: every `data-phi` and `data-pii` element whatever its value (Batch 649; the old list of ten per-kind selectors left `diagnosis`, `finding` and `case` visible), plus the legacy PHI classes. Patient data the UI shows *outside* such an element ends up in the screenshot. This folder finds those places and keeps them from coming back.
 
 ## Files
 
@@ -29,5 +31,15 @@ Tag the element the message names, usually `data-phi="<kind>"` on the element th
 
 `VersionHistoryModal` showed the snapshot's patient name, MRN and date of birth without `data-phi`. The values came from a label/value list built by a helper (`snapshotFields`), and the check can't see through that. The screen is tagged now; the check still can't follow values passed through such lists.
 
+## Batch 417
+
+`classifyPath` treats `nationalIdentifiers` (and `nationalIdentifierValue`) as a patient identifier (kind `nhs`), so a national identifier rendered untagged fails the guard. `NationalIdentifierFields` tags its input `data-phi="nhs"`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 516 (PS-72 follow-up)
+
+- `phiRenderAudit.ts` also checks attributes drawn on screen: `title` (tooltips), `placeholder` and `alt`. `aria-label` isn't drawn, so it isn't checked.
+- It found two real gaps: material-tree block and decant tooltips show IDs that carry the accession. Both elements are now tagged `data-phi="accession"`.
+- `scripts/tag-phi.mjs` now says plainly that its count is not the PS-72 measure.

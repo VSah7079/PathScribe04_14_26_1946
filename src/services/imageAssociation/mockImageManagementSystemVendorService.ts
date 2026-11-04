@@ -14,6 +14,7 @@
 import type { IImageManagementSystemVendorService, ImageManagementSystemVendorEntry, NewImageManagementSystemVendorEntry } from './IImageManagementSystemVendorService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'imageManagementSystemVendorDictionary';
 
@@ -32,7 +33,7 @@ const err = (message: string): ServiceResult<never> => ({ ok: false, error: mess
 const delay = () => new Promise(res => setTimeout(res, 30));
 const sorted = (entries: ImageManagementSystemVendorEntry[]) => [...entries].sort((a, b) => a.sortOrder - b.sortOrder);
 
-export const mockImageManagementSystemVendorService: IImageManagementSystemVendorService = {
+const imageManagementSystemVendorServiceUnchecked: IImageManagementSystemVendorService = {
   async getAll() {
     await delay();
     return ok(sorted(_cache));
@@ -69,11 +70,11 @@ export const mockImageManagementSystemVendorService: IImageManagementSystemVendo
   },
 
   async deactivate(id: ID) {
-    return mockImageManagementSystemVendorService.update(id, { active: false });
+    return imageManagementSystemVendorServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockImageManagementSystemVendorService.update(id, { active: true });
+    return imageManagementSystemVendorServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -86,3 +87,8 @@ export const mockImageManagementSystemVendorService: IImageManagementSystemVendo
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockImageManagementSystemVendorService: IImageManagementSystemVendorService = guardConfigWrites(imageManagementSystemVendorServiceUnchecked, [
+  ['config:vendor-integrations:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

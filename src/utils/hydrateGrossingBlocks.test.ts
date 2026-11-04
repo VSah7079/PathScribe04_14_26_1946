@@ -10,7 +10,7 @@
 // pair, same real data resolveBlockCassetteColor.test.ts and
 // resolveProtocolIdForSpecimen.test.ts already exercise.
 // ─────────────────────────────────────────────────────────────────────────────
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 const store = new Map<string, string>();
 (globalThis as any).localStorage = {
@@ -97,5 +97,25 @@ describe('hydrateGrossingBlocks — real "Material Hydration & Color Resolution"
 
   it('returns an empty array for a real, nonexistent case, never throws', async () => {
     await expect(hydrateGrossingBlocks('S26-DOES-NOT-EXIST', 'sp-1')).resolves.toEqual([]);
+  });
+
+  it('PS-71 (Batch 458): a block grossed by someone else between the read and the save is kept, not overwritten', async () => {
+    const { caseId, specimenId } = await seedCaseWithPendingBlocks([{}, {}]);
+    const original = caseRouter.updateCase.bind(caseRouter);
+    const spy = vi.spyOn(caseRouter, 'updateCase').mockImplementationOnce(async (id, u, v) => {
+      // Someone grosses block 2 and adds a note, landing first.
+      const c = await caseRouter.getCase(id);
+      const specimens = c!.specimens!.map((sp: any) => ({ ...sp, blocks: sp.blocks.map((b: any) => b.label === '2' ? { ...b, status: 'Grossed', note: 'theirs' } : b) }));
+      await original(id, { specimens }, v);
+      return original(id, u, v);
+    });
+    const result = await hydrateGrossingBlocks(caseId, specimenId);
+    spy.mockRestore();
+    expect(result.map(r => r.blockLabel)).toEqual(['1']);
+    const after = await caseRouter.getCase(caseId);
+    const blocks = after!.specimens![0].blocks as any[];
+    expect(blocks[0].cassetteColorId).toBe('color-blue');
+    expect(blocks[1]).toMatchObject({ status: 'Grossed', note: 'theirs' });
+    expect(blocks[1].cassetteColorId).toBeUndefined();
   });
 });

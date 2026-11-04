@@ -8,10 +8,12 @@
 // it a second, potentially-divergent way.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Batch 504: delegates to utils/ageFromDateOfBirth.ts, which reads the birth
+// date as the calendar date it is. This version parsed "1990-04-02" as UTC
+// midnight and read it back in the device's time zone (1 April in the
+// Americas), so a patient changed age band a day early.
+import { ageFromDateOfBirth } from '@/utils/ageFromDateOfBirth';
+
 export function resolveAgeFromDateOfBirth(dateOfBirth: string | undefined, asOf: Date = new Date()): number | undefined {
-  if (!dateOfBirth) return undefined;
-  const birth = new Date(dateOfBirth);
-  if (Number.isNaN(birth.getTime())) return undefined;
-  return asOf.getFullYear() - birth.getFullYear() -
-    (asOf < new Date(asOf.getFullYear(), birth.getMonth(), birth.getDate()) ? 1 : 0);
+  return ageFromDateOfBirth(dateOfBirth, asOf);
 }

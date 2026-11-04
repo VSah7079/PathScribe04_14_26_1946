@@ -1,0 +1,6 @@
+/* Batch 631: the recall priority, target window and wording under a Recall needed row (Australia and New Zealand). */
+.ps-recalldetail { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; font-size: 12px; color: #cbd5e1; }
+.ps-recalldetail-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ps-recalldetail-priority { padding: 1px 8px; border-radius: 9999px; font-weight: 600; border: 1px solid var(--ps-hue); color: var(--ps-hue); background: color-mix(in srgb, var(--ps-hue) 12%, transparent); }
+.ps-recalldetail-text { margin: 0; line-height: 1.4; }
+.ps-recalldetail-codes { margin: 0; padding-left: 16px; font-weight: 600; }

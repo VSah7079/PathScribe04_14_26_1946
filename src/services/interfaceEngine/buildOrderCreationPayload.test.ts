@@ -1,6 +1,6 @@
 // src/services/interfaceEngine/buildOrderCreationPayload.test.ts
 import { describe, it, expect } from 'vitest';
-import { buildOrderCreationPayload, patientDataScopeFor } from './buildOrderCreationPayload';
+import { buildOrderCreationPayload, patientDataScopeFor, toOrderCreationEncounter } from './buildOrderCreationPayload';
 import type { Case } from '@/types/case/Case';
 
 function makeCase(overrides: Record<string, unknown> = {}): Case {
@@ -70,6 +70,7 @@ describe('buildOrderCreationPayload — real feature, per direct follow-up: the 
     expect(payload.patient).toEqual({
       patientDataScope: 'reference',
       identifier: 'MRN-TEST-001',
+      assigningAuthority: 'ENT-DEFAULT',
     });
   });
 
@@ -78,6 +79,7 @@ describe('buildOrderCreationPayload — real feature, per direct follow-up: the 
     expect(payload.patient).toEqual({
       patientDataScope: 'full',
       identifier: 'MRN-TEST-001',
+      assigningAuthority: 'ENT-DEFAULT',
       firstName: 'Maria',
       lastName: 'Garcia',
       dateOfBirth: '1958-03-14T00:00:00.000Z',
@@ -127,6 +129,13 @@ describe('buildOrderCreationPayload — real feature, per direct follow-up: the 
     expect(payload.diagnoses).toBeUndefined();
   });
 
+  it('Batch 614 (PS-762): carries no diagnoses when the Code Systems setting has ICD-10 off, and keeps them when it is optional', () => {
+    const off = { policy: { rules: [{ system: 'ICD10' as const, role: 'off' as const }] }, today: '2026-08-12' };
+    const on = { policy: { rules: [{ system: 'ICD10' as const, role: 'optional' as const }] }, today: '2026-08-12' };
+    expect(buildOrderCreationPayload(makeCase(), 'created', '2026-08-12T07:30:00.000Z', undefined, off).diagnoses).toEqual([]);
+    expect(buildOrderCreationPayload(makeCase(), 'created', '2026-08-12T07:30:00.000Z', undefined, on).diagnoses).toHaveLength(2);
+  });
+
   it('maps every real specimen field from its actual, nested collection/processing sub-objects', () => {
     const payload = buildOrderCreationPayload(makeCase(), 'created', '2026-08-12T07:30:00.000Z');
     expect(payload.specimens).toEqual([
@@ -150,5 +159,22 @@ describe('buildOrderCreationPayload — real feature, per direct follow-up: the 
     });
     const payload = buildOrderCreationPayload(twoSpecimens, 'created', '2026-08-12T07:30:00.000Z');
     expect(payload.specimens.map(s => s.label)).toEqual(['A', 'B']);
+  });
+});
+
+describe('Batch 605: assigning authority and the visit in the payload', () => {
+  it('carries the origin organisation as the patient assigningAuthority', () => {
+    const p = buildOrderCreationPayload(makeCase(), 'matched', '2026-01-01T00:00:00Z');
+    expect(p.patient.assigningAuthority).toBe('ENT-DEFAULT');
+    const q = buildOrderCreationPayload(makeCase({ originEnterpriseId: undefined }), 'matched', '2026-01-01T00:00:00Z');
+    expect(q.patient.assigningAuthority).toBe('HOSP-001');
+  });
+  it('carries the encounter (number, class, location) when given, and none otherwise', () => {
+    const enc = toOrderCreationEncounter({ encounterNumber: 'V1', encounterClass: 'Inpatient', ward: 'W4', room: '12', bed: 'B' });
+    const p = buildOrderCreationPayload(makeCase(), 'full' as never, '2026-01-01T00:00:00Z', enc);
+    expect(p.encounter).toEqual({ encounterNumber: 'V1', encounterClass: 'Inpatient', location: { pointOfCare: 'W4', room: '12', bed: 'B' } });
+    expect(buildOrderCreationPayload(makeCase(), 'matched', '2026-01-01T00:00:00Z').encounter).toBeUndefined();
+    expect(toOrderCreationEncounter(null)).toBeUndefined();
+    expect(toOrderCreationEncounter({ encounterNumber: 'V2' })).toEqual({ encounterNumber: 'V2' });
   });
 });

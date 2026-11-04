@@ -4,7 +4,7 @@
 // service's publishing.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseIntraopChangedEvent, parsePrintJobStatusEvent, HUB_INTRAOP_CHANGED, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, type IntraopChangedEvent, type PrintJobStatusEvent } from './liveUpdateContract';
+import { parseIntraopChangedEvent, parsePrintJobStatusEvent, parseWsiScanBatchChangedEvent, HUB_INTRAOP_CHANGED, HUB_EXPORT_STATUS, HUB_PRINT_JOB_STATUS, HUB_SET_INTRAOP_SCOPE, HUB_WSI_SCAN_BATCH_CHANGED, type IntraopChangedEvent, type PrintJobStatusEvent, type WsiScanBatchChangedEvent } from './liveUpdateContract';
 import {
   combineScopes, createDuplicateFilter, eventMatchesScope, fallbackPollIntervalMs, nextRetryDelayMs, scopeKey,
   selectLiveUpdateTransport, FALLBACK_POLL_MS, LIVE_SAFETY_POLL_MS, MAX_RETRY_DELAY_MS,
@@ -147,6 +147,7 @@ function fakeHub() {
     onreconnected: (f: (id?: string) => void) => { cb.reconnected.push(f); },
     onclose: (f: (e?: Error) => void) => { cb.close.push(f); },
     emit: (m: string, ...a: unknown[]) => handlers[m]?.(...a),
+    reconnectingOnly: () => { cb.reconnecting.forEach(f => f()); },
     dropAndReconnect: async () => { cb.reconnecting.forEach(f => f()); cb.reconnected.forEach(f => f('c2')); await flush(); },
     close: async () => { cb.close.forEach(f => f(new Error('gone'))); await flush(); },
   };
@@ -224,6 +225,38 @@ describe('SignalR transport', () => {
     expect(hub.start).toHaveBeenCalledTimes(4);
   });
 
+  it('Batch 549: when the network comes back, a waiting restart is tried at once', async () => {
+    hub.startResults = ['fail', 'fail', 'ok'];
+    const svc = make();
+    svc.subscribeIntraop({ locationIds: ['loc-A'], all: false }, vi.fn());
+    await flush();
+    const t = timers.shift()!; t.fn(); await flush();      // second try fails: now waiting 2 s
+    expect(svc.getState()).toBe('offline');
+    expect(timers).toHaveLength(1);
+    svc.retryNow();
+    await flush();
+    expect(timers).toHaveLength(0);
+    expect(svc.getState()).toBe('live');
+    expect(hub.start).toHaveBeenCalledTimes(3);
+    svc.retryNow(); // nothing waiting: does nothing
+    expect(hub.start).toHaveBeenCalledTimes(3);
+  });
+
+  it('Batch 549: when the network comes back during SignalR\'s own reconnect loop, the connection is restarted at once', async () => {
+    const svc = make();
+    svc.subscribeIntraop({ locationIds: ['loc-A'], all: false }, vi.fn());
+    await flush();
+    hub.stop.mockImplementation(async () => { await hub.close(); });
+    hub.reconnectingOnly(); // the connection drops; SignalR is retrying on its own
+    expect(svc.getState()).toBe('reconnecting');
+    svc.retryNow();
+    await flush(); await flush();
+    expect(hub.stop).toHaveBeenCalledTimes(1);
+    expect(timers).toHaveLength(0);          // no back-off: started straight away
+    expect(hub.start).toHaveBeenCalledTimes(2);
+    expect(svc.getState()).toBe('live');
+  });
+
   it('restarts after the connection closes for good, and closes when nothing is subscribed', async () => {
     const svc = make();
     const sub = svc.subscribeIntraop({ locationIds: ['loc-A'], all: false }, vi.fn());
@@ -290,6 +323,29 @@ describe('print results over the live connection (Batch 347)', () => {
     expect(hub.stop).toHaveBeenCalled();
   });
 
+  it('Batch 550: SignalR delivers ExportStatus to export subscribers once, ignoring malformed ones, and closes when they leave', async () => {
+    const hub = fakeHub();
+    let timers: { fn: () => void; ms: number }[] = [];
+    const svc = createSignalRLiveUpdateService({
+      hubUrl: 'https://api.example/hubs/live', buildConnection: () => hub as unknown as HubConnectionLike,
+      setTimer: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clearTimer: t => { timers = timers.filter(x => x !== t); },
+      random: () => 0.5, log: () => {},
+    });
+    const got = vi.fn();
+    const sub = svc.subscribeExports(got);
+    await flush();
+    expect(hub.start).toHaveBeenCalledTimes(1);
+    const ev = { type: 'ExportStatus', v: 1, eventId: 'x-e1', exportId: 'x1', status: 'ready', title: 'audit-log', rowCount: 3 };
+    hub.emit(HUB_EXPORT_STATUS, ev);
+    hub.emit(HUB_EXPORT_STATUS, ev);                                  // redelivered
+    hub.emit(HUB_EXPORT_STATUS, { ...ev, eventId: 'x-e2', status: 'nope' });
+    expect(got).toHaveBeenCalledTimes(1);
+    expect(got).toHaveBeenCalledWith(ev);
+    sub.unsubscribe();
+    timers.find(t => t.ms === CLOSE_GRACE_MS)!.fn();
+    expect(hub.stop).toHaveBeenCalled();
+  });
+
   it('SignalR: an intraop screen leaving keeps the connection for a waiting print job', async () => {
     const hub = fakeHub();
     let timers: { fn: () => void; ms: number }[] = [];
@@ -305,6 +361,66 @@ describe('print results over the live connection (Batch 347)', () => {
     await flush();
     expect(timers.some(t => t.ms === CLOSE_GRACE_MS)).toBe(false);
     expect(hub.invoke).toHaveBeenLastCalledWith(HUB_SET_INTRAOP_SCOPE, { locationIds: [], all: false });
+  });
+});
+
+describe('WSI scan batch changes over the live connection (Batch 434)', () => {
+  const wsi = (over: Partial<WsiScanBatchChangedEvent> = {}): WsiScanBatchChangedEvent => ({ v: 1, eventId: 'w1', batchId: 'wb1', change: 'slideStatus', facilityId: 'lab', occurredAt: '2026-10-02T12:00:00Z', ...over } as WsiScanBatchChangedEvent);
+  it('the contract: ids only; anything else is dropped', () => {
+    expect(parseWsiScanBatchChangedEvent(wsi())).toEqual(wsi());
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), change: 'exploded' })).toBeNull();
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), batchId: '' })).toBeNull();
+    expect(parseWsiScanBatchChangedEvent({ ...wsi(), patientName: 'X' })).not.toHaveProperty('patientName');
+  });
+
+  it('local: a change reaches this window and another, once; not the intraop or print subscribers', () => {
+    const factory = channelPair();
+    const windowA = createLocalLiveUpdateService({ channelFactory: factory });
+    const windowB = createLocalLiveUpdateService({ channelFactory: factory });
+    const inA = vi.fn(); const inB = vi.fn(); const print = vi.fn();
+    windowA.subscribeWsiScanBatches(inA);
+    windowB.subscribeWsiScanBatches(inB);
+    windowB.subscribePrintJobs(print);
+    const sent = windowA.publishWsiScanBatchChange({ batchId: 'wb1', change: 'unloaded' });
+    expect(inA).toHaveBeenCalledWith(sent);
+    expect(inB).toHaveBeenCalledWith(sent);
+    expect(print).not.toHaveBeenCalled();
+  });
+
+  it('SignalR: a scan-batch subscriber opens the connection without a scope, gets each change once, and closes after', async () => {
+    const hub = fakeHub();
+    let timers: { fn: () => void; ms: number }[] = [];
+    const svc = createSignalRLiveUpdateService({
+      hubUrl: 'https://api.example/hubs/live', buildConnection: () => hub as unknown as HubConnectionLike,
+      setTimer: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clearTimer: t => { timers = timers.filter(x => x !== t); },
+      random: () => 0.5, log: () => {},
+    });
+    const got = vi.fn();
+    const sub = svc.subscribeWsiScanBatches(got);
+    await flush();
+    expect(hub.start).toHaveBeenCalledTimes(1);
+    expect(hub.invoke).not.toHaveBeenCalled();
+    hub.emit(HUB_WSI_SCAN_BATCH_CHANGED, wsi());
+    hub.emit(HUB_WSI_SCAN_BATCH_CHANGED, wsi());          // redelivered
+    expect(got).toHaveBeenCalledTimes(1);
+    sub.unsubscribe();
+    timers.find(t => t.ms === CLOSE_GRACE_MS)!.fn();
+    expect(hub.stop).toHaveBeenCalled();
+  });
+
+  it('the mock scan-batch service announces each write with ids only', async () => {
+    const { localLiveUpdateService } = await import('./localLiveUpdateService');
+    const { mockWsiScanBatchService } = await import('../digitalPathology/mockWsiScanBatchService');
+    const received: WsiScanBatchChangedEvent[] = [];
+    const sub = localLiveUpdateService.subscribeWsiScanBatches(e => received.push(e));
+    const created = await mockWsiScanBatchService.create({ scannerInstrumentId: 'S', facilityId: 'lab', slides: [{ slidePosition: '1', caseId: 'C', specimenId: 's', scanStatus: 'pending' }] });
+    if (!created.ok) throw new Error('create failed');
+    await mockWsiScanBatchService.markDispatched(created.data.id);
+    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '1', { scanStatus: 'completed' });
+    sub.unsubscribe();
+    expect(received.map(e => e.change)).toEqual(['loaded', 'sent', 'slideStatus']);
+    expect(received.every(e => e.batchId === created.data.id && e.facilityId === 'lab')).toBe(true);
+    expect(JSON.stringify(received)).not.toContain('"C"');
   });
 });
 

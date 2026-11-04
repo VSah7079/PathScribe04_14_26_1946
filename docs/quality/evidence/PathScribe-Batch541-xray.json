@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 541 — automated tests for PS-539",
+    "description": "vitest run in the PathScribe workspace at Batch 541 (package version 0.9.0). Mapped files: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts. 3 of 3 mapped tests passed; the ones mapped to each Test are listed in its comment. Full vitest run: 9376 passed, 0 failed, 32 skipped in 1108 test files (the only failing file is firestore.rules.test.ts, which needs the Firebase emulator). Requirements: PS-600 tests PS-539. Run started 2026-10-13T05:35:05-07:00, finished 2026-10-13T05:50:40-07:00."
+  },
+  "tests": [
+    {
+      "testKey": "PS-600",
+      "start": "2026-10-13T05:35:05-07:00",
+      "finish": "2026-10-13T05:50:40-07:00",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › cites real code\nPASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › every file it names exists (by path, or by its tail under the repo)\nPASSED: src/services/deploymentReadiness/deploymentReadinessReview.guard.test.ts › DEPLOYMENT_READINESS_REVIEW.md › records the decisions Pete owes (phase 2b) and the findings"
+    }
+  ]
+}

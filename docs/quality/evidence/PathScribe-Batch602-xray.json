@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 602 — screen-wins hotkeys and voice, Alt+J Go to prefix, hotkey remaps, duplicate voice phrase fixes (unit, component and guard tests)",
+    "description": "Vitest, 2026-10-17. Not run: browser check of the Go to panel on real keyboards (Mac Option, AltGr, AZERTY); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-765",
+      "start": "2026-10-17T10:00:00Z",
+      "finish": "2026-10-17T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/shortcutResolution.test.ts\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/components/Common/GoToPrefix.test.tsx\nPASSED: src/services/actionRegistry/mockActionRegistryService.test.ts"
+    }
+  ]
+}

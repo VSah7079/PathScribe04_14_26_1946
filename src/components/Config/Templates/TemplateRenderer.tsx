@@ -47,9 +47,13 @@
  *   completed a lifecycle transition, navigating away via breadcrumb or Back
  *   shows a warning modal: "You have unsaved annotations — leave anyway?"
  *
+ * Batch 579 (PS-63 follow-up, reviewer screen polish): a short guide for
+ *   reviewers above the lifecycle bar (open while the template is in review;
+ *   the reviewer's choice to fold it is remembered); the question comments are
+ *   dark like the rest of the screen and labelled with their question; Reset
+ *   sits at the far end of the transition row, away from Approve.
+ *
  * Known limitations / TODO:
- *   - InlineCommentThread "Add a comment" input retains its own styling —
- *     style that component separately when ready.
  *   - No content authored yet (empty sections[]) shows an explicit empty
  *     state rather than fabricating placeholder content — see EmptyState
  *     below. This is deliberate: showing fake content for an unauthored
@@ -91,6 +95,10 @@ import { getTemplateGovernanceSettings } from '../../../services/templates/templ
 import { SNOMED_PUBLISH_THRESHOLD } from '../../../services/templates/templatePublishingRules';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useSynopticAudit } from '../../../hooks/useSynopticAudit';
+import { getTemplateTrialAnswers, saveTemplateTrialAnswers } from '@/services/templates/templateReviewWork';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { getUiPreference, setUiPreference } from '@/utils/uiPreferences';
 
 type AnswerMap = Record<string, string | string[]>;
 
@@ -323,20 +331,14 @@ export const TemplateRenderer: React.FC = () => {
   const [showLeaveWarning, setShowLeaveWarning] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
 
-  const ANSWERS_KEY = `ps_answers_${templateId}`;
-  const STATE_KEY   = `ps_state_${templateId}`;
-
-  // ── Load persisted reviewer annotations + lifecycle override ──────────────
+  // ── Load saved reviewer annotations ───────────────────────────────────────
+  // Batch 431: through the template review service (shared with the other
+  // reviewers once the API server holds it, PS-345). The lifecycle state is
+  // no longer kept in the browser: the template service's status is the one
+  // record of it (loaded just below).
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(ANSWERS_KEY);
-      if (raw) setAnswers(JSON.parse(raw));
-    } catch {}
-    try {
-      const raw = localStorage.getItem(STATE_KEY);
-      if (raw) setState(raw as TemplateLifecycleState);
-    } catch {}
-  }, [templateId, ANSWERS_KEY, STATE_KEY]);
+    if (templateId) setAnswers(getTemplateTrialAnswers<AnswerMap>(templateId));
+  }, [templateId]);
 
   // ── Load real template content ─────────────────────────────────────────────
   useEffect(() => {
@@ -349,7 +351,7 @@ export const TemplateRenderer: React.FC = () => {
         if (cancelled) return;
         setTemplate(detail);
         // Since Batch 328 every transition waits for the service, so the
-        // registry's status is authoritative and wins over the local copy.
+        // registry's status is authoritative.
         setState(detail.status as TemplateLifecycleState);
         setLoading(false);
       })
@@ -365,13 +367,12 @@ export const TemplateRenderer: React.FC = () => {
   const persistAnswers = (next: AnswerMap) => {
     setAnswers(next);
     setIsDirty(true);
-    localStorage.setItem(ANSWERS_KEY, JSON.stringify(next));
+    if (templateId) saveTemplateTrialAnswers(templateId, next);
   };
 
   const persistState = (next: TemplateLifecycleState) => {
     setState(next);
     setIsDirty(false);  // completed a transition — annotations no longer "unsaved"
-    localStorage.setItem(STATE_KEY, next);
   };
 
   // ── Navigation guard ───────────────────────────────────────────────────────
@@ -390,13 +391,17 @@ export const TemplateRenderer: React.FC = () => {
   };
 
   // ── Answer handlers ────────────────────────────────────────────────────────
+  // Fields only render once the template has loaded, which needs templateId;
+  // each handler re-checks it so the audit record always carries one.
   const handleSingleChange = (fieldId: string, optionId: string) => {
+    if (!templateId) return;
     const prev = answers[fieldId];
     persistAnswers({ ...answers, [fieldId]: optionId });
     auditOnly({ user: currentUser, category: 'user', action: 'set_single_answer', templateId, questionId: fieldId, oldValue: prev, newValue: optionId });
   };
 
   const handleMultiChange = (fieldId: string, optionId: string) => {
+    if (!templateId) return;
     const current   = (answers[fieldId] as string[]) || [];
     const exists    = current.includes(optionId);
     const nextArray = exists ? current.filter(id => id !== optionId) : [...current, optionId];
@@ -406,6 +411,7 @@ export const TemplateRenderer: React.FC = () => {
   };
 
   const handleTextChange = (fieldId: string, value: string) => {
+    if (!templateId) return;
     const prev = answers[fieldId];
     persistAnswers({ ...answers, [fieldId]: value });
     auditOnly({ user: currentUser, category: 'user', action: 'set_text_answer', templateId, questionId: fieldId, oldValue: prev, newValue: value });
@@ -428,6 +434,7 @@ export const TemplateRenderer: React.FC = () => {
       case 'ALREADY_APPROVED':       return t('templateRenderer.governance.alreadyApproved');
       case 'NOT_ENOUGH_APPROVALS':   return t('templateRenderer.governance.notEnoughApprovals', { count: err.approvalCount ?? 0, required });
       case 'SNOMED_BELOW_THRESHOLD': return t('templateRenderer.governance.snomedBelowThreshold', { coverage: err.coverage ?? 0, threshold: SNOMED_PUBLISH_THRESHOLD });
+      case 'MOHS_HISTOLOGY_SOURCE':  return t('synopticEditor.errors.mohsHistologySource');
       default:                       return t('templateRenderer.governance.failed', { message: err?.message ?? String(err) });
     }
   };
@@ -500,10 +507,14 @@ export const TemplateRenderer: React.FC = () => {
   // ── Derived ────────────────────────────────────────────────────────────────
   const allowed = ALLOWED_TRANSITIONS[state] ?? [];
   const isPublished = state === 'published';
+  // Batch 579: the reviewer's guide is open while the template is in review, unless the reviewer folded it.
+  const showGuideOpen = state === 'in_review' && getUiPreference('templateReviewGuideOpen', true);
+  // The site's review rules, so the guide says what this site actually requires.
+  const reviewSettings = getTemplateGovernanceSettings();
 
   // ── Loading / not-found states (after all hooks — safe early return) ──────
   if (loading) {
-    return <StatusScreen>{t('templateRenderer.loading')}</StatusScreen>;
+    return <StatusScreen><LoadingState variant="inline" label={t('templateRenderer.loading')} /></StatusScreen>;
   }
   if (loadError || !template) {
     return (
@@ -544,14 +555,14 @@ export const TemplateRenderer: React.FC = () => {
           {/* Breadcrumb */}
           <div className="ps-tmplr-breadcrumb">
             <span
-              onClick={() => navigateAway(backTarget)}
+              {...pressable(() => navigateAway(backTarget))}
               className="ps-tmplr-breadcrumb-link"
             >
               {t('templateRenderer.nav.breadcrumbProtocols')}
             </span>
             <span className="ps-tmplr-breadcrumb-sep">›</span>
             <span
-              onClick={() => navigateAway(backTarget)}
+              {...pressable(() => navigateAway(backTarget))}
               className="ps-tmplr-breadcrumb-link"
             >
               {t('templateRenderer.nav.breadcrumbReviewQueue')}
@@ -588,6 +599,24 @@ export const TemplateRenderer: React.FC = () => {
           </div>
         </div>
 
+        {/* ── Batch 579: how to review (not once it is published) ── */}
+        {!isPublished && (
+          <details
+            className="ps-tmplr-guide"
+            open={showGuideOpen}
+            onToggle={e => { if (state === 'in_review') setUiPreference('templateReviewGuideOpen', (e.currentTarget as HTMLDetailsElement).open); }}
+          >
+            <summary className="ps-tmplr-guide-title">{t('templateRenderer.reviewGuide.title')}</summary>
+            <ul className="ps-tmplr-guide-list">
+              <li>{t('templateRenderer.reviewGuide.read')}</li>
+              <li>{t('templateRenderer.reviewGuide.comment')}</li>
+              <li>{t('templateRenderer.reviewGuide.coding', { threshold: SNOMED_PUBLISH_THRESHOLD })}</li>
+              <li>{t(reviewSettings.allowSelfApproval ? 'templateRenderer.reviewGuide.independentSelf' : 'templateRenderer.reviewGuide.independent', { count: reviewSettings.requiredReviewers })}</li>
+              <li>{t('templateRenderer.reviewGuide.sendBack', { needsChanges: t('templateRenderer.transitions.needsChanges.label') })}</li>
+            </ul>
+          </details>
+        )}
+
         {/* ── Lifecycle action bar ── */}
         <div className="ps-tmplr-lifecycle-bar">
           {isPublished ? (
@@ -615,12 +644,12 @@ export const TemplateRenderer: React.FC = () => {
                   );
                 })}
 
-                {/* Divider */}
-                <div className="ps-tmplr-divider" />
-
-                {/* Reset */}
+                {/* Reset: Batch 579, at the far end of the row, away from Approve (it was right beside it) */}
                 <button
+                  type="button"
                   onClick={() => setConfirmReset(true)}
+                  disabled={state === 'draft'}
+                  title={state === 'draft' ? t('templateRenderer.lifecycleBar.notAvailableTooltip', { state: t(getStateLabelKey(state)) }) : undefined}
                   className="ps-tmplr-reset-btn"
                 >
                   {t('templateRenderer.lifecycleBar.resetButton')}
@@ -690,11 +719,11 @@ export const TemplateRenderer: React.FC = () => {
                   {field.required && <span className="ps-tmplr-field-required">*</span>}
                 </div>
 
-                <InlineCommentThread questionId={field.id} templateId={templateId!} currentUser={currentUser} />
+                <InlineCommentThread questionId={field.id} templateId={templateId!} questionLabel={field.label} currentUser={currentUser} />
 
                 {/* Dropdown — real <select>, single-select */}
                 {field.type === 'dropdown' && (
-                  <select
+                  <select aria-label={field.label}
                     value={(answers[field.id] as string) || ''}
                     onChange={e => handleSingleChange(field.id, e.target.value)}
                     data-field-key={field.id}

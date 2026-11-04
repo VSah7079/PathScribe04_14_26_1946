@@ -26,12 +26,16 @@ export type AutopsyAccessionStatus = 'temporary' | 'fully_authorized';
  *  a second, separate definition of "authorized" that could drift
  *  from the actual gate's own. */
 export function resolveAutopsyAccessionStatus(caseDetails: AutopsyCaseDetails): AutopsyAccessionStatus {
-  if (caseDetails.caseAuthority === 'medicolegal_forensic') {
+  if (caseDetails.caseAuthority === 'statutory_judicial') {
     const auth = caseDetails.forensicAuthorization;
     const hasWrittenOrder = Boolean(auth?.orderReference && auth.orderReference.trim().length > 0 && auth?.orderDate);
     return hasWrittenOrder ? 'fully_authorized' : 'temporary';
   }
+  // Batch 468: revokedOrNarrowedAt replaced by the structured status
+  // field — only 'revoked' means not fully authorized here, matching
+  // resolveAutopsyGrossExaminationGate.ts's own criteria ('narrowed'
+  // consent is still active consent, just scope-constrained).
   const consent = caseDetails.hospitalConsent;
-  const hasActiveConsent = Boolean(consent?.consentGivenAt) && !consent?.revokedOrNarrowedAt;
+  const hasActiveConsent = Boolean(consent?.consentGivenAt) && consent?.status !== 'revoked';
   return hasActiveConsent ? 'fully_authorized' : 'temporary';
 }

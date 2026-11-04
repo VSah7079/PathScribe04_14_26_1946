@@ -24,16 +24,19 @@
 
 import type { AssistPollRun } from './types';
 import { runAssistPollCycle, ingestPushedMessage, retryFailedEvents, type AssistPollDeps } from './runAssistPollCycle';
-import { mockAssistPollingService } from './mockAssistPollingService';
+import { assistPollingService } from './assistPollingServiceInstance';
 import { mockPollAdapter } from '../lisIngestion/adapters/mockPollAdapter';
-import { mockLisStagingQueueService } from '../lisIngestion/mockLisStagingQueueService';
+import { lisStagingQueueService } from '../lisIngestion/lisStagingQueueServiceInstance';
 import { hl7v2StatusAdapter } from '../lisIngestion/adapters/hl7v2StatusAdapter';
 import { webhookJsonAdapter } from '../lisIngestion/adapters/webhookJsonAdapter';
 import type { LisPushAdapter } from '../lisIngestion/types';
+import { CONFIG_NOT_PERMITTED, permitConfigChange } from '../authorization/guardConfigWrites';
 
 async function buildDeps(): Promise<AssistPollDeps> {
-  const [{ mockCaseService, evaluateSynopticAssignment, generateAiSuggestionsForReport }, templateModule, { aiBehaviorService, auditService }] =
+  const [{ caseService }, { evaluateSynopticAssignment, generateAiSuggestionsForReport }, templateModule, { aiBehaviorService, auditService }] =
     await Promise.all([
+      import('@/services/cases/caseServiceInstance'),
+      // The two AI helpers live in the case mock's file for now (listed in directMockImportBaseline.ts).
       import('@/services/cases/mockCaseService'),
       import('@/services/templates/templateService'),
       import('@/services'),
@@ -41,10 +44,11 @@ async function buildDeps(): Promise<AssistPollDeps> {
 
   const deps: AssistPollDeps = {
     pollAdapter: mockPollAdapter,
-    loadQueue: () => mockLisStagingQueueService.load(),
-    saveQueue: q => mockLisStagingQueueService.save(q),
-    getCase: id => mockCaseService.getCase(id),
-    updateCase: (id, updates) => mockCaseService.updateCase(id, updates),
+    loadQueue: () => lisStagingQueueService.load(),
+    saveQueue: q => lisStagingQueueService.save(q),
+    getCase: id => caseService.getCase(id),
+    // PS-71 (Batch 458): forwards the version the worker built the save from.
+    updateCase: (id, updates, expectedVersion) => caseService.updateCase(id, updates, expectedVersion),
     listDiagnosticTemplates: async () =>
       (await templateModule.listTemplates('published'))
         .filter(t => t.isDiagnostic !== false)
@@ -62,8 +66,8 @@ async function buildDeps(): Promise<AssistPollDeps> {
         microscopic: !res.ok || res.data.microscopicEnabled !== false,
       };
     },
-    loadState: () => mockAssistPollingService.getState(),
-    saveState: s => mockAssistPollingService.saveState(s),
+    loadState: () => assistPollingService.getState(),
+    saveState: s => assistPollingService.saveState(s),
     logAudit: entry => auditService.logEvent(entry),
     now: () => new Date().toISOString(),
     newId: () => `lis-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
@@ -71,7 +75,19 @@ async function buildDeps(): Promise<AssistPollDeps> {
   return deps;
 }
 
+/** Batch 428: polling, pasting a message in or retrying by hand changes cases
+ *  and runs the AI, so a person needs assist:lis-message:ingest (audited).
+ *  The scheduled poll is the system's and isn't checked. A refusal throws
+ *  CONFIG_NOT_PERMITTED and nothing runs. */
+async function permitManualIngest(): Promise<void> {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  if (!(await permitConfigChange(authorizationService.enforce('assist:lis-message:ingest'), 'assist:lis-message:ingest'))) {
+    throw new Error(CONFIG_NOT_PERMITTED);
+  }
+}
+
 export async function runAssistPollNow(trigger: 'manual' | 'scheduled' = 'manual'): Promise<AssistPollRun> {
+  if (trigger === 'manual') await permitManualIngest();
   return runAssistPollCycle(await buildDeps(), trigger);
 }
 
@@ -82,9 +98,11 @@ export const LIS_PUSH_ADAPTERS: Record<'hl7v2' | 'webhook', LisPushAdapter> = {
 };
 
 export async function ingestLisMessageNow(kind: 'hl7v2' | 'webhook', raw: string): Promise<AssistPollRun> {
+  await permitManualIngest();
   return ingestPushedMessage(await buildDeps(), LIS_PUSH_ADAPTERS[kind], raw);
 }
 
 export async function retryFailedLisEventsNow(): Promise<AssistPollRun> {
+  await permitManualIngest();
   return retryFailedEvents(await buildDeps());
 }

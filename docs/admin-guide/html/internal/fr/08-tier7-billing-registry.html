@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 7 : facturation, gestion du cycle de revenus et déclaration aux registres · Guide de l&#x27;administrateur PathScribe (édition interne ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="fr" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Guide de l&#x27;administrateur</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Rechercher des écrans, des champs, des codes d&#x27;erreur" aria-label="Rechercher dans le guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Langue"><option value="en">English</option><option value="fr" selected>Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Imprimer / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Chapitres du guide"><a href="index.html">Sommaire</a><a href="setup-sequence.html">Ordre de configuration</a><a href="01-system-overview.html">1. Vue d&#x27;ensemble et architecture du système</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1 : Prérequis du système principal (à configurer en premier)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2 : Répertoires de référence et données cliniques de base (à configurer en deuxième)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3 : Moteurs de flux de travail et configuration opérationnelle (à configurer en troisième)</a><a href="05-tier4-ai-framework.html">5. Niveau 4 : Le cadre d&#x27;IA intégré de PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Niveau 5 : Comptes rendus, formulaires synoptiques et configuration du planificateur</a><a href="07-tier6-interface-engine.html">7. Niveau 6 : moteur d&#x27;interface et intégrations de systèmes externes</a><a href="08-tier7-billing-registry.html" aria-current=page>8. Niveau 7 : facturation, gestion du cycle de revenus et déclaration aux registres</a><a href="09-appendices.html">9. Annexes : Dépannage et vérification du journal d&#x27;audit</a><a href="99-glossary.html">99. Annexe : Glossaire des termes et abréviations</a></nav><main id="main"><aside class="pagetoc" aria-label="Sur cette page"><b>Sur cette page</b><ul><li class="l2"><a href="#ch8-billing-architecture">Architecture du moteur de facturation</a></li><li class="l3"><a href="#screen-billing_type_triggers">Déclencheurs de libération des frais (TC/26/Global)</a></li><li class="l2"><a href="#ch8-charge-capture">Règles de saisie des frais, correspondance CPT/HCPCS et grilles tarifaires</a></li><li class="l3"><a href="#screen-modifier_dictionary">Dictionnaire des modificateurs CPT</a></li><li class="l3"><a href="#screen-rvu_code_map">Table des codes RVU (productivité)</a></li><li class="l3"><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a></li><li class="l2"><a href="#ch8-autocoding-holds">Moteur de codage automatique et règles de retenue de facturation</a></li><li class="l3"><a href="#screen-ncci_edit_rules">Règles d&#x27;édition NCCI (regroupement)</a></li><li class="l3"><a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a></li><li class="l3"><a href="#screen-billing_release">Libération de la facturation</a></li><li class="l3"><a href="#screen-dft_export_preview">Aperçu de l&#x27;export de facturation</a></li><li class="l2"><a href="#ch8-cancer-registry">Configuration du registre du cancer</a></li><li class="l3"><a href="#screen-cancer_registry_settings">Déclaration au registre du cancer</a></li><li class="l3"><a href="#screen-cosd_destination">Registre du cancer britannique (COSD)</a></li><li class="l3"><a href="#screen-us_epath">Pathologie électronique (États-Unis)</a></li><li class="l3"><a href="#screen-cytology_registry">Signalement au registre cytologique</a></li><li class="l3"><a href="#screen-batch_registry_feed">Fichiers de lot des registres</a></li><li class="l2"><a href="#ch8-quality-reporting">Déclaration de la qualité et de la santé publique (MIPS/MACRA)</a></li><li class="l2"><a href="#ch8-payment-reference">Correspondances de paiement par juridiction, types de paiement principaux et journal financier</a></li><li class="l3"><a href="#screen-master_payment_types">Dictionnaire principal des types de paiement</a></li><li class="l3"><a href="#screen-jurisdiction_payment_mappings">Correspondance des paiements par juridiction</a></li><li class="l3"><a href="#screen-audit-financial">Journaux système : Facturation</a></li></ul></aside><article><h1 id="ch8"><a class="anchor" href="#ch8" aria-label="Link to this section">#</a> Niveau 7 : facturation, gestion du cycle de revenus et déclaration aux registres</h1>
+<p>Ce chapitre explique comment PathScribe décide de ce qu'il facture, à quel moment des frais peuvent quitter le système et à quels registres du cancer et du dépistage un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> est déclaré. Il traite aussi des références de paiement qu'utilise la charge utile des frais et de la page Journaux système où vous suivez les événements financiers.</p>
+<p>Lisez d'abord ces trois points, car ils fixent ce que vous pouvez et ne pouvez pas attendre.</p>
+<ol>
+<li><strong>Ce que PathScribe fait de l'argent.</strong> PathScribe détermine chaque frais une seule fois, à la finalisation, sous la forme d'un enregistrement figé : code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a> ou <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a>, unités de valeur relative (<a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a>) et <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a>. Il ne conserve aucun tarif. <strong>Grilles tarifaires : Non réalisé.</strong> Il n'existe aucun champ de montant en dollars, de prix ou de tarif de payeur dans les règles de facturation. La charge utile des frais ne contient aucun montant en dollars. Le remboursement est calculé par votre système de facturation ou par le moteur d'interfaces, pas par PathScribe.</li>
+<li><strong>Ce que PathScribe fait des registres.</strong> PathScribe décide si un dossier est à déclarer, vérifie les données obligatoires et construit une charge utile <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> structurée. Il n'écrit pas lui-même de <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a> <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, qui fixe les normes de données pour la déclaration aux registres du cancer en Amérique du Nord.">NAACCR</a>, de XML <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, le jeu de données national anglais pour l&#x27;enregistrement du cancer.">COSD</a> ni aucun autre format d'échange de <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>. Le moteur d'interfaces (celui de ForMedrixAI, livré avec PathScribe) traduit et transmet. Aucune spécification de registre du produit n'est confirmée par rapport à la spécification publiée par le registre lui-même, sauf si la section le dit.</li>
+<li><strong>La plus grande partie de ce chapitre est en Démonstration aujourd'hui.</strong> Le stockage de production est Microsoft SQL Server derrière une <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> <a class="term" href="99-glossary.html#g-asp-net-core" title="Le cadre applicatif web de Microsoft sur lequel est construit le serveur API de PathScribe.">ASP.NET Core</a>. Les services qui sont derrière ces écrans sont des services de démonstration conservés dans le navigateur, et les contrats d'API de <code>docs/architecture</code> ne disent rien qui indique qu'ils aient été essayés avec un vrai serveur. Chaque écran porte son propre statut.</li>
+</ol>
+<h2>Ordre de configuration du niveau 7</h2>
+<p>Configurez les écrans dans cet ordre. Le cadre « Ordre de configuration » de chaque écran indique ce qu'il exige.</p>
+<ol>
+<li><a href="#screen-modifier_dictionary">Dictionnaire des modificateurs CPT</a> : la liste des modificateurs que propose le Dictionnaire de facturation.</li>
+<li><a href="#screen-rvu_code_map">Table des codes RVU</a> : la liste des codes <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a> et des valeurs relatives vers laquelle pointe chaque règle de facturation.</li>
+<li><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a> : les règles de facturation versionnées.</li>
+<li><a href="#screen-ncci_edit_rules">Règles d'édition NCCI (regroupement)</a> : les paires de regroupement (vous les téléversez ; aucune n'est fournie).</li>
+<li><a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a> : une seconde personne approuve les étapes 1 à 4 avant que quoi que ce soit prenne effet.</li>
+<li><a href="#screen-billing_type_triggers">Déclencheurs de libération des frais</a> : l'étape du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> à laquelle chaque type de facturation crée ses frais.</li>
+<li><a href="#screen-billing_release">Libération de la facturation</a> : les règles de retenue et de lot pour les frais prêts.</li>
+<li><a href="#screen-master_payment_types">Dictionnaire principal des types de paiement</a> : les catégories de paiement.</li>
+<li><a href="#screen-jurisdiction_payment_mappings">Correspondance des paiements par juridiction</a> : les régimes de payeurs locaux associés à ces catégories.</li>
+<li><a href="#screen-dft_export_preview">Aperçu de l'export de facturation</a> : vérifiez ce qu'enverrait un vrai dossier.</li>
+<li><a href="#screen-cancer_registry_settings">Rapports du registre du cancer</a> : le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> par <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> et l'approbation de mise en production.</li>
+<li><a href="#screen-cosd_destination">Registre du cancer britannique (COSD)</a> : paramètres de la destination pour l'Angleterre.</li>
+<li><a href="#screen-us_epath">Pathologie électronique (États-Unis)</a> : profils d'États pour le flux <a class="term" href="99-glossary.html#g-epath" title="Compte rendu de pathologie électronique, l&#x27;envoi des comptes rendus de pathologie à un registre du cancer sous une forme électronique normalisée.">ePath</a> américain.</li>
+<li><a href="#screen-cytology_registry">Signalement au registre cytologique</a> : paramètres du programme de dépistage du col de l'utérus.</li>
+<li><a href="#screen-batch_registry_feed">Fichiers de lot des registres</a> : envois de fichiers aux registres.</li>
+</ol>
+<p>L'<a href="#screen-audit-financial">onglet financier des Journaux système</a> est une page de référence. Il ne fait pas partie de la configuration.</p>
+<p>Non réalisés dans ce chapitre : les grilles tarifaires, les suggestions de facturation par IA ou en langage naturel à partir du texte du compte rendu, le <a class="term" href="99-glossary.html#g-x12" title="La norme ANSI pour les transactions commerciales électroniques, y compris les demandes de remboursement de soins aux États-Unis.">X12</a> 837P, les sorties KVDT et SESAM-Vitale, les fichiers de lots <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a> <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, qui fixe les normes de données pour la déclaration aux registres du cancer en Amérique du Nord.">NAACCR</a>, ainsi que la déclaration de qualité <a class="term" href="99-glossary.html#g-mips" title="Le Merit-based Incentive Payment System, un programme américain de Medicare qui ajuste le paiement selon les mesures de qualité déclarées.">MIPS</a> et <a class="term" href="99-glossary.html#g-macra" title="Le Medicare Access and CHIP Reauthorization Act américain, qui a créé le Quality Payment Program dont fait partie le MIPS.">MACRA</a>.</p>
+<h2 id="ch8-billing-architecture"><a class="anchor" href="#ch8-billing-architecture" aria-label="Link to this section">#</a> Architecture du moteur de facturation</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span></nav>
+
+<p><strong>Comment des frais sont modélisés.</strong> PathScribe répartit des frais en une composante technique, une composante professionnelle, ou les deux ensemble. Le produit appelle ces éléments des types de facturation :</p>
+<table>
+<thead>
+<tr>
+<th>Type de facturation</th>
+<th>Libellé à l'écran</th>
+<th>Ce qu'il couvre</th>
+<th>Modificateur appliqué</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a></td>
+<td>Technique (TC)</td>
+<td>Travail de laboratoire : <a class="term" href="99-glossary.html#g-grossing" title="L&#x27;examen et la découpe d&#x27;un prélèvement chirurgical par un pathologiste ou un assistant de pathologie, qui le décrit et choisit les fragments à traiter.">macroscopie</a>, traitement, lames, colorations</td>
+<td><code>-TC</code></td>
+</tr>
+<tr>
+<td>26</td>
+<td>Professionnel (26 Prof.)</td>
+<td>L'interprétation du pathologiste</td>
+<td><code>-26</code></td>
+</tr>
+<tr>
+<td>Global</td>
+<td>Combiné (Global)</td>
+<td>Les deux parties facturées ensemble</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p>PathScribe applique le <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a> d'après le type de facturation, sans exception : TC prend <code>-TC</code>, 26 prend <code>-26</code>, Global n'en prend aucun. Les autres modificateurs sont purement informatifs.</p>
+<p><strong>Quand des frais sont créés.</strong> Par défaut, la composante technique est créée lorsque le <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> est dégrossi. Les composantes professionnelle et globale sont créées à la validation finale. Vous pouvez modifier cela pour toute l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> ou pour un seul site dans <a href="#screen-billing_type_triggers">Déclencheurs de libération des frais</a>.</p>
+<p><strong>Les frais sont figés une fois créés.</strong> À la finalisation, PathScribe détermine les frais une seule fois sous la forme d'un enregistrement de frais immuable qui conserve un instantané du <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a>, du <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a>, des <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> et du modificateur. Les modifications ultérieures d'une règle de facturation ne changent pas des frais déjà créés. Une correction après la validation passe par une paire avoir et refacturation, pas par une modification.</p>
+<p><strong>Les règles de facturation sont versionnées.</strong> Une règle de facturation est identifiée par le code de facturation, le périmètre et la version. Les versions sont uniquement ajoutées. Les statuts sont DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED et RETIRED. La personne qui rédige ou soumet une version ne peut pas l'approuver (le <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Une règle selon laquelle une personne prépare une modification et une autre personne l&#x27;approuve. L&#x27;import des codes de facturation l&#x27;utilise.">principe des quatre yeux</a>, appliqué dans les services). À l'approbation, la nouvelle version prend effet et la version qu'elle remplace prend fin.</p>
+<p><strong>Périmètre.</strong> Une règle s'applique à toute l'entreprise ou à un seul Site. Le mot Site est utilisé sur ces écrans, pas Établissement.</p>
+<p><strong>Dossiers partagés entre laboratoires.</strong> Lorsque la composante technique est réalisée dans un autre laboratoire que la lecture professionnelle, le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> porte un <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> de composante technique et l'établissement exécutant. La décision de libération vérifie ce point (voir <a href="#screen-billing_release">Libération de la facturation</a>).</p>
+<p><strong>Où vont les frais.</strong> Les frais prêts vont dans la <a class="term" href="99-glossary.html#g-outbound-queue" title="La liste des messages et des actes facturables que PathScribe a construits et qui sont en attente d&#x27;envoi, retenus, envoyés ou en échec.">file d'envoi</a>. Des frais au statut PENDING_APPROVAL ou HOLD sont ignorés par le balayage d'envoi. Le moteur d'interfaces assure le transport, la traduction et les nouvelles tentatives. PathScribe décide seulement de ce qui est libéré et du moment.</p>
+<p><strong>Approbation facultative des frais.</strong> Des frais peuvent être retenus pour approbation. La <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> d'approbation <code>billing:charge:approve</code> est vérifiée par <a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a>. Elle figure dans le <a class="term" href="99-glossary.html#g-capability-catalog" title="La liste complète des capacités, avec le niveau de risque de chacune et toute capacité qu&#x27;elle exige.">catalogue des capacités</a>, mais aucun <a class="term" href="99-glossary.html#g-role" title="Un ensemble nommé de capacités attribué au personnel, tel qu&#x27;Administrateur ou Pathologiste. Une personne peut détenir plusieurs rôles.">rôle</a> intégré ne la détient par défaut ; attribuez-la donc par <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a> si vous utilisez l'approbation des frais.</p>
+<h3 id="screen-billing_type_triggers"><a class="anchor" href="#screen-billing_type_triggers" aria-label="Link to this section">#</a> Déclencheurs de libération des frais (TC/26/Global)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Déclencheurs de libération des frais (TC/26/Global)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Déclencheurs de libération des frais (<a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a>/26/Global)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Déclencheurs de libération des frais (TC/26/Global)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Définit l'étape du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> à laquelle chaque type de facturation crée ses frais. Les valeurs par défaut sont : TC au dégrossissage du <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, 26 et Global à la validation du dossier. Vous pouvez remplacer une valeur par défaut pour toute l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> ou pour un seul site. Un site sans remplacement propre utilise le paramètre de l'entreprise.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Un remplacement de site ne peut être défini que pour un site existant ; configurez donc d'abord les établissements. Sans site dans la liste, vous pouvez quand même définir des déclencheurs pour toute l'entreprise.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 6</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a></dd><dt>Cela débloque</dt><dd><a href="#screen-billing_release">Libération de la facturation</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-billing_type_triggers.webp" alt="Déclencheurs de libération des frais avec une liste d&#x27;étapes par type de facturation" loading="lazy"><figcaption>Déclencheurs de libération des frais avec une liste d&#x27;étapes par type de facturation</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_type_triggers-scope-selector"><td>Sélecteur de périmètre</td>
+<td>Choix : Entreprise ou un Site</td>
+<td>Obligatoire</td>
+<td>Choisit les déclencheurs que vous consultez et modifiez.</td>
+<td>Entreprise</td>
+</tr>
+<tr id="f-billing_type_triggers-technical-tc-trigger"><td>Déclencheur technique (TC)</td>
+<td>Choix d'étapes du dossier</td>
+<td>Obligatoire</td>
+<td>L'étape à laquelle les frais techniques sont créés. L'enregistrement de la liste déroulante est immédiat.</td>
+<td>Prélèvement dégrossi (<code>SPECIMEN_GROSSED</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-professional-26-prof-trigger"><td>Déclencheur professionnel (26 Prof.)</td>
+<td>Choix d'étapes du dossier</td>
+<td>Obligatoire</td>
+<td>L'étape à laquelle les frais professionnels sont créés. Enregistrement immédiat.</td>
+<td>Dossier validé (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-combined-global-trigger"><td>Déclencheur combiné (Global)</td>
+<td>Choix d'étapes du dossier</td>
+<td>Obligatoire</td>
+<td>L'étape à laquelle les frais globaux sont créés. Enregistrement immédiat.</td>
+<td>Dossier validé (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-reset-to-default"><td>Rétablir les valeurs par défaut</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Supprime le remplacement pour le périmètre choisi et le ramène à la valeur par défaut intégrée.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:billing-triggers:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut. Chaque modification écrit un événement d'audit (« Charge release trigger changed », « Charge release triggers reset to default »).</p>
+<p><strong>Limites connues.</strong> Démonstration : <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> de démonstration uniquement. Une modification de déclencheur concerne les frais créés à partir de ce moment et ne change pas les frais déjà créés.</p>
+<h2 id="ch8-charge-capture"><a class="anchor" href="#ch8-charge-capture" aria-label="Link to this section">#</a> Règles de saisie des frais, correspondance CPT/HCPCS et grilles tarifaires</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span></nav>
+
+<p><strong>Grilles tarifaires : Non réalisé.</strong> Le plan demande des grilles tarifaires. Il n'existe aucun écran, contrat ni champ pour un montant en dollars, un prix ou un tarif propre à un payeur. Une règle de facturation ne porte que le code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a>, le code <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a> et les valeurs <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> de travail, de charges d'exploitation (PE) et de responsabilité civile (MP). Les éléments les plus proches qui existent sont les valeurs RVU du <a href="#screen-billing_dictionary">Dictionnaire de facturation</a> et de la <a href="#screen-rvu_code_map">Table des codes RVU</a>. Le contrôle appelé <code>ZERO_FEE_MAPPING_ERROR</code> est libellé comme un contrôle de tarif, mais il recherche des frais déterminés avec zéro RVU pour le travail, les PE et les MP et sans avis de suppression.</p>
+<p><strong>Chargement en masse de codes.</strong> Pour charger en masse des listes de codes CPT, HCPCS ou autres, utilisez <a href="03-tier2-master-dictionaries.html#screen-code_import">Import de codes (en masse)</a>. Il est documenté avec les autres références.</p>
+<p><strong>Codage automatique.</strong> Voir le paragraphe sur le statut sous <a href="#ch8-autocoding-holds">Moteur de codage automatique et règles de retenue de facturation</a>.</p>
+<h3 id="screen-modifier_dictionary"><a class="anchor" href="#screen-modifier_dictionary" aria-label="Link to this section">#</a> Dictionnaire des modificateurs CPT</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Dictionnaire des modificateurs CPT"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Dictionnaire des modificateurs <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a></span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Dictionnaire des modificateurs CPT</p>
+<p><strong>3. Objectif métier et périmètre.</strong> La liste des codes de modificateurs CPT (par exemple 26, <a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a>, 59, XS) que propose l'onglet Règles de codage du Dictionnaire de facturation. Les modificateurs saisis ici sont informatifs. PathScribe ne vérifie ni n'ajoute aucun <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a> autre que la règle fixe TC et 26 décrite dans l'introduction du chapitre.</p>
+<p>Les descriptions fournies sont des espaces réservés tels que « Modificateur 59 », marqués synthétiques, car le texte de l'American Medical Association (<a class="term" href="99-glossary.html#g-ama" title="American Medical Association, l&#x27;éditeur et propriétaire du jeu de codes CPT.">AMA</a>) est soumis à licence. Si vous détenez une licence, chargez vos propres descriptions.</p>
+<p><strong>4. Prérequis et dépendances.</strong> C'est un point de départ. Chaque modification devient une nouvelle version en attente d'approbation ; une seconde personne disposant des droits d'approbation est donc nécessaire avant qu'une modification prenne effet.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 1</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a>, <a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-modifier_dictionary.webp" alt="Dictionnaire des modificateurs CPT avec la version active et la liste des codes" loading="lazy"><figcaption>Dictionnaire des modificateurs CPT avec la version active et la liste des codes</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-modifier_dictionary-version-label"><td>Libellé de la version</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>La version active du dictionnaire. Identifiant de version fournie <code>modifier-v-seed-2026</code>. Une seconde version sous licence, en attente, est également fournie.</td>
+<td>Version fournie</td>
+</tr>
+<tr id="f-modifier_dictionary-code"><td>Code</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>Le code du modificateur. Fournis : 26, TC, 22, 52, 53, 59, XE, XS, XP, XU, 76, 77, 90, 91, 92 (15 codes).</td>
+<td>15 codes fournis</td>
+</tr>
+<tr id="f-modifier_dictionary-description"><td>Description</td>
+<td>Texte</td>
+<td>Obligatoire lors de la modification d'une ligne</td>
+<td>La description affichée au personnel. L'enregistrement crée une nouvelle version au statut PENDING_APPROVAL ; elle n'est jamais activée automatiquement.</td>
+<td>« Modificateur {code} » (synthétique)</td>
+</tr>
+<tr id="f-modifier_dictionary-license-status"><td>Statut de la licence</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>Affiche <code>synthetic</code> pour les espaces réservés fournis.</td>
+<td>synthetic</td>
+</tr>
+<tr id="f-modifier_dictionary-upload-csv"><td>Téléverser un <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></td>
+<td>Fichier, CSV</td>
+<td>Facultatif</td>
+<td>Remplace le dictionnaire à partir d'un fichier comportant les colonnes Code et Description. Modèle : <code>ModifierDictionaryTemplate.csv</code>. Crée une version en attente.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-modifier_dictionary-licence-confirmation"><td>Confirmation de la licence</td>
+<td>Case à cocher</td>
+<td>Obligatoire pour téléverser</td>
+<td>Vous confirmez détenir le droit d'utiliser les descriptions téléversées. Le téléversement n'a pas lieu sans cette confirmation.</td>
+<td>Non cochée</td>
+</tr>
+<tr id="f-modifier_dictionary-version-label-for-the-upload"><td>Libellé de la version pour le téléversement</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Donne un nom à la version en attente.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Créer ou modifier : <code>config:billing-modifiers:manage</code>. Approuver, rejeter ou activer une version : <code>config:billing-tables:approve</code>, utilisée dans <a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a>. Les rôles Administrateur et Directeur de laboratoire détiennent les deux par défaut. La personne qui a soumis une version ne peut pas l'approuver.</p>
+<p><strong>Limites connues.</strong> Le dictionnaire n'est qu'une liste. Aucun écran ni aucun contrôle n'impose un modificateur sur des frais. Le texte fourni est synthétique.</p>
+<h3 id="screen-rvu_code_map"><a class="anchor" href="#screen-rvu_code_map" aria-label="Link to this section">#</a> Table des codes RVU (productivité)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Table des codes RVU (productivité)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Table des codes <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> (productivité)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Table des codes RVU (productivité)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Une petite liste choisie de codes <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a> avec leurs unités de valeur relative, utilisée pour la productivité des pathologistes (RVU de travail) et comme liste source dans laquelle le Dictionnaire de facturation choisit les codes CPT. Ce n'est pas un système de facturation et elle ne contient aucun montant en dollars. Les données fournies sont un sous-ensemble du fichier de valeurs relatives du barème des honoraires médicaux 2026 du <a class="term" href="99-glossary.html#g-cms" title="Les Centers for Medicare and Medicaid Services, l&#x27;agence américaine qui fixe les règles de facturation de Medicare, y compris les contrôles NCCI.">CMS</a>, intitulé « CMS 2026 (April update) » (identifiant de version <code>rvu-v-seed-2026</code>). Plusieurs lignes n'ont pas de RVU de travail et s'affichent comme Non vérifié.</p>
+<p><strong>4. Prérequis et dépendances.</strong> C'est un point de départ. Une version en attente ou rejetée n'est jamais utilisée pour déterminer des frais ; rien de ce que vous téléversez ne compte donc tant qu'une seconde personne ne l'a pas approuvé.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 2</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a>, <a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-rvu_code_map.webp" alt="Table des codes RVU avec téléversement et modification" loading="lazy"><figcaption>Table des codes RVU avec téléversement et modification</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-version"><td>Version</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>Le libellé de la version active.</td>
+<td>CMS 2026 (April update)</td>
+</tr>
+<tr id="f-rvu_code_map-search"><td>Rechercher</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre le tableau.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-rvu_code_map-upload-csv"><td>Téléverser un <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></td>
+<td>Fichier, CSV</td>
+<td>Facultatif</td>
+<td>Colonnes : Code ou <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a>, Description, WorkRVU. Respecte le code de statut du CMS (seules les lignes A, R et T sont payables) et ignore les lignes de modificateurs. Les lignes téléversées voient leur niveau déduit de la description (<a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> par défaut) et le type de facturation Global. Crée une version en attente. Modèle : <code>RvuCodeMapTemplate.csv</code>.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-rvu_code_map-version-label-for-the-upload"><td>Libellé de la version pour le téléversement</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Donne un nom à la version en attente.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre de modification</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-code"><td>Code</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a>. Verrouillé lorsque vous modifiez une ligne existante. Un code en double est refusé.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-rvu_code_map-billing-code"><td>Code de facturation</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le code de facturation PathScribe. Verrouillé lors de la modification.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-rvu_code_map-description"><td>Description</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Description en clair.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-rvu_code_map-level"><td>Niveau</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, <a class="term" href="99-glossary.html#g-block" title="Un fragment de tissu inclus dans de la paraffine à l&#x27;intérieur d&#x27;une cassette, dans lequel les lames sont coupées.">bloc</a>, <a class="term" href="99-glossary.html#g-stain" title="Un colorant ou un anticorps appliqué sur une lame afin qu&#x27;une caractéristique du tissu soit visible.">coloration</a>, décantation</td>
+<td>Obligatoire</td>
+<td>L'élément auquel le code est rapporté.</td>
+<td>prélèvement</td>
+</tr>
+<tr id="f-rvu_code_map-component-type"><td>Type de composante</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a>, 26, Global</td>
+<td>Obligatoire</td>
+<td>Le type de facturation auquel cette ligne s'applique.</td>
+<td>Global</td>
+</tr>
+<tr id="f-rvu_code_map-work-rvu"><td><a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> de travail</td>
+<td>Nombre positif</td>
+<td>Facultatif</td>
+<td>Laissez vide pour marquer la ligne Non vérifié.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-pe"><td>RVU PE</td>
+<td>Nombre</td>
+<td>Facultatif</td>
+<td>RVU des charges d'exploitation.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-mp"><td>RVU MP</td>
+<td>Nombre</td>
+<td>Facultatif</td>
+<td>RVU de responsabilité civile.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-rvu_code_map-hcpcs"><td><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a></td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Code de niveau II, s'il y en a un.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier ou téléverser : <code>config:billing-rvu:manage</code>. Approuver : <code>config:billing-tables:approve</code>. Les rôles Administrateur et Directeur de laboratoire détiennent les deux par défaut. Le <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Une règle selon laquelle une personne prépare une modification et une autre personne l&#x27;approuve. L&#x27;import des codes de facturation l&#x27;utilise.">principe des quatre yeux</a> s'applique.</p>
+<p><strong>Limites connues.</strong> La liste est un sous-ensemble choisi, pas le fichier complet du <a class="term" href="99-glossary.html#g-cms" title="Les Centers for Medicare and Medicaid Services, l&#x27;agence américaine qui fixe les règles de facturation de Medicare, y compris les contrôles NCCI.">CMS</a>. La sélection du code de base au niveau du prélèvement (88302, 88305, 88309) ne peut pas être déduite des données du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> ; elle n'est donc pas automatique.</p>
+<h3 id="screen-billing_dictionary"><a class="anchor" href="#screen-billing_dictionary" aria-label="Link to this section">#</a> Dictionnaire de facturation (saisie des frais)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Dictionnaire de facturation (saisie des frais)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Dictionnaire de facturation (saisie des frais)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Dictionnaire de facturation (saisie des frais)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> La liste versionnée des règles de facturation. Chaque règle relie un code de facturation PathScribe à un code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a>, à un code <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a> facultatif, à un type de facturation et à des valeurs <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a>, pour l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> ou pour un seul site. Une substitution de site remplace la règle de l'entreprise pour ce site. Les frais sont déterminés à partir de ces règles lorsqu'un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> est finalisé.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Le sélecteur CPT lit la Table des codes RVU et les cases à cocher des modificateurs lisent le Dictionnaire des modificateurs CPT. Si vous les ignorez, la recherche CPT est vide et aucun <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a> n'est proposé.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 3</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-rvu_code_map">Table des codes RVU</a>, <a href="#screen-modifier_dictionary">Dictionnaire des modificateurs CPT</a></dd><dt>Cela débloque</dt><dd><a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a>, <a href="#screen-billing_release">Libération de la facturation</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-billing_dictionary.webp" alt="Tableau du Dictionnaire de facturation avec sélecteur de site" loading="lazy"><figcaption>Tableau du Dictionnaire de facturation avec sélecteur de site</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-viewing"><td>Consultation</td>
+<td>Choix : Entreprise ou un Site</td>
+<td>Obligatoire</td>
+<td>Les règles de qui le tableau affiche.</td>
+<td>Entreprise</td>
+</tr>
+<tr id="f-billing_dictionary-billing-code"><td>Code de facturation</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Le code de facturation PathScribe.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td>CPT</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Le code CPT.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Description</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>La description de la règle.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td>RVU (Travail)</td>
+<td>Nombre, colonne</td>
+<td>Sans objet</td>
+<td>RVU de travail. Un <a class="term" href="99-glossary.html#g-flag" title="Un marqueur placé sur un dossier ou un prélèvement, par exemple pour demander une coloration supplémentaire ou pour suspendre un dossier.">indicateur</a> « Table des codes : N » s'affiche lorsque le RVU enregistré diffère de la Table des codes RVU.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Date d'effet</td>
+<td>Date, colonne</td>
+<td>Sans objet</td>
+<td>La date de début de la version active.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Périmètre</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>À l'échelle de l'entreprise, Substitution de site ou Hérité.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Statut</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Le statut de la version.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-versions"><td>Versions</td>
+<td>Nombre, colonne</td>
+<td>Sans objet</td>
+<td>Le nombre de versions existantes.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Actions</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Historique, Dupliquer, Nouvelle version.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre Nouvelle version, onglet Facturation et RVU</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-billing-code"><td>Code de facturation</td>
+<td>Texte</td>
+<td>Obligatoire pour un nouveau code</td>
+<td>Le code auquel cette règle appartient.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Périmètre</td>
+<td>Choix : Entreprise ou un Site</td>
+<td>Obligatoire</td>
+<td>Là où la règle s'applique.</td>
+<td>Le périmètre consulté</td>
+</tr>
+<tr id="f-billing_dictionary-country"><td>Pays</td>
+<td>Choix : US, UK, AU, CA, les 27 États de l'<a class="term" href="99-glossary.html#g-eu" title="Union européenne.">UE</a>, NZ</td>
+<td>Facultatif</td>
+<td>Le pays auquel le code est destiné.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-hcpcs-code"><td>Code <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, le jeu de codes américain qui ajoute aux CPT des codes pour les fournitures et les services.">HCPCS</a></td>
+<td>Recherche</td>
+<td>Facultatif</td>
+<td>Recherche dans le dictionnaire HCPCS de niveau II du domaine public intégré.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-cpt-code"><td>Code <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a></td>
+<td>Recherche dans les entrées de la Table des codes <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a></td>
+<td>Obligatoire</td>
+<td>Le code CPT à facturer.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Description</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Description de la règle.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-level"><td>Niveau</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, <a class="term" href="99-glossary.html#g-block" title="Un fragment de tissu inclus dans de la paraffine à l&#x27;intérieur d&#x27;une cassette, dans lequel les lames sont coupées.">bloc</a>, <a class="term" href="99-glossary.html#g-stain" title="Un colorant ou un anticorps appliqué sur une lame afin qu&#x27;une caractéristique du tissu soit visible.">coloration</a>, décantation</td>
+<td>Obligatoire</td>
+<td>L'élément auquel le code est rapporté.</td>
+<td>prélèvement</td>
+</tr>
+<tr id="f-billing_dictionary-component-type"><td>Type de composante</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a>, 26, Global</td>
+<td>Obligatoire</td>
+<td>Le type de facturation.</td>
+<td>Global</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work-pe-mp"><td>RVU de travail, PE, MP</td>
+<td>Nombres</td>
+<td>Facultatif</td>
+<td>Les trois valeurs RVU.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Date d'effet</td>
+<td>Date</td>
+<td>Obligatoire</td>
+<td>Date de début de la version.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Motif du changement</td>
+<td>Texte</td>
+<td>Obligatoire lorsque le périmètre a déjà des versions</td>
+<td>Conservé avec la version pour l'audit.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-notes"><td>Notes</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Notes libres.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre Nouvelle version, onglet Règles de codage</h4>
+<p>Ces éléments sont informatifs et ne sont jamais appliqués.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-modifiers-commonly-associated"><td>Modificateurs généralement associés</td>
+<td>Cases à cocher issues du Dictionnaire des modificateurs <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a></td>
+<td>Facultatif</td>
+<td>Rappel des modificateurs qui accompagnent souvent ce code.</td>
+<td>Aucune cochée</td>
+</tr>
+<tr id="f-billing_dictionary-quantity-rule"><td>Règle de quantité</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Conseil sur les unités.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-bundling-rule"><td>Règle de regroupement</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Conseil sur le regroupement. Les paires <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un ensemble de contrôles de Medicare américain qui indiquent quelles paires de codes ne peuvent pas être facturées ensemble.">NCCI</a> sont conservées dans <a href="#screen-ncci_edit_rules">Règles d'édition NCCI</a>.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-documentation-requirements"><td>Exigences de documentation</td>
+<td>Texte séparé par des virgules</td>
+<td>Facultatif</td>
+<td>Ce que le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> devrait montrer.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-billing_dictionary-suppression-advisory"><td>Avis de suppression</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Indique qu'une règle à zéro <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> est voulue, afin que le contrôle de tarif nul reste silencieux.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre Historique</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-version"><td>Version</td>
+<td>Nombre, colonne</td>
+<td>Sans objet</td>
+<td>Numéro de version.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a></td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Le CPT de cette version.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td><a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> (Travail)</td>
+<td>Nombre, colonne</td>
+<td>Sans objet</td>
+<td>RVU de travail.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from-effective-to"><td>Date d'effet, Date de fin</td>
+<td>Dates, colonnes</td>
+<td>Sans objet</td>
+<td>La période pendant laquelle la version s'est appliquée.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Statut</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED ou RETIRED.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Motif du changement</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Le motif saisi.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Actions</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Dupliquer. Soumettre pour approbation (versions DRAFT). Retirer (versions ACTIVE).</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p>Une nouvelle version est toujours enregistrée en DRAFT. <strong>Soumettre pour approbation</strong> la fait passer à PENDING_APPROVAL.</p>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Créer, soumettre et retirer : <code>config:billing-rules:manage</code>. Approuver ou rejeter : <code>config:billing-tables:approve</code>. Les rôles Administrateur et Directeur de laboratoire détiennent les deux par défaut. Des événements d'audit sont écrits pour les soumissions, approbations et rejets (« Billing rule submitted for approval »).</p>
+<p><strong>Limites connues.</strong> Il n'existe aucun champ de prix ou de tarif (voir Grilles tarifaires ci-dessus). Les règles de codage sont de simples conseils.</p>
+<h2 id="ch8-autocoding-holds"><a class="anchor" href="#ch8-autocoding-holds" aria-label="Link to this section">#</a> Moteur de codage automatique et règles de retenue de facturation</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span></nav>
+
+<p><strong>Moteur de codage automatique : Partiel.</strong> Ce qui est réalisé repose sur des règles et est toujours confirmé par une personne :</p>
+<ul>
+<li>Des codes suggérés à partir des données structurées du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> : catégories de colorations, 88312 pour une <a class="term" href="99-glossary.html#g-stain" title="Un colorant ou un anticorps appliqué sur une lame afin qu&#x27;une caractéristique du tissu soit visible.">coloration</a> spéciale, 88342 et +88341 pour l'immunohistochimie par <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, et 88331 ou 88332 pour une <a class="term" href="99-glossary.html#g-frozen-section" title="Un échantillon de tissu congelé et coupé pendant que le patient est au bloc opératoire afin qu&#x27;un pathologiste puisse donner une réponse rapide.">coupe congelée</a>.</li>
+<li>Une liste de repli de codes par défaut. Elle n'est pas prête pour la facturation.</li>
+<li>La saisie manuelle de codes dans la fenêtre des codes et dans le panneau de révision de la facturation.</li>
+</ul>
+<p><strong>Non réalisé :</strong> les suggestions issues du texte du compte rendu par IA ou par traitement du langage naturel. Ce travail dépend de l'avis des juristes et de la conformité. Les codes de base des prélèvements (88302, 88305, 88309) ne sont pas déterminés automatiquement. L'écran de configuration le plus proche est <a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>.</p>
+<p><strong>Contrôles de facturation à la validation.</strong> À la validation, PathScribe exécute six contrôles et enregistre une non-conformité pour chaque constat :</p>
+<table>
+<thead>
+<tr>
+<th>Déclencheur</th>
+<th>Code</th>
+<th>Gravité</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>UNSUPPORTED_CPT_LEVEL</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>NCCI_BUNDLING_VIOLATION</code> (uniquement les paires dont l'<a class="term" href="99-glossary.html#g-flag" title="Un marqueur placé sur un dossier ou un prélèvement, par exemple pour demander une coloration supplémentaire ou pour suspendre un dossier.">indicateur</a> de <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a> est 0)</td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>MISSING_DIAGNOSTIC_ICD10</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>UNATTACHED_ANCILLARY_ORDER</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>MODIFIER_MISMATCH</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>F</td>
+<td><code>ZERO_FEE_MAPPING_ERROR</code></td>
+<td>REVENUE_LEAKAGE</td>
+</tr>
+</tbody>
+</table>
+<p><code>MISSING_CHARGE</code>, <code>POST_SIGNOUT_CORRECTION</code> et <code>BLOCK_DELETED</code> sont levés en dehors de la validation. Ces contrôles n'empêchent jamais le pathologiste de valider. Une notification indique que des éléments de facturation ont été signalés à l'<a class="term" href="99-glossary.html#g-qa" title="Assurance qualité, la revue du travail pour repérer et corriger les problèmes.">AQ</a> et les constats vont à l'AQ. Ils bloquent en revanche l'export : un dossier ne peut pas être exporté tant qu'une non-conformité est OPEN ou UNDER_REVIEW. Les statuts sont OPEN, UNDER_REVIEW, RESOLVED et OVERRIDDEN_WITH_JUSTIFICATION.</p>
+<h3 id="screen-ncci_edit_rules"><a class="anchor" href="#screen-ncci_edit_rules" aria-label="Link to this section">#</a> Règles d'édition NCCI (regroupement)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Règles d&#x27;édition NCCI (regroupement)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Règles d&#x27;édition <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un ensemble de contrôles de Medicare américain qui indiquent quelles paires de codes ne peuvent pas être facturées ensemble.">NCCI</a> (regroupement)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Règles d'édition NCCI (regroupement)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Conserve les paires acte-acte de la National Correct Coding Initiative (NCCI) : un code de la colonne 1 et un code de la colonne 2 qui ne peuvent pas être facturés ensemble. Une paire dont l'<a class="term" href="99-glossary.html#g-flag" title="Un marqueur placé sur un dossier ou un prélèvement, par exemple pour demander une coloration supplémentaire ou pour suspendre un dossier.">indicateur</a> de <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a> est 0 lève une non-conformité à la validation. Les vraies données du <a class="term" href="99-glossary.html#g-cms" title="Les Centers for Medicare and Medicaid Services, l&#x27;agence américaine qui fixe les règles de facturation de Medicare, y compris les contrôles NCCI.">CMS</a> ne sont pas fournies. Les données fournies sont une paire synthétique (88305 avec 88300, indicateur 0, trimestre <code>DEMO</code>) et l'écran affiche un avertissement. Le titulaire de la licence téléverse le <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a>.</p>
+<p><strong>4. Prérequis et dépendances.</strong> C'est un point de départ. Un téléversement ou une modification devient un import en attente ; une approbation est donc nécessaire avant que les paires soient utilisées.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 4</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><a href="#screen-pending_approvals">Approbations de règles de facturation en attente</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-ncci_edit_rules.webp" alt="Règles d&#x27;édition NCCI avec l&#x27;avertissement sur les données synthétiques et le tableau des paires" loading="lazy"><figcaption>Règles d&#x27;édition NCCI avec l&#x27;avertissement sur les données synthétiques et le tableau des paires</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-quarter-version"><td>Version du trimestre</td>
+<td>Texte, par exemple <code>2026Q3</code></td>
+<td>Obligatoire pour téléverser</td>
+<td>Donne un nom à l'import.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-ncci_edit_rules-upload-csv"><td>Téléverser un CSV</td>
+<td>Fichier, CSV</td>
+<td>Facultatif</td>
+<td>Colonnes : Column 1, Column 2, Indicateur de modificateur (0, 1 ou 9), Date d'entrée en vigueur, Date de suppression. Modèle : <code>NcciPtpEditTemplate.csv</code>. Crée un import en attente.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-ncci_edit_rules-pair-table"><td>Tableau des paires</td>
+<td>Tableau, lecture seule</td>
+<td>Sans objet</td>
+<td>Column 1, Column 2, indicateur, dates de l'import actif.</td>
+<td>Une paire synthétique</td>
+</tr>
+<tr id="f-ncci_edit_rules-synthetic-data-warning"><td>Avertissement sur les données synthétiques</td>
+<td>Avis</td>
+<td>Sans objet</td>
+<td>Affiché tant que l'import actif est le jeu synthétique fourni.</td>
+<td>Affiché</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre de modification</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-modifier-indicator"><td>Indicateur de <a class="term" href="99-glossary.html#g-modifier" title="Un code court ajouté à un code CPT pour indiquer comment un service a été réalisé, par exemple que seule la composante technique a été fournie.">modificateur</a></td>
+<td>Choix : 0 jamais contournable, 1 contournable avec un modificateur, 9 l'édition ne s'applique pas</td>
+<td>Obligatoire</td>
+<td>Seules les paires 0 lèvent une non-conformité à la validation.</td>
+<td>Valeur actuelle</td>
+</tr>
+<tr id="f-ncci_edit_rules-deletion-date"><td>Date de suppression</td>
+<td>Date</td>
+<td>Facultatif</td>
+<td>La date à laquelle la paire cesse de s'appliquer.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<p>Chaque modification renvoie le tableau entier comme un nouvel import PENDING_APPROVAL nommé « Manual edit » avec la paire.</p>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Téléverser ou modifier : <code>config:billing-ncci:manage</code>. Approuver : <code>config:billing-tables:approve</code>. Les rôles Administrateur et Directeur de laboratoire détiennent les deux par défaut.</p>
+<p><strong>Limites connues.</strong> Aucune donnée <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un ensemble de contrôles de Medicare américain qui indiquent quelles paires de codes ne peuvent pas être facturées ensemble.">NCCI</a> réelle n'est fournie. Les indicateurs 1 et 9 ne lèvent pas de non-conformité.</p>
+<h3 id="screen-pending_approvals"><a class="anchor" href="#screen-pending_approvals" aria-label="Link to this section">#</a> Approbations de règles de facturation en attente</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Approbations de règles de facturation en attente"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Approbations de règles de facturation en attente</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Approbations de règles de facturation en attente</p>
+<p><strong>3. Objectif métier et périmètre.</strong> La file d'approbation par une seconde personne. Les versions de règles de facturation, les versions du dictionnaire des modificateurs, les imports <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un ensemble de contrôles de Medicare américain qui indiquent quelles paires de codes ne peuvent pas être facturées ensemble.">NCCI</a>, les versions <a class="term" href="99-glossary.html#g-rvu" title="Unité de valeur relative (Relative value unit), la mesure du travail et du coût d&#x27;un service utilisée dans le paiement de Medicare et dans les rapports de productivité.">RVU</a> et les tâches d'import de codes y attendent. Rien ne prend effet tant qu'une personne autre que celle qui l'a soumis ne l'a pas approuvé.</p>
+<p><strong>4. Prérequis et dépendances.</strong> La file n'affiche que les éléments soumis par les écrans précédents. La personne qui approuve a besoin de la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> d'approbation et ne doit pas être celle qui a soumis l'élément.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 5</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-modifier_dictionary">Dictionnaire des modificateurs CPT</a>, <a href="#screen-rvu_code_map">Table des codes RVU</a>, <a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a>, <a href="#screen-ncci_edit_rules">Règles d&#x27;édition NCCI</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-pending_approvals.webp" alt="Tableaux Approbations de règles de facturation en attente et Mises à jour de dictionnaire en attente" loading="lazy"><figcaption>Tableaux Approbations de règles de facturation en attente et Mises à jour de dictionnaire en attente</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-pending_approvals-billing-code"><td>Code de facturation</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles : le code de la règle.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a></td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-rvu-work"><td>RVU (Travail)</td>
+<td>Nombre, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-effective-from"><td>Date d'effet</td>
+<td>Date, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-scope"><td>Périmètre</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-drafted-by"><td>Rédigé par</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles : la personne qui a rédigé.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-submitted-by"><td>Soumis par</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles : la personne qui a soumis.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-change-reason"><td>Motif du changement</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des règles.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-dictionary"><td>Dictionnaire</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des dictionnaires : quel dictionnaire (import de codes, modificateurs, NCCI, RVU).</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-label"><td>Étiquette</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Tableau des dictionnaires : libellé de la version ou de la tâche.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-pending_approvals-approve"><td>Approuver</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Active l'élément. Pour un import de codes, applique toute la tâche. Si vous l'avez soumis, le bouton est verrouillé et une indication en explique la raison.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-pending_approvals-reject"><td>Refuser</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Ouvre une zone de motif ; <strong>Confirmer le rejet</strong> met fin à l'élément.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-pending_approvals-rejection-reason"><td>Motif du rejet</td>
+<td>Texte</td>
+<td>Obligatoire pour rejeter</td>
+<td>Conservé avec la décision.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Approuver et rejeter : <code>config:billing-tables:approve</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut. Les décisions écrivent des événements d'audit.</p>
+<p><strong>Limites connues.</strong> Dans un système à une seule personne, personne ne peut approuver, car la personne qui a soumis un élément ne peut pas l'approuver elle-même.</p>
+<h3 id="screen-billing_release"><a class="anchor" href="#screen-billing_release" aria-label="Link to this section">#</a> Libération de la facturation</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Libération de la facturation"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Libération de la facturation</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Libération de la facturation</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Les règles de retenue. Chaque règle indique quels frais elle concerne et ce qu'il faut en faire : les libérer immédiatement, les retenir pendant un certain temps ou les libérer dans un lot planifié, avec ou sans révision manuelle. La règle correspondante la plus précise l'emporte. PathScribe décide du quoi et du quand. Le moteur d'interfaces transporte le message.</p>
+<p><strong>Points de spécificité :</strong> <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> 100, type de facturation 8, types de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> 4, site demandeur 4, pathologiste 2, modification 1.</p>
+<p><strong>Quand aucune règle ne correspond :</strong> libération à l'étape, révision manuelle activée, libération automatique activée.</p>
+<p><strong>S'applique toujours :</strong> un changement de type modification est mis de côté pour révision ; des frais dont le <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, le jeu de codes de l&#x27;AMA pour les actes médicaux et de laboratoire, utilisé pour la facturation aux États-Unis.">CPT</a> n'a pas de correspondance sont mis de côté (<code>unmappedCpt</code>) ; un dossier partagé sans établissement technique est mis de côté (<code>missingTechnicalFacility</code>).</p>
+<p><strong>4. Prérequis et dépendances.</strong> Une règle peut nommer un établissement ou un site demandeur ; configurez-les donc d'abord. Un lot planifié est envoyé selon un calendrier défini dans Horaires d'envoi.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 7</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a>, <a href="#screen-billing_type_triggers">Déclencheurs de libération des frais</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Horaires d&#x27;envoi</a></dd><dt>Cela débloque</dt><dd><a href="#screen-dft_export_preview">Aperçu de l&#x27;export de facturation</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-billing_release.webp" alt="Liste des règles de libération de la facturation avec le panneau Essayer un frais" loading="lazy"><figcaption>Liste des règles de libération de la facturation avec le panneau Essayer un frais</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_release-billing-type"><td>Type de facturation</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-tc" title="Composante technique, la part d&#x27;un service qui couvre le travail du laboratoire, facturée séparément de la composante professionnelle (code 26).">TC</a>, 26, Global, tous</td>
+<td>Obligatoire</td>
+<td>Critère.</td>
+<td>tous</td>
+</tr>
+<tr id="f-billing_release-case-types"><td>Types de dossier</td>
+<td>Liste séparée par des virgules</td>
+<td>Facultatif</td>
+<td>Critère.</td>
+<td>Vide (tous)</td>
+</tr>
+<tr id="f-billing_release-ordering-site"><td>Site demandeur</td>
+<td>Choix de sites</td>
+<td>Facultatif</td>
+<td>Critère.</td>
+<td>Tout</td>
+</tr>
+<tr id="f-billing_release-primary-pathologist"><td>Pathologiste principal</td>
+<td>Choix de membres du personnel</td>
+<td>Facultatif</td>
+<td>Critère.</td>
+<td>Tout</td>
+</tr>
+<tr id="f-billing_release-amendment"><td>Modification</td>
+<td>Choix : tous, original, modifié</td>
+<td>Obligatoire</td>
+<td>Critère.</td>
+<td>tous</td>
+</tr>
+<tr id="f-billing_release-release-mode"><td>Mode de libération</td>
+<td>Choix : DYNAMIC_WITH_HOLD, SCHEDULED_BATCH</td>
+<td>Obligatoire</td>
+<td>Libération après une retenue, ou au lot suivant.</td>
+<td>DYNAMIC_WITH_HOLD</td>
+</tr>
+<tr id="f-billing_release-hold-duration-minutes"><td>Durée de retenue (minutes)</td>
+<td>Nombre entier, de 0 à 43 200</td>
+<td>Obligatoire pour une retenue</td>
+<td>La durée de retenue avant la libération.</td>
+<td>0</td>
+</tr>
+<tr id="f-billing_release-batch-schedule"><td>Planification du lot</td>
+<td>Paramètres de planification</td>
+<td>Obligatoire pour un lot</td>
+<td>L'éditeur démarre sur chaque semaine, du lundi au vendredi, 22:00, America/New_York.</td>
+<td>Voir ci-contre</td>
+</tr>
+<tr id="f-billing_release-auto-release-on-complete"><td>Libération automatique à l'échéance</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Libérer à la fin de la retenue.</td>
+<td>Activé</td>
+</tr>
+<tr id="f-billing_release-manual-review-required"><td>Révision manuelle requise</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Une personne révise avant la libération.</td>
+<td>Activé</td>
+</tr>
+<tr id="f-billing_release-try-a-charge"><td>Essayer un frais</td>
+<td>Panneau de test</td>
+<td>Facultatif</td>
+<td>Exécute la décision pour un exemple de frais et affiche la règle qui a correspondu.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p>Les contrôles de règle lèvent ces codes de problème : <code>billingTypeInvalid</code>, <code>modeInvalid</code>, <code>holdInvalid</code>, <code>batchRequired</code>, <code>amendmentInvalid</code>, <code>caseTypesInvalid</code>. Trois règles d'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> (TC, 26, Global) sont fournies, chacune DYNAMIC_WITH_HOLD, 0 minute, libération automatique activée, révision manuelle activée.</p>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:billing-release:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut. Les enregistrements sont audités. Libérer, retenir, rappeler et renvoyer des messages sont des capacités d'interface distinctes (<code>interface:outbound:release</code>, <code>hold</code>, <code>retract</code>, <code>resend</code>), détenues par l'Administrateur.</p>
+<p><strong>Limites connues.</strong> Relié à la <a class="term" href="99-glossary.html#g-outbound-queue" title="La liste des messages et des actes facturables que PathScribe a construits et qui sont en attente d&#x27;envoi, retenus, envoyés ou en échec.">file d'envoi</a> dans le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> de démonstration uniquement.</p>
+<h3 id="screen-dft_export_preview"><a class="anchor" href="#screen-dft_export_preview" aria-label="Link to this section">#</a> Aperçu de l'export de facturation</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Aperçu de l&#x27;export de facturation"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Aperçu de l&#x27;export de facturation</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Aperçu de l'export de facturation</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Recherchez un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> et voyez ce que PathScribe enverrait à la facturation. La charge utile <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> est ce que PathScribe envoie. Le texte <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, la famille de normes pour l&#x27;échange d&#x27;informations de santé entre systèmes.">HL7</a> <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, le message HL7 qui transporte les actes facturables vers un système de facturation.">DFT</a>^P03 est un aperçu de ce que le moteur d'interfaces construirait. PathScribe ne produit ni n'envoie de HL7. Le <a class="term" href="99-glossary.html#g-x12" title="La norme ANSI pour les transactions commerciales électroniques, y compris les demandes de remboursement de soins aux États-Unis.">X12</a> 837P, le KVDT et le SESAM-Vitale n'existent pas.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Il vous faut un dossier finalisé avec des frais. Si le dossier a une non-conformité de facturation ouverte, l'export est bloqué.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 10</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a>, <a href="#screen-billing_release">Libération de la facturation</a>, <a href="#screen-jurisdiction_payment_mappings">Correspondance des paiements par juridiction</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-dft_export_preview.webp" alt="Aperçu de l&#x27;export de facturation avec la charge utile JSON et l&#x27;aperçu HL7" loading="lazy"><figcaption>Aperçu de l&#x27;export de facturation avec la charge utile JSON et l&#x27;aperçu HL7</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-dft_export_preview-case-id-or-accession"><td>Identifiant du dossier ou <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a></td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le dossier à prévisualiser.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-dft_export_preview-json-payload"><td>Charge utile JSON</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>La charge utile du <a class="term" href="99-glossary.html#g-webhook" title="Une adresse web qu&#x27;un système appelle pour transmettre une mise à jour à un autre, par exemple un SIL qui envoie un changement de statut au format JSON.">webhook</a> plus la classe financière.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-dft_export_preview-hl7-dft-p03-preview"><td>Aperçu HL7 DFT^P03</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>Illustration uniquement.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-dft_export_preview-send-to-billing-engine"><td>Envoyer au moteur de facturation</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Envoie au moteur simulé (badge « Simulé »). Bloqué tant qu'une non-conformité est ouverte.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-dft_export_preview-send-financial-class-preview"><td>Envoyer la classe financière (aperçu)</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Affiche la charge utile de la classe financière.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir et utiliser : <code>config:interface-preview:view</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut.</p>
+<p><strong>Limites connues.</strong> L'envoi est simulé. Aucun vrai moteur de facturation n'est connecté.</p>
+<h2 id="ch8-cancer-registry"><a class="anchor" href="#ch8-cancer-registry" aria-label="Link to this section">#</a> Configuration du registre du cancer</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Matériel et flux de travail du laboratoire"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Matériel et flux de travail du laboratoire</span></nav>
+
+<p><strong>Ce qui existe.</strong> PathScribe compte 14 définitions de registres du cancer et 12 définitions de registres de dépistage du col de l'utérus. Chaque <a class="term" href="99-glossary.html#g-cancer-registry" title="Un organisme qui recueille les diagnostics de cancer pour un pays ou une région, tel que les registres NAACCR en Amérique du Nord ou la collecte COSD en Angleterre.">registre du cancer</a> est marqué <code>configurable</code>, ce qui signifie que la spécification n'est pas vérifiée par rapport à la spécification publiée par le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>. Parmi les registres de dépistage, trois sont marqués vérifiés : le système britannique de gestion du dépistage du col de l'utérus (CSMS), PALGA aux Pays-Bas et le Registre national australien de dépistage du cancer (NCSR).</p>
+<table>
+<thead>
+<tr>
+<th>Identifiant du registre du cancer</th>
+<th>Format d'échange nommé</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naaccr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, qui fixe les normes de données pour la déclaration aux registres du cancer en Amérique du Nord.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a></td>
+</tr>
+<tr>
+<td><code>epath_npcr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-hl7-v2" title="Le format de message HL7 largement utilisé, composé de lignes de champs séparés par des barres verticales, chaque message commençant par un segment MSH.">HL7 v2</a> <a class="term" href="99-glossary.html#g-oru" title="Le type de message HL7 de résultat d&#x27;observation non sollicité. ORU^R01 transporte un résultat.">ORU</a></td>
+</tr>
+<tr>
+<td><code>cpac_canada</code></td>
+<td>NAACCR XML</td>
+</tr>
+<tr>
+<td><code>cosd_uk</code></td>
+<td><a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, le jeu de données national anglais pour l&#x27;enregistrement du cancer.">COSD</a> XML (GB_EW)</td>
+</tr>
+<tr>
+<td><code>phs_scotland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nicr_northern_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>ncri_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nkr_netherlands</code></td>
+<td>Protocole PALGA</td>
+</tr>
+<tr>
+<td><code>inca_france</code></td>
+<td>CDA CR-ACP</td>
+</tr>
+<tr>
+<td><code>adt_gekid_germany</code></td>
+<td>oBDS XML</td>
+</tr>
+<tr>
+<td><code>bcr_belgium</code></td>
+<td>HD-S4S <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a></td>
+</tr>
+<tr>
+<td><code>aihw_australia</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nz_cancer_registry</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>kccr_korea</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ce que signifie chaque format aujourd'hui.</strong> PathScribe construit une charge utile JSON structurée. Le format nommé est la cible vers laquelle le moteur d'interfaces traduirait. PathScribe n'écrit ni NAACCR XML, ni COSD XML, ni oBDS, ni CDA, ni les autres formats. <strong>Il n'existe aucun registre du cancer ni aucun registre de dépistage pour l'Espagne</strong>, bien que l'Espagne soit une <a class="term" href="99-glossary.html#g-jurisdiction" title="Un pays ou un système de santé national dont PathScribe applique les règles, tel que les États-Unis, l&#x27;Angleterre et le pays de Galles ou l&#x27;Allemagne. Elle définit les systèmes de codes, les règles de signature, les durées minimales de conservation et les formats.">juridiction</a> du produit. <strong>NAACCR XML en fichier de lot : Non réalisé.</strong> <strong><a class="term" href="99-glossary.html#g-mips" title="Le Merit-based Incentive Payment System, un programme américain de Medicare qui ajuste le paiement selon les mesures de qualité déclarées.">MIPS</a> et <a class="term" href="99-glossary.html#g-macra" title="Le Medicare Access and CHIP Reauthorization Act américain, qui a créé le Quality Payment Program dont fait partie le MIPS.">MACRA</a> : Non réalisé</strong> (voir <a href="#ch8-quality-reporting">Déclaration de la qualité et de la santé publique</a>).</p>
+<p><strong>Règles de déclaration intégrées.</strong></p>
+<ul>
+<li>Le déclencheur est uniquement la validation en anatomie pathologique chirurgicale. La cytologie ne déclenche jamais de déclaration au registre du cancer. La déclaration est de type envoi sans attente de retour et ne retient jamais la validation.</li>
+<li>Données obligatoires : date de naissance, date du diagnostic, diagnostic principal et code <a class="term" href="99-glossary.html#g-icd-o" title="Classification internationale des maladies pour l&#x27;oncologie, qui code le siège et le type (morphologie) d&#x27;une tumeur. La troisième édition est la CIM-O-3, avec des codes tels que 8500/3.">CIM-O</a>. Un registre qui s'appuie sur un identifiant de patient exige aussi cet identifiant. Une déclaration dont des données manquent est retenue sous <code>HOLD_MISSING_MANDATORY_DATA</code> et apparaît dans Exceptions de registre.</li>
+<li>Caractère déclarable : seules les exclusions NAACCR documentées sont réalisées (carcinome in situ du col de l'utérus et CIN III, néoplasie intraépithéliale prostatique III, et carcinome basocellulaire et épidermoïde de la peau). La liste n'est pas exhaustive.</li>
+<li>Verrou d'envoi : une instance de validation n'envoie jamais de vrais dossiers. Une instance de production retient une déclaration jusqu'à l'approbation de la mise en production pour ce registre.</li>
+<li>Refus du patient : le paramètre <strong>Respecter le refus du patient</strong> est désactivé par défaut. Lorsqu'il est désactivé, un patient qui a refusé est quand même déclaré et le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a> l'enregistre.</li>
+</ul>
+<h3 id="screen-cancer_registry_settings"><a class="anchor" href="#screen-cancer_registry_settings" aria-label="Link to this section">#</a> Déclaration au registre du cancer</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Matériel et flux de travail du laboratoire &gt; Rapports du registre du cancer"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Matériel et flux de travail du laboratoire</span> <span aria-hidden="true">›</span> <span>Rapports du <a class="term" href="99-glossary.html#g-cancer-registry" title="Un organisme qui recueille les diagnostics de cancer pour un pays ou une région, tel que les registres NAACCR en Amérique du Nord ou la collecte COSD en Angleterre.">registre du cancer</a></span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Matériel et flux de travail du laboratoire</strong>
+<strong>2. Élément de maintenance :</strong> Rapports du registre du cancer</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Choisit le registre du cancer auquel l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> déclare par défaut et permet à un <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> de le remplacer. Contient aussi l'approbation de mise en production de chaque <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>. Chaque ligne de registre affiche son badge de statut de spécification, ses juridictions, son identifiant et son format d'échange.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les dérogations par établissement se choisissent dans la liste des établissements ; configurez-les donc d'abord. Sans registre choisi, aucune déclaration au registre du cancer n'est produite.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 11</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a></dd><dt>Cela débloque</dt><dd><a href="#screen-batch_registry_feed">Fichiers de lot des registres</a>, <a href="#screen-cosd_destination">Registre du cancer britannique (COSD)</a>, <a href="#screen-us_epath">Pathologie électronique (États-Unis)</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-cancer_registry_settings.webp" alt="Registre par défaut de l&#x27;entreprise, dérogations par établissement et panneau de connexion au registre" loading="lazy"><figcaption>Registre par défaut de l&#x27;entreprise, dérogations par établissement et panneau de connexion au registre</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-enterprise-default-registry"><td>Registre par défaut de l'entreprise</td>
+<td>Choix : Aucun plus les 14 registres</td>
+<td>Obligatoire</td>
+<td>Le registre utilisé pour tout établissement sans dérogation.</td>
+<td>Aucun (les données de démonstration fournies attribuent <code>naaccr_us</code> à Metro General)</td>
+</tr>
+<tr id="f-cancer_registry_settings-honours-opt-out"><td>Respecter le refus du patient</td>
+<td>Case à cocher</td>
+<td>Facultatif</td>
+<td>Lorsqu'elle est cochée, un patient qui a refusé n'est pas déclaré.</td>
+<td>Désactivée</td>
+</tr>
+<tr id="f-cancer_registry_settings-save"><td>Enregistrer</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Enregistre les deux champs ci-dessus.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-go-live"><td>Registre (mise en production)</td>
+<td>Choix</td>
+<td>Obligatoire lorsque plusieurs registres sont utilisés</td>
+<td>Choisit le registre que le panneau de connexion ci-dessous affiche.</td>
+<td>Le premier utilisé</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-override"><td>Ajouter la dérogation</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Ouvre une nouvelle ligne de dérogation par établissement.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-facility"><td>Établissement</td>
+<td>Choix d'établissements</td>
+<td>Obligatoire pour une dérogation</td>
+<td>L'établissement auquel la dérogation s'applique.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry"><td>Registre</td>
+<td>Choix parmi les 14 registres</td>
+<td>Obligatoire pour une dérogation</td>
+<td>Le registre de cet établissement.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-save-cancel-remove"><td>Enregistrer, Annuler, Retirer</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Enregistrer ou abandonner une dérogation, ou retirer une dérogation enregistrée.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4>Panneau de connexion au registre (mise en production)</h4>
+<p>Le même panneau apparaît dans <a href="#screen-cytology_registry">Signalement au registre cytologique</a>. Il fait passer un <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> par En attente, En test, Validé et En production. Une instance a l'un de deux rôles. Une instance de validation n'envoie jamais de données réelles et exécute seulement la suite de tests. Une instance de production n'envoie de vrais résultats qu'aux registres en production dont l'approbation est à jour ; sinon les résultats sont retenus et rattrapés à l'approbation.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-template-version-and-status"><td>Version et statut du modèle</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>La version du modèle du registre et son caractère à jour ou non.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-changed"><td>Ce qui a changé</td>
+<td>Liste, lecture seule</td>
+<td>Sans objet</td>
+<td>Les changements depuis la version que vous avez confirmée en dernier.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-agreement-reference"><td>Référence de l'accord</td>
+<td>Texte</td>
+<td>Obligatoire pour enregistrer</td>
+<td>La référence de l'accord de partage des données. <strong>Enregistrer l'accord</strong> l'enregistre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cancer_registry_settings-run-test-suite"><td>Lancer la suite de tests</td>
+<td>Bouton (instance de validation)</td>
+<td>Facultatif</td>
+<td>Exécute les cas de test synthétiques (patients <code>SYN-</code>) : 3 de dépistage et 2 de cancer. Au moins 1 résultat accepté est nécessaire (<code>REGISTRY_GO_LIVE_MIN_TEST_ACCEPTS</code>).</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-export-validation-record"><td>Exporter le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> de validation</td>
+<td>Bouton (instance de validation)</td>
+<td>Facultatif</td>
+<td>Télécharge le fichier du dossier de validation.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-validation-record-file"><td>Fichier du dossier de validation</td>
+<td>Fichier <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a> (instance de production)</td>
+<td>Facultatif</td>
+<td>Importe un dossier exporté depuis une instance de validation.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-pre-checks"><td>Vérifications préalables à la mise en production</td>
+<td>Liste, lecture seule</td>
+<td>Sans objet</td>
+<td><code>agreementRecorded</code>, <code>templateCurrent</code>, <code>validationRecord</code>, <code>testEvidence</code>, <code>specificationConfirmed</code>, <code>codesMapped</code>, <code>identifierHold</code>, <code>overridesReviewed</code>.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-test-sign-off-reference"><td>Référence de validation des tests par le registre</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>La propre référence de validation du registre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cancer_registry_settings-specification-confirmed"><td>Spécification confirmée</td>
+<td>Case à cocher</td>
+<td>Obligatoire pour les registres <code>configurable</code></td>
+<td>Vous confirmez la spécification par rapport à celle du registre.</td>
+<td>Non cochée</td>
+</tr>
+<tr id="f-cancer_registry_settings-request-go-live"><td>Demander la mise en production</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Démarre l'approbation.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-i-am-approving-as"><td>J'approuve en tant que</td>
+<td>Choix : Administrateur du site, Directeur de laboratoire, Délégué du directeur de laboratoire</td>
+<td>Obligatoire pour approuver</td>
+<td>La qualité au titre de laquelle vous approuvez.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-approve-with-my-credentials"><td>Approuver avec mes identifiants</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Vous demande de ressaisir vos identifiants, puis enregistre l'approbation.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-withdraw-request-stop-live-reporting"><td>Retirer la demande, Arrêter la déclaration en production</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Annuler une demande en attente, ou arrêter un registre en production.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-part-of-the-template"><td>Partie du modèle</td>
+<td>Choix</td>
+<td>Obligatoire pour une règle locale</td>
+<td>La partie du modèle qu'une modification locale touche.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-the-rule-does"><td>Ce que fait la règle</td>
+<td>Texte</td>
+<td>Obligatoire pour une règle locale</td>
+<td>Décrit la modification locale ou la règle de l'adaptateur.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-rule-remove-confirm-reviewed"><td>Ajouter la règle, Retirer, Confirmer la revue</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Gérer les règles locales et confirmer qu'elles ont été revues.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cancer_registry_settings-the-person-who-requests-go-live-may-also-approve-it"><td>La personne qui demande la mise en production peut aussi l'approuver</td>
+<td>Oui/Non (production uniquement)</td>
+<td>Facultatif</td>
+<td>Autorise le demandeur à approuver.</td>
+<td>Activé</td>
+</tr>
+<tr id="f-cancer_registry_settings-approvals-required"><td>Approbations exigées</td>
+<td>Nombre entier, de 1 à 3 (production uniquement)</td>
+<td>Facultatif</td>
+<td>Le nombre d'approbations nécessaires.</td>
+<td>1</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-history"><td>Historique des mises en production</td>
+<td>Liste, lecture seule</td>
+<td>Sans objet</td>
+<td>Chaque demande, approbation et arrêt.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier les paramètres du registre : <code>config:cancer-registry:manage</code>. Exécuter la suite de tests : <code>registry:test-suite:run</code>. Approuver la mise en production : <code>registry:live-register:approve</code>. L'Administrateur les détient par défaut ; le Directeur de laboratoire ne détient pas <code>config:cancer-registry:manage</code> et détient l'approbation de mise en production par sa propre attribution initiale. L'approbation exige une nouvelle saisie des identifiants.</p>
+<p><strong>Limites connues.</strong> La saisie CIM-O-3 reste ouverte : l'onglet <a class="term" href="99-glossary.html#g-icd-o" title="Classification internationale des maladies pour l&#x27;oncologie, qui code le siège et le type (morphologie) d&#x27;une tumeur. La troisième édition est la CIM-O-3, avec des codes tels que 8500/3.">CIM-O</a> de la fenêtre des codes enregistre des identifiants de morphologie SNOMED, pas des codes tels que <code>8500/3</code>. Les spécifications des registres ne sont pas vérifiées. Cet écran n'a pas de <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> de modification au niveau de la section dans le tableau d'accès ; ses boutons se grisent par les boutons de capacité.</p>
+<h3 id="screen-cosd_destination"><a class="anchor" href="#screen-cosd_destination" aria-label="Link to this section">#</a> Registre du cancer britannique (COSD)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Registre du cancer britannique (COSD)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Registre du cancer britannique (<a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, le jeu de données national anglais pour l&#x27;enregistrement du cancer.">COSD</a>)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Registre du cancer britannique (COSD)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Paramètres de destination pour le Cancer Outcomes and Services Dataset (COSD), affiché à l'écran sous la forme COSD (Angleterre). Vous définissez le libellé du mode d'envoi, le délai de correction et les dates non ouvrées, une fois pour l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> et, si vous le souhaitez, une fois par <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>. Les noms d'éléments du panneau de vérification relèvent du modèle simplifié de PathScribe, pas du schéma officiel du COSD.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Choisissez d'abord le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> COSD dans l'écran du <a class="term" href="99-glossary.html#g-cancer-registry" title="Un organisme qui recueille les diagnostics de cancer pour un pays ou une région, tel que les registres NAACCR en Amérique du Nord ou la collecte COSD en Angleterre.">registre du cancer</a>. Supprimer l'entrée d'un établissement le ramène aux paramètres de l'entreprise.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 12</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-cancer_registry_settings">Rapports du registre du cancer</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-cosd_destination.webp" alt="Paramètres de destination COSD avec panneau de vérification et calculateur de l&#x27;échéance de correction" loading="lazy"><figcaption>Paramètres de destination COSD avec panneau de vérification et calculateur de l&#x27;échéance de correction</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-scope"><td>Périmètre</td>
+<td>Entreprise ou un établissement</td>
+<td>Obligatoire</td>
+<td>Une entrée par périmètre.</td>
+<td>Entreprise</td>
+</tr>
+<tr id="f-cosd_destination-transport"><td>Mode d'envoi</td>
+<td>Choix : restMtls, sftp, portalUpload</td>
+<td>Obligatoire</td>
+<td>Un simple libellé. Le moteur d'interfaces conserve l'adresse et les identifiants.</td>
+<td><a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> sécurisée (restMtls)</td>
+</tr>
+<tr id="f-cosd_destination-correction-working-days"><td>Jours ouvrés pour corriger</td>
+<td>Nombre entier, de 1 à 30</td>
+<td>Obligatoire</td>
+<td>Les jours ouvrés accordés pour corriger une soumission rejetée.</td>
+<td>5</td>
+</tr>
+<tr id="f-cosd_destination-non-working-dates"><td>Jours non ouvrés</td>
+<td>Liste de dates, AAAA-MM-JJ</td>
+<td>Facultatif</td>
+<td>Les jours qui ne sont pas comptés comme jours ouvrés. Aucun n'est supposé.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cosd_destination-remove"><td>Utiliser les paramètres de l'entreprise</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Entrées d'établissement uniquement ; revient aux paramètres de l'entreprise.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4>Vérifier un exemple de soumission</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-nhs-number"><td>Numéro NHS</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le patient d'exemple.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cosd_destination-date-of-birth"><td>Date de naissance</td>
+<td>Date</td>
+<td>Obligatoire</td>
+<td>Exemple.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cosd_destination-diagnosis-date"><td>Date du diagnostic</td>
+<td>Date</td>
+<td>Obligatoire</td>
+<td>Exemple.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cosd_destination-icd-o-3"><td>CIM-O-3</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Exemple.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cosd_destination-primary-diagnosis"><td>Diagnostic principal</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Exemple.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4>Quand une correction est-elle due ?</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-rejected-on"><td>Rejeté le</td>
+<td>Date</td>
+<td>Obligatoire</td>
+<td>Compte les jours ouvrés de correction à partir de cette date, en ignorant les week-ends et vos dates non ouvrées.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:cosd-destination:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut.</p>
+<p><strong>Limites connues.</strong> Les éléments restant à confirmer par rapport à la vraie spécification <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, le jeu de données national anglais pour l&#x27;enregistrement du cancer.">COSD</a> sont : les noms d'éléments, la liste des éléments obligatoires, les valeurs des listes de codes, les règles de dates, l'enveloppe de soumission, les codes de rejet et le début du délai de correction.</p>
+<h3 id="screen-us_epath"><a class="anchor" href="#screen-us_epath" aria-label="Link to this section">#</a> Pathologie électronique (États-Unis)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Pathologie électronique (États-Unis)"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Pathologie électronique (États-Unis)</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Pathologie électronique (États-Unis)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Déclaration de pathologie électronique (<a class="term" href="99-glossary.html#g-epath" title="Compte rendu de pathologie électronique, l&#x27;envoi des comptes rendus de pathologie à un registre du cancer sous une forme électronique normalisée.">ePath</a>) aux registres du cancer des États américains. Un message de base générique du National Program of Cancer Registries (NPCR) (<a class="term" href="99-glossary.html#g-hl7-v2" title="Le format de message HL7 largement utilisé, composé de lignes de champs séparés par des barres verticales, chaque message commençant par un segment MSH.">HL7 v2</a>.5.1 <a class="term" href="99-glossary.html#g-oru" title="Le type de message HL7 de résultat d&#x27;observation non sollicité. ORU^R01 transporte un résultat.">ORU</a>^R01) est adapté par un profil d'État et envoyé par un transport (<a class="term" href="99-glossary.html#g-phin-ms" title="Le Public Health Information Network Messaging System, un transport américain pour l&#x27;envoi de rapports de santé publique.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a>, TCP direct ou une <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> HTTPS). L'État est choisi d'après celui de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> exécutant, jamais d'après l'adresse du patient. Seul un profil d'exemple, signalé comme tel, est fourni.</p>
+<p><strong>4. Prérequis et dépendances.</strong> L'établissement doit avoir son État renseigné dans le dictionnaire des établissements. Sans établissement ni profil, la déclaration est mise de côté (<code>routing:noFacility</code>, <code>routing:noProfile</code>) et la validation n'est pas retenue.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 13</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a>, <a href="#screen-cancer_registry_settings">Rapports du registre du cancer</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-us_epath.webp" alt="Liste des profils ePath américains et affectations" loading="lazy"><figcaption>Liste des profils ePath américains et affectations</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-assignment-scope"><td>Périmètre d'affectation</td>
+<td>Entreprise ou un établissement</td>
+<td>Obligatoire</td>
+<td>Là où un profil s'applique. Un établissement se rabat sur un profil pour son propre État, puis sur la valeur par défaut de l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a>.</td>
+<td>Entreprise</td>
+</tr>
+<tr id="f-us_epath-assigned-profile"><td>Profil affecté</td>
+<td>Choix de profils</td>
+<td>Obligatoire</td>
+<td>Le profil utilisé.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenêtre du profil</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-state"><td>État</td>
+<td>Deux lettres</td>
+<td>Obligatoire</td>
+<td>L'État auquel le profil est destiné.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-us_epath-name"><td>Nom</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Nom affiché.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-us_epath-required-fields"><td>Champs obligatoires</td>
+<td>Liste de codes segment-champ tels que <code>PID-11</code></td>
+<td>Facultatif</td>
+<td>Doivent être renseignés. Jamais <code>MSH</code>. Ne peuvent pas recouper les champs facultatifs.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-us_epath-optional-fields"><td>Champs facultatifs</td>
+<td>Liste de codes segment-champ</td>
+<td>Facultatif</td>
+<td>Envoyés lorsqu'ils sont présents.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-us_epath-transport"><td>Transport</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-phin-ms" title="Le Public Health Information Network Messaging System, un transport américain pour l&#x27;envoi de rapports de santé publique.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a>, TCP direct, <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> HTTPS</td>
+<td>Obligatoire</td>
+<td>Libellé du transport pour le moteur d'interfaces.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-us_epath-which-facility-decides-the-state"><td>Quel <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> détermine l'État</td>
+<td>Choix : établissement de la composante technique, établissement de lecture</td>
+<td>Obligatoire</td>
+<td>Choisit l'établissement dont l'État sélectionne le profil.</td>
+<td>Composante technique</td>
+</tr>
+<tr id="f-us_epath-final-report-only"><td>Uniquement les rapports finaux</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Contrôle.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-us_epath-icd-o-morphology-required"><td>Morphologie <a class="term" href="99-glossary.html#g-icd-o" title="Classification internationale des maladies pour l&#x27;oncologie, qui code le siège et le type (morphologie) d&#x27;une tumeur. La troisième édition est la CIM-O-3, avec des codes tels que 8500/3.">CIM-O</a> requise</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Contrôle.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-us_epath-snomed-required"><td>SNOMED requis</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Contrôle.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-us_epath-specimen-identifier-required"><td>Identifiant du <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> requis</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Contrôle.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-us_epath-provider-npi-required"><td><a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, l&#x27;identifiant à dix chiffres d&#x27;un prestataire de soins américain, requis sur un acte facturable.">NPI</a> du prestataire requis</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Contrôle. Échoue sur les dossiers de démonstration, qui n'ont pas de NPI.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-us_epath-state-specific-fields"><td>Champs propres à l'État</td>
+<td>Lignes de champ, mode (obligatoire ou fixe), valeur</td>
+<td>Facultatif</td>
+<td>Règles supplémentaires de l'État.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p>Une déclaration qui échoue à un contrôle est retenue pour révision (<code>HOLD_EPATH_PROFILE</code>).</p>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:us-epath:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut.</p>
+<p><strong>Limites connues.</strong> Les identifiants OBR et OBX sont des valeurs par défaut, à confirmer par rapport au guide du NPCR. Aucun profil d'État n'est vérifié.</p>
+<h3 id="screen-cytology_registry"><a class="anchor" href="#screen-cytology_registry" aria-label="Link to this section">#</a> Signalement au registre cytologique</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Cytologie &gt; Déclaration au registre"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Cytologie</span> <span aria-hidden="true">›</span> <span>Déclaration au <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a></span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Cytologie</strong> de Configuration &gt; section <strong>Déclaration au registre</strong>
+<strong>2. Élément de maintenance :</strong> Déclaration au registre</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Déclaration du programme de dépistage du col de l'utérus, distincte des registres du cancer. Un résultat de dépistage ne déclenche jamais de déclaration au <a class="term" href="99-glossary.html#g-cancer-registry" title="Un organisme qui recueille les diagnostics de cancer pour un pays ou une région, tel que les registres NAACCR en Amérique du Nord ou la collecte COSD en Angleterre.">registre du cancer</a>. Il existe 12 définitions : <code>csms_uk</code>, <code>nicsp_northern_ireland</code>, <code>sccrs_scotland</code>, <code>cervicalcheck_ireland</code>, <code>palga_netherlands</code>, <code>germany_okfe</code>, <code>france_crcdc</code>, <code>belgium_chr</code>, <code>ncsr_australia</code>, <code>ncsp_new_zealand</code>, <code>canada_provincial</code> et <code>kncsp_kccr_korea</code>. Il n'existe aucun registre de dépistage pour les États-Unis ni pour l'Espagne. La correspondance de chaque registre relie vos catégories de cytologie aux codes du registre pour la qualité du <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, l'interprétation principale, l'interprétation supplémentaire et la recommandation.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Le tableau de correspondance liste vos catégories d'interprétation de cytologie ; elles passent donc en premier. Si vous les ignorez, le tableau est vide.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 14</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="03-tier2-master-dictionaries.html#screen-cytology_categories">Interprétation et recommandations</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_nomenclature">Système de nomenclature</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a></dd><dt>Cela débloque</dt><dd><a href="#screen-batch_registry_feed">Fichiers de lot des registres</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/cytology-cytology_registry.webp" alt="Signalement au registre cytologique avec registre par défaut de l&#x27;entreprise, dérogations et tableau de correspondance" loading="lazy"><figcaption>Signalement au registre cytologique avec registre par défaut de l&#x27;<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a>, dérogations et tableau de correspondance</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-enterprise-default-registry"><td>Registre par défaut de l'entreprise</td>
+<td>Choix : Aucun plus les 12 registres</td>
+<td>Obligatoire</td>
+<td>Utilisé par tout <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> sans dérogation.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cytology_registry-save"><td>Enregistrer</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Enregistre la valeur par défaut.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cytology_registry-add-override"><td>Ajouter la dérogation</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Démarre une dérogation par établissement.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-cytology_registry-facility"><td>Établissement</td>
+<td>Choix d'établissements</td>
+<td>Obligatoire pour une dérogation</td>
+<td>L'établissement.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cytology_registry-registry"><td>Registre</td>
+<td>Choix parmi les 12 registres</td>
+<td>Obligatoire pour une dérogation</td>
+<td>Le registre qui lui correspond.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cytology_registry-save-cancel-configure-remove"><td>Enregistrer, Annuler, Configurer, Retirer</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Enregistrer ou abandonner une dérogation, ouvrir sa configuration ou la retirer.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4>Configuration du registre</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-registry"><td>Registre</td>
+<td>Choix</td>
+<td>Obligatoire</td>
+<td>Le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> en cours de configuration.</td>
+<td>Le premier</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-until-every-category-it-uses-has-a-registry-code"><td>Retenir un résultat tant que chaque catégorie qu'il utilise n'a pas de code de registre</td>
+<td>Case à cocher</td>
+<td>Facultatif</td>
+<td>Désactivée pour les registres intégrés.</td>
+<td>Désactivée</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-unless-the-patient-has-a-verified-identifier"><td>Retenir un résultat sauf si le patient a un identifiant vérifié</td>
+<td>Case à cocher</td>
+<td>Facultatif</td>
+<td>Affichée uniquement lorsque le registre a un format d'identifiant.</td>
+<td>Désactivée</td>
+</tr>
+<tr id="f-cytology_registry-category"><td>Catégorie</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Votre catégorie de cytologie.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cytology_registry-field"><td>Champ</td>
+<td>Texte, colonne</td>
+<td>Sans objet</td>
+<td>Qualité du <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a>, interprétation principale, interprétation supplémentaire ou recommandation.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-cytology_registry-registry-code"><td>Code du registre</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Le code du registre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cytology_registry-registry-text"><td>Libellé du registre</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Le libellé du registre, pour les registres qui codent par du texte.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-cytology_registry-save-registry-configuration"><td>Enregistrer la configuration du registre</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Enregistre la correspondance.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p>Le <strong>panneau de connexion au registre</strong> est décrit sous <a href="#screen-cancer_registry_settings">Rapports du registre du cancer</a>. Ici, il utilise les capacités de dépistage.</p>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:screening-registry:manage</code>. Exécuter la suite de tests : <code>registry:test-suite:run</code>. Approuver la mise en production : <code>registry:live-register:approve</code>. L'Administrateur les détient par défaut. Le Directeur de laboratoire ne détient pas <code>config:screening-registry:manage</code> par défaut.</p>
+<p><strong>Limites connues.</strong> Trois registres sont marqués vérifiés (CSMS, PALGA, NCSR) ; les autres sont configurables et non vérifiés. L'Allemagne, la France et la Belgique sont des registres à fichiers de lot (voir Fichiers de lot des registres).</p>
+<h3 id="screen-batch_registry_feed"><a class="anchor" href="#screen-batch_registry_feed" aria-label="Link to this section">#</a> Fichiers de lot des registres</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Matériel et flux de travail du laboratoire &gt; Fichiers de lot des registres"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Matériel et flux de travail du laboratoire</span> <span aria-hidden="true">›</span> <span>Fichiers de lot des registres</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Matériel et flux de travail du laboratoire</strong>
+<strong>2. Élément de maintenance :</strong> Fichiers de lot des registres</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Pour un <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> qui reçoit des fichiers plutôt que des messages, un profil de lot indique quels enregistrements y figurent, comment le fichier est organisé et comment il est nommé. Formats : <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a> et <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, qui fixe les normes de données pour la déclaration aux registres du cancer en Amérique du Nord.">NAACCR</a> XML. <strong>NAACCR XML figure dans la liste mais est Non réalisé</strong> : le profil NAACCR fourni est désactivé. Un profil d'exemple est fourni (fondé sur <code>germany_okfe</code>, CSV, séparateur <code>;</code>, 10 colonnes, désactivé) et n'est pas une spécification de programme. Les structures réelles de programmes sont Non réalisées.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Un lot est généré selon le calendrier de Horaires d'envoi et envoyé par le moteur d'interfaces en <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a>. Choisissez d'abord le registre dans l'écran du cancer ou de la cytologie.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 15</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-cancer_registry_settings">Rapports du registre du cancer</a>, <a href="#screen-cytology_registry">Signalement au registre cytologique</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Horaires d&#x27;envoi</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-batch_registry_feed.webp" alt="Cartes de profils des fichiers de lot des registres" loading="lazy"><figcaption>Cartes de profils des fichiers de lot des registres</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-waiting"><td>En attente</td>
+<td>Compteurs, lecture seule</td>
+<td>Sans objet</td>
+<td><strong>Voir ce qui attend</strong> affiche les éléments en attente, à échéance, retenus, hors délai et le prochain fichier.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-batch_registry_feed-make-the-file-now"><td>Générer le fichier maintenant</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Génère un fichier à la main. Il se télécharge une seule fois et n'est jamais conservé. Un manifeste liste le <a class="term" href="99-glossary.html#g-sha-256" title="Une fonction de hachage cryptographique qui transforme un fichier ou un enregistrement en une empreinte de taille fixe, utilisée pour détecter une modification.">SHA-256</a>, la séquence, les décomptes et les enregistrements retenus.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-batch_registry_feed-turn-on-turn-off"><td>Activer, Désactiver</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Active le profil.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-batch_registry_feed-edit"><td>Modifier</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Ouvre l'éditeur du profil.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-batch_registry_feed-remove"><td>Retirer</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Indisponible pour les profils fournis.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-batch_registry_feed-run-status"><td>Statut de l'exécution</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>awaitingAck, accepted, partlyRejected ou rejected.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<h4>Éditeur du profil</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-program-name"><td>Nom du programme</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Donne un nom au programme.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-batch_registry_feed-registry"><td>Registre</td>
+<td>Choix parmi les 26 registres (dépistage et cancer)</td>
+<td>Obligatoire</td>
+<td>Quel <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a>.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-batch_registry_feed-file-format"><td>Format du fichier</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a>, <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, qui fixe les normes de données pour la déclaration aux registres du cancer en Amérique du Nord.">NAACCR</a> XML</td>
+<td>Obligatoire</td>
+<td>NAACCR XML est refusé (<code>formatNotAvailable</code>).</td>
+<td>CSV</td>
+</tr>
+<tr id="f-batch_registry_feed-delimiter"><td>Séparateur</td>
+<td>Choix : virgule, point-virgule, tabulation</td>
+<td>Obligatoire pour le CSV</td>
+<td>Séparateur de colonnes.</td>
+<td>Virgule</td>
+</tr>
+<tr id="f-batch_registry_feed-first-row-holds-headings"><td>La première ligne contient les en-têtes</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Écrit une ligne d'en-têtes.</td>
+<td>Activé</td>
+</tr>
+<tr id="f-batch_registry_feed-protect-against-spreadsheet-formulas"><td>Protéger contre les formules de tableur</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Protège le texte qui commence comme une formule.</td>
+<td>Activé</td>
+</tr>
+<tr id="f-batch_registry_feed-xml-root-and-record-element"><td>Élément racine et élément d'enregistrement XML</td>
+<td>Texte, deux zones</td>
+<td>Obligatoire pour le XML</td>
+<td>Des noms valides et différents.</td>
+<td>Results, Result</td>
+</tr>
+<tr id="f-batch_registry_feed-code-in-file-name"><td>Code dans le nom du fichier</td>
+<td>Texte, de 1 à 20 lettres, chiffres, traits d'union ou tirets bas</td>
+<td>Facultatif</td>
+<td>Le code du programme dans le nom du fichier.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-batch_registry_feed-file-name-pattern"><td>Modèle de nom de fichier</td>
+<td>Texte utilisant {program} {date} {time} {seq}</td>
+<td>Obligatoire</td>
+<td>Doit contenir {date} ou {seq}.</td>
+<td><code>{program}_{date}_{seq}</code></td>
+</tr>
+<tr id="f-batch_registry_feed-columns"><td>Colonnes</td>
+<td>Liste : champ (15 champs), En-tête, Obligatoire, monter, descendre, supprimer, Ajouter une colonne</td>
+<td>Obligatoire</td>
+<td>Chaque champ une seule fois. Un enregistrement auquel manque une colonne obligatoire est retenu sous <code>REGISTRY_NOT_READY</code>.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-batch_registry_feed-live-preview"><td>Aperçu en direct</td>
+<td>Texte, lecture seule</td>
+<td>Sans objet</td>
+<td>Affiche la structure du fichier.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Gérer les profils : <code>config:batch-registry-feed:manage</code> (Administrateur et Directeur de laboratoire). Générer un fichier : <code>registry:batch-file:generate</code> (Administrateur, et elle exige la première <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a>).</p>
+<p><strong>Limites connues.</strong> Un renvoi d'un seul enregistrement depuis Exceptions de registre envoie encore un message pour un programme de lot. Le calendrier provient de Horaires d'envoi. La livraison <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a> relève du moteur d'interfaces.</p>
+<h2 id="ch8-quality-reporting"><a class="anchor" href="#ch8-quality-reporting" aria-label="Link to this section">#</a> Déclaration de la qualité et de la santé publique (MIPS/MACRA)</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Matériel et flux de travail du laboratoire"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Matériel et flux de travail du laboratoire</span></nav>
+
+<p><strong>Statut :</strong> Non réalisé</p>
+<p>PathScribe n'a aucune mesure, aucun écran, aucun export ni aucun contrat pour le Merit-based Incentive Payment System (<a class="term" href="99-glossary.html#g-mips" title="Le Merit-based Incentive Payment System, un programme américain de Medicare qui ajuste le paiement selon les mesures de qualité déclarées.">MIPS</a>), le Medicare Access and CHIP Reauthorization Act (<a class="term" href="99-glossary.html#g-macra" title="Le Medicare Access and CHIP Reauthorization Act américain, qui a créé le Quality Payment Program dont fait partie le MIPS.">MACRA</a>) ou le Quality Payment Program. Une recherche dans le code source et les documents n'en a trouvé aucun. Rien ici ne calcule une mesure de qualité ni ne construit un fichier de soumission.</p>
+<p><strong>Les éléments les plus proches qui existent :</strong></p>
+<ul>
+<li>Le <a href="07-tier6-interface-engine.html#screen-bi_feed">Flux de reporting</a> envoie les données des dossiers à un outil d'informatique décisionnelle, dans lequel vous pouvez construire vos propres mesures.</li>
+<li>Exports : les utilisateurs disposant de la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> adéquate peuvent télécharger des exports depuis l'application, et l'<a href="#screen-audit-financial">onglet financier des Journaux système</a> exporte les événements de facturation en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a>.</li>
+<li>La déclaration aux registres du cancer et du dépistage du col de l'utérus (ci-dessus) est la déclaration de santé publique qui est réalisée, dans les limites décrites.</li>
+</ul>
+<h2 id="ch8-payment-reference"><a class="anchor" href="#ch8-payment-reference" aria-label="Link to this section">#</a> Correspondances de paiement par juridiction, types de paiement principaux et journal financier</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span></nav>
+
+<p>PathScribe décrit qui paie en deux couches. Un <strong>type de paiement principal</strong> est une catégorie utilisée partout (par exemple l'assurance commerciale). Une <strong>correspondance de paiement par <a class="term" href="99-glossary.html#g-jurisdiction" title="Un pays ou un système de santé national dont PathScribe applique les règles, tel que les États-Unis, l&#x27;Angleterre et le pays de Galles ou l&#x27;Allemagne. Elle définit les systèmes de codes, les règles de signature, les durées minimales de conservation et les formats.">juridiction</a></strong> indique qu'un régime local (par exemple <code>DE_GKV</code>) appartient à une catégorie et pour quel format sortant il est prévu. La classe financière qui accompagne des frais est construite à partir des deux. Les formats sortants nommés dans la correspondance ne sont que des libellés : le <a class="term" href="99-glossary.html#g-x12" title="La norme ANSI pour les transactions commerciales électroniques, y compris les demandes de remboursement de soins aux États-Unis.">X12</a> 837P, le KVDT et le SESAM-Vitale sont Prévus et aucun n'est généré.</p>
+<h3 id="screen-master_payment_types"><a class="anchor" href="#screen-master_payment_types" aria-label="Link to this section">#</a> Dictionnaire principal des types de paiement</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Dictionnaire principal des types de paiement"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Dictionnaire principal des types de paiement</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Dictionnaire principal des types de paiement</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Les catégories de paiement qu'utilisent les correspondances, l'<a class="term" href="99-glossary.html#g-accession" title="L&#x27;acte de réceptionner un prélèvement et de lui attribuer un numéro de dossier permanent ; désigne aussi ce numéro (le numéro d&#x27;accession). Elle relie un dossier au tissu physique et à sa chaîne de conservation.">accession</a> et la charge utile des frais. Onze sont fournies : SELF_PAY, PATIENT_COPAY_GAP, COMMERCIAL_INSURANCE, MUTUELLE_COMPLEMENTARY, STATUTORY_SOCIAL_HEALTH, PUBLIC_UNIVERSAL_BENEFIT, PUBLIC_NHS (libellé d'identifiant « NHS Number »), RECIPROCAL_INTERNATIONAL, SPONSOR_CLINICAL_TRIAL, OCCUPATIONAL_WORKERS_COMP (libellé d'identifiant « Claim # ») et DIRECT_CONTRACT_INSTITUTIONAL.</p>
+<p><strong>4. Prérequis et dépendances.</strong> C'est un point de départ pour le paiement. Les correspondances ne peuvent choisir ici qu'un type actif.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 8</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><a href="#screen-jurisdiction_payment_mappings">Correspondance des paiements par juridiction</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-master_payment_types.webp" alt="Liste du Dictionnaire principal des types de paiement" loading="lazy"><figcaption>Liste du Dictionnaire principal des types de paiement</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-master_payment_types-id"><td>ID</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Conservé en majuscules, les espaces deviennent des tirets bas. Verrouillé après sa création, car les correspondances s'y réfèrent. Un doublon est refusé.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-master_payment_types-display-name"><td>Nom d'affichage</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le nom que voit le personnel.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-master_payment_types-requires-subscriber-id"><td>Nécessite un ID d'abonné</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Le personnel doit saisir un numéro d'abonné ou de police.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-master_payment_types-subscriber-id-label"><td>Libellé de l'ID d'abonné</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Le libellé de ce numéro (par exemple « Claim # »).</td>
+<td>Vide</td>
+</tr>
+<tr id="f-master_payment_types-requires-guarantor"><td>Nécessite un garant</td>
+<td>Choix : requis, facultatif, non requis</td>
+<td>Obligatoire</td>
+<td>Si un garant est nécessaire.</td>
+<td>non requis</td>
+</tr>
+<tr id="f-master_payment_types-supports-split-billing"><td>Prend en charge la facturation partagée</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Si les parties technique et professionnelle peuvent aller à des payeurs différents.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-master_payment_types-notes"><td>Remarques</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Notes libres.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-master_payment_types-active"><td>Actif</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Boutons <strong>Désactiver</strong> et <strong>Réactiver</strong>.</td>
+<td>Actif</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:payment-types:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut.</p>
+<p><strong>Limites connues.</strong> La désactivation d'un type n'est pas vérifiée par rapport aux correspondances qui l'utilisent.</p>
+<h3 id="screen-jurisdiction_payment_mappings"><a class="anchor" href="#screen-jurisdiction_payment_mappings" aria-label="Link to this section">#</a> Correspondance des paiements par juridiction</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Références financières et de revenus &gt; Correspondance des paiements par juridiction"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Références financières et de revenus</span> <span aria-hidden="true">›</span> <span>Correspondance des paiements par <a class="term" href="99-glossary.html#g-jurisdiction" title="Un pays ou un système de santé national dont PathScribe applique les règles, tel que les États-Unis, l&#x27;Angleterre et le pays de Galles ou l&#x27;Allemagne. Elle définit les systèmes de codes, les règles de signature, les durées minimales de conservation et les formats.">juridiction</a></span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> onglet <strong>Système</strong> de Configuration &gt; groupe <strong>Références financières et de revenus</strong>
+<strong>2. Élément de maintenance :</strong> Correspondance des paiements par juridiction</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Associe chaque régime de payeur local à un type de paiement principal. L'onglet « Données patient externe » de l'Accession les lit (sélecteur Juridiction principale), et la charge utile de la classe financière les utilise. Treize lignes sont fournies : US_MEDICARE, US_COMMERCIAL, CA_OHIP (code pays CA_ON), UK_NHS_TRUST, DE_GKV, DE_BG, FR_CPAM, FR_MUTUELLE, NL_BASIS, BE_MUT, AU_MBS, NZ_ACC et KR_NHIS. <strong>Il n'y a aucune ligne pour l'Espagne, l'Écosse, l'Irlande du Nord ni l'Irlande</strong>, bien que le code définisse 14 juridictions dont l'Espagne.</p>
+<p><strong>4. Prérequis et dépendances.</strong> La liste des types principaux doit d'abord contenir la catégorie. Seuls les types actifs sont proposés.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 7, étape 9</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-master_payment_types">Dictionnaire principal des types de paiement</a>, <a href="02-tier1-primary-prerequisites.html#screen-jurisdiction_overview">Aperçu par juridiction</a></dd><dt>Cela débloque</dt><dd><a href="#screen-dft_export_preview">Aperçu de l&#x27;export de facturation</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-jurisdiction_payment_mappings.webp" alt="Liste de la Correspondance des paiements par juridiction avec filtre par pays" loading="lazy"><figcaption>Liste de la Correspondance des paiements par juridiction avec filtre par pays</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-jurisdiction_payment_mappings-country-filter"><td>Filtre par pays</td>
+<td>Choix de pays</td>
+<td>Facultatif</td>
+<td>Réduit la liste.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-show-inactive"><td>Afficher les inactifs</td>
+<td>Interrupteur Oui/Non</td>
+<td>Facultatif</td>
+<td>Inclut les lignes inactives.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-country-code"><td>Code pays</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Conservé en majuscules. Texte libre, non vérifié par rapport à la liste des juridictions.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-scheme-code"><td>Code de schéma local</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Conservé en majuscules.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-display-terminology"><td>Terminologie d'affichage locale</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Le nom que voit le personnel.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-master-payment-type"><td>Type de paiement principal</td>
+<td>Choix de types principaux actifs</td>
+<td>Obligatoire</td>
+<td>La catégorie.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-primary-outbound-format"><td>Format sortant principal</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Un libellé tel que <a class="term" href="99-glossary.html#g-x12" title="La norme ANSI pour les transactions commerciales électroniques, y compris les demandes de remboursement de soins aux États-Unis.">X12</a> 837P. Aucun fichier n'est généré.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-notes"><td>Remarques</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Notes libres.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-active"><td>Actif</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td>Les lignes inactives sont masquées dans le sélecteur Juridiction principale.</td>
+<td>Actif</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'écran : <code>screen:configuration:open</code>. Modifier : <code>config:payment-mappings:manage</code>. Les rôles Administrateur et Directeur de laboratoire la détiennent par défaut.</p>
+<p><strong>Limites connues.</strong> Il n'y a pas de contrôle de doublon sur le code pays et le code de schéma. Les sorties X12 837P, KVDT et SESAM-Vitale sont Prévues.</p>
+<h3 id="screen-audit-financial"><a class="anchor" href="#screen-audit-financial" aria-label="Link to this section">#</a> Journaux système : Facturation</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Journaux système &gt; Facturation"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Journaux système</span> <span aria-hidden="true">›</span> <span>Facturation</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> page <strong>Journaux système</strong> &gt; onglet <strong>Facturation</strong>
+<strong>2. Élément de maintenance :</strong> Sans objet, il s'agit d'une page de journal.</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Une vue en lecture seule des événements de facturation et des frais sortants en échec ou en file d'attente. Elle comporte deux sous-onglets : <strong>Journaux de facturation</strong> et <strong>File d'échec sortante</strong> (file des messages en échec définitif, la liste des frais dont l'envoi a échoué).</p>
+<p><strong>4. Prérequis et dépendances.</strong> Elle n'affiche des données qu'une fois que des frais existent.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-billing_dictionary">Dictionnaire de facturation (saisie des frais)</a>, <a href="#screen-billing_release">Libération de la facturation</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-financial.webp" alt="Onglet Facturation des Journaux système, filtres et résultats des Journaux de facturation" loading="lazy"><figcaption>Onglet Facturation des Journaux système, filtres et résultats des Journaux de facturation</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<h4>Filtres des Journaux de facturation</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-number"><td>Numéro de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a></td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-patient-name"><td>Nom du patient</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-patient-name-range-a-z"><td>Plage de noms de patients (A–Z)</td>
+<td>Deux lettres</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-patient-id-mrn-mpi"><td>ID patient (<a class="term" href="99-glossary.html#g-ipp" title="Internet Printing Protocol, un protocole d&#x27;impression réseau. Dans le texte français, IPP désigne aussi l&#x27;identifiant permanent du patient utilisé à la place du MRN.">IPP</a>, <a class="term" href="99-glossary.html#g-mpi" title="Index maître des patients (Master patient index), l&#x27;enregistrement qui relie les différents identifiants d&#x27;un même patient.">MPI</a>)</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-billing-event-date-from-to"><td>Date de l'événement de facturation de, à</td>
+<td>Dates</td>
+<td>Facultatif</td>
+<td>Filtre sur la date de l'événement.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-date-of-service-from-to"><td>Date de <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> de, à</td>
+<td>Dates</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-report-sign-out-date-from-to"><td>Date de signature du rapport de, à</td>
+<td>Dates</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-type"><td>Type</td>
+<td>Choix : Charge, Crédit, Déficience, Révision de code, Envoi, Modification, Audit</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-audit-financial-billing-type"><td>Type de facturation</td>
+<td>Choix</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-audit-financial-status"><td>Statut</td>
+<td>Choix : Brouillon, En attente d'approbation, Approuvé, Exporté, Rejeté, En attente</td>
+<td>Facultatif</td>
+<td>Filtre.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-audit-financial-staff-signing-pathologist-ordering-facility"><td>Personnel, Pathologiste signataire, Établissement prescripteur</td>
+<td>Recherches (Parcourir)</td>
+<td>Facultatif</td>
+<td>Filtres.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-detail-text-search"><td>Recherche dans le texte du détail</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Recherche dans le texte du détail.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-audit-financial-saved-queries"><td>Requêtes enregistrées</td>
+<td>Choix et Enregistrer</td>
+<td>Facultatif</td>
+<td>Conservées comme paramètres personnels.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-audit-financial-clear-search"><td>Effacer, Rechercher</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Réinitialiser ou exécuter.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-financial-export-csv"><td>Exporter en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a></td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Exige <code>audit:billing-log:export</code>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4>Résultats des Journaux de facturation</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-patient-patient-id"><td>Dossier, Patient, ID patient</td>
+<td>Colonnes</td>
+<td>Sans objet</td>
+<td>Les données du patient sont balisées comme informations de santé protégées.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-audit-financial-timestamp-type-billing-type-status-event-detail"><td>Horodatage, Type, Type de facturation, Statut, Événement, Détail</td>
+<td>Colonnes</td>
+<td>Sans objet</td>
+<td>L'événement.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-audit-financial-staff-pathologist-facility"><td>Personnel, Pathologiste, Établissement</td>
+<td>Colonnes</td>
+<td>Sans objet</td>
+<td>Qui et où.</td>
+<td>Aucun</td>
+</tr>
+</tbody>
+</table>
+<p>La recherche affiche au plus 50 dossiers. Un message « Case limit reached » apparaît lorsque davantage de dossiers correspondent.</p>
+<h4>File d'échec sortante</h4>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-lab-filter"><td>Filtre par laboratoire</td>
+<td>Choix, « Tous les laboratoires exécutants »</td>
+<td>Facultatif</td>
+<td>Limite les deux tableaux.</td>
+<td>Tous les laboratoires exécutants</td>
+</tr>
+<tr id="f-audit-financial-failed-case-performing-lab-component-error-retries"><td>En échec : Dossier, Laboratoire exécutant, Composante, Erreur, Nouvelles tentatives</td>
+<td>Colonnes</td>
+<td>Sans objet</td>
+<td>Codes d'erreur : <code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_REJECTED</code>. Les deux derniers n'apparaissent qu'avec les boutons de test.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-save-amp-re-queue"><td>Corriger et réessayer : Enregistrer et remettre en file</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Rattache au <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> un code <a class="term" href="99-glossary.html#g-icd-10" title="La Classification internationale des maladies, dixième révision, un jeu de codes de diagnostic.">CIM-10</a> ou le <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, l&#x27;identifiant à dix chiffres d&#x27;un prestataire de soins américain, requis sur un acte facturable.">NPI</a> du prestataire (audité) et remet en file.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-retry-dispatch"><td>Corriger et réessayer : Réessayer l'envoi</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Réessaie.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-financial-capa-capture-as-capa"><td><a class="term" href="99-glossary.html#g-capa" title="Action corrective et préventive. Une réponse suivie à un problème de qualité, avec un responsable et un motif d&#x27;ouverture ou de clôture sans suite.">CAPA</a> : Capturer comme CAPA</td>
+<td>Bouton</td>
+<td>Facultatif</td>
+<td>Lève une non-conformité de type <code>def-outbound-dispatch-failure</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-audit-financial-queued-case-performing-lab-component-trigger"><td>En file : Dossier, Laboratoire exécutant, Composante, Déclencheur</td>
+<td>Colonnes</td>
+<td>Sans objet</td>
+<td>Les frais en attente d'envoi.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-audit-financial-simulate-timeout-simulate-rejected"><td>Simuler un délai dépassé, Simuler un rejet</td>
+<td>Boutons</td>
+<td>Facultatif</td>
+<td>Pour les tests uniquement. L'envoi réel n'est pas réalisé.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:audit-log:open</code>, détenue par défaut par l'Administrateur, le Directeur de laboratoire et le Réviseur <a class="term" href="99-glossary.html#g-qa" title="Assurance qualité, la revue du travail pour repérer et corriger les problèmes.">AQ</a>. Exporter les journaux de facturation en <a class="term" href="99-glossary.html#g-csv" title="Valeurs séparées par des virgules (Comma-separated values), un format de tableur en texte brut. Les exports de PathScribe sont des fichiers CSV.">CSV</a> : <code>audit:billing-log:export</code>. La même page comporte les onglets Journal d'audit, Journal des erreurs, Journal des interfaces, Assurance qualité, Alertes critiques, Liens de consultation et Tâches du serveur ; voir <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux des interfaces</a> et <a href="09-appendices.html#screen-audit-log">Journal d'audit</a>.</p>
+<p><strong>Limites connues.</strong> La simulation d'envoi est une aide aux tests. Aucun système de facturation réel ne reçoit de frais.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

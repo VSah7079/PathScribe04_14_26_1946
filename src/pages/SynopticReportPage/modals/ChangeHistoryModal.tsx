@@ -17,13 +17,13 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ReportChangeArea, ReportChangeEntry, ReportFieldChange } from '@/services';
-import { AREA_ROOT_KEYS, isLongText, wordDiff } from '@/services/reportChangeLog/reportChangeRules';
+import { AREA_ROOT_KEYS, CHANGE_HISTORY_AREAS, changeHistoryView, isLongText, wordDiff } from '@/services/reportChangeLog/reportChangeRules';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import type { CapabilityContext } from '@/services/authorization/evaluateCapability';
 import type { ChangeLogExportLabels } from '@/services/reportChangeLog/exportChangeLog';
 import { formatDateTime } from '@/utils/formatDate';
 
-const AREAS: ReportChangeArea[] = ['synoptic', 'narrative', 'codes', 'specimens', 'case'];
+const AREAS = CHANGE_HISTORY_AREAS;
 
 interface Props {
   entries: ReportChangeEntry[];
@@ -59,15 +59,8 @@ const ChangeValue: React.FC<{ change: ReportFieldChange }> = ({ change }) => {
 export const ChangeHistoryModal: React.FC<Props> = ({ entries, exportContext, onExport, onClose }) => {
   const { t, i18n } = useTranslation();
   const [area, setArea] = useState<ReportChangeArea | 'all'>('all');
-  const newestFirst = useMemo(() => [...entries].reverse(), [entries]);
-  const counts = useMemo(() => {
-    const c = Object.fromEntries(AREAS.map(a => [a, 0])) as Record<ReportChangeArea, number>;
-    entries.forEach(e => e.changes.forEach(ch => { c[ch.area] += 1; }));
-    return c;
-  }, [entries]);
-  const shown = newestFirst
-    .map(e => ({ ...e, changes: area === 'all' ? e.changes : e.changes.filter(c => c.area === area) }))
-    .filter(e => e.changes.length > 0);
+  // Batch 451 (PS-353): newest first, the area filter and its counts are decided in reportChangeRules.changeHistoryView.
+  const { entries: shown, counts } = useMemo(() => changeHistoryView(entries, area), [entries, area]);
 
   return (
     <div className="ps-ms-overlay">

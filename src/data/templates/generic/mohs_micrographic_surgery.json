@@ -1,0 +1,346 @@
+{
+  "id": "mohs_micrographic_surgery",
+  "name": "PathScribe — Mohs Micrographic Surgery",
+  "source": "PathScribe",
+  "version": "1.0.0",
+  "category": "SKIN",
+  "sections": [
+    {
+      "id": "mohs_case",
+      "title": "Lesion",
+      "fields": [
+        {
+          "id": "mohs_site",
+          "label": "Anatomic site",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Where the lesion is (e.g. left nasal ala)."
+        },
+        {
+          "id": "mohs_tumour_type",
+          "label": "Tumour type (pre-operative)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "mohs_tt_bcc_nodular",
+              "label": "Basal cell carcinoma, nodular",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_bcc_superficial",
+              "label": "Basal cell carcinoma, superficial",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_bcc_infiltrative",
+              "label": "Basal cell carcinoma, infiltrative",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_bcc_micronodular",
+              "label": "Basal cell carcinoma, micronodular",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_bcc_morpheaform",
+              "label": "Basal cell carcinoma, morpheaform (sclerosing)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_scc_insitu",
+              "label": "Squamous cell carcinoma in situ",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_scc_well",
+              "label": "Squamous cell carcinoma, well differentiated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_scc_moderate",
+              "label": "Squamous cell carcinoma, moderately differentiated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_scc_poor",
+              "label": "Squamous cell carcinoma, poorly differentiated",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_mis",
+              "label": "Melanoma in situ",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_tt_other",
+              "label": "Other",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "From the diagnostic biopsy. A newly positive sector takes this as its histology; change it per sector when a different subtype is seen."
+        },
+        {
+          "id": "mohs_tumour_type_other",
+          "label": "Tumour type, other",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "visibleWhen": {
+            "fieldId": "mohs_tumour_type",
+            "answerId": "mohs_tt_other"
+          }
+        },
+        {
+          "id": "mohs_preop_length",
+          "label": "Pre-operative lesion length",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_preop_width",
+          "label": "Pre-operative lesion width",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_preop_depth",
+          "label": "Pre-operative lesion depth",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_stain",
+          "label": "Tissue staining",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "mohs_stain_he",
+              "label": "H&E",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_stain_toluidine",
+              "label": "Toluidine blue",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_stain_ck",
+              "label": "Rapid cytokeratin (CK AE1/AE3)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mohs_stages_section",
+      "title": "Stages",
+      "fields": [
+        {
+          "id": "psmap_mohs_stages",
+          "label": "Mohs stages",
+          "type": "spatialStageCanvas",
+          "required": true,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Add a stage for each excision. Click a sector (or use the checklist, or say \"Stage 1, positive at 12 o'clock\") to mark residual tumour; each positive sector takes the next block letter and the tumour type above, both editable. A stage with nothing positive is clear.",
+          "defaultHistologyFieldId": "mohs_tumour_type"
+        }
+      ]
+    },
+    {
+      "id": "mohs_final",
+      "title": "Final defect and closure",
+      "fields": [
+        {
+          "id": "mohs_defect_length",
+          "label": "Final defect length",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_defect_width",
+          "label": "Final defect width",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_defect_depth",
+          "label": "Final defect depth",
+          "type": "numeric",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "unit": "cm"
+        },
+        {
+          "id": "mohs_closure",
+          "label": "Closure / reconstruction",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "mohs_cl_primary",
+              "label": "Primary closure",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_secondary",
+              "label": "Secondary intention",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_flap_forehead",
+              "label": "Paramedian forehead flap",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_flap_local",
+              "label": "Local flap",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_graft_ftsg",
+              "label": "Full-thickness skin graft (FTSG)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_referral",
+              "label": "Referral to oculoplastics / facial plastics",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "mohs_cl_other",
+              "label": "Other",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "mohs_closure_other",
+          "label": "Closure, other",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "visibleWhen": {
+            "fieldId": "mohs_closure",
+            "answerId": "mohs_cl_other"
+          }
+        },
+        {
+          "id": "mohs_billing_ref",
+          "label": "Internal cost centre / billing reference",
+          "type": "text",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Your clinic's own reference; copy this template to rename or remove it."
+        }
+      ]
+    },
+    {
+      "id": "comments",
+      "title": "Comments",
+      "fields": [
+        {
+          "id": "mohs_comments",
+          "label": "Comment(s)",
+          "type": "longtext",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": []
+        }
+      ]
+    }
+  ]
+}

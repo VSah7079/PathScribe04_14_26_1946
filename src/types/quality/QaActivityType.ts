@@ -42,20 +42,21 @@ import type { QaDiscordanceSeverity } from './QaActivityRecord';
 
 /**
  * Real, per direct guidance (PS-115, Story 1.4): which discrepancy
- * classifications on a review-with-outcome record should automatically
- * raise a real deficiency (SpecimenDeficiency, the existing, real
- * Firestore CAPA foundation from a prior sprint — see
- * services/deficiencies/README.md, not a new system invented here).
+ * classifications on a review-with-outcome record should recommend a
+ * CAPA. Batch 438 (Pete, Oct 2): a recommendation, never an automatic
+ * deficiency — the QA lead confirms it (which raises the SpecimenDeficiency,
+ * services/deficiencies/) or dismisses it with a reason
+ * (services/quality/capaRecommendationService.ts).
  * Only meaningful against outcome === 'discordant' records — a
  * concordant outcome never has a severity to check against.
  */
 export interface QaCapaTriggerRule {
   /** Which QaDiscordanceSeverity values on a discordant record should
-   *  auto-raise a deficiency. Empty/undefined — the real, deliberate
-   *  "no auto-trigger" default: a discrepancy is still fully recorded
-   *  either way; this only controls whether it ALSO produces a CAPA
-   *  record automatically, never whether the discrepancy itself gets
-   *  captured. */
+   *  recommend a CAPA (Batch 438: the QA lead confirms or dismisses it;
+   *  nothing is raised automatically). Empty/undefined — the real, deliberate
+   *  "no recommendation" default: a discrepancy is still fully recorded
+   *  either way; this only controls whether it ALSO recommends a CAPA,
+   *  never whether the discrepancy itself gets captured. */
   triggerSeverities?: QaDiscordanceSeverity[];
   /** Real FK to DeficiencyType.id — which deficiency type gets raised
    *  when triggerSeverities matches. Required whenever
@@ -64,6 +65,10 @@ export interface QaCapaTriggerRule {
    *  QaActivityRecord.rootCauseNote's own doc comment already gives
    *  for this app's conditional-requirement fields. */
   deficiencyTypeId?: string;
+  /** Batch 439 (PS-148): recommend only for a review made after the report
+   *  was released (QaActivityRecord.postSignOut). Before sign-out the same
+   *  discordance is consultation working as designed. */
+  postSignOutOnly?: boolean;
 }
 
 /**

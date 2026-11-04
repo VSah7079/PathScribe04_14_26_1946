@@ -48,6 +48,7 @@ import { caseService } from '@/services';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { duplicateRoutingRule } from '@/services/duplication/duplicateEntities';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Routing logic explainer ──────────────────────────────────────────────────
 // Labels stored as translation keys, not raw text — this array lives
@@ -153,7 +154,7 @@ const RuleModal: React.FC<RuleModalProps> = ({ mode, rule, pools, labs, specimen
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('casePoolAssignmentSection.ruleModal.mappedSpecimenTypesLabel')}</label>
-            <input className="ps-conf-search" placeholder={t('casePoolAssignmentSection.ruleModal.specimenSearchPlaceholder')} value={specimenSearch} onChange={e => setSpecimenSearch(e.target.value)} />
+            <input aria-label={t('casePoolAssignmentSection.ruleModal.mappedSpecimenTypesLabel')} data-dirty-ignore data-config-nav className="ps-conf-search" placeholder={t('casePoolAssignmentSection.ruleModal.specimenSearchPlaceholder')} value={specimenSearch} onChange={e => setSpecimenSearch(e.target.value)} />
             <div className="ps-conf-table-scroll ps-cpa-specimen-list">
               {filteredSpecimenEntries.length === 0
                 ? <p className="ps-conf-section-subtitle">{t('casePoolAssignmentSection.ruleModal.noSpecimenEntriesMatch')}</p>
@@ -170,7 +171,7 @@ const RuleModal: React.FC<RuleModalProps> = ({ mode, rule, pools, labs, specimen
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('casePoolAssignmentSection.ruleModal.keywordFallbackLabel')} <span className="ps-conf-label-opt">{t('casePoolAssignmentSection.ruleModal.optionalNote')}</span></label>
-            <textarea className={`ps-conf-input ps-conf-textarea ${errors.keywordsText ? 'ps-conf-input--error' : ''}`}
+            <textarea aria-label={t('casePoolAssignmentSection.ruleModal.keywordFallbackLabel')} className={`ps-conf-input ps-conf-textarea ${errors.keywordsText ? 'ps-conf-input--error' : ''}`}
               value={draft.keywordsText} onChange={e => set('keywordsText', e.target.value)}
               placeholder={t('casePoolAssignmentSection.ruleModal.keywordFallbackPlaceholder')} />
             <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">
@@ -219,13 +220,13 @@ const RuleModal: React.FC<RuleModalProps> = ({ mode, rule, pools, labs, specimen
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('casePoolAssignmentSection.ruleModal.noteLabel')}</label>
-            <input className="ps-conf-input" value={draft.note ?? ''} onChange={e => set('note', e.target.value)} placeholder={t('casePoolAssignmentSection.ruleModal.notePlaceholder')} />
+            <input aria-label={t('casePoolAssignmentSection.ruleModal.noteLabel')} className="ps-conf-input" value={draft.note ?? ''} onChange={e => set('note', e.target.value)} placeholder={t('casePoolAssignmentSection.ruleModal.notePlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('casePoolAssignmentSection.ruleModal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('casePoolAssignmentSection.ruleModal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -294,9 +295,9 @@ const CasePoolAssignmentSection: React.FC = () => {
     return aSpecific !== bSpecific ? aSpecific - bSpecific : a.priority - b.priority;
   });
 
-  const persistRules = (next: RoutingRule[]) => {
-    setRules(next);
-    saveRoutingRules(next);
+  // Batch 428: saved only when the person holds config:case-routing:manage.
+  const persistRules = async (next: RoutingRule[]) => {
+    if (await saveRoutingRules(next)) setRules(next);
   };
 
   const handleSaveRule = (rule: RoutingRule) => {
@@ -325,8 +326,8 @@ const CasePoolAssignmentSection: React.FC = () => {
     });
   };
 
-  const handleSaveConfig = () => {
-    saveRoutingConfig(config);
+  const handleSaveConfig = async () => {
+    if (!(await saveRoutingConfig(config))) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -346,7 +347,7 @@ const CasePoolAssignmentSection: React.FC = () => {
     try {
       const cases = await caseService.listCasesForUser('all');
       const results = await routeUnassignedCases(cases);
-      setRunResults(results);
+      if (!results.refused) setRunResults(results);
     } finally {
       setRunning(false);
     }
@@ -386,7 +387,7 @@ const CasePoolAssignmentSection: React.FC = () => {
       <div className="ps-conf-form-row">
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('casePoolAssignmentSection.assignmentTimeoutLabel')}</label>
-          <input className="ps-conf-input" type="number" min={0} max={3600}
+          <input aria-label={t('casePoolAssignmentSection.assignmentTimeoutLabel')} className="ps-conf-input" type="number" min={0} max={3600}
             value={config.assignmentTimeoutSec}
             onChange={e => setConfig(c => ({ ...c, assignmentTimeoutSec: parseInt(e.target.value) || 0 }))} />
           <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">
@@ -412,7 +413,7 @@ const CasePoolAssignmentSection: React.FC = () => {
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('casePoolAssignmentSection.fallbackPool.globalFallbackLabel')}</label>
-              <select className="ps-conf-select" value={config.fallbackPoolId}
+              <select aria-label={t('casePoolAssignmentSection.fallbackPool.globalFallbackLabel')} className="ps-conf-select" value={config.fallbackPoolId}
                 onChange={e => {
                   const pool = pools.find(p => p.id === e.target.value);
                   setConfig(c => ({ ...c, fallbackPoolId: e.target.value, fallbackPoolName: pool?.name ?? e.target.value }));
@@ -437,7 +438,7 @@ const CasePoolAssignmentSection: React.FC = () => {
                       <tr key={lab.id} className="ps-conf-tr">
                         <td className="ps-conf-td">{lab.name}</td>
                         <td className="ps-conf-td">
-                          <select className="ps-conf-select" value={current} onChange={e => setLabFallback(lab.id, e.target.value)}>
+                          <select aria-label={t('a11y.cellLabel', { column: t('casePoolAssignmentSection.fallbackPool.fallbackOverrideHeader'), row: lab.name })} className="ps-conf-select" value={current} onChange={e => setLabFallback(lab.id, e.target.value)}>
                             <option value="">{t('casePoolAssignmentSection.fallbackPool.useGlobalDefaultOption')}</option>
                             {labPools.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
@@ -470,13 +471,13 @@ const CasePoolAssignmentSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('casePoolAssignmentSection.rulesTable.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('casePoolAssignmentSection.rulesTable.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('casePoolAssignmentSection.rulesTable.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
         </select>
-        <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
           <option value="All">{t('casePoolAssignmentSection.rulesTable.allLabsOption')}</option>
           <option value="Global">{t('casePoolAssignmentSection.rulesTable.globalOnlyOption')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -547,7 +548,7 @@ const CasePoolAssignmentSection: React.FC = () => {
       <div className="ps-conf-form-row">
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('casePoolAssignmentSection.testRouting.specimenEntryLabel')}</label>
-          <select className="ps-conf-select" value={testSpecimenId} onChange={e => setTestSpecimenId(e.target.value)}>
+          <select aria-label={t('casePoolAssignmentSection.testRouting.specimenEntryLabel')} className="ps-conf-select" value={testSpecimenId} onChange={e => setTestSpecimenId(e.target.value)}>
             <option value="">{t('casePoolAssignmentSection.testRouting.noneSpecimenOption')}</option>
             {specimenEntries.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -555,11 +556,11 @@ const CasePoolAssignmentSection: React.FC = () => {
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('casePoolAssignmentSection.testRouting.descriptionLabel')} <span className="ps-conf-label-opt">{t('casePoolAssignmentSection.testRouting.descriptionOptNote')}</span></label>
-          <input className="ps-conf-input" value={testDescription} onChange={e => setTestDescription(e.target.value)} placeholder={t('casePoolAssignmentSection.testRouting.descriptionPlaceholder')} />
+          <input aria-label={t('casePoolAssignmentSection.testRouting.descriptionLabel')} className="ps-conf-input" value={testDescription} onChange={e => setTestDescription(e.target.value)} placeholder={t('casePoolAssignmentSection.testRouting.descriptionPlaceholder')} />
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('casePoolAssignmentSection.testRouting.asLabLabel')}</label>
-          <select className="ps-conf-select" value={testLabId} onChange={e => setTestLabId(e.target.value)}>
+          <select aria-label={t('casePoolAssignmentSection.testRouting.asLabLabel')} className="ps-conf-select" value={testLabId} onChange={e => setTestLabId(e.target.value)}>
             <option value="">{t('casePoolAssignmentSection.testRouting.globalOnlyOption')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>

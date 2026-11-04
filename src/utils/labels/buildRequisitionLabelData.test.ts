@@ -1,6 +1,6 @@
 // src/utils/labels/buildRequisitionLabelData.test.ts
 import { describe, it, expect } from 'vitest';
-import { buildRequisitionLabelData } from './buildRequisitionLabelData';
+import { buildRequisitionLabelData, labelPatientName } from './buildRequisitionLabelData';
 import type { Case } from '@/types/case/Case';
 
 function makeCase(overrides: Record<string, unknown> = {}): Case {
@@ -57,5 +57,35 @@ describe('buildRequisitionLabelData — real feature, per direct follow-up on th
     const noProvider = makeCase({ order: { requestingProvider: undefined, facilityName: 'X' } });
     const data = buildRequisitionLabelData(noProvider, fixedNow);
     expect(data.requestingProvider).toBeUndefined();
+  });
+});
+
+describe('patient name on a label (PS-478)', () => {
+  it('prints a blank, not "undefined undefined", when the patient record is missing', () => {
+    const data = buildRequisitionLabelData(makeCase({ patient: undefined }), fixedNow);
+    expect(data.patientName).toBe('');
+    expect(data.mrn).toBe('');
+    expect(data.dateOfBirth).toBe('');
+  });
+
+  it('prints a blank when both names are missing', () => {
+    expect(labelPatientName({})).toBe('');
+  });
+
+  it('prints just the name that exists when one half is missing', () => {
+    expect(labelPatientName({ givenNames: 'Maria' })).toBe('Maria');
+    expect(labelPatientName({ familyNames: 'Garcia' })).toBe('Garcia');
+  });
+
+  it('reads the older firstName / lastName spelling', () => {
+    expect(labelPatientName({ firstName: 'Maria', lastName: 'Garcia' })).toBe('Maria Garcia');
+  });
+
+  it('reads the first_name / last_name spelling', () => {
+    expect(labelPatientName({ first_name: 'Maria', last_name: 'Garcia' })).toBe('Maria Garcia');
+  });
+
+  it('ignores names that are not text', () => {
+    expect(labelPatientName({ givenNames: undefined, familyNames: null })).toBe('');
   });
 });

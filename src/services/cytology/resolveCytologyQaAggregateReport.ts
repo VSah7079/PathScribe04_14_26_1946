@@ -109,11 +109,17 @@ export function resolveCytologyQaAggregateReport(
   const comparisons: CytologyQaComparisonDetail[] = [];
 
   for (const pair of pairs) {
-    const result = classifyCytologyAgreement(
-      { primaryInterpretationId: pair.initial.primaryInterpretationId, adequacyCategoryIds: pair.initial.adequacySelections?.map(s => s.categoryId) },
-      { primaryInterpretationId: pair.followUp.primaryInterpretationId, adequacyCategoryIds: pair.followUp.adequacySelections?.map(s => s.categoryId) },
-      categories,
-    );
+    // Batch 410: the agreement stored on the follow-up review when it was saved,
+    // when it was assessed against this initial screen; otherwise (reviews saved
+    // before Batch 410) worked out now, the same way.
+    const stored = pair.followUp.agreementWithInitial;
+    const result = stored && stored.comparedWithReviewId === pair.initial.id
+      ? { level: stored.level, majorSubtype: stored.majorSubtype, adequacyDiscrepancy: stored.adequacyDiscrepancy }
+      : classifyCytologyAgreement(
+        { primaryInterpretationId: pair.initial.primaryInterpretationId, adequacyCategoryIds: pair.initial.adequacySelections?.map(s => s.categoryId) },
+        { primaryInterpretationId: pair.followUp.primaryInterpretationId, adequacyCategoryIds: pair.followUp.adequacySelections?.map(s => s.categoryId) },
+        categories,
+      );
 
     if (result.level === 'exact') exactCount++;
     else if (result.level === 'minor_discrepancy') minorDiscrepancyCount++;

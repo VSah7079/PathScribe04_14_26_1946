@@ -8,6 +8,7 @@
 // Pure.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { sha256Hex } from '../registrySubmission/sha256';
 export interface CustomWordEntry {
   word: string;
   addedBy: { userId: string; userName: string };
@@ -28,10 +29,9 @@ export function normalizeCustomWord(raw: string): { ok: true; word: string } | {
   return { ok: true, word };
 }
 
-/** Who may change a facility's dictionary: the admin-tier roles. */
-export function canManageFacilityDictionary(role: string | undefined): boolean {
-  return role === 'admin' || role === 'pathologist-admin' || role === 'superadmin';
-}
+// Batch 432: who may change a facility's dictionary is now the capability
+// config:facilities:manage, checked by the dictionary service (it was a
+// role-name check here).
 
 /** Adds a word unless it's already there (compared case-insensitively). */
 export function withCustomWord(list: readonly CustomWordEntry[], entry: CustomWordEntry): { list: CustomWordEntry[]; added: boolean } {
@@ -54,5 +54,26 @@ export function facilityDictionaryAuditEntry(kind: 'added' | 'removed', word: st
     caseId: null,
     confidence: null,
     facilityId,
+  };
+}
+
+/**
+ * Batch 651: audit entry for a personal-dictionary change. Literal English. The word itself is NOT written (a personal
+ * word can be a surname or a patient-related term, and the audit log is PHI-free): only that one was added or removed,
+ * and its length. The owner is the actor.
+ */
+export function personalDictionaryAuditEntry(kind: 'added' | 'removed', word: string, actorName: string, ownerId = '') {
+  // Batch 655: with the word itself kept out, an auditor could not tell which word was added. The record now also carries a
+  // fingerprint (the first 16 hex characters of SHA-256 over "ownerId:lower-case word"): an auditor who suspects a word can
+  // compute the same value and confirm it, and the log does not hold the word. The word kept in encrypted storage, shown
+  // only to a restricted role and with each view audited, needs the server's key management: Planned.
+  const fingerprint = sha256Hex(`${ownerId}:${word.trim().toLowerCase()}`).slice(0, 16);
+  return {
+    type: 'user' as const,
+    event: kind === 'added' ? 'Personal spelling dictionary word added' : 'Personal spelling dictionary word removed',
+    detail: `A word of ${word.length} characters (fingerprint ${fingerprint}) was ${kind === 'added' ? 'added to' : 'removed from'} the user's own spelling dictionary.`,
+    user: actorName,
+    caseId: null,
+    confidence: null,
   };
 }

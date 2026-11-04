@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Batch 503 (PS-474): Inter is self-hosted (@fontsource/inter, imported in main.tsx), not loaded
+   from Google Fonts: hospital networks may block it, it sends every user's address to Google,
+   and the Content-Security-Policy allows styles and fonts from PathScribe itself only. */
 
 /* Global button reset — prevents UA styles overriding ps-close-btn and other custom buttons */
 button {
@@ -76,7 +78,7 @@ html, body, #root {
 
 body {
   margin: 0; /* was only set imperatively via document.body.style.margin in Home.tsx's mount effect — meaning it never applied on pages that load before Home ever mounts, e.g. LoginPage. A global reset belongs in global CSS, not a page-specific side effect. */
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
+  font-family: 'Inter', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica', 'Arial', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--ps-text-primary);

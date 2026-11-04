@@ -53,37 +53,57 @@ describe('mockWsiScanBatchService — real, per direct follow-up on Cytology Ass
     expect(second.ok).toBe(false);
   });
 
-  it('real, honest refusal: markUnloaded refuses while any real slide is still pending/scanning — the instrument can\'t honestly be unloaded yet', async () => {
+  it('markUnloaded refuses while a sent batch still has slides pending or scanning', async () => {
     const { mockWsiScanBatchService } = await import('./mockWsiScanBatchService');
     const created = await mockWsiScanBatchService.create(NEW_BATCH);
     if (!created.ok) throw new Error('setup failed');
+    await mockWsiScanBatchService.markDispatched(created.data.id);
     const res = await mockWsiScanBatchService.markUnloaded(created.data.id);
     expect(res.ok).toBe(false);
   });
 
-  it('real, markUnloaded correctly succeeds once every real slide reaches a real, terminal outcome, resolving to "completed" when all real slides succeeded', async () => {
+  it('Batch 434: a batch whose manifest was never sent can be unloaded as it is', async () => {
     const { mockWsiScanBatchService } = await import('./mockWsiScanBatchService');
     const created = await mockWsiScanBatchService.create(NEW_BATCH);
     if (!created.ok) throw new Error('setup failed');
-    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '1', { scanStatus: 'completed', scanCompletedAt: '2026-09-08T00:00:00.000Z' });
-    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '2', { scanStatus: 'completed', scanCompletedAt: '2026-09-08T00:00:00.000Z' });
-    const res = await mockWsiScanBatchService.markUnloaded(created.data.id);
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.data.status).toBe('completed');
-      expect(res.data.unloadedAt).toBeTruthy();
-    }
+    const res = await mockWsiScanBatchService.markUnloaded(created.data.id, 'tech-1');
+    expect(res.ok && res.data).toMatchObject({ status: 'unloaded', unloadedBy: 'tech-1' });
   });
 
-  it('real, markUnloaded correctly resolves to "failed" when any real slide genuinely failed, even if others succeeded — an honest, mixed outcome', async () => {
+  it('Batch 434: once every slide scanned the batch is "completed"; unloading then really sets "unloaded" (it used to leave "completed")', async () => {
     const { mockWsiScanBatchService } = await import('./mockWsiScanBatchService');
     const created = await mockWsiScanBatchService.create(NEW_BATCH);
     if (!created.ok) throw new Error('setup failed');
+    await mockWsiScanBatchService.markDispatched(created.data.id);
     await mockWsiScanBatchService.updateSlideStatus(created.data.id, '1', { scanStatus: 'completed', scanCompletedAt: '2026-09-08T00:00:00.000Z' });
-    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '2', { scanStatus: 'failed', failureReason: 'Focus error' });
+    const both = await mockWsiScanBatchService.updateSlideStatus(created.data.id, '2', { scanStatus: 'completed', scanCompletedAt: '2026-09-08T00:00:00.000Z' });
+    expect(both.ok && both.data.status).toBe('completed');
     const res = await mockWsiScanBatchService.markUnloaded(created.data.id);
-    expect(res.ok).toBe(true);
-    if (res.ok) expect(res.data.status).toBe('failed');
+    expect(res.ok && res.data.status).toBe('unloaded');
+    expect(res.ok && res.data.unloadedAt).toBeTruthy();
+    expect((await mockWsiScanBatchService.markUnloaded(created.data.id)).ok).toBe(false);
+  });
+
+  it('Batch 434: a batch with a failed slide is "failed" until it is unloaded', async () => {
+    const { mockWsiScanBatchService } = await import('./mockWsiScanBatchService');
+    const created = await mockWsiScanBatchService.create(NEW_BATCH);
+    if (!created.ok) throw new Error('setup failed');
+    await mockWsiScanBatchService.markDispatched(created.data.id);
+    await mockWsiScanBatchService.updateSlideStatus(created.data.id, '1', { scanStatus: 'completed', scanCompletedAt: '2026-09-08T00:00:00.000Z' });
+    const mixed = await mockWsiScanBatchService.updateSlideStatus(created.data.id, '2', { scanStatus: 'failed', failureReason: 'Focus error' });
+    expect(mixed.ok && mixed.data.status).toBe('failed');
+    const res = await mockWsiScanBatchService.markUnloaded(created.data.id);
+    expect(res.ok && res.data.status).toBe('unloaded');
+  });
+
+  it('Batch 434: a failed send is recorded and cleared when the manifest is accepted', async () => {
+    const { mockWsiScanBatchService } = await import('./mockWsiScanBatchService');
+    const created = await mockWsiScanBatchService.create(NEW_BATCH);
+    if (!created.ok) throw new Error('setup failed');
+    const failed = await mockWsiScanBatchService.recordSendFailure(created.data.id, { code: 'DISPATCH_UNREACHABLE', message: 'down' });
+    expect(failed.ok && failed.data).toMatchObject({ status: 'loaded', sendError: { code: 'DISPATCH_UNREACHABLE', message: 'down' } });
+    const sent = await mockWsiScanBatchService.markDispatched(created.data.id, 'tech-1');
+    expect(sent.ok && sent.data).toMatchObject({ status: 'scanning', sentBy: 'tech-1', sendError: undefined });
   });
 
   it('real, updateSlideStatus correctly refuses a genuinely non-existent slide position', async () => {

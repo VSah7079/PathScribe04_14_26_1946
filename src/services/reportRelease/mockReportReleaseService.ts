@@ -1,11 +1,18 @@
 // src/services/reportRelease/mockReportReleaseService.ts
+import { releaseHoldPrintPolicyOf } from './heldPrintPolicy';
 import type { IReportReleaseService, ReleaseBufferResolution, ReportReleaseOrgConfig } from './IReportReleaseService';
 import type { ServiceResult } from '../types';
 import { caseRouter } from '../cases/CaseRouter';
+import { caseVersionOf } from '../cases/caseWrite';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
 import { publishReportReleasedEvent } from '../reports/publishReportReleasedEvent';
+import { releaseSurgicalFinal, surgicalFinalReleaseDeps } from '../surgicalSignOut/releaseSurgicalFinal';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import i18n from '@/i18n/config';
+import { dataStorage } from '../browserData/dataStorage';
 
 /** Real, sensible fallback if no org config has been saved yet — matches
  *  direct specification's own stated default (10 minutes, 1-30 range),
@@ -19,7 +26,7 @@ const FALLBACK_ORG_CONFIG: ReportReleaseOrgConfig = {
   durationMinutes: 10,
   bypassForStat: true,
   watermarkText: 'PENDING FINAL RELEASE — DO NOT DISTRIBUTE',
-  restrictHardcopyPrinting: true,
+  releaseHoldPrintPolicy: 'warn',
 };
 const ORG_CONFIG_STORAGE_KEY = 'pathscribe_release_buffer_org_config';
 
@@ -27,7 +34,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
 function readOrgConfig(): ReportReleaseOrgConfig {
   try {
-    const stored = localStorage.getItem(ORG_CONFIG_STORAGE_KEY);
+    const stored = dataStorage.getItem(ORG_CONFIG_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       if (typeof parsed?.enabled === 'boolean' && typeof parsed?.durationMinutes === 'number' && typeof parsed?.bypassForStat === 'boolean') {
@@ -38,7 +45,9 @@ function readOrgConfig(): ReportReleaseOrgConfig {
         // real defaults for whatever's missing, rather than either
         // rejecting the whole real, saved config or leaving new fields
         // silently undefined.
-        return { ...FALLBACK_ORG_CONFIG, ...parsed };
+        // Batch 654: a config saved with the old on/off switch reads as warn (on) or allow (off).
+        const { restrictHardcopyPrinting: _legacy, ...rest } = parsed;
+        return { ...FALLBACK_ORG_CONFIG, ...rest, releaseHoldPrintPolicy: releaseHoldPrintPolicyOf(parsed) };
       }
     }
   } catch {
@@ -48,14 +57,14 @@ function readOrgConfig(): ReportReleaseOrgConfig {
   return FALLBACK_ORG_CONFIG;
 }
 
-export const mockReportReleaseService: IReportReleaseService = {
+const reportReleaseServiceUnchecked: IReportReleaseService = {
   async getOrgDefault() {
     return ok(readOrgConfig());
   },
 
   async setOrgDefault(config) {
     try {
-      localStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
+      dataStorage.setItem(ORG_CONFIG_STORAGE_KEY, JSON.stringify(config));
     } catch {
       // ignore write failures — same posture as setSessionTimeout's own
     }
@@ -119,7 +128,7 @@ export const mockReportReleaseService: IReportReleaseService = {
         releaseBufferExpiresAt,
         releaseBufferDurationMinutes: input.durationMinutes,
         preReleaseBufferStatus: input.previousStatus,
-      }, current.version);
+      }, caseVersionOf(current));
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -140,6 +149,9 @@ export const mockReportReleaseService: IReportReleaseService = {
   async recall(caseId, performedBy) {
     const current = await caseRouter.getCase(caseId);
     if (!current) return { ok: false, reason: `Case ${caseId} not found` };
+    // Batch 649: the capability (report:release:recall, audited), then the signer-only rule below.
+    const permitted = await authorizationService.enforce('report:release:recall', { caseId, facilityId: current.order?.facilityId ?? null });
+    if (!permitted.allowed) return { ok: false, reason: i18n.t('caseActionPermissions.recall') };
     if (current.status !== 'pending-release') {
       return { ok: false, reason: `Case ${caseId} is not in the release buffer (current status: ${current.status}).` };
     }
@@ -173,7 +185,10 @@ export const mockReportReleaseService: IReportReleaseService = {
         releaseBufferExpiresAt: undefined,
         releaseBufferDurationMinutes: undefined,
         preReleaseBufferStatus: undefined,
-      }, current.version);
+      }, caseVersionOf(current));
+
+      // Batch 534: the background release no longer waits for it.
+      await settleSignOutTracker(caseId, 'recalled');
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -184,6 +199,9 @@ export const mockReportReleaseService: IReportReleaseService = {
         facilityId: current.originHospitalId,
         confidence: null,
       }).catch(() => {});
+
+      // Batch 535: and what was released on it during the buffer and is still held (a correction).
+      await recallRiders(caseId, performedBy);
 
       return { ok: true };
     } catch (e) {
@@ -204,7 +222,7 @@ export const mockReportReleaseService: IReportReleaseService = {
         releaseBufferExpiresAt: undefined,
         releaseBufferDurationMinutes: undefined,
         preReleaseBufferStatus: undefined,
-      }, current.version);
+      }, caseVersionOf(current));
 
       await mockAuditService.logEvent({
         type: 'system',
@@ -225,17 +243,20 @@ export const mockReportReleaseService: IReportReleaseService = {
       // never delay this function's own, more time-sensitive job —
       // flipping the real UI state from "buffered" to "released" for
       // whoever's watching the countdown.
-      publishReportReleasedEvent({
+      // Batch 534: the background release no longer waits for it; and the
+      // performing facility goes with it, so print and fax route as at sign-out.
+      await settleSignOutTracker(caseId, 'released');
+      // Batch 649: the cancer registry submission goes with the release, not the signature (releaseSurgicalFinal).
+      void releaseSurgicalFinal(current, {
         caseId,
         reportType: 'FINAL',
         releasedAt: new Date().toISOString(),
+        performingFacilityId: current.order?.facilityId,
         // Real, deliberate: no releasedBy here — this is the release
         // buffer's own automatic expiry, with no human actor at this
         // specific moment (the signing pathologist's own real action
         // already happened earlier, when the buffer itself started).
-      }).catch(e =>
-        console.error('[reportRelease] Real, non-blocking failure dispatching case instances after release:', e)
-      );
+      }, { ...surgicalFinalReleaseDeps, publish: publishReportReleasedEvent });
 
       return { released: true };
     } catch (e) {
@@ -250,3 +271,28 @@ export const mockReportReleaseService: IReportReleaseService = {
     }
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockReportReleaseService: IReportReleaseService = guardConfigWrites(reportReleaseServiceUnchecked, [
+  ['config:release-buffer:manage', ['setOrgDefault']],
+]);
+
+/** Batch 534: settles the background-release tracker for a case's surgical sign-out buffer (releaseReport.trackSignOutBuffer). */
+async function settleSignOutTracker(caseId: string, status: 'released' | 'recalled'): Promise<void> {
+  const { mockHeldReleaseService } = await import('./mockHeldReleaseService');
+  const res = await mockHeldReleaseService.getByCaseId(caseId).catch(() => null);
+  if (!res?.ok) return;
+  for (const h of res.data.filter(x => x.kind === 'surgical-sign-out' && x.status === 'held')) {
+    await mockHeldReleaseService.settle(h.id, status, new Date().toISOString());
+  }
+}
+
+/** Batch 535: the held corrections and addenda released during this sign-out's buffer go back with it (releaseReport.recallHeldForCase). */
+async function recallRiders(caseId: string, by: { userId: string; userName: string }): Promise<void> {
+  try {
+    const [{ recallHeldForCase }, { releaseReportDeps }] = await Promise.all([import('./releaseReport'), import('./releaseReportDeps')]);
+    await recallHeldForCase(caseId, ['surgical-amendment'], by, releaseReportDeps);
+  } catch (e) {
+    console.error('[reportRelease] Held corrections not recalled with the sign-out:', e);
+  }
+}

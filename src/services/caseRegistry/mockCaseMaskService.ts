@@ -32,6 +32,7 @@ import {
 } from '@/types/config/CaseMask';
 import { getFacilityDateParts } from '@/utils/facilityTime';
 import { renderCaseMask as renderMask } from './renderCaseMask';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'ps_case_masks_v1';
 
@@ -55,6 +56,14 @@ const SEED: Record<string, CaseMask> = {
   [keyFor('department', 'cat-fluid-cytology')]: {
     id: 'cat-fluid-cytology', scopeType: 'department', scopeId: 'cat-fluid-cytology',
     prefix: 'NG', maskPattern: DEFAULT_FALLBACK_MASK, sequenceDigits: 4,
+    currentSequence: 0, resetSequenceAnnually: true, lastResetYear: 2026,
+    updatedBy: 'system', updatedAt: nowIso(),
+  },
+  // Batch 716: GYN cytology draws from its own series (GYN26-0001), so the Cytology Part 2 training video shows a
+  // Pap and a thyroid FNA (NG26-0001) getting visibly different accession numbers.
+  [keyFor('department', 'cat-gyn-cytology')]: {
+    id: 'cat-gyn-cytology', scopeType: 'department', scopeId: 'cat-gyn-cytology',
+    prefix: 'GYN', maskPattern: DEFAULT_FALLBACK_MASK, sequenceDigits: 4,
     currentSequence: 0, resetSequenceAnnually: true, lastResetYear: 2026,
     updatedBy: 'system', updatedAt: nowIso(),
   },
@@ -91,7 +100,7 @@ function findEffectiveMask(candidates: CaseMaskScopeCandidate[], masks: Record<s
   return undefined;
 }
 
-export const mockCaseMaskService: ICaseMaskService = {
+const caseMaskServiceUnchecked: ICaseMaskService = {
   async getMask(scopeType, scopeId) {
     const masks = load();
     return ok(masks[keyFor(scopeType, scopeId)] ?? null);
@@ -168,3 +177,8 @@ export const mockCaseMaskService: ICaseMaskService = {
     return ok(renderMask(effective.maskPattern, effective.prefix, nextSeq, effective.sequenceDigits, timezone));
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCaseMaskService: ICaseMaskService = guardConfigWrites(caseMaskServiceUnchecked, [
+  ['config:case-masks:manage', ['saveMask', 'deleteMask']],
+]);

@@ -21,7 +21,6 @@ describe('one ServiceResult shape (PS-67)', () => {
     for (const rel of [
       'services/aiIntegration/IAIIntegrationService.ts',
       'services/aiIntegration/PathScribeAIService.ts',
-      'services/aiIntegration/MockAIIntegrationService.ts',
       'services/voicemacro/mockVoiceMacroService.ts',
     ]) {
       const text = read(rel);

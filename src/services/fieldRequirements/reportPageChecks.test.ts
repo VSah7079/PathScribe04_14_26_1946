@@ -4,6 +4,7 @@ import {
   specimenEditProblems, revisionMissingFields, revisionNotificationShown, criticalNotificationMissing,
   reportFieldRequired, REPORT_DEFAULT_REQUIREMENTS,
   discordanceStage, discordanceMissing, billingChangeMissing, correctedCodeCheck,
+  autopsyAuthorizationMissing, autopsyReleaseMissing,
 } from './reportPageChecks';
 
 const defaults = resolveFieldRequirements('report');
@@ -66,6 +67,8 @@ describe('Case report page: critical findings (Batch 380)', () => {
     const readBack = resolveFieldRequirements('report', { criticalReadBack: true });
     expect(criticalNotificationMissing(form(), readBack)).toEqual(['criticalReadBack']);
     expect(criticalNotificationMissing(form({ readBackConfirmed: true }), readBack)).toEqual([]);
+    // Batch 517 (PS-143): a read-back never applies to a secure email.
+    expect(criticalNotificationMissing(form({ method: 'secure_email' }), readBack)).toEqual([]);
   });
   it('the defaults used before settings load are the page defaults', () => {
     expect(REPORT_DEFAULT_REQUIREMENTS.map(f => [f.id, f.required])).toEqual(defaults.map(f => [f.id, f.required]));
@@ -161,5 +164,48 @@ describe('Case report page, group 3 (Batch 382): reconciliation and billing chan
     expect(correctedCodeCheck('', '88305', defaults)).toEqual({ missing: ['correctedBillingCode'], sameAsOriginal: false });
     expect(correctedCodeCheck(' 88305 ', '88305', defaults)).toEqual({ missing: [], sameAsOriginal: true });
     expect(correctedCodeCheck('88307', '88305', defaults)).toEqual({ missing: [], sameAsOriginal: false });
+  });
+});
+
+describe('Case report page: autopsy forms (Batch 383)', () => {
+  const form = (over: Record<string, string> = {}) => ({ orderReference: '', orderDate: '', consentGivenAt: '', consentScope: '', ...over });
+  it('a medicolegal case needs the written order and its date, as before', () => {
+    expect(autopsyAuthorizationMissing('statutory_judicial', form(), defaults)).toEqual(['autopsyOrderReference', 'autopsyOrderDate']);
+    expect(autopsyAuthorizationMissing('statutory_judicial', form({ orderReference: ' CO-1 ', orderDate: '2026-09-01' }), defaults)).toEqual([]);
+  });
+  it('a hospital-consented case needs the consent time; the scope only when an organisation requires it', () => {
+    expect(autopsyAuthorizationMissing('hospital_consented', form(), defaults)).toEqual(['autopsyConsentGivenAt']);
+    expect(autopsyAuthorizationMissing('hospital_consented', form({ consentGivenAt: '2026-09-01T10:00' }), defaults)).toEqual([]);
+    const strict = resolveFieldRequirements('report', { autopsyConsentScope: true });
+    expect(autopsyAuthorizationMissing('hospital_consented', form({ consentGivenAt: '2026-09-01T10:00' }), strict)).toEqual(['autopsyConsentScope']);
+  });
+  it('the fields of the other authority are never asked for', () => {
+    const strict = resolveFieldRequirements('report', { autopsyConsentScope: true });
+    expect(autopsyAuthorizationMissing('statutory_judicial', form({ orderReference: 'X', orderDate: '2026-09-01' }), strict)).toEqual([]);
+  });
+  it('the order, its date and the consent time can\'t be switched off', () => {
+    const tried = resolveFieldRequirements('report', { autopsyOrderReference: false, autopsyOrderDate: false, autopsyConsentGivenAt: false });
+    expect(['autopsyOrderReference', 'autopsyOrderDate', 'autopsyConsentGivenAt'].every(id => reportFieldRequired(tried, id))).toBe(true);
+  });
+  it('a body release needs who received it and who released it', () => {
+    expect(autopsyReleaseMissing('', ' ', defaults)).toEqual(['autopsyReleasedTo', 'autopsyReleasedBy']);
+    expect(autopsyReleaseMissing('Smith Funeral Home', '', defaults)).toEqual(['autopsyReleasedBy']);
+    expect(autopsyReleaseMissing('Smith Funeral Home', 'Tech: M. Davis', defaults)).toEqual([]);
+  });
+});
+
+// Batch 397: Add Orders → Blocks / Recut.
+import { addOrdersBlockMissing, addOrdersBlockSentence } from './reportPageChecks';
+import { resolveFieldRequirements as resolveForAddOrders } from './fieldRequirementRules';
+describe('Add Orders: a new block (Batch 397)', () => {
+  const r = resolveForAddOrders('report');
+  it('needs the specimen and a cassette label, as before; both are locked', () => {
+    expect(addOrdersBlockMissing('', ' ', r)).toEqual(['addOrdersSpecimen', 'addOrdersCassetteLabel']);
+    expect(addOrdersBlockMissing('sp-1', 'A3', r)).toEqual([]);
+    expect(addOrdersBlockMissing('', '', resolveForAddOrders('report', { addOrdersSpecimen: false }))).toEqual(['addOrdersSpecimen', 'addOrdersCassetteLabel']);
+  });
+  it('builds the English sentence appended to the gross description', () => {
+    expect(addOrdersBlockSentence('A', ' A3 ')).toBe('Specimen A represents deeper levels cut from Block A3, ordered for advanced microscopic evaluation.');
+    expect(addOrdersBlockSentence('B', '')).toContain('Block [block]');
   });
 });

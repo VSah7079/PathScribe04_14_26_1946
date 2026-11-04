@@ -1,0 +1,306 @@
+<h1 id="top">Billing Review</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Shows the billing codes PathScribe suggests for a case, lets the pathologist confirm, replace or remove them, and covers the three related windows used after sign-out: Smart Capture, the approval list for charges, and the billing correction window.</p>
+<p><strong>Intended users.</strong> Pathologists review and confirm codes. Laboratory managers and quality staff approve or correct charges.</p>
+<p><strong>Where it fits.</strong> The review sits on the Report screen (Orchestration mode) beside the report, before sign-out. Charge approval and billing correction are opened from the Financials area of <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-billing-review-overview.png" alt="The AI Billing Code Review panel"><figcaption>The AI Billing Code Review panel</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI Billing Code Review</td>
+<td>Title of the panel. Suggestions come from the stains and blocks recorded on the case.</td>
+</tr>
+<tr>
+<td>Pending review</td>
+<td>Suggestions waiting for a decision. A line reads "N codes need review before sign-out".</td>
+</tr>
+<tr>
+<td>Specimens</td>
+<td>The list of specimens on the case. A line reads "No specimens on this case yet." when there are none. Each specimen can be expanded to show its blocks.</td>
+</tr>
+<tr>
+<td>Expand stains / Collapse stains</td>
+<td>The small arrow beside a block shows or hides the stains under it.</td>
+</tr>
+<tr>
+<td>Billing codes</td>
+<td>The detail for the specimen or block you select.</td>
+</tr>
+<tr>
+<td>Base code</td>
+<td>The main code for the specimen. When none is set the panel says "No base code applied yet." (the list shows "No base code").</td>
+</tr>
+<tr>
+<td>Applied codes</td>
+<td>Codes already confirmed for the selected block.</td>
+</tr>
+<tr>
+<td>AI source</td>
+<td>The stain that produced a suggestion. When the stain is unknown the line says "stain not recorded".</td>
+</tr>
+<tr>
+<td>Replace with</td>
+<td>The area where you choose a different code when overriding a suggestion.</td>
+</tr>
+<tr>
+<td>Search codes…</td>
+<td>Opens the code search. After a code is picked the button shows the code and its description.</td>
+</tr>
+<tr>
+<td>This code is already applied here.</td>
+<td>Warning when the code you picked is already on that block.</td>
+</tr>
+<tr>
+<td>Add a code manually</td>
+<td>Adds a code that the system did not suggest.</td>
+</tr>
+<tr>
+<td>Evaluated / Reviewed for Diagnosis</td>
+<td>A tick box, one per specimen, in the Biopsy Array section.</td>
+</tr>
+<tr>
+<td>Biopsy Array — Evaluated Cores</td>
+<td>Section for a case with a biopsy array. Billing only counts a core that a pathologist confirms was evaluated on the stained slide. Ordering a stain for a core does not bill it by itself.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Code search window (Search Billing Codes).</strong> It opens from <strong>Search codes…</strong> and from the block's code buttons.</p>
+<ul>
+<li>"Start typing to search." shows before you type. Matches are grouped; codes that fit the level you are working at are listed first, and <strong>Other codes</strong> lists the rest. If none fit the level, "No matching … codes found." names the level (block, specimen or stain).</li>
+<li><strong>All stains</strong> ticks every stain of the block in one step and then reads <strong>Deselect all stains</strong>.</li>
+<li><strong>Added this session</strong> lists the codes you have added since the window opened.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Confirm All (N)</td>
+<td>Applies every pending suggestion in one step. N is how many are waiting.</td>
+</tr>
+<tr>
+<td>Override</td>
+<td>Opens a card to replace a suggested code with another one.</td>
+</tr>
+<tr>
+<td>Remove this billing code (bin icon)</td>
+<td>Removes a code that was already applied.</td>
+</tr>
+<tr>
+<td>Dismiss — no code needed for this stain (bin icon)</td>
+<td>Rejects a suggestion because the stain needs no billing code.</td>
+</tr>
+<tr>
+<td>No replacement needed — reject only</td>
+<td>Inside Override: rejects the suggestion and adds nothing in its place.</td>
+</tr>
+<tr>
+<td>Save Evaluation</td>
+<td>Saves which cores you ticked as evaluated.</td>
+</tr>
+<tr>
+<td>Reject</td>
+<td>In the Biopsy Array section: rejects the suggested code for that stain.</td>
+</tr>
+<tr>
+<td>Smart Capture</td>
+<td>Opens the Smart Capture drawer (see below).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Applied</td>
+<td>A code has been confirmed.</td>
+</tr>
+<tr>
+<td>Pending review</td>
+<td>A suggestion waits for a decision.</td>
+</tr>
+<tr>
+<td>Declined — no code applied</td>
+<td>The suggestion was rejected and nothing replaced it.</td>
+</tr>
+<tr>
+<td>No codes</td>
+<td>Nothing was suggested or applied.</td>
+</tr>
+</tbody>
+</table>
+<p>After a decant is added, changed or removed on the Material tab, a notice says that expected charges were recalculated. If a material change could not be saved, a notice says the charges are back to the saved state.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the Report screen in Orchestration mode and choose <strong>$ Billing review</strong>. The panel titled <strong>AI Billing Code Review</strong> opens.</li>
+<li>Read the line that says how many codes need review.</li>
+<li>Select a specimen, then expand a block with the arrow (<strong>Expand stains</strong>) to see its stains.</li>
+<li>Check each pending suggestion and its <strong>AI source</strong> line.</li>
+<li>Choose <strong>Confirm All (N)</strong> to accept all of them, or decide one at a time as described below.</li>
+<li>Make sure each specimen shows a base code before you sign out.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To replace one suggestion, open its card and choose <strong>Override</strong>.</li>
+<li>Select <strong>Search codes…</strong>, pick the new code, then confirm. The original suggestion is rejected and the new code applied together.</li>
+<li>To reject without a replacement, choose <strong>No replacement needed — reject only</strong>, or the bin icon (<strong>Dismiss — no code needed for this stain</strong>).</li>
+<li>To add a code the system did not suggest, choose <strong>Add a code manually</strong> under <strong>Billing codes</strong>, then <strong>Search codes…</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a specimen has no base code, add one with <strong>Add a code manually</strong>. Sign-out opens this panel when an ancillary code exists without a base code.</li>
+<li>For a biopsy array, tick <strong>Evaluated / Reviewed for Diagnosis</strong> for each specimen you actually evaluated on the slide, then choose <strong>Save Evaluation</strong>.</li>
+<li>To remove a code that was applied by mistake, use <strong>Remove this billing code</strong>. A removed suggested code can come back as a new suggestion, because the stain evidence has not changed.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the code search shows <strong>This code is already applied here.</strong>, pick a different code.</li>
+<li>If a notice says a material change was undone, check the Material tab and repeat the change.</li>
+<li>For a code that was already charged, use the billing correction window described below instead of removing it.</li>
+</ol>
+<h2 id="smart-capture-prototype">Smart Capture (prototype)</h2>
+<p>Smart Capture is a prototype that suggests charge lines for a person to check. It only appears when your laboratory has switched it on, and it carries the badge "Prototype, not compliance-reviewed". In the demonstration it talks only to a simulated engine and nothing reaches a payer.</p>
+<ol>
+<li>Choose <strong>Smart Capture</strong>. The drawer shows <strong>Making suggestions…</strong> and then a list of lines.</li>
+<li>Each line shows the CPT code, a plain description and the units, then "Specimen {{specimen}} · rule {{rule}}" (the specimen label and the rule that produced the line) and the evidence behind it, such as the blocks or stains counted or the word that matched.</li>
+<li>A line starts as "Not yet reviewed". Choose <strong>Accept</strong> or <strong>Reject</strong> on each.</li>
+<li>A line above the list reads "Status: {{state}}. Rule set {{version}}." (for example "Status: Suggested. Rule set 3."). The status moves through Suggested, Reviewed, Approved and Exported.</li>
+<li>Tick "I have reviewed the accepted lines and confirm them as the pathologist." Only a pathologist can do this.</li>
+<li>Choose <strong>Approve accepted lines</strong>. The lines are locked.</li>
+<li>Choose <strong>Export approved lines</strong>. A <strong>Structured payload preview</strong> shows exactly what was handed on. In the demonstration the message says it was simulated.</li>
+<li>To change locked lines, choose <strong>Start again</strong>. This also happens when the case or the rules changed ("The case or the rule set changed after the earlier review. Open the drawer again to make fresh suggestions.").</li>
+</ol>
+<p>If the case's jurisdiction does not use CPT, the drawer says nothing is suggested.</p>
+<div class="admonition warning">
+<p class="admonition-title">Known limit: simulated engine</p>
+<p>Smart Capture is a prototype. Exporting sends the lines to a simulated engine in this version, and no claim reaches a payer.</p>
+</div>
+<h2 id="charges-awaiting-approval">Charges awaiting approval</h2>
+<p>Some laboratories require a second person to approve charges before they go to the billing system. The list is under Financials in Quality &amp; Compliance.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Charge</td>
+<td>The source, CPT code and modifier.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Charge, or Credit when an earlier charge is being reversed.</td>
+</tr>
+<tr>
+<td>Performing lab</td>
+<td>The laboratory the charge belongs to. "Lab not known" means it cannot be worked out from the case; check the case's ordering facility.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>"Awaiting approval" or "On hold".</td>
+</tr>
+<tr>
+<td>Drafted</td>
+<td>When the charge was drafted.</td>
+</tr>
+</tbody>
+</table>
+<p>Choose <strong>Approve</strong>, <strong>Hold</strong>, <strong>Release hold</strong> or <strong>Reject</strong>. <strong>Reject</strong> opens <strong>Reject charge</strong>, where you give a <strong>Reason</strong>; the charge is not sent. You cannot approve or reject a charge that you drafted yourself. When nothing is waiting, the list says "No charges are waiting for approval."</p>
+<h2 id="billing-correction">Billing correction</h2>
+<p>The billing correction window changes a charge after sign-out without opening the case. The correction is recorded as a billing deficiency and audited.</p>
+<ol>
+<li>Type a <strong>Case ID or accession number</strong> (for example S26-12345) and choose <strong>Find case</strong>. The window says <strong>Loading the case…</strong>, or that no visible case matches.</li>
+<li>Choose the <strong>Correction</strong>: Change the CPT code, Change the modifier, Add a missing charge or Reverse the charge.</li>
+<li>For a change or reversal, pick the charge under <strong>Charge</strong> (<strong>— Select a charge —</strong>). If the case has none, the window says "This case has no active charges."</li>
+<li>For a new code, type the <strong>Corrected CPT code</strong> (for example 88307). For a modifier change, type the new modifier (for example 26) under <strong>New modifier (leave empty to remove it)</strong>.</li>
+<li>To add a missing charge, pick the <strong>Specimen</strong> (<strong>— Select a specimen —</strong>), the <strong>Block</strong> (or <strong>The whole specimen</strong>) and the <strong>Billing code</strong> (<strong>— Select a billing code —</strong>).</li>
+<li>Choose a reason, write a <strong>Comment</strong> that says what was wrong and what was changed, then choose <strong>Save correction</strong>.</li>
+</ol>
+<p>The original charge is credited and, where needed, a new charge is made. If your laboratory requires approval, both wait in the list above.</p>
+<h3 id="correct-a-single-applied-code">Correct a single applied code</h3>
+<p>In the billing review, the correct-code action on an already charged code opens <strong>Correct Billing Code</strong>. Enter the <strong>Corrected CPT Code</strong> (it must differ from the original) and choose <strong>Correct Code</strong>. The original is credited and a new charge made.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Using Confirm All without reading the AI source lines. Check unusual stains first.</li>
+<li>Ticking every core in a biopsy array. Only tick cores you evaluated.</li>
+<li>Removing an already charged code. Use a correction so the original is credited.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use <strong>Confirm All (N)</strong> when the suggestions are straightforward, then override the few that differ.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Finish the billing review before opening the sign-out window.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report/synoptic-reporting">Synoptic Reporting</a>: the stains and blocks recorded here drive the suggestions.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report/sign-out-and-release">Sign Out and Release</a>: the Coding Summary and the base code check.</li>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: billing deficiencies and the Financials area.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Smart Capture button</td>
+<td>Your laboratory has not switched the prototype on.</td>
+</tr>
+<tr>
+<td>Approve is refused</td>
+<td>Only a pathologist can approve; every line must be accepted or rejected first, and at least one accepted.</td>
+</tr>
+<tr>
+<td>Cannot approve a charge</td>
+<td>You drafted it, or you lack permission for that laboratory.</td>
+</tr>
+<tr>
+<td>Correction says there is no active rule</td>
+<td>The billing dictionary has no rule for that code on the date of service.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message under the button; it names the missing step.</li>
+<li>Complete that step and try again.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a message about a missing performing lab or rule persists. Have the case number and the time of the problem ready.</p>

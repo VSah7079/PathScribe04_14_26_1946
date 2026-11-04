@@ -32,12 +32,22 @@
  * "Will append:" preview's own chrome word is translated; the quoted
  * sentence it previews is not, since it is exactly what gets persisted.
  * `sp.label`/`sp.description` (specimen picker options) are real case data.
+ *
+ * Batch 397 (PS-359): Add Block needs the specimen and the cassette label
+ * (Field Requirements, locked; reportPageChecks.addOrdersBlockMissing). The
+ * form shows "Still required: …", marks both labels, and Add Block can be said
+ * ("add block", ADD_ORDERS_ADD_BLOCK). The appended sentence is built by
+ * reportPageChecks.addOrdersBlockSentence.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '@/pathscribe.css';
 import type { Case } from '@/types/case/Case';
+import { actionRegistryService, addOrdersBlockMissing, addOrdersBlockSentence, isFieldRequired } from '@/services';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { RequiredMark } from '@/components/Grossing/GrossingFieldNote';
+import { formatList } from '@/utils/formatList';
 
 export type OrderTab = 'blocks' | 'specimens' | 'stains';
 
@@ -81,7 +91,8 @@ const TAB_LABEL_KEY: Record<OrderTab, string> = {
 const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
   show, caseData, activeSpecimenId, initialTab, onClose, onGoToAddSpecimen, onGoToAddStain, onAddBlock,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('report');
 
   // Pre-gross-complete = PA actively at the bench, hasn't finalized
   // Grossing yet. Everything from 'gross-complete' onward is
@@ -116,24 +127,28 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
   // ── Blocks/Recut tab state ────────────────────────────────────────────
   const [blockSpecimenId, setBlockSpecimenId] = useState(activeSpecimenId ?? '');
   const [cassetteLabel,   setCassetteLabel]   = useState('');
-  const [blockError,      setBlockError]      = useState('');
-
   const specimens = caseData?.specimens ?? [];
   const selectedSpecimen = specimens.find(sp => sp.id === blockSpecimenId);
-
-  const generatedSentence = useMemo(() => {
-    if (!selectedSpecimen) return '';
-    const blockRef = cassetteLabel.trim() || '[block]';
-    return `Specimen ${selectedSpecimen.label} represents deeper levels cut from Block ${blockRef}, ordered for advanced microscopic evaluation.`;
-  }, [selectedSpecimen, cassetteLabel]);
+  const generatedSentence = selectedSpecimen ? addOrdersBlockSentence(selectedSpecimen.label, cassetteLabel) : '';
+  const missing = addOrdersBlockMissing(blockSpecimenId, cassetteLabel, requirements);
 
   const handleSubmitBlock = () => {
-    if (!blockSpecimenId) { setBlockError(t('addOrdersModal.blocksTab.errorSelectSpecimen')); return; }
-    if (!cassetteLabel.trim()) { setBlockError(t('addOrdersModal.blocksTab.errorEnterLabel')); return; }
-    setBlockError('');
+    if (missing.length > 0) return;
     onAddBlock(blockSpecimenId, cassetteLabel.trim(), generatedSentence);
     setCassetteLabel('');
   };
+
+  // Voice/keyboard "add block": the same Add Block, with the same check, only
+  // while this modal is open on the Blocks tab.
+  const submitRef = useRef(handleSubmitBlock);
+  submitRef.current = handleSubmitBlock;
+  const blocksTabOpen = show && resolvedActiveTab === 'blocks';
+  useEffect(() => {
+    if (!blocksTabOpen) return;
+    return actionRegistryService.onAction((actionId: string) => {
+      if (actionId === 'ADD_ORDERS_ADD_BLOCK') submitRef.current();
+    });
+  }, [blocksTabOpen]);
 
   if (!show) return null;
 
@@ -175,8 +190,9 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
                 {t('addOrdersModal.blocksTab.description')}
               </p>
 
-              <label className="ps-conf-label">{t('qualityAssurance.common.specimen')}</label>
+              <label className="ps-conf-label" htmlFor="add-orders-block-specimen">{t('qualityAssurance.common.specimen')}<RequiredMark required={isFieldRequired(requirements, 'addOrdersSpecimen')} /></label>
               <select
+                id="add-orders-block-specimen"
                 className="ps-conf-input ps-addorders-field-spacing"
                 value={blockSpecimenId}
                 onChange={e => setBlockSpecimenId(e.target.value)}
@@ -187,8 +203,9 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
                 ))}
               </select>
 
-              <label className="ps-conf-label">{t('addOrdersModal.blocksTab.cassetteLabel')}</label>
+              <label className="ps-conf-label" htmlFor="add-orders-block-cassette">{t('addOrdersModal.blocksTab.cassetteLabel')}<RequiredMark required={isFieldRequired(requirements, 'addOrdersCassetteLabel')} /></label>
               <input
+                id="add-orders-block-cassette"
                 className="ps-conf-input ps-addorders-field-spacing"
                 placeholder={t('addOrdersModal.blocksTab.cassettePlaceholder')}
                 value={cassetteLabel}
@@ -197,11 +214,15 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
 
               {selectedSpecimen && (
                 <div className="ps-addorders-preview">
-                  {t('addOrdersModal.blocksTab.willAppendPrefix')} "{generatedSentence}"
+                  {t('addOrdersModal.blocksTab.willAppend', { sentence: generatedSentence })}
                 </div>
               )}
 
-              {blockError && <div className="ps-addorders-error">{blockError}</div>}
+              {missing.length > 0 && (
+                <p className="ps-field-still-required" role="status">
+                  {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.report.${id}`)), i18n.language) })}
+                </p>
+              )}
             </div>
           )}
 
@@ -234,7 +255,7 @@ const AddOrdersModal: React.FC<AddOrdersModalProps> = ({
           <div className="ps-addorders-footer-actions">
             <button onClick={onClose} className="fm-btn-cancel">{t('common.close')}</button>
             {resolvedActiveTab === 'blocks' && (
-              <button onClick={handleSubmitBlock} className="fm-btn-apply">{t('addOrdersModal.addBlockButton')}</button>
+              <button onClick={handleSubmitBlock} disabled={missing.length > 0} className="fm-btn-apply">{t('addOrdersModal.addBlockButton')}</button>
             )}
           </div>
         </div>

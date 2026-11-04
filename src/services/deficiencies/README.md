@@ -1,3 +1,7 @@
+**Batch 649:** `qaDeficiencyActions.ts`: the Quality Assurance screen's four deficiency actions each check their own capability in the service: `qa:deficiency:raise`, `qa:deficiency:escalate` (to CAPA), `qa:deficiency:contain` and `qa:deficiency:verify` (all high risk, audited; each requires the Quality Assurance screen). Raising one from a bench screen is that screen's act, not this one.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/deficiencies/
 
 Specimen/requisition deficiency tracking and resolution — modeled deliberately on CoPathPlus's Deficiency+Resolution dictionary pattern.
@@ -29,6 +33,49 @@ This folder's own `mockSpecimenDeficiencyService.ts`/`mockDeficiencyTypeService.
 - **`def-grossed-without-protocol`** (specimen level) is raised, left open, for each specimen whose grossing was completed without a protocol, where the organisation has switched off the protocol rule (see `services/grossing/`). It is the "secondary review" Pete asked for, reusing the QA deficiency queue rather than a new review mechanism.
 - **`mockDeficiencyTypeService`**: a stored list now gains any built-in type it's missing (by id) when it loads. Before, a new built-in type needed `DEFICIENCY_TYPE_VERSION` bumped, which also wiped the site's own custom types. The version stays at 4.
 
+## Batch 423
+
+There is a new seed deficiency type, `def-registry-submission-failure` (case-level), for a registry submission raised for CAPA review from the Registry Exceptions worklist (`services/registrySubmission/captureRegistryExceptionAsCapa.ts`). Stored type lists pick it up through `withNewSeedTypes`.
+
+## Batch 425
+
+New seed type `def-registry-revised-post-acceptance` ("Registry Revised After Acceptance", case level). It is raised automatically when a registry revises data it had accepted (`services/registrySubmission/recordRegistryRevision.ts`). Type version bumped to 5.
+
+## Batch 428: Configuration permissions
+
+- `mockDeficiencyTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:deficiency-types:manage`.
+- `mockResolutionTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:deficiency-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 438
+
+- `IDeficiencyService.ts`: a deficiency can carry `assignedTo`, `assignedToName` (the CAPA owner) and `capaRecommendationId` (the recommendation that opened it).
+- `mockDeficiencyTypeService.ts`: three new types for the recommendation sources: `def-clinically-significant-revision`, `def-clinical-pathologic-mismatch`, `def-unresolved-peer-disagreement`.
+
+## Batch 439
+
+- New type `def-outside-consult-discordance` (Outside Consult Major Discordance), opened when a QA lead confirms the recommendation.
+- **Correction:** the note above that `def-confirmed-high-risk-finding` "is auto-raised … whenever a pathologist confirms a Critical/Malignant finding" is stale twice over: the confirmation's activity type carries no CAPA rule (corrected before Batch 438), and since Batch 438 nothing raises a CAPA type automatically; every trigger recommends.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `fetchGlobalDeficiencies.ts`: a comment pointed to the removed engine-notification poll; updated.
+
+Batch 616 (part D, PS-501): server versions of DeficiencyTypeService, ResolutionTypeService, ManagementReviewService, SpecimenDeficiencyService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/QUALITY_API.md`.
+
+## Batch 651: deficiency actions are audited on success
+
+`qaDeficiencyActions.ts` now writes "Deficiency raised / escalated to CAPA / contained / effectiveness verified / reopened as recurred" after the change is made (Batch 649 already audited the capability check, allowed or refused, through the authorization service). Ids, outcome and due date only; the comment, root cause and corrective or preventive action are never written. A refusal, or a change the store reports as failed, writes nothing. Tests: `qaDeficiencyActions.test.ts`.
+
+**Batch 655:** a store that fails or throws, or an Engine endpoint that errors, returns `failed`; no audit entry is written.
+
+Batch 659: `submitManagementReview` (capability `qa:management-review:submit`); refusals return an outcome the screen shows inside the window.
+
+## Batch 762
+
+`mockResolutionTypeService.ts`: resolution `res-requisition-received` (Requisition Received or Not Required), used when PathScribe closes a Missing Requisition deficiency it raised; seeds added later are added to a stored list.

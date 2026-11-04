@@ -34,6 +34,7 @@
 // is the actual fix for both problems at once.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ReportLanguage } from '../reports/reportLanguage';
 import { ServiceResult, ID } from '../types';
 import type { Jurisdiction } from '../../types/systemConfig';
 
@@ -399,6 +400,13 @@ export interface Facility {
    *  the real caller that assembles CytologyReportContent — this
    *  renderer never resolves Facility policy itself. */
   forceAddendumOnDedicatedPagePrintPolicy?: boolean;
+  /** Batch 391 (PS-340 follow-up, Pete): the language this lab writes its
+   *  reports in. Undefined means the jurisdiction's default
+   *  (services/reports/reportLanguage.ts). Only meaningful when roles includes
+   *  'performing_lab': a report is in the language of the lab that performs it,
+   *  not of the person signing it, and the language is stored on the report at
+   *  sign-out. */
+  reportLanguage?: ReportLanguage;
   /** Real, per direct guidance — Phase 3 of the Organisation/Site ->
    *  Facility migration (originSiteId step). Migrated here from
    *  Site.billingDosRule (organisation/organisationService.ts) for
@@ -440,19 +448,25 @@ export interface Facility {
    * fallback default for contexts with no facility resolved yet.
    */
   jurisdiction: Jurisdiction;
+  /** Batch 608 (#52): the facility's ID with its national screening registry, shown in EU-QA-01. */
+  nationalRegistryId?: string;
 
   /**
-   * Which of the two CAP/NSH-recognized specimen/block labeling patterns
-   * this facility's accessioning uses. See the original doc comment
-   * (preserved from Client) for the full CAP/RCPath reasoning — a single
-   * enum, not two independent alpha/numeric toggles, since that
-   * guideline exists specifically to prevent a block ID ever being
-   * mistakable for a specimen ID at a glance:
+   * The original single labeling choice, now a PRESET (Batch 715): it stands
+   * for a specimen and a block choice and nothing for slides.
    *   'alpha-specimen'   — Specimen A, B, C... / Block A1, A2, A3...
    *   'numeric-specimen' — Specimen 1, 2, 3... / Block 1A, 1B, 1C...
-   * Defaults to 'alpha-specimen'.
+   * Still read, so existing facilities keep their labels; the facility editor
+   * now saves `labelStyle` below and clears this. Prefer `labelStyle`.
    */
-  specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen';
+  specimenLabelStyle?: import('../labeling/labelStyle').SpecimenLabelStyle;
+  /**
+   * Batch 715: letters or numbers for specimens, blocks and slides, each
+   * set separately. On the enterprise facility it is the default; on a
+   * performing lab each part left unset follows the enterprise. Resolved
+   * by labeling/resolveLabelStyle.ts, never read directly.
+   */
+  labelStyle?: import('../labeling/labelStyle').LabelStyleSetting;
 
   /**
    * Real feature, per direct confirmation: "AI configuration should be
@@ -464,6 +478,12 @@ export interface Facility {
    * components/Config/AI/orchestratorModeConfig.ts).
    */
   internalAiOrchestratorEnabled?: boolean | null;
+  /** Batch 427 (Pete: "the setting should be associated to the testing facility"). Only meaningful when
+   *  roles includes 'performing_lab': this lab's LIS takes one PDF per accession. Off (default): one PDF
+   *  per synoptic workup. On: every workup of the case in one combined PDF, resent whole when any
+   *  workup changes; Orchestration results then carry only the full report PDF. Resolved through
+   *  resolvePerformingLabFacility, like the report language. */
+  consolidateOutboundPdfs?: boolean;
   /** Only meaningful when roles includes 'performing_lab'. Deliberately
    *  gated, not freely settable: per direct product decision, this can
    *  only be set to a model this exact facility has a `reported`
@@ -485,20 +505,16 @@ export interface Facility {
    *  land in the pool via either path independently, never both
    *  conflated into one signal. */
   codeReviewSamplingRatePercent?: number | null;
-  /** Real, per direct guidance's own Feature Specification refinement
-   *  (Pathology Billing Rules Engine & Audit Logging, "Opt-in Core"):
-   *  when true, a real charge created for this facility's own
-   *  performing lab starts as DRAFT (ServiceChargeRecord.approvalStatus)
-   *  and genuinely requires a real, different approver before it can
-   *  ever export - the Four-Eyes Principle, enforced at charge
-   *  creation. False/undefined (the real, default state) preserves
-   *  today's existing behavior exactly: a charge is created with no
-   *  approvalStatus at all, treated by getEffectiveChargeStatus
-   *  (mockServiceChargeService.ts) as already-cleared - same "absence
-   *  means off" convention as codeReviewSamplingRatePercent above.
-   *  Resolved via resolvePerformingLabFacilityId(), same real
-   *  resolution as that field too - a lab-wide policy, not a
-   *  per-order or per-pathologist one. */
+  /** Whether this facility's charges wait for billing approval before
+   *  they go to the billing system (the "Opt-in Core" four-eyes step of the
+   *  Billing Rules Engine specification). Batch 433 (Pete: enterprise
+   *  definition with facility overrides): an enterprise sets it on or off;
+   *  a performing lab can leave it unset to follow its enterprise, or set
+   *  true/false to override (chargeApproval.ts resolveBillingApprovalRequired).
+   *  Off unless set somewhere. When on, a charge from sign-out or a billing
+   *  correction starts as PENDING_APPROVAL and needs billing:charge:approve
+   *  from someone other than its drafter (Quality Assurance → Financials →
+   *  Charges awaiting approval). Edited in Configuration → Facilities. */
   requireBillingApproval?: boolean;
   /**
    * Real feature, per direct specification: Post-Sign-Out Release
@@ -590,6 +606,13 @@ export interface Facility {
    *  record can be either one depending on which case it's read for.
    *  Either field independently optional — see
    *  resolvePrintPresentationOptions.ts's own per-field fallback. */
+  /** Batch 734 (Pete, Oct 30, 2026; spec Decision 6): whether labels may go from the browser straight to a printer
+   *  (QZ Tray, the PathScribe Agent, Zebra Browser Print, BarTender) in a server deployment. Off unless an administrator
+   *  turns it on (setDirectDevicePrinting); the interface engine and the browser print dialog are always allowed. */
+  allowDirectDevicePrinting?: boolean;
+  /** Batch 751 (spec section 12.3): a performing lab's organ map delivery to its laboratory system on Assist cases
+   *  (off, text only, or text and an image file to a destination). Only setOrganMapDelivery changes it. */
+  organMapDelivery?: import('../organMapping/organMapDeliveryRules').OrganMapDeliverySettings;
   printPresentationPreference?: Partial<{
     paperSource: import('@/types/printing/PrintJob').PaperSourceTray;
     duplexMode: import('@/types/printing/PrintJob').DuplexMode;
@@ -788,6 +811,20 @@ export interface IFacilityService {
   reactivate(id: ID): Promise<ServiceResult<Facility>>;
   /** Flips an Unverified facility to Active — the admin-approval step. */
   verify(id: ID): Promise<ServiceResult<Facility>>;
+  /**
+   * Batch 517 (PS-337): sets the facility's report-printing settings
+   * (printDeliveryConfig and printPresentationPreference; `undefined` clears
+   * one). Needs config:print-settings:manage, and refuses settings with a
+   * problem (services/printing/facilityReportPrinting.ts). `add` and `update`
+   * never change these two fields, so a facility edit can't overwrite them.
+   */
+  setPrintSettings(id: ID, settings: import('../printing/facilityReportPrinting').FacilityReportPrintSettings): Promise<ServiceResult<Facility>>;
+  /** Batch 734: turns direct browser-to-printer printing on or off for the facility. Needs
+   *  config:direct-device-printing:manage; audited. `add` and `update` never change it. */
+  setDirectDevicePrinting(id: ID, allowed: boolean): Promise<ServiceResult<Facility>>;
+  /** Batch 751: sets the facility's organ map delivery (checked by validateOrganMapDelivery). Needs
+   *  config:organ-map-delivery:manage; audited. `add` and `update` never change it. */
+  setOrganMapDelivery(id: ID, settings: import('../organMapping/organMapDeliveryRules').OrganMapDeliverySettings): Promise<ServiceResult<Facility>>;
   /**
    * Called by order-intake / crosswalk resolution. No exact crosswalk
    * match on the order's facility code → creates an Unverified,

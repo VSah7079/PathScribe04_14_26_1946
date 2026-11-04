@@ -1,3 +1,7 @@
+## Batch 604
+
+`closeTicket` (Simulated: ends the agent's live approvals for a ticket and records `ticketClosed`), `exportAuditPdf` (`supportAuditPdf.ts`, pdf-lib), and `recordSupportActivity` (the support agent's own exports and configuration changes, reported through `supportActivity.ts` by the configuration guard and the export audit, recorded as `supportExport` and `supportConfigChange` in the stream of each organisation they hold live access to).
+
 # services/supportAccess — ForMedrixAI support access (Batch 372)
 
 The hospital, as data controller, decides whether ForMedrixAI support may reach its data, approves each visit, and owns the record of what support did. Built from Pete's specification of Sep 28, 2026.
@@ -18,7 +22,7 @@ The hospital, as data controller, decides whether ForMedrixAI support may reach 
 
 Capabilities (seeded to Admin; hospitals grant them to whichever roles they choose):
 - `config:support-access:policy`: set the policy and window.
-- `config:support-access:approve`: approve, reject, revoke. The approver must be a member of that organisation and not the requester (a Superadmin holds every capability, so the capability alone isn't enough).
+- `config:support-access:approve`: approve, reject, revoke. The approver must be a member of that organisation and not the requester (a Superadmin holds every capability but the AI-prompt approval, so the capability alone isn't enough).
 - `config:support-audit:view`: see and export the support audit.
 
 ## The support audit stream
@@ -54,3 +58,15 @@ Settings (`pathscribe_support_access_settings`) and requests (`pathscribe_suppor
 - Support's exports and configuration changes are checked by capability and recorded in the main audit log. They aren't copied into the hospital's stream yet, because configuration data isn't tenant-scoped in the mock.
 
 See `docs/architecture/AUTHORIZATION_API.md` § Support access for the server contract.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`demoSupportAccessRequests()` (`demoSupportAccessSeed.ts`, wired through the new optional `seedRequests`): one pending request from Amber Fehrs-Battey (ForMedrixAI support; her staff organisation is Midwest, so it counts as support access) to Desert Valley, ticket FMX-20417. Michelle Nimmo or Pete approves it; only Admin has `config:support-access:approve` by default, so the Lab Director can't. No "requested" entry is seeded in the support audit (it survives a reset and is hash-chained, so it is only written through the service).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: once the server runs `supportAccess.expire`, the browser doesn't record expiries (`runServerJobs`). `effectiveSupportStatus` shows an approval past its time as expired, and Revoke and End accept only an approval still in force.
+
+## Batch 652 — Specimen pipeline gaps
+
+- `supportAuditPdf.ts` is repeatable: pdf-lib's clock stamps are replaced by the export time given (fixed epoch if it is not a date), so the same input gives the same bytes. Test: `supportAuditPdf.test.ts`.

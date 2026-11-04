@@ -22,20 +22,21 @@ export type AutopsyGroupKey = 'temporary' | 'fully_authorized';
 
 export type AutopsyDividerRow = {
   __divider: true;
-  label: string;
+  /** i18n key for the divider text (Batch 513, PS-269). */
+  labelKey: string;
   count: number;
   isAutopsyGroup: true;
   groupKey: AutopsyGroupKey;
 };
 
-const GROUP_ORDER: { key: AutopsyGroupKey; label: string }[] = [
+const GROUP_ORDER: { key: AutopsyGroupKey; labelKey: string }[] = [
   // Real, deliberate order: temporary accessions (written
   // authorization still pending) surface first — the real, more
   // urgent, less-progressed state a pathologist needs to notice and
   // act on, ahead of cases already fully authorized and free to
   // proceed.
-  { key: 'temporary', label: 'Temporary Accession \u2014 Authorization Pending' },
-  { key: 'fully_authorized', label: 'Fully Authorized' },
+  { key: 'temporary', labelKey: 'worklistTable.autopsyGroup.temporary' },
+  { key: 'fully_authorized', labelKey: 'worklistTable.autopsyGroup.fullyAuthorized' },
 ];
 
 /**
@@ -57,10 +58,10 @@ export function buildAutopsyGroupRows(cases: Case[]): (Case | AutopsyDividerRow)
   }
 
   const rows: (Case | AutopsyDividerRow)[] = [];
-  for (const { key, label } of GROUP_ORDER) {
+  for (const { key, labelKey } of GROUP_ORDER) {
     const casesInGroup = groups.get(key);
     if (!casesInGroup || casesInGroup.length === 0) continue;
-    rows.push({ __divider: true, label, count: casesInGroup.length, isAutopsyGroup: true, groupKey: key });
+    rows.push({ __divider: true, labelKey, count: casesInGroup.length, isAutopsyGroup: true, groupKey: key });
     rows.push(...casesInGroup);
   }
   return rows;

@@ -14,9 +14,10 @@
 
 import type { ResolvedAnswer } from '@/orchestrator/contextBuilder';
 import type { AiFieldSuggestion } from '@/types/case/Case';
-import type { AbnormalTriggerRule, AbnormalSeverity, SyntheticCodingTerm } from './IAbnormalTriggerRuleService';
+import type { LicensedTerminologySystem } from '@app-types/config/EnterpriseConfig';
+import type { AbnormalTriggerRule, AbnormalSeverity, CodingTerm } from './IAbnormalTriggerRuleService';
 import { ABNORMAL_SEVERITY_RANK } from './IAbnormalTriggerRuleService';
-import { resolveSyntheticCoding } from './resolveSyntheticCoding';
+import { resolveFindingCoding } from './resolveFindingCoding';
 
 export interface AbnormalTriggerMatch {
   specimenId: string;
@@ -29,8 +30,10 @@ export interface AbnormalTriggerMatch {
    *  when an admin has configured one (AbnormalTriggerRule.syntheticCoding),
    *  else the real, severity-keyed default from resolveSyntheticCoding.ts
    *  — never genuinely absent, since PS-130's real, current approach
-   *  always attaches something, even if not yet a real, licensed code. */
-  syntheticCoding: SyntheticCodingTerm[];
+   *  always attaches something, even if not yet a real, licensed code.
+   *  Batch 623: a rule's own real codes replace these while the customer's
+   *  licence for that code system is on and unexpired (resolveFindingCoding.ts). */
+  syntheticCoding: CodingTerm[];
 }
 
 // Real severity ranking so a specimen matching multiple rules can be
@@ -56,7 +59,8 @@ export interface AbnormalTriggerMatch {
 export function evaluateAbnormalTriggerRules(
   specimenId: string,
   resolvedAnswers: ResolvedAnswer[],
-  activeRules: AbnormalTriggerRule[]
+  activeRules: AbnormalTriggerRule[],
+  activeLicences: readonly LicensedTerminologySystem[] = [],
 ): AbnormalTriggerMatch[] {
   const matches: AbnormalTriggerMatch[] = [];
 
@@ -89,7 +93,7 @@ export function evaluateAbnormalTriggerRules(
         source: `${rule.fieldLabel}: ${answer.displayValue}`,
         verification: 'unverified',
       },
-      syntheticCoding: rule.syntheticCoding ?? resolveSyntheticCoding(rule.severity),
+      syntheticCoding: resolveFindingCoding(rule, rule.severity, activeLicences),
     });
   }
 
@@ -113,7 +117,7 @@ export function highestSeverityMatch(matches: AbnormalTriggerMatch[]): AbnormalT
  *  sourceField: 'synoptic' — an honest, distinct label from the three
  *  narrative fields, since this genuinely came from a structured
  *  synoptic answer, not narrative text. */
-export function toCriticalFindingFlag(match: AbnormalTriggerMatch): { term: string; sourceField: 'synoptic'; sourceQuote: string; severity: AbnormalSeverity; confidence: number; syntheticCoding: SyntheticCodingTerm[] } {
+export function toCriticalFindingFlag(match: AbnormalTriggerMatch): { term: string; sourceField: 'synoptic'; sourceQuote: string; severity: AbnormalSeverity; confidence: number; syntheticCoding: CodingTerm[] } {
   return {
     term: match.suggestion.source,
     sourceField: 'synoptic',

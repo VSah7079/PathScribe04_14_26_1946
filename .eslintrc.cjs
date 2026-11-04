@@ -40,17 +40,23 @@ module.exports = {
   plugins: ['@typescript-eslint', 'react-hooks', 'react-refresh'],
   ignorePatterns: ['dist', 'node_modules', '*.config.js', '*.config.ts'],
   rules: {
-    // Real, established project conventions - not tightened beyond what
-    // this large, existing codebase can realistically pass today. The
-    // real, new enforcement this config exists for is the
-    // no-restricted-properties rule below, not a general tightening pass.
+    // ── Rules switched off, and why (Batch 504, PS-470) ──────────────────
+    // • @typescript-eslint/no-explicit-any: about 1,700 explicit `any` exist
+    //   in app code; switching the rule on would mean ~1,700 suppressions.
+    //   New ones are stopped instead by a ratchet that only lets each file's
+    //   count go down: src/services/typeSafety/explicitAny.guard.test.ts
+    //   (baseline explicitAnyBaseline.json). PS-478 works the count down.
+    // • react-refresh/only-export-components: many component files also
+    //   export small helpers and types; the rule only affects hot reload in
+    //   development, not the built app.
+    // `npm run lint` passes with --max-warnings 0 since Batch 504; keep it so.
     '@typescript-eslint/no-explicit-any': 'off',
     '@typescript-eslint/no-unused-vars': ['warn', {
       argsIgnorePattern: '^_',
       varsIgnorePattern: '^_',
       destructuredArrayIgnorePattern: '^_',
     }],
-    'react-refresh/only-export-components': 'off',
+    'react-refresh/only-export-components': 'off', // see above
     'no-empty': ['warn', { allowEmptyCatch: true }],
     // Real, standard ESLint option for a real, common, correct pattern:
     // while (true) { ...; if (done) break; } reading a ReadableStream

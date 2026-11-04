@@ -8,7 +8,7 @@
 // deployment actually wires up.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { userService } from '../index';
+import { userService, roleService } from '../index';
 import type { StaffUser } from '../users/IUserService';
 
 export interface QuickAuthResult {
@@ -22,6 +22,15 @@ export interface QuickAuthResult {
  *  (if one somehow matched) is deliberately refused here — this
  *  quick-auth path exists for the ambient OR terminal's own real
  *  audience, never a back door into the lab's own, separate login. */
+const OR_STAFF_ROLE_ID = 'or-staff';
+
+/** PS-262: the Staff screen stores role NAMES ('Or Staff'), older records and the
+ *  tests store the role ID ('or-staff'). The role is identified by its ID and
+ *  matched on either spelling, so an OR PIN set up on the Staff screen works. */
+export function staffHasRole(staffRoles: string[], roleId: string, roleName: string | undefined): boolean {
+  return staffRoles.includes(roleId) || (!!roleName && staffRoles.includes(roleName));
+}
+
 export async function resolveStaffByQuickAuthPin(pin: string): Promise<QuickAuthResult> {
   const trimmed = pin.trim();
   if (!trimmed) return { outcome: 'not-found' };
@@ -31,7 +40,9 @@ export async function resolveStaffByQuickAuthPin(pin: string): Promise<QuickAuth
 
   const match = res.data.find(s => s.quickAuthPin === trimmed);
   if (!match) return { outcome: 'not-found' };
-  if (!match.roles.includes('or-staff')) return { outcome: 'invalid-role' };
+  const roleRes = await roleService.getById(OR_STAFF_ROLE_ID);
+  const orStaffName = roleRes.ok ? roleRes.data.name : 'Or Staff';
+  if (!staffHasRole(match.roles, OR_STAFF_ROLE_ID, orStaffName)) return { outcome: 'invalid-role' };
 
   return { outcome: 'authenticated', staff: match };
 }

@@ -15,11 +15,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { actionGroupService } from '../../../services';
-import { mockActionRegistryService } from '../../../services/actionRegistry/mockActionRegistryService';
+import { actionGroupService, actionRegistryService } from '@/services';
+
 import type { ActionGroup } from '../../../services/actionGroups/IActionGroupService';
 import { duplicateActionGroup } from '@/services/duplication/duplicateEntities';
 import type { SystemAction } from '../../../services/actionRegistry/IActionRegistryService';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type Draft = Omit<ActionGroup, 'id' | 'createdAt' | 'createdBy' | 'status'> & { active: boolean };
 const emptyDraft: Draft = { name: '', actionIds: [], active: true };
@@ -59,14 +61,14 @@ const ActionGroupModal: React.FC<ActionGroupModalProps> = ({ mode, actionGroup, 
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('actionGroupsSection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('actionGroupsSection.modal.nameLabel')} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
               value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('actionGroupsSection.modal.namePlaceholder')} />
             {errors.name && <span className="ps-conf-error-text">{errors.name}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('actionGroupsSection.modal.actionsLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input ps-mb-8" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('actionGroupsSection.modal.actionsSearchPlaceholder')} />
+            <input aria-label={t('actionGroupsSection.modal.actionsLabel')} data-dirty-ignore data-config-nav className="ps-conf-input ps-mb-8" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('actionGroupsSection.modal.actionsSearchPlaceholder')} />
             <div className="ps-batch-reagent-lot-list ps-actiongroups__action-list">
               {filteredActions.map(a => {
                 const checked = draft.actionIds.includes(a.id);
@@ -86,7 +88,7 @@ const ActionGroupModal: React.FC<ActionGroupModalProps> = ({ mode, actionGroup, 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('common.active')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('common.active'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -112,7 +114,7 @@ const ActionGroupsSection: React.FC = () => {
 
   useEffect(() => {
     actionGroupService.getAll().then(res => { if (res.ok) setGroups(res.data); setLoading(false); });
-    setAllActions(mockActionRegistryService.getActions());
+    setAllActions(actionRegistryService.getActions());
   }, []);
 
   const filtered = groups.filter(g => !search || g.name.toLowerCase().includes(search.toLowerCase()));
@@ -137,7 +139,7 @@ const ActionGroupsSection: React.FC = () => {
     if (res.ok) setGroups(prev => prev.map(x => x.id === g.id ? res.data : x));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('actionGroupsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('actionGroupsSection.loading')} />;
 
   const tableHeaders = [
     t('actionGroupsSection.table.name'),
@@ -159,7 +161,7 @@ const ActionGroupsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('actionGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('actionGroupsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
       </div>
 
       <div className="ps-conf-table-wrap">

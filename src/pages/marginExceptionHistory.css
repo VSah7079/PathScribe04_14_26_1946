@@ -1,0 +1,4 @@
+/* Batch 669: Margin Exception Review, the read-only Resolved and dismissed list (kept out of pathscribe.css, which may not grow). */
+.ps-mex-history-title { font-size: 16px; margin: 24px 0 8px; }
+.ps-mex-history-row { opacity: 0.85; }
+.ps-mex-outcome { font-size: 13px; }

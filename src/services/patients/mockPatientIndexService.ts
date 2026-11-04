@@ -8,7 +8,10 @@ import type {
   PatientLinkRelationshipType,
   PatientIdentifier,
 } from './IPatientIndexService';
+import { normalizeNationalIdentifier } from '../patientIdentifiers/checkDigits';
 import { caseRouter } from '../cases/CaseRouter';
+import type { NationalPatientIdentifier } from '@/types/patient/NationalPatientIdentifier';
+import type { PatientRegistryConsent } from '@/types/patient/PatientRegistryConsent';
 import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { getSessionUser } from '../auth/caseAccessControl';
@@ -16,6 +19,9 @@ import { mockPatientEventBus } from '../events/mockPatientEventBus';
 import { mockEncounterService } from '../encounters/mockEncounterService';
 import { mockOutboundPatientAdtQueueService } from './mockOutboundPatientAdtQueueService';
 import { BREAK_GLASS_MIN_NOTE_LENGTH } from '../../types/patients/BreakGlassReasonCode';
+import { dataStorage } from '../browserData/dataStorage';
+import { demoCytologyPatientRecord } from './demoCytologyPatients';
+import { demoSurgicalPatientRecord } from './demoSurgicalPatients';
 
 const STORAGE_KEY = 'pathscribe_mpi_records';
 const LINKS_STORAGE_KEY = 'pathscribe_mpi_links';
@@ -24,35 +30,35 @@ const delay = (ms = 60) => new Promise(res => setTimeout(res, ms));
 
 function loadRecords(): MasterPatientRecord[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = dataStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveRecords(records: MasterPatientRecord[]): void {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch { /* non-critical */ }
 }
 
 function loadLinks(): PatientLink[] {
   try {
-    const raw = localStorage.getItem(LINKS_STORAGE_KEY);
+    const raw = dataStorage.getItem(LINKS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveLinks(links: PatientLink[]): void {
-  try { localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(links)); } catch { /* non-critical */ }
 }
 
 function loadIdentifiers(): PatientIdentifier[] {
   try {
-    const raw = localStorage.getItem(IDENTIFIERS_STORAGE_KEY);
+    const raw = dataStorage.getItem(IDENTIFIERS_STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
 function saveIdentifiers(identifiers: PatientIdentifier[]): void {
-  try { localStorage.setItem(IDENTIFIERS_STORAGE_KEY, JSON.stringify(identifiers)); } catch { /* non-critical */ }
+  try { dataStorage.setItem(IDENTIFIERS_STORAGE_KEY, JSON.stringify(identifiers)); } catch { /* non-critical */ }
 }
 
 function normaliseName(s: string): string {
@@ -272,7 +278,15 @@ export const mockPatientIndexService: IPatientIndexService = {
 
   async getById(patientId: string): Promise<MasterPatientRecord | null> {
     await delay();
-    return loadRecords().find(r => r.id === patientId) ?? null;
+    const records = loadRecords();
+    const found = records.find(r => r.id === patientId);
+    if (found) return found;
+    // Batch 634 (cytology) and 638 (surgical): a demo patient is added to the index the first time it is asked for.
+    const nowIso = new Date().toISOString();
+    const demo = demoCytologyPatientRecord(patientId, nowIso) ?? demoSurgicalPatientRecord(patientId, nowIso);
+    if (!demo) return null;
+    saveRecords([...records, demo]);
+    return demo;
   },
 
   async listPendingReview(organisationId: string): Promise<MasterPatientRecord[]> {
@@ -446,6 +460,13 @@ export const mockPatientIndexService: IPatientIndexService = {
     performedBy: string;
   }): Promise<{ rebound: boolean; reason?: string; casesRepointed?: number; caseIds?: string[] }> {
     await delay();
+
+    // Batch 603 (Pete, dev review): its own permission (patient:break-glass:rebind), checked here and audited as a high-risk
+    // capability, not left to a role string on the screen.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('patient:break-glass:rebind')).allowed) {
+      return { rebound: false, reason: 'You do not have permission to rebind a downtime patient identity.' };
+    }
 
     // Real, load-bearing validation, per direct confirmation: a
     // mandatory reason code alone, without a real free-text
@@ -732,6 +753,61 @@ export const mockPatientIndexService: IPatientIndexService = {
   async addIdentifier(patientId: string, assigningAuthority: string, identifierValue: string, source: 'resolution' | 'manual' = 'manual'): Promise<PatientIdentifier> {
     await delay();
     return recordIdentifierInternal(patientId, assigningAuthority, identifierValue, source);
+  },
+
+  // Batch 417: national identifiers live in the same crosswalk store, one row
+  // per (patient, system). The assigning authority is the system id, so the
+  // existing resolveByIdentifier(system, value) finds a patient by NHS number.
+  async recordNationalIdentifier(patientId: string, identifier: NationalPatientIdentifier): Promise<PatientIdentifier> {
+    await delay();
+    const identifiers = loadIdentifiers();
+    const rest = identifiers.filter(i => !(i.patientId === patientId && i.system === identifier.system));
+    const record: PatientIdentifier = {
+      id: `PID-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      patientId,
+      assigningAuthority: identifier.system,
+      identifierValue: identifier.value,
+      source: identifier.source === 'manual' ? 'manual' : 'resolution',
+      recordedAt: new Date().toISOString(),
+      system: identifier.system,
+      verificationStatus: identifier.verificationStatus,
+      verifiedAt: identifier.verifiedAt,
+      ...(identifier.statusCode ? { statusCode: identifier.statusCode } : {}),
+    };
+    saveIdentifiers([...rest, record]);
+    return record;
+  },
+
+  // Batch 605: the NHS Number Status Indicator stored from an inbound ADT, for the status dot.
+  async getNationalIdentifierStatusCode(system: string, value: string): Promise<string | null> {
+    await delay();
+    const wanted = normalizeNationalIdentifier(value);
+    const hit = loadIdentifiers().find(i => i.system === system && normalizeNationalIdentifier(i.identifierValue) === wanted && i.statusCode);
+    return hit?.statusCode ?? null;
+  },
+
+  // Batch 425: a national identifier removed after accessioning comes off the MPI too.
+  async removeNationalIdentifier(patientId: string, system: string): Promise<void> {
+    await delay();
+    saveIdentifiers(loadIdentifiers().filter(i => !(i.patientId === patientId && i.system === system)));
+  },
+
+  // Batch 418: the registry opt-outs live on the master record.
+  async setRegistryConsent(patientId: string, consent: PatientRegistryConsent | undefined): Promise<void> {
+    await delay();
+    const records = loadRecords();
+    const idx = records.findIndex(r => r.id === patientId);
+    if (idx === -1) return;
+    const { registryConsent: _old, ...rest } = records[idx];
+    records[idx] = { ...rest, ...(consent ? { registryConsent: consent } : {}), updatedAt: new Date().toISOString() };
+    saveRecords(records);
+  },
+
+  async listNationalIdentifiers(patientId: string): Promise<NationalPatientIdentifier[]> {
+    await delay();
+    return loadIdentifiers()
+      .filter(i => i.patientId === patientId && i.system)
+      .map(i => ({ system: i.system!, value: i.identifierValue, verificationStatus: i.verificationStatus ?? 'unchecked', verifiedAt: i.verifiedAt, source: i.source === 'manual' ? 'manual' as const : 'hl7' as const }));
   },
 
   async updateDemographics(

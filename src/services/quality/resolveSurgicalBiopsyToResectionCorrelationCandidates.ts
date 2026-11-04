@@ -43,12 +43,21 @@
 // decided, same real boundary as Cyto-Histo Correlation's own design.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { isInCorrelationWindow, resolveCorrelationWindow, type EffectiveCorrelationRule } from '../cytology/cytologyHistologyCorrelationWindow';
+
+/** Batch 453: 180 days from the earlier specimen's collection. */
+export const DEFAULT_BIOPSY_RESECTION_RULE: EffectiveCorrelationRule = { windowDays: 180, anchor: 'collection', source: 'enterprise' };
+
 export type SurgicalSiteMatchStatus = 'matched' | 'mismatched' | 'unknown';
 
 export interface SurgicalBiopsySpecimenInfo {
   caseId: string;
   specimenId: string;
-  receivedAt: string;
+  receivedAt?: string;
+  /** Batch 453: the window starts at collection by default. */
+  collectedAt?: string;
+  /** Batch 453: the case's sign-out, for a rule anchored on sign-out. */
+  signedOutAt?: string;
   bodySite?: string;
   laterality?: string;
 }
@@ -69,7 +78,9 @@ function normalizeSiteText(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function resolveSiteMatchStatus(a: SurgicalBiopsySpecimenInfo, b: SurgicalBiopsySpecimenInfo): SurgicalSiteMatchStatus {
+/** Batch 454: exported for follow-up tracking (services/followUp), which
+ *  applies the same site rule to decide whether a follow-up arrived. */
+export function resolveSiteMatchStatus(a: Pick<SurgicalBiopsySpecimenInfo, 'bodySite' | 'laterality'>, b: Pick<SurgicalBiopsySpecimenInfo, 'bodySite' | 'laterality'>): SurgicalSiteMatchStatus {
   const siteA = normalizeSiteText(a.bodySite);
   const siteB = normalizeSiteText(b.bodySite);
   if (!siteA || !siteB) return 'unknown';
@@ -94,25 +105,28 @@ function resolveSiteMatchStatus(a: SurgicalBiopsySpecimenInfo, b: SurgicalBiopsy
  */
 export function resolveSurgicalBiopsyToResectionCorrelationCandidates(
   patientSpecimens: SurgicalBiopsySpecimenInfo[],
-  windowDays = 180,
+  /** Batch 453: the configured rule (biopsyResectionCorrelationSettings.ts).
+   *  A bare number keeps the old meaning: that many days from receipt. */
+  rule: EffectiveCorrelationRule | number = DEFAULT_BIOPSY_RESECTION_RULE,
 ): SurgicalBiopsyToResectionCorrelationCandidate[] {
+  const effective: EffectiveCorrelationRule = typeof rule === 'number' ? { windowDays: rule, anchor: 'receipt', source: 'enterprise' } : rule;
+  const when = (s: SurgicalBiopsySpecimenInfo) => {
+    const t = Date.parse((effective.anchor === 'receipt' ? s.receivedAt ?? s.collectedAt : s.collectedAt ?? s.receivedAt) ?? '');
+    return Number.isNaN(t) ? Infinity : t;
+  };
   const candidates: SurgicalBiopsyToResectionCorrelationCandidate[] = [];
-  const sorted = [...patientSpecimens].sort(
-    (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime(),
-  );
+  const sorted = patientSpecimens.filter(s => when(s) !== Infinity).sort((a, b) => when(a) - when(b));
 
   for (let i = 0; i < sorted.length; i++) {
     const earlier = sorted[i];
-    const earlierDate = new Date(earlier.receivedAt);
-    const windowEnd = new Date(earlierDate);
-    windowEnd.setDate(windowEnd.getDate() + windowDays);
+    const window = resolveCorrelationWindow(earlier, earlier.signedOutAt ?? earlier.receivedAt ?? earlier.collectedAt ?? '', effective);
+    if (!window) continue;
 
     for (let j = i + 1; j < sorted.length; j++) {
       const later = sorted[j];
       if (later.caseId === earlier.caseId) continue; // a real correlation is across two different cases/encounters
-
-      const laterDate = new Date(later.receivedAt);
-      if (laterDate > windowEnd) break; // sorted ascending — every subsequent specimen is even further out
+      // In the window when the later specimen was collected or received inside it.
+      if (!isInCorrelationWindow(window, [later.collectedAt, later.receivedAt])) continue;
 
       const siteMatchStatus = resolveSiteMatchStatus(earlier, later);
       if (siteMatchStatus === 'mismatched') continue;

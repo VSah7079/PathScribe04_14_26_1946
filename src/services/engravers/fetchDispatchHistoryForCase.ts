@@ -27,6 +27,8 @@
 
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase';
+import { isFirebaseConfigured } from '@/firebase/isFirebaseConfigured';
+import { simulatedDispatchHistory } from './simulatedEngraverData';
 import type { CassetteDispatchOutcomeEventPayload } from '@/types/events/CassetteDispatchOutcomeEventPayload';
 import type { BlockExceptionEventPayload } from '@/types/events/BlockExceptionEventPayload';
 
@@ -45,6 +47,7 @@ export type DispatchHistoryEntry =
  * resection, trivial storage overhead).
  */
 export async function fetchDispatchHistoryForCase(caseId: string): Promise<DispatchHistoryEntry[]> {
+  if (!isFirebaseConfigured()) return simulatedDispatchHistory(caseId);
   const q = query(
     collection(db, NOTIFICATIONS_COLLECTION),
     where('caseId', '==', caseId),

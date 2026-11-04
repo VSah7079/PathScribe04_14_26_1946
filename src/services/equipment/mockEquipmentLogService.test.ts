@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
 // Batch 360: the demo equipment log.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockEquipmentLogService } from './mockEquipmentLogService';
 import { mockEquipmentService } from './mockEquipmentService';
 import { mockAuditService } from '../auditlog/mockAuditService';

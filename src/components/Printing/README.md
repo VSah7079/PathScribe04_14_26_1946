@@ -24,3 +24,15 @@ On-screen feedback for printing that isn't tied to one screen. Both parts sit in
 
 ---
 *See [components/README.md](../README.md) for the other component folders.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `SiteAgentStatusLine.tsx` (new): in the Print Queue, "Site agents — online, need attention, offline" with a link to Site agents; with the API server and at least one agent not revoked; refreshed every minute.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- `PrintDestinationFields.tsx` (Batch 553, new): where a report prints, a site agent printer (from the site's list; the only one is picked) or a printer address. Used by the routing rule window and the Print Queue's Redirect.

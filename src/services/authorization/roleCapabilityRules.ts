@@ -11,7 +11,22 @@
 
 import type { NewAuditLog } from '../auditlog/IAuditService';
 import { unknownCapabilities, unmetRequirements } from './capabilityDependencies';
-import { isPlatformOnly } from './capabilityCatalog';
+import { isPlatformOnly, separationOfDutiesConflicts } from './capabilityCatalog';
+
+/** The start of roleCapabilityProblem's message for a separation-of-duty refusal (the API server's refusal code). */
+export const SEPARATION_OF_DUTIES_PROBLEM = 'SEPARATION_OF_DUTIES';
+
+/**
+ * The separation-of-duty pairs a person would hold through these roles
+ * (Batch 536): roles are matched by id or name, as on the staff record. Pure.
+ */
+export function personSeparationOfDutiesConflicts(
+  staffRoles: readonly string[],
+  roles: readonly { id: string; name: string; capabilities?: readonly string[] }[],
+): ReturnType<typeof separationOfDutiesConflicts> {
+  const held = roles.filter(r => staffRoles.includes(r.id) || staffRoles.includes(r.name)).flatMap(r => r.capabilities ?? []);
+  return separationOfDutiesConflicts(held);
+}
 
 /** Why this capability list can't be saved, or null when it can. */
 export function roleCapabilityProblem(capabilities: readonly string[], role: { assignable?: boolean } = {}): string | null {
@@ -22,6 +37,10 @@ export function roleCapabilityProblem(capabilities: readonly string[], role: { a
   if (platform.length) return `Platform-only capability on a hospital role: ${platform.join(', ')}`;
   const unmet = unmetRequirements(capabilities);
   if (unmet.length) return unmet.map(u => `${u.capability} requires ${u.missing.join(', ')}`).join('; ');
+  // Batch 536 (PS-554, Pete): no role holds both duties of a separation-of-duty
+  // pair, Superadmin included.
+  const sod = separationOfDutiesConflicts(capabilities);
+  if (sod.length) return `${SEPARATION_OF_DUTIES_PROBLEM}: ${sod.map(([a, b]) => `${a} and ${b}`).join('; ')}`;
   return null;
 }
 

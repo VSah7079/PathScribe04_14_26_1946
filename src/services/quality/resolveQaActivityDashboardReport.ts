@@ -30,6 +30,7 @@
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
 import type { Subspecialty } from '@/services/subspecialties/ISubspecialtyService';
+import { facilityMonthlyTrend } from './facilityMonthlyTrend';
 
 export interface QaDashboardGroupRow {
   id: string;
@@ -112,6 +113,9 @@ export function resolveQaActivityDashboardReport(
   records: QaActivityRecord[],
   activityTypes: QaActivityType[],
   subspecialties: Subspecialty[],
+  /** Batch 504: the facility time zone the monthly trend is bucketed in. */
+  timezone = 'UTC',
+  now: Date = new Date(),
 ): QaActivityDashboardReport {
   const activityTypeName = (id: string) => activityTypes.find(t => t.id === id)?.name ?? id;
   const subspecialtyName = (id: string) => subspecialties.find(s => s.id === id)?.name ?? id;
@@ -120,19 +124,10 @@ export function resolveQaActivityDashboardReport(
   const discordantCount = records.filter(r => r.outcome === 'discordant').length;
   const concordantCount = records.length - discordantCount;
 
-  const months: QaDashboardMonthlyTrendPoint[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date();
-    d.setMonth(d.getMonth() - i);
-    const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-    const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-    const inMonth = records.filter(r => {
-      const t = new Date(r.recordedAt).getTime();
-      return t >= monthStart && t < monthEnd;
-    });
-    months.push({ month: monthKey, total: inMonth.length, discordant: inMonth.filter(r => r.outcome === 'discordant').length });
-  }
+  // Batch 504: by the facility's calendar month, not the viewing device's (facilityMonthlyTrend.ts).
+  const months: QaDashboardMonthlyTrendPoint[] = facilityMonthlyTrend(records, r => r.recordedAt, inMonth => ({
+    total: inMonth.length, discordant: inMonth.filter(r => r.outcome === 'discordant').length,
+  }), timezone, now);
 
   return {
     totalRecords: records.length,

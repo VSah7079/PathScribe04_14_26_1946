@@ -2,7 +2,7 @@
 
 QA/compliance aggregate reporting tabs, hosted inside `pages/QualityAssurancePage.tsx`
 (renamed from `DeficienciesPage.tsx` — see that page's own README entry)
-alongside its own deficiency-tracking tabs. Eight real, distinct reports —
+alongside its own deficiency-tracking tabs. Eight real, distinct reports at first (more since: the folder now holds about 20 tab, review and helper components) —
 each measures a genuinely different thing, deliberately not merged into
 one generic "QA dashboard" (see each file's own header for why it's
 separate from its siblings). **This folder never had a README before
@@ -66,7 +66,12 @@ context, and renders real charts/tables client-side.
   all** — it isn't a "configure once" settings screen; it's a recurring
   compliance work queue, the same shape as every other tab in this
   folder, not the shape of TAT Configuration or Session Security.
-- **`RetentionHoldsTab.tsx`** — real feature, per direct follow-up: "I
+- ~~**`RetentionHoldsTab.tsx`**~~ — *not present: no such file or tab
+  exists anywhere in the repo (checked in the Batch 496 README audit).
+  Retention holds are shown and released per case (`RetentionHoldModal`,
+  `CaseHoldModal` on the report page) and enforced by the disposal
+  queue; see `services/retentionPolicy/README.md`.* The text below
+  describes the tab as once planned: "I
   think we will need Management review of Cases On Hold." Before this,
   a real hold only became visible by opening that one specific case's
   own Synoptic Report page — no aggregate view existed for a lab
@@ -163,6 +168,15 @@ context, and renders real charts/tables client-side.
      to "which clients are relevant to this viewer," since `Client`
      carries no organisation field to filter on directly) and a
      cross-tenant-permitted viewer still sees the full, untruncated list.
+- **Also here** (see the batch entries below): `CapaRecommendationsTab.tsx`,
+  `CytologyQaTab.tsx` (+ `CytologyHistologyCorrelationPrintView.tsx`),
+  `EnterpriseRollupTab.tsx`, `FollowUpTab.tsx`, `InspectionModeTab.tsx`,
+  `QaDashboardTab.tsx` (cross-specialty QA dashboard, PS-108),
+  `QaReviewCaptureForm.tsx` (the generic QA review form, PS-118),
+  `QaTrendReviewsTab.tsx`, `SurgicalQaCaseBar.tsx`,
+  `SurgicalQaReviewModal.tsx`, `QaReviewMessage.tsx`.
+
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): `RetentionHoldsTab.tsx` does not exist; the newer files are listed.*
 - **`qaReportUtils.ts`** — Shared `QaScope` type, `caseMatchesScope()`,
   and `exportQaReportRows()` (the real CSV export every tab uses, via
   `utils/csv.ts` — PS-48 moved this off the `xlsx` package).
@@ -195,8 +209,9 @@ context, and renders real charts/tables client-side.
   `caseAccessControl.ts` itself documents.** It models the correct SHAPE
   of the access decision; it is not itself a security boundary against a
   modified client. Real server-side query enforcement is tracked as its
-  own backend requirement — see `backend-requirements-concurrency-security.md`
-  §11 — not yet built.
+  own backend requirement — the API server applies it on every query
+  (`docs/architecture/CASE_PRIVACY_MODEL.md`, PS-345; the backend-requirements
+  document once cited here was never written, PS-40).
 - **Two ID systems, genuinely different, both real:** `order.clientId`
   (the referring provider who sent a case to the lab) and
   `Case.originHospitalId` → `Organisation.id` (the lab organisation
@@ -258,6 +273,153 @@ Case numbers and MRNs in these tables and pickers are tagged: `AccessRequestResp
 
 The same context goes on each export `CapabilityButton`. Someone limited to some facilities sees enterprise-wide exports greyed out, with "your facility assignment doesn't cover it", and can export a client scope within their facilities. `CytologyQaTab`'s histology table receives the context as a prop.
 
+## Batch 396
+
+- `SurgicalQaCaseBar.tsx`: on a case's report page, the surgical post-sign-out QA items waiting on it, with Record Review and Not Relevant. Returns to the queue when the last one is done.
+- `SurgicalQaReviewModal.tsx`: the review form in a modal, shared with the queue.
+- `QaReviewMessage.tsx`: why a review action didn't go through.
+
+## Batch 425
+
+The cytology QA tab's registry transmission audit adds three columns: Sent, Registry status and Response code. It also gets a **Download** button (`qa:registry-transmission-audit:export`), with no MRN in the file.
+
+## Batch 432
+
+Access Request Response: pending requests have a Deny button (reason required; the requester gets a message). Denying needs the permission that gives that access: pool `config:staff:edit`; pediatric and Orchestration `config:staff-access:assign`.
+
+## Batch 436 (PS-40)
+
+The citation of `backend-requirements-concurrency-security.md` (never written) now points at `docs/architecture/CASE_PRIVACY_MODEL.md`. The same correction is in `services/auth/` and `services/organisation/` READMEs.
+
+## Batch 437
+
+Printing the cytology–histology correlation view is audited (PS-282).
+
+## Batch 438
+
+- `CapaRecommendationsTab.tsx`: the QA lead's queue. Confirm needs an owner (and takes an optional note); Dismiss needs a reason. Both are `CapabilityButton`s on `qa:capa-recommendation:decide`. "Open the CAPA" goes to it in Operations.
+- `DriftCorrectionTab.tsx`: audit times read as UTC (they were stored without a zone and shown shifted by the viewer's offset); the CSV column says `Timestamp (UTC)`.
+
+## Batch 442 (PS-147)
+
+`QaTrendReviewsTab.tsx` is Quality Assurance → CAPA → **Discordance Patterns**, the Lab Director's list:
+- Opening it runs the evaluation.
+- Each pattern can have a review started, then be concluded with a CAPA (a note is required) or dismissed (a reason is required).
+- "Show every pathologist and specimen type" lists each group's numbers against its policy.
+- The tile shows only to holders of `qa:pathologist-trend:view`; the service checks too.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-216, PS-217)
+
+`CytologyQaTab.test.tsx`: the Post-Sign-Out Peer Review and Secondary Screening Audit tiles fetch and show their reports for the chosen scope.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`CytologyQaTab.test.tsx` extended: every report tile, the new tables' figures, the aggregate card and the registry selector (PS-204). `InspectionModeTab`: the binder's CSV rows moved to `services/quality/resolveQaEvidenceBinder.ts` (`qaEvidenceBinderCsvRows`); one-click export (refused without `qa:inspection-evidence:export`) and drill-down tested (PS-121). Jurisdiction badges now use `t('jurisdictionNames.*')`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+New `FollowUpTab.tsx`: Operations → Follow-up not received. It covers the filters, the summary tiles, the outcome dialog, the clinician email dialog (reviewed and edited before Send) and the CSV download. Accessions and the email fields are tagged `data-phi`. Test: `FollowUpTab.test.tsx`.
+
+## Batch 459
+
+`CytologyQaTab.tsx`: new "Primary vs Final Diagnosis" tile (🎯, report key `final-dx`). It loads `getPrimaryVsFinalDiagnosisReport` for the selected scope and shows it as an agreement report card (PS-152). `CytologyQaTab.test.tsx` covers the tile.
+
+## Batch 483 — fix: the CYT-QA-03 vs CYT-QA-04 report asymmetry (PS-359 tracker follow-up)
+
+CYT-QA-03 (5-Year Retrospective Lookback) had its trigger/outcome data for a while but, unlike CYT-QA-04 (Cyto-Histologic Correlation) right next to it, never got an aggregate report. New "5-Year Retrospective Lookback" tile (📆, report key `five-year-lookback`): loads `getFiveYearRetrospectiveLookbackReport` for the selected scope, shows a summary card (total flagged, pending, completion %, corrective-action rate) plus a row-per-specimen table. View-only, no export — the majority convention for this tab's tiles (only Histology Correlation and Registry Transmission Audit have export buttons). `CytologyQaTab.test.tsx`'s generic per-tile test covers it.
+
+## Batch 504
+
+The trend charts in `ReconciliationTab`, `CountersignTurnaroundTab`, `IntraopLinkageTab`, `AccessRequestResponseTab` and `QaDashboardTab` bucket by the facility's calendar month (`services/quality/facilityMonthlyTrend.ts`), not the viewing device's.
+
+## Batch 610 (#78)
+
+`AiDiscordanceTab.tsx`: AI versus pathologist discordance, stalled AI results and concordance by algorithm, with export under `qa:ai-discordance:export`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+## Batch 511 (PS-478): full strict type-checking
+
+Chart tooltips use recharts' own types. `AccessRequestResponseTab` makes a row clickable only when it names a case, through a small `openCaseHandler` helper. No visible change.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `CytologyQaTab`: "pp" (percentage points) is translated. Bethesda and HPV category abbreviations, registry names and the report code stay as international terms.
+
+## Batch 514 (PS-269)
+
+`CytologyQaTab.tsx`: percentages and decimals use the user's number format (`utils/formatPercent.ts`). The HPV positivity "variance vs. mean" column spells the unit per language: "+2.3 pp", "+1,5 point de pourcentage", "+2,3 Prozentpunkte", "+2,3 procentpunten", "+2.3퍼센트포인트".
+
+## Batch 515 (PS-124)
+
+`FppeTrackingTab.tsx` reads `qaSupervisionAssignmentService` (FPPE activity) instead of the retired `fppeAssignmentService` (named in the notes above); progress, overdue and CSV rows come from `services/quality/fppeAssignmentForm.ts`. Dates use the user's format.
+
+## Batch 518: Activities board (PS-120)
+
+`QaActivityBoardTab.tsx` (+ test) is the Quality Assurance → Activities pillar.
+- **Tiles:** one per QA activity (every active Standard and Custom activity type, then Countersign). Each shows pending, completed in the last 30 days, within-TAT percentage and discrepancy rate, or "—" where the activity can't measure it.
+- **Table:** for the chosen activity, with columns from its own review fields.
+- **Data:** the figures come from `services/quality/qaActivityBoard.ts`.
+
+The specialised tabs under Operations (Discordance, Countersign turnaround, Credentialing review) are unchanged for now; whether to remove them is a decision for Pete, recorded on PS-526.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 544: one facility or all (PS-539)
+
+`QaScopeSwitcher` is added to these reports, through `hooks/useQaCaseScope.ts`:
+- `FollowUpTab`;
+- `FppeTrackingTab` (with `facilitiesOnly`: assignments have a facility but no case);
+- `InspectionModeTab`;
+- `QaDashboardTab`.
+
+Their list, counts and export follow the scope; the export is checked for the one facility (`qaScopeContext`) and named for it. `QaScopeSwitcher` always offers the facility in force (`qaScopeFacilityOptions`). `qaReportUtils.scopeLabel` is now re-exported from `services/qualityAssurance/qaScopeRows.ts`. Still "all": `EnterpriseRollupTab` (it compares facilities), `PatientMatchReviewSection` (chosen by organisation).
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- Every QA export passes its tab's filters (`{ scope, ... }`) to `exportQaReportRows`, which goes through the export service (`services/qualityAssurance/runQaExport.ts`): built by the API server when there is one, in the browser in the demo.
+
+## Batch 565 (WCAG 2.1 AA)
+
+- Contrast of colours set in code raised from the old greys; filter tiles say which is selected (`aria-pressed`) where this folder has them.
+
+## Batch 572
+
+- `CytologyQaTab.tsx`: the workload report (CYT-QA-05) by the lab's day, with a "Recorded hours" column, whether the hours are signed off (or the sign-off is out of date), and a flag for corrections to check.
+
+## Batch 574
+
+- `CytologyQaTab.tsx`: the workload report shows a correction's reason and note (the note tagged `data-phi`), dates in the user's format.
+
+## Batch 608
+
+- `ProficiencyPanelCard.tsx`: the PT panel builder and the Simulated graded result, on the APAC proficiency report.
+- `CytologyQaTab.tsx`: Assay (MOL-QA-01), colposcopy referrals and non-response (UK-QA-01), registry IDs, ThinPrep, SurePath and interval adherence (EU-QA-01).
+
+Batch 613: `AccessRequestResponseTab.tsx` handles requests of type `patient_cases` (Approve / Decline through `services/patientCaseAccess`) and lists the active grants the signed-in person may revoke.
+
+Batch 614: the cytology-histology correlation printout no longer carries the patient MRN (accession numbers only), the same rule as the download; the on-screen table keeps it, tagged `data-phi`.
+
+## Batch 625 (PS-118)
+
+`QaDiscordantSection.tsx` (new): the delta, severity (with hint), root cause, "other" explanation and comment fields shared by `QaReviewCaptureForm.tsx` and the sign-out `DiscordanceReconciliationModal.tsx`; it decides nothing (required marks and messages come from the caller). `QaReviewCaptureForm` now shows validation messages in the user's language (the validator returns codes). Tests: `QaDiscordantSection.test.tsx`, `QaReviewCaptureForm.test.tsx` (the form had none).

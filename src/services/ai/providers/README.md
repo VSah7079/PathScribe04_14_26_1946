@@ -19,6 +19,14 @@ Every real `IAIProvider` implementation, one per distinctive request/response AP
 
 Checked directly, not assumed: grepped every real consumer before removing anything. `StructuredMessagesProvider` is genuinely imported by `AIProviderRegistry.ts`, `openAiStyleStreaming.ts`, and `IAIProvider.ts`. `ClaudeProvider` had **zero** real consumers anywhere in the codebase — confirmed with a second pass right before deletion, plus a full `tsc --noEmit` and full test suite run afterward (1272/1272, unchanged — neither file had its own test to lose). This read as a rename that was done by creating the new file and updating call sites, without ever deleting the old one — a real, confirmed-dead leftover, not an ambiguous or deliberately-scaffolded case like a couple of the ones documented in `types/README.md`. Removed.
 
+**Correction:** `ClaudeProvider.ts` came back into this folder after that removal (175 lines, no consumers). *Batch 499: removed again and listed in the root `DELETED_FILES.txt`, so it is deleted from the working copy too.*
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the file was described as removed but is still on disk.*
+
+## Batch 444
+
+No provider takes or sends a key. The managed, custom and Gemini providers lost their direct-to-vendor "dev mode" branches and always call the proxy. The proxy routes are `vite.config.ts` in development and the API server in production (`docs/architecture/AI_PROXY.md`).
+
 ---
 *See [services/README.md](../../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*

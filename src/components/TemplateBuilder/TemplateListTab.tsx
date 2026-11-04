@@ -3,13 +3,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { ReportTemplate } from '../../types/reportPart';
-import {
-  mockReportTemplateService,
-  onReportTemplatesChanged,
-  STANDARD_TEMPLATE_ID,
-} from '../../services/reportTemplates/mockReportTemplateService';
+import { reportTemplateService, onReportTemplatesChanged, STANDARD_TEMPLATE_ID } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const svc = mockReportTemplateService;
+
+const svc = reportTemplateService;
 
 // Real, persisted ReportTemplate.status enum values stay as data; only the
 // displayed label is translated (this sweep's usual LABEL_KEY pattern).
@@ -253,12 +251,12 @@ className="tmpl-error-dismiss">✕</button>
         <div className="tmpl-filter-row">
           <div className="tmpl-filter-bar">
             {(['all', 'published', 'draft', 'archived'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={`tmpl-filter-btn${filter === f ? ' active' : ''}`}>
+              <button data-config-nav key={f} onClick={() => setFilter(f)} className={`tmpl-filter-btn${filter === f ? ' active' : ''}`}>
                 {f === 'all' ? t('templateListTab.filterAll') : t(STATUS_LABEL_KEY[f])}{counts[f] > 0 && <span className="tmpl-filter-count"> ({counts[f]})</span>}
               </button>
             ))}
           </div>
-          <input
+          <input data-dirty-ignore data-config-nav
             value={search} onChange={e => setSearch(e.target.value)}
             placeholder={t('templateListTab.searchPlaceholder')}
             className="tmpl-search"
@@ -268,8 +266,7 @@ className="tmpl-error-dismiss">✕</button>
 
       {/* List */}
       {loading ? (
-        <div className="tmpl-loading">{t('templateListTab.loadingTemplates')}
-        </div>
+        <LoadingState label={t('templateListTab.loadingTemplates')} />
       ) : filtered.length === 0 && templates.length === 0 ? (
         <EmptyState
           onBlank={() => handleCreate()}

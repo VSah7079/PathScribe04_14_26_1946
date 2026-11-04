@@ -1,5 +1,10 @@
 // src/services/cytology/cytologyRoutingSettingsCascade.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockCytologyRoutingSettingsService } from './mockCytologyRoutingSettingsService';
 import { mockFacilityCytologyRoutingOverrideService } from './mockFacilityCytologyRoutingOverrideService';
 import { resolveEffectiveCytologyRoutingSettings } from './resolveEffectiveCytologyRoutingSettings';
@@ -16,10 +21,17 @@ beforeEach(() => {
 });
 
 describe('mockCytologyRoutingSettingsService — Tier 1, Enterprise default', () => {
-  it('defaults to the real, standard "route non-GYN like Surgical Pathology" baseline', async () => {
+  it('starts from the demo seed (Batch 716): non-GYN cytology and FNA on the Cytology worklist, so a training video shows them there', async () => {
     const res = await mockCytologyRoutingSettingsService.get();
     if (!res.ok) throw new Error('setup failed');
+    expect(res.data.nonGynCytologyRouting).toBe('cytology_worklist');
+  });
+
+  it('reset() returns to the real, standard "route non-GYN like Surgical Pathology" product default', async () => {
+    const res = await mockCytologyRoutingSettingsService.reset();
+    if (!res.ok) throw new Error('setup failed');
     expect(res.data.nonGynCytologyRouting).toBe('surgical_pathology_worklist');
+    expect(DEFAULT_CYTOLOGY_ROUTING_SETTINGS.nonGynCytologyRouting).toBe('surgical_pathology_worklist');
   });
 
   it('a real update genuinely persists', async () => {

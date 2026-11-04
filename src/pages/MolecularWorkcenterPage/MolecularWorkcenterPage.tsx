@@ -54,11 +54,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useNavigate, useSearchParams } from 'react-router';
 import '../../pathscribe.css';
-import { molecularBatchService } from '@/services';
+import { equipmentService, equipmentLogService, molecularBatchService, canOpenTile, type Equipment, type EquipmentLogEntry } from '@/services';
+import { formatDateTime } from '@/utils/formatDate';
 import type { MolecularBatch, MolecularBatchStatus } from '../../services/molecular/IMolecularBatchService';
 import MolecularBatchManagementPage from '../MolecularBatchManagement/MolecularBatchManagementPage';
+import { MolecularOrderQueueTab } from './MolecularOrderQueueTab';
+// Batch 474-prep quick fix: this table names each batch's target instrument
+// but, unlike the plate builder's own instrument picker (MolecularPlateBuilderPage.tsx),
+// never flagged one with an open malfunction or overdue maintenance/calibration —
+// the same real device-state rule, just not reused here yet. Same pattern as
+// the Equipment register (EquipmentServiceLogPage.tsx / EquipmentSection.tsx):
+// isServiceAlert + serviceStatesById decide it, ps-eqlog-row--alert shows it.
+import { isServiceAlert, serviceStatesById } from '@/services/equipment/equipmentLogRules';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { getFacilityIsoDate } from '@/utils/facilityTime';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useCapabilities } from '@/hooks/useCapabilities';
 
 const STATUS_LABEL_KEY: Record<MolecularBatchStatus, { key: string; color: string }> = {
   draft:             { key: 'protocolShared.lifecycle.draft',              color: '#9ca3af' },
@@ -66,11 +81,12 @@ const STATUS_LABEL_KEY: Record<MolecularBatchStatus, { key: string; color: strin
   awaiting_results:  { key: 'molecularWorkcenterPage.status.awaitingResults', color: '#f59e0b' },
   completed:         { key: 'auditLog.statusLabels.completed',             color: '#10B981' },
   aborted:           { key: 'batchManagement.status.aborted',              color: '#ef4444' },
-  superseded:        { key: 'molecularWorkcenterPage.status.superseded',   color: '#6b7280' },
+  superseded:        { key: 'molecularWorkcenterPage.status.superseded',   color: '#8794a8' },
 };
 
-type WorkcenterTab = 'worklist' | 'active' | 'history' | 'qc';
-const VALID_TABS: WorkcenterTab[] = ['worklist', 'active', 'history', 'qc'];
+type WorkcenterTab = 'orders' | 'worklist' | 'active' | 'history' | 'qc';
+// Batch 467: the in-house Order Queue comes first — orders wait there for a plate.
+const VALID_TABS: WorkcenterTab[] = ['orders', 'worklist', 'active', 'history', 'qc'];
 
 // Real, per this file's own header — the real, mutually-exclusive
 // status partition per tab.
@@ -91,6 +107,7 @@ export function workcenterTabForStatus(status: MolecularBatchStatus): Workcenter
 }
 
 const TAB_LABEL_KEY: Record<WorkcenterTab, string> = {
+  orders:   'molecularOrders.queue.tab',
   worklist: 'molecularWorkcenterPage.tab.worklist',
   active:   'molecularWorkcenterPage.tab.active',
   history:  'molecularWorkcenterPage.tab.history',
@@ -98,8 +115,14 @@ const TAB_LABEL_KEY: Record<WorkcenterTab, string> = {
 };
 
 const MolecularWorkcenterPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('pathologyWorkspace.molecularTile.title'), '/molecular'); }, [pushCrumb, t]);
   const navigate = useNavigate();
+  const { has } = useCapabilities();
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
   // Real, per direct guidance ("Primary View (Default Tab): Active
@@ -109,13 +132,29 @@ const MolecularWorkcenterPage: React.FC = () => {
 
   const [batches, setBatches] = useState<MolecularBatch[]>([]);
   const [loading, setLoading] = useState(true);
+  // Batch 436 (PS-326): instruments by name, from the Equipment register (it showed the code).
+  const [instrumentNames, setInstrumentNames] = useState<Map<string, string>>(new Map());
+  // Quick fix (PS-359): the same equipment + log data the picker uses, so
+  // this summary table can flag a batch whose instrument is in alert too.
+  const [instrumentsByCode, setInstrumentsByCode] = useState<Map<string, Equipment>>(new Map());
+  const [instrumentLog, setInstrumentLog] = useState<EquipmentLogEntry[]>([]);
+  const { config: systemConfig } = useSystemConfig();
 
   useEffect(() => {
+    equipmentService.getAll().then(res => {
+      if (res.ok) {
+        setInstrumentNames(new Map(res.data.map(e => [e.code, e.name])));
+        setInstrumentsByCode(new Map(res.data.map(e => [e.code, e])));
+      }
+    });
+    equipmentLogService.list().then(res => { if (res.ok) setInstrumentLog(res.data); });
     molecularBatchService.getAll().then(res => {
       if (res.ok) setBatches([...res.data].sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       setLoading(false);
     });
   }, []);
+
+  const instrumentStates = serviceStatesById([...instrumentsByCode.values()], instrumentLog, getFacilityIsoDate(new Date(), systemConfig.facilityTimezone));
 
   const setTab = (tab: WorkcenterTab) => setSearchParams(tab === 'active' ? {} : { tab });
 
@@ -136,18 +175,21 @@ const MolecularWorkcenterPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {loading && (<tr><td className="ps-conf-empty-row" colSpan={6}>{t('common.loading')}</td></tr>)}
+              {loading && (<tr><td className="ps-conf-empty-row" colSpan={6}><LoadingState variant="inline" label={t('common.loading')} /></td></tr>)}
               {!loading && filtered.length === 0 && (<tr><td className="ps-conf-empty-row" colSpan={6}>{emptyMessage}</td></tr>)}
               {!loading && filtered.map(b => {
                 const status = STATUS_LABEL_KEY[b.status];
                 const statusVars = { '--ps-hue': status.color } as React.CSSProperties;
+                const instrument = instrumentsByCode.get(b.targetInstrumentId);
+                const instrumentState = instrument ? instrumentStates.get(instrument.id) : undefined;
+                const instrumentAlert = instrumentState && isServiceAlert(instrumentState);
                 return (
-                  <tr key={b.id} className="ps-conf-tr ps-conf-tr--clickable" onClick={() => navigate(`/molecular-batch/${b.id}`)}>
+                  <tr key={b.id} className={`ps-conf-tr ps-conf-tr--clickable${instrumentAlert ? ' ps-eqlog-row--alert' : ''}`} {...pressable(() => navigate(`/molecular-batch/${b.id}`), { role: null })}>
                     <td className="ps-conf-td">{b.batchBarcode}</td>
                     <td className="ps-conf-td">{b.assayName}</td>
-                    <td className="ps-conf-td">{b.targetInstrumentId}{b.deckSlot ? ` (${b.deckSlot})` : ''}</td>
+                    <td className="ps-conf-td" title={instrumentAlert ? t('molecularWorkcenterPage.instrumentAlertHint') : undefined}>{instrumentNames.get(b.targetInstrumentId) ?? b.targetInstrumentId}{b.deckSlot ? ` (${b.deckSlot})` : ''}</td>
                     <td className="ps-conf-td">{b.plateBarcode}</td>
-                    <td className="ps-conf-td">{new Date(b.createdAt).toLocaleString()}</td>
+                    <td className="ps-conf-td">{formatDateTime(b.createdAt, i18n.language)}</td>
                     <td className="ps-conf-td">
                       <span className="ps-status-badge ps-status-badge--hued" style={statusVars}>{t(status.key)}</span>
                     </td>
@@ -173,7 +215,8 @@ const MolecularWorkcenterPage: React.FC = () => {
         {activeTab !== 'qc' && (
           <div className="ps-flex-row-gap-8">
             <button className="ps-btn-small" onClick={() => navigate('/molecular-rack')}>{t('molecularRackWorklistPage.title')}</button>
-            <button className="ps-btn-small" onClick={() => navigate('/molecular-control-rules')}>{t('molecularWorkcenterPage.controlRulesButton')}</button>
+            {/* Batch 669 (ctl): Control Rules has its own view capability; the button shows only to someone who can open it. */}
+            {canOpenTile('molecularControlRules', has) && <button className="ps-btn-small" onClick={() => navigate('/molecular-control-rules')}>{t('molecularWorkcenterPage.controlRulesButton')}</button>}
             <button className="ps-conf-btn-secondary" onClick={() => navigate('/molecular-batch/new')}>+ {t('molecularWorkcenterPage.newBatchButton')}</button>
           </div>
         )}
@@ -194,6 +237,7 @@ const MolecularWorkcenterPage: React.FC = () => {
       {activeTab === 'active' && renderBatchTable(STATUSES_FOR_TAB.active, t('molecularWorkcenterPage.emptyActive'))}
       {activeTab === 'history' && renderBatchTable(STATUSES_FOR_TAB.history, t('molecularWorkcenterPage.emptyHistory'))}
       {activeTab === 'qc' && <MolecularBatchManagementPage />}
+      {activeTab === 'orders' && <MolecularOrderQueueTab onOpenPlate={batchId => navigate(`/molecular-batch/${batchId}`)} />}
     </div>
   );
 };

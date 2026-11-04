@@ -7,6 +7,9 @@
 //   - Critical findings       criticalNotificationMissing
 //   - Group 2 (Batch 381)     holds, comments, delegation, biopsy arrays, block changes
 //   - Group 3 (Batch 382)     discordanceMissing, billingChangeMissing, correctedCodeCheck
+//   - Group 3 (Batch 383)     autopsyAuthorizationMissing, autopsyReleaseMissing (the sign-out
+//                             gates' checks are in services/signoutGates)
+//   - Batch 397               addOrdersBlockMissing, addOrdersBlockSentence (Add Orders → Blocks / Recut)
 // Each modal used to decide this inline; the locked fields reproduce exactly
 // what it required before, so nothing changes until an organisation changes
 // a setting.
@@ -137,7 +140,9 @@ export function criticalNotificationMissing(form: CriticalNotificationForm, requ
     criticalClinician: filled(form.clinicianName),
     criticalMethod: filled(form.method),
     criticalNotifiedBy: filled(form.notifiedByName),
-    criticalReadBack: form.readBackConfirmed ? 'yes' : '',
+    // Batch 517 (PS-143): a read-back is a spoken repeat, so it never applies to
+    // a secure email; the notification is recorded once the email is sent.
+    criticalReadBack: form.readBackConfirmed || form.method === 'secure_email' ? 'yes' : '',
   };
   return missingRequiredFields(inGroup(requirements, 'criticalFindings'), values).map(f => f.id);
 }
@@ -200,6 +205,25 @@ export function biopsyArrayMissing(cassetteLabel: string, specimenCount: number,
     arrayCassetteLabel: filled(cassetteLabel),
     arraySpecimens: specimenCount >= 2 ? 'yes' : '',
   }).map(f => f.id);
+}
+
+/** Add Orders → Blocks / Recut (Batch 397): the specimen the new block is cut from, and its cassette label. */
+export function addOrdersBlockMissing(specimenId: string, cassetteLabel: string, requirements: readonly ResolvedFieldRequirement[]): string[] {
+  return missingRequiredFields(inGroup(requirements, 'addOrders'), {
+    addOrdersSpecimen: filled(specimenId),
+    addOrdersCassetteLabel: filled(cassetteLabel),
+  }).map(f => f.id);
+}
+
+/**
+ * The sentence Add Orders appends to the case's gross description for a new
+ * block (Batch 397: moved out of AddOrdersModal.tsx). It is persisted report
+ * text, so it stays in English, as before; "[block]" stands in until a
+ * cassette label is typed.
+ */
+export function addOrdersBlockSentence(specimenLabel: string, cassetteLabel: string): string {
+  const blockRef = cassetteLabel.trim() || '[block]';
+  return `Specimen ${specimenLabel} represents deeper levels cut from Block ${blockRef}, ordered for advanced microscopic evaluation.`;
 }
 
 /** The reason recorded: the chosen one, or the detail typed for "Other". */
@@ -282,4 +306,39 @@ export function correctedCodeCheck(newCode: string, originalCode: string, requir
     missing: missingRequiredFields(inGroup(requirements, 'billingChanges').filter(f => f.id === 'correctedBillingCode'), { correctedBillingCode: code }).map(f => f.id),
     sameAsOriginal: code !== '' && code === originalCode,
   };
+}
+
+// ── Group 3, second part (Batch 383) ─────────────────────────────────────────
+// The two autopsy forms. The sign-out gates' checks are in services/signoutGates.
+
+export interface AutopsyAuthorizationForm {
+  orderReference: string;
+  orderDate: string;
+  consentGivenAt: string;
+  consentScope: string;
+}
+
+/** Required fields still missing for the case's authority: the written order (medicolegal) or the consent grant (hospital-consented). */
+export function autopsyAuthorizationMissing(caseAuthority: string, form: AutopsyAuthorizationForm, requirements: readonly ResolvedFieldRequirement[]): string[] {
+  const forensic = caseAuthority === 'statutory_judicial';
+  const consented = caseAuthority === 'hospital_consented';
+  const applicable = inGroup(requirements, 'autopsy').filter(f => {
+    if (f.id === 'autopsyOrderReference' || f.id === 'autopsyOrderDate') return forensic;
+    if (f.id === 'autopsyConsentGivenAt' || f.id === 'autopsyConsentScope') return consented;
+    return false;
+  });
+  return missingRequiredFields(applicable, {
+    autopsyOrderReference: filled(form.orderReference),
+    autopsyOrderDate: filled(form.orderDate),
+    autopsyConsentGivenAt: filled(form.consentGivenAt),
+    autopsyConsentScope: filled(form.consentScope),
+  }).map(f => f.id);
+}
+
+/** Who the body goes to and who released it (chain of custody). */
+export function autopsyReleaseMissing(releasedTo: string, releasedByName: string, requirements: readonly ResolvedFieldRequirement[]): string[] {
+  return missingRequiredFields(inGroup(requirements, 'autopsy').filter(f => f.id === 'autopsyReleasedTo' || f.id === 'autopsyReleasedBy'), {
+    autopsyReleasedTo: filled(releasedTo),
+    autopsyReleasedBy: filled(releasedByName),
+  }).map(f => f.id);
 }

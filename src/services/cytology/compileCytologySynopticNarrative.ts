@@ -111,6 +111,8 @@ function plainSegment(text: string): CompiledNarrativeSegment {
  *  validated entry on record. Per direct guidance's own "default to
  *  canonical source term rather than guessing," never a fabricated
  *  translation. */
+const CHOICE_TYPES: readonly string[] = ['dropdown', 'radio', 'checkboxes'];
+
 function resolveFieldNarrativeValueSegments(
   field: SynopticField,
   answer: string | string[] | undefined,
@@ -118,7 +120,9 @@ function resolveFieldNarrativeValueSegments(
   lexicon: PathologyLexiconEntry[],
 ): CompiledNarrativeSegment[] {
   if (answer === undefined) return [];
-  if (!field.options) {
+  // Batch 519 (PS-273): on the shared model every question has an `options` list (empty for free text), so a
+  // free-text answer is told apart by the question's type, not by whether it has options.
+  if (!CHOICE_TYPES.includes(field.type)) {
     const raw = Array.isArray(answer) ? answer.join(', ') : answer;
     return raw.trim() ? [plainSegment(raw.trim())] : [];
   }

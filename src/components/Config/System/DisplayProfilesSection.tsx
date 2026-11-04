@@ -10,13 +10,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import DisplayTokenModal from './DisplayTokenModal';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import '../../../pathscribe.css';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { mockDisplayProfileService } from '../../../services/facilityOpsDashboard/mockDisplayProfileService';
+
 import { DASHBOARD_VIEW_IDS } from '../../../services/facilityOpsDashboard/IDisplayProfileService';
+import { addOnAgeLimitValid, ADD_ON_AGE_LIMIT_MIN, ADD_ON_AGE_LIMIT_MAX, showsCarrierViews, togglePurposeId, staleScanMinutesValid, STALE_SCAN_MIN, STALE_SCAN_MAX, DEFAULT_STALE_SCAN_MINUTES } from '../../../services/facilityOpsDashboard/displayProfileRules';
+import { getBatchPurposes, batchPurposeLabelKey } from '../../../services/batches/batchPurposes';
+import { DEFAULT_ADD_ON_AGE_LIMIT_MINUTES } from '../../../services/facilityOpsDashboard/openAddOnOrders';
 import type { DisplayProfile, NewDisplayProfile, DashboardViewId } from '../../../services/facilityOpsDashboard/IDisplayProfileService';
+import { displayProfileService } from '@/services';
 
 type Draft = NewDisplayProfile;
 const emptyDraft = (): Draft => ({ name: '', facilityId: '', assignedViews: [], carouselIntervalSeconds: undefined, deviceToken: '', status: 'Active' });
@@ -27,6 +32,7 @@ const VIEW_LABEL_KEYS: Record<DashboardViewId, string> = {
   staining_ihc: 'facilityOpsDashboard.views.stainingIhc',
   sendout_reference: 'facilityOpsDashboard.views.sendoutReference',
   diagnostic_signout: 'facilityOpsDashboard.views.diagnosticSignout',
+  station_overview: 'facilityOpsDashboard.views.stationOverview',
 };
 
 const ProfileModal: React.FC<{ mode: 'add' | 'edit'; entry?: DisplayProfile; onSave: (draft: Draft) => void; onClose: () => void }> = ({ mode, entry, onSave, onClose }) => {
@@ -35,6 +41,7 @@ const ProfileModal: React.FC<{ mode: 'add' | 'edit'; entry?: DisplayProfile; onS
   const [labs, setLabs] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => { getActivePerformingLabs().then(setLabs); }, []);
+  const [purposes] = useState(() => getBatchPurposes().filter(p => p.active || (entry?.batchPurposeIds ?? []).includes(p.id)));
 
   const toggleView = (v: DashboardViewId) => {
     setDraft(d => ({ ...d, assignedViews: d.assignedViews.includes(v) ? d.assignedViews.filter(x => x !== v) : [...d.assignedViews, v] }));
@@ -73,13 +80,55 @@ const ProfileModal: React.FC<{ mode: 'add' | 'edit'; entry?: DisplayProfile; onS
             </>
           )}
 
+          {/* Batch 727 (spec Decision 2): the time X for this lab's add-ons (and the Stations view). */}
+          {(draft.assignedViews.includes('embedding_microtomy') || draft.assignedViews.includes('station_overview')) && (
+            <>
+              <label className="ps-label" htmlFor="dispprof-addon-limit">{t('displayProfiles.addOnLimitLabel')}</label>
+              <input id="dispprof-addon-limit" type="number" min={ADD_ON_AGE_LIMIT_MIN} max={ADD_ON_AGE_LIMIT_MAX} step={1} className="ps-conf-input"
+                value={draft.addOnAgeLimitMinutes ?? ''} placeholder={String(DEFAULT_ADD_ON_AGE_LIMIT_MINUTES)}
+                onChange={e => setDraft({ ...draft, addOnAgeLimitMinutes: e.target.value ? Number(e.target.value) : undefined })} />
+              <p className="ps-conf-section-subtitle">{t('displayProfiles.addOnLimitHint')}</p>
+              {!addOnAgeLimitValid(draft.addOnAgeLimitMinutes) && <p className="ps-conf-section-subtitle" role="alert">{t('displayProfiles.addOnLimitInvalid')}</p>}
+            </>
+          )}
+
+          {/* Batch 729 (spec §7.5): the Stations view lists items not scanned for longer than this. */}
+          {draft.assignedViews.includes('station_overview') && (
+            <>
+              <label className="ps-label" htmlFor="dispprof-stale-scan">{t('displayProfiles.staleScanLabel')}</label>
+              <input id="dispprof-stale-scan" type="number" min={STALE_SCAN_MIN} max={STALE_SCAN_MAX} step={1} className="ps-conf-input"
+                value={draft.staleScanMinutes ?? ''} placeholder={String(DEFAULT_STALE_SCAN_MINUTES)}
+                onChange={e => setDraft({ ...draft, staleScanMinutes: e.target.value ? Number(e.target.value) : undefined })} />
+              <p className="ps-conf-section-subtitle">{t('displayProfiles.staleScanHint')}</p>
+              {!staleScanMinutesValid(draft.staleScanMinutes) && <p className="ps-conf-section-subtitle" role="alert">{t('displayProfiles.staleScanInvalid')}</p>}
+            </>
+          )}
+
+          {/* Batch 728 (spec Decision 4a): show only carriers of chosen purposes; none ticked shows every purpose. */}
+          {showsCarrierViews(draft.assignedViews) && (
+            <>
+              <p className="ps-label">{t('displayProfiles.purposesLabel')}</p>
+              {purposes.map(p => {
+                const key = batchPurposeLabelKey(p.id);
+                return (
+                  <label key={p.id} className="ps-conf-toggle-label-row">
+                    <input type="checkbox" className="ps-conf-radio-input" checked={(draft.batchPurposeIds ?? []).includes(p.id)}
+                      onChange={() => setDraft({ ...draft, batchPurposeIds: togglePurposeId(draft.batchPurposeIds, p.id) })} />
+                    <span className="ps-conf-option-text">{key ? t(key) : p.name}</span>
+                  </label>
+                );
+              })}
+              <p className="ps-conf-section-subtitle">{t('displayProfiles.purposesHint')}</p>
+            </>
+          )}
+
           <label className="ps-label" htmlFor="dispprof-token">{t('displayProfiles.deviceTokenLabel')}</label>
           <input id="dispprof-token" className="ps-conf-input" value={draft.deviceToken ?? ''} onChange={e => setDraft({ ...draft, deviceToken: e.target.value })} placeholder={t('displayProfiles.deviceTokenPlaceholder')} />
           <p className="ps-conf-section-subtitle">{t('displayProfiles.deviceTokenNote')}</p>
         </div>
         <div className="ps-conf-modal-footer">
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
-          <button className="ps-conf-btn-primary" onClick={() => onSave(draft)} disabled={!draft.name.trim() || !draft.facilityId || draft.assignedViews.length === 0}>{t('common.save')}</button>
+          <button className="ps-conf-btn-primary" onClick={() => onSave(draft)} disabled={!draft.name.trim() || !draft.facilityId || draft.assignedViews.length === 0 || !addOnAgeLimitValid(draft.addOnAgeLimitMinutes) || !staleScanMinutesValid(draft.staleScanMinutes)}>{t('common.save')}</button>
         </div>
       </div>
     </div>
@@ -92,22 +141,23 @@ const DisplayProfilesSection: React.FC = () => {
   const [entries, setEntries] = useState<DisplayProfile[]>([]);
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: DisplayProfile } | null>(null);
+  const [tokenFor, setTokenFor] = useState<DisplayProfile | null>(null);
 
-  const refresh = () => { mockDisplayProfileService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { displayProfileService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const visible = entries.filter(e => showInactive || e.status === 'Active');
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockDisplayProfileService.update(modal.entry.id, draft);
-    else await mockDisplayProfileService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await displayProfileService.update(modal.entry.id, draft);
+    else await displayProfileService.add(draft);
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: DisplayProfile) => {
-    if (e.status === 'Active') await mockDisplayProfileService.deactivate(e.id);
-    else await mockDisplayProfileService.update(e.id, { status: 'Active' });
+    if (e.status === 'Active') await displayProfileService.deactivate(e.id);
+    else await displayProfileService.update(e.id, { status: 'Active' });
     refresh();
   };
 
@@ -145,6 +195,7 @@ const DisplayProfilesSection: React.FC = () => {
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.status === 'Active' ? t('displayProfiles.deactivate') : t('displayProfiles.reactivate')}</button>
+              <button className="ps-conf-btn-secondary" onClick={() => setTokenFor(e)}>{t('displayAccess.admin.button')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'edit', entry: e })}>{t('common.edit')}</button>
             </div>
           </div>
@@ -152,6 +203,7 @@ const DisplayProfilesSection: React.FC = () => {
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('displayProfiles.emptyRow')}</div>}
       </div>
 
+      {tokenFor && <DisplayTokenModal kind="facility-ops" subjectId={tokenFor.id} displayName={tokenFor.name} onClose={() => setTokenFor(null)} />}
       {modal && <ProfileModal mode={modal.mode} entry={modal.entry} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );

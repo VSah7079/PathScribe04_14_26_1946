@@ -64,7 +64,16 @@ vi.mock('react-router', async () => {
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'path-1', name: 'Test Pathologist' } }),
+  // Batch 430: the voice provider reads who is signed in for their accent.
+  useAuthOptional: () => ({ user: { id: 'path-1', name: 'Test Pathologist' } }),
 }));
+// Batch 649: Submit is greyed without case:accession:create, and the save checks it (createAccessionedCase.test.ts);
+// this walkthrough holds it, and the save goes straight to caseRouter.createCase as before.
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: () => true, decide: () => ({ allowed: true }) }) }));
+vi.mock('@/services/accessioning/createAccessionedCase', async () => {
+  const { caseRouter } = await import('@/services/cases/CaseRouter');
+  return { createAccessionedCase: (c: never) => caseRouter.createCase(c) };
+});
 
 describe('AccessionPage \u2014 real, full form-submission walkthrough (Autopsy specimen \u2192 real, protocol-generated blocks)', () => {
   it('a real Autopsy specimen dictionary selection carries its own real, seeded protocol\u2019s generated blocks all the way to the real caseRouter.createCase() call', async () => {
@@ -95,6 +104,7 @@ describe('AccessionPage \u2014 real, full form-submission walkthrough (Autopsy s
     fireEvent.change(screen.getByPlaceholderText('accessionPage.demographics.familyNamesPlaceholder'), { target: { value: 'Dupont' } });
     const dobInput = document.querySelector('input[type="date"]') as HTMLInputElement;
     fireEvent.change(dobInput, { target: { value: '1970-01-01' } });
+    fireEvent.change(document.getElementById('accession-sex') as HTMLSelectElement, { target: { value: 'M' } }); // Batch 661: sex is required, never defaulted
 
     // Real, per direct investigation of a real, confirmed regression
     // this specific test surfaced: caseInfoValid also requires a real

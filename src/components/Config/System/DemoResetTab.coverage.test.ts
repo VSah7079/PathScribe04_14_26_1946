@@ -53,11 +53,14 @@ const RESET_TAB_PATH = path.join(SRC_DIR, 'services/demoReset/demoReset.ts');
  *    break the OR Suite Live Board (zero terminals to bind to) rather
  *    than restore it to a ready state. Add it here only once that
  *    service has real seed terminals, mirroring every sibling
- *    dictionary service's own SEED_ constant. */
+ *    dictionary service's own SEED_ constant.
+ *  - displayDeviceBindings (Batch 603): the Display Token registry; revoked
+ *    tokens must stay revoked through a reset. */
 const DELIBERATE_EXCLUSIONS = new Set([
   'pathscribe_audit_logs', 'pathscribe_error_logs', 'ps_ai_audit_log_v1',
   'pathscribe_support_audit', // Batch 372: each organisation's hash-chained support audit stream
   'orSuiteTerminals',
+  'displayDeviceBindings', // Batch 603: the wall-display token registry is a security record; a demo reset must not silently re-enable a revoked display
 ]);
 
 function walk(dir: string, exts: string[]): string[] {
@@ -114,6 +117,12 @@ function findRealStorageKeysInSource(): Set<string> {
 
     // const STORAGE_KEY = '...' / const KEY = '...'
     for (const m of cleaned.matchAll(/const (?:STORAGE_KEY|KEY)\s*=\s*'([^']+)'/g)) keys.add(m[1]);
+    // Batch 442: any other constant ending in KEY that is written straight to
+    // localStorage. (One used only through storageGet/storageSet is stored
+    // under pathscribe_mock_ and cleared by the prefix sweep.)
+    for (const m of cleaned.matchAll(/const ([A-Z0-9_]*KEY)\s*=\s*'([^']+)'/g)) {
+      if (new RegExp(`localStorage\\.(?:getItem|setItem|removeItem)\\(\\s*${m[1]}\\b`).test(cleaned)) keys.add(m[2]);
+    }
     // storageGet<T>('...' or storageSet('...' — direct literal keys
     for (const m of cleaned.matchAll(/storage(?:Get|Set)(?:<[^>]*>)?\('([^']+)'/g)) keys.add(m[1]);
     // localStorage.getItem('...') / .setItem('...') — a few real

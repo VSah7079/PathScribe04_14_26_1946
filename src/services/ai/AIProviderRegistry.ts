@@ -22,7 +22,9 @@
 // responsibility, not something parsed raw in the browser.
 // ─────────────────────────────────────────────────────────────
 
-import { resolveAiConfig } from '../../components/Config/AI/aiProviderConfig';
+import { resolveAiConfig, aiHostingRegion } from '../../components/Config/AI/aiProviderConfig';
+import type { AiCallContext } from '../aiIntegration/aiCallPolicy';
+import { withAiVendorPolicy } from './withAiVendorPolicy';
 import type { IAIProvider }  from './IAIProvider';
 import { StructuredMessagesProvider }        from './providers/StructuredMessagesProvider';
 import { ChatCompletionsProvider }           from './providers/ChatCompletionsProvider';
@@ -42,7 +44,14 @@ export class AIProviderRegistry {
    *
    * Call this at the start of any AI generation request.
    */
-  static getActive(): IAIProvider {
+  static getActive(context?: AiCallContext): IAIProvider {
+    const provider = AIProviderRegistry.resolveActive();
+    // Batch 536 (PS-558): every generation is checked against the AI vendor
+    // policy of the jurisdiction the work belongs to.
+    return withAiVendorPolicy(provider, { region: aiHostingRegion(resolveAiConfig()) }, context ?? { feature: 'narrative' });
+  }
+
+  private static resolveActive(): IAIProvider {
     const config = resolveAiConfig();
 
     switch (config.providerId) {
@@ -58,17 +67,17 @@ export class AIProviderRegistry {
 
       case 'chat_completions_managed':
         return new ChatCompletionsManagedProvider(
-          config.modelId, config.managedEndpoint, config.managedDeploymentName, config.apiKey,
+          config.modelId, config.managedEndpoint, config.managedDeploymentName,
         );
 
       case 'model_gateway':
         return new ModelGatewayProvider(config.modelId, config.gatewayRegion);
 
       case 'structured_content':
-        return new StructuredContentProvider(config.modelId, config.apiKey);
+        return new StructuredContentProvider(config.modelId);
 
       case 'custom':
-        return new CustomProvider(config.modelId, config.customEndpoint, config.apiKey);
+        return new CustomProvider(config.modelId, config.customEndpoint);
 
       default:
         console.error(
@@ -94,14 +103,14 @@ export class AIProviderRegistry {
         return new ChatCompletionsProvider(modelId ?? 'gpt-4o');
       case 'chat_completions_managed':
         return new ChatCompletionsManagedProvider(
-          modelId ?? 'gpt-4o', config.managedEndpoint, config.managedDeploymentName, config.apiKey,
+          modelId ?? 'gpt-4o', config.managedEndpoint, config.managedDeploymentName,
         );
       case 'model_gateway':
         return new ModelGatewayProvider(modelId ?? 'anthropic.claude-sonnet-4-6-v1:0', config.gatewayRegion);
       case 'structured_content':
-        return new StructuredContentProvider(modelId ?? 'gemini-1.5-flash', config.apiKey);
+        return new StructuredContentProvider(modelId ?? 'gemini-1.5-flash');
       case 'custom':
-        return new CustomProvider(modelId ?? 'custom', config.customEndpoint, config.apiKey);
+        return new CustomProvider(modelId ?? 'custom', config.customEndpoint);
       default:
         return new MockProvider(0);
     }

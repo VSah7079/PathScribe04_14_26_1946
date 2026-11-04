@@ -1,0 +1,16 @@
+/* Batch 646: the Help button (opens this screen's section of the Administrator Guide). */
+.ps-help-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px; border-radius: 8px;
+  border: 1px solid var(--ps-border, #1e293b); background: var(--ps-surface, #0d1829);
+  color: var(--ps-teal-light, #38bdf8); font-size: 13px; font-weight: 600; text-decoration: none;
+}
+.ps-cfgpage-title-block > .ps-help-btn { position: absolute; top: 0; inset-inline-end: 0; }
+.ps-help-btn--inline { margin-top: 10px; }
+.ps-help-btn:hover { border-color: var(--ps-teal, #0891b2); }
+.ps-help-btn:focus-visible { outline: 2px solid var(--ps-teal-light, #38bdf8); outline-offset: 2px; }
+.ps-help-btn-mark {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--ps-teal, #0891b2); color: #fff; font-size: 12px; font-weight: 700;
+}

@@ -14,17 +14,26 @@
 // a fuller page title are separate strings even when related.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router';
+import { TEMPLATE_SECTIONS } from '@/constants/configSearchIndex';
+import { pickConfigSection } from '@/utils/configSectionParam';
 import TemplateListTab  from './TemplateListTab';
 import PartLibraryTab   from './PartLibraryTab';
 import RoutingRulesTab  from './RoutingRulesTab';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
-type SubTab = 'templates' | 'parts' | 'routing';
+type SubTab = (typeof TEMPLATE_SECTIONS)[number]['id'];
+const SUBTAB_IDS = TEMPLATE_SECTIONS.map(s => s.id);
 
 const ReportTemplatesSection: React.FC = () => {
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<SubTab>('templates');
+  // Batch 449: Configuration search can open an inner tab directly (?section=).
+  const location = useLocation();
+  const [subTab, setSubTab] = useState<SubTab>(() => pickConfigSection(location.search, SUBTAB_IDS));
+  useRegisterConfigHelpSection(subTab); // Batch 646: the Help button opens this sub-tab's section of the Administrator Guide
+  useEffect(() => { setSubTab(pickConfigSection(location.search, SUBTAB_IDS)); }, [location.search]);
 
   return (
     <div className="ps-rts-root">

@@ -47,7 +47,8 @@ export function resolveCytologyFiveYearRetrospectiveLookback(
   }
 
   const cutoff = new Date(triggeringDate);
-  cutoff.setFullYear(cutoff.getFullYear() - lookbackYears);
+  // Batch 504: UTC arithmetic, so the window is the same whatever device runs it.
+  cutoff.setUTCFullYear(cutoff.getUTCFullYear() - lookbackYears);
 
   return priorReviews
     .filter(r => r.diagnosticRank === NEGATIVE_DIAGNOSTIC_RANK && new Date(r.recordedAt) >= cutoff)

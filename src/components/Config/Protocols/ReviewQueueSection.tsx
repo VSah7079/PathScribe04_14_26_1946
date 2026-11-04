@@ -39,6 +39,8 @@ import {
   CategoryGroup,
   EmptyState,
 } from './ProtocolCardParts';
+import { pressable } from '@/utils/a11y/pressable';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 // ─── ProtocolCard ─────────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
   return (
     <div
-      onClick={handleCardClick}
+      {...pressable(handleCardClick)}
       className="ps-reviewqueue-card"
       title={actionLabel}
     >
@@ -73,7 +75,7 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
       {/* Name + meta */}
       <div className="ps-reviewqueue-info">
-        <div className="ps-reviewqueue-name" data-phi="name">{p.name}</div>
+        <div className="ps-reviewqueue-name"><span data-phi="name">{p.name}</span><DemoWordingTag templateId={p.id} /></div>
         <div className="ps-reviewqueue-meta">
           <span className="ps-reviewqueue-version">{p.version}</span>
           <span className="ps-reviewqueue-dot">&bull;</span>

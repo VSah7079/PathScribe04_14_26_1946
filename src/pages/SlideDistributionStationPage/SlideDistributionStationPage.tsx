@@ -21,31 +21,69 @@
 // scoped to real, existing data (scanning a block queues every real
 // slide already cut from it) rather than a fabricated rack/tray
 // container model that doesn't exist anywhere in this app today.
+//
+// Batch 402 (PS-359): Field Requirements (page "slideDistribution"). The page
+// has its own voice context (SLIDE_DISTRIBUTION: "confirm checkout", "confirm
+// scanner"); both confirms, the exception note and the label reprint (now a
+// reason, then Reprint: SlideLabelReprintModal) star what is required, say
+// what is still missing and stay off until it is filled. The hook checks the
+// same rules. Messages come back as locale keys.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { QcCheckpointPanel } from '@/components/StainQc/QcCheckpointPanel';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
+import { actionRegistryService } from '@/services';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
+import { formatList } from '@/utils/formatList';
 import { useSlideDistributionStation } from './hooks/useSlideDistributionStation';
 import QueuePanel from './components/QueuePanel';
 import ScanCenterPanel from './components/ScanCenterPanel';
 import DestinationControlPanel from './components/DestinationControlPanel';
+import SlideLabelReprintModal from './components/SlideLabelReprintModal';
 import type { DestinationMode } from './components/DestinationControlPanel';
-import type { SlideExceptionReason } from '@/utils/slideDistributionOperations';
+import type { SlideExceptionReason, SlideLabelReprintReason } from '@/utils/slideDistributionOperations';
+import type { SlideDistributionActionResult } from './hooks/useSlideDistributionStation';
+// Batch 726 (Lab Workflow & Batch spec, Decision 1): carriers at this workstation.
+import { useStationCarrier } from '@/hooks/useStationCarrier';
+import StationCarrierPanel from '@/components/Workstation/StationCarrierPanel';
+import { StationScanField } from '@/components/Workstation/StationScanField';
+import ScanTrailPanel from '@/components/Workstation/ScanTrailPanel';
+import ExhaustedBlockBanner from '@/components/Workstation/ExhaustedBlockBanner';
+import ItemEndStatePanel from '@/components/Workstation/ItemEndStatePanel';
+import BlockPieceMapPanel from '@/components/Workstation/BlockPieceMapPanel';
 import '../../pathscribe.css';
 
 const SlideDistributionStationPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('slideDistribution.pageTitle'), '/workstations/slide-distribution'); }, [pushCrumb, t]);
 
   const w = useSlideDistributionStation();
-  const [scanInput, setScanInput] = useState('');
+  const carrier = useStationCarrier('slideDistribution');
   const [mode, setMode] = useState<DestinationMode>('physical');
   const [assignFeedback, setAssignFeedback] = useState<string | null>(null);
   const [reprintFeedback, setReprintFeedback] = useState<string | null>(null);
+  const [pendingReprint, setPendingReprint] = useState(false);
+
+  // Batch 402: this page has its own voice/keyboard context ("confirm checkout", "confirm scanner").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.SLIDE_DISTRIBUTION);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
+
+  /** The text for a refused action: what is still required, a message, or the printer's own words. */
+  const describeFailure = useCallback((result: SlideDistributionActionResult, fallbackKey: string): string => {
+    if (result.missing?.length) {
+      return t('fieldRequirements.stillRequired', { fields: formatList(result.missing.map(id => t(`fieldRequirements.fields.slideDistribution.${id}`)), i18n.language) });
+    }
+    if (result.printerMessage) return result.printerMessage;
+    if (result.message) return t(result.message.key, result.message.values);
+    return t(fallbackKey);
+  }, [t, i18n.language]);
 
   useEffect(() => { w.loadDirectories(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -58,20 +96,18 @@ const SlideDistributionStationPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<{ raw: string }>).detail;
       if (!scanEvent?.raw || scanEvent.raw.trim().toUpperCase().startsWith('STATION:')) return;
-      w.resolveScan(scanEvent.raw);
+      void carrier.route(scanEvent.raw, w.resolveScan);
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [w]);
+  }, [w, carrier]);
 
-  const handleScanSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanInput.trim()) return;
-    await w.resolveScan(scanInput.trim());
-    setScanInput('');
-  }, [scanInput, w]);
+  // Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept) hands the scan in here.
+  const handleScan = useCallback(async (raw: string) => { await carrier.route(raw, w.resolveScan); }, [w, carrier]);
 
   const activeItem = w.queue.find(q => q.queueId === w.activeQueueId);
+  const endStateItem = w.endStateItemFor(w.activeQueueId);
+  const pieceView = w.pieceViewFor(w.activeQueueId);
   const splitWarning = w.activeQueueId ? w.splitDestinationWarningFor(w.activeQueueId) : null;
   const defaultRouting = activeItem ? w.resolveDefaultRouting(activeItem.caseData) : {};
 
@@ -85,19 +121,19 @@ const SlideDistributionStationPage: React.FC = () => {
     if (!w.activeQueueId) return;
     setAssignFeedback(null);
     const result = await w.handleAssignPhysical(w.activeQueueId, assignment);
-    if (!result.ok) setAssignFeedback(result.message ?? t('slideDistribution.destination.assignFailed'));
-  }, [w, t]);
+    if (!result.ok && !result.notSaved) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
+  }, [w, describeFailure]);
 
   const handleAssignScanner = useCallback(async (assignment: Parameters<typeof w.handleAssignScanner>[1]) => {
     if (!w.activeQueueId) return;
     setAssignFeedback(null);
     const result = await w.handleAssignScanner(w.activeQueueId, assignment);
-    if (!result.ok) setAssignFeedback(result.message ?? t('slideDistribution.destination.assignFailed'));
-  }, [w, t]);
+    if (!result.ok && !result.notSaved) setAssignFeedback(describeFailure(result, 'slideDistribution.destination.assignFailed'));
+  }, [w, describeFailure]);
 
-  const handleFlagException = useCallback((reason: SlideExceptionReason) => {
+  const handleFlagException = useCallback((reason: SlideExceptionReason, note: string) => {
     if (!w.activeQueueId) return;
-    w.handleFlagException(w.activeQueueId, reason);
+    void w.handleFlagException(w.activeQueueId, reason, note);
   }, [w]);
 
   const handleResolveException = useCallback(() => {
@@ -105,12 +141,13 @@ const SlideDistributionStationPage: React.FC = () => {
     w.handleResolveException(w.activeQueueId);
   }, [w]);
 
-  const handleRequestReprint = useCallback(async () => {
+  const handleConfirmReprint = useCallback(async (reason: SlideLabelReprintReason) => {
+    setPendingReprint(false);
     if (!w.activeQueueId) return;
     setReprintFeedback(null);
-    const result = await w.handleRequestReprint(w.activeQueueId);
-    if (!result.ok) setReprintFeedback(result.message ?? t('slideDistribution.activeSlide.reprintFailed'));
-  }, [w, t]);
+    const result = await w.handleRequestReprint(w.activeQueueId, reason);
+    if (!result.ok && !result.notSaved) setReprintFeedback(describeFailure(result, 'slideDistribution.activeSlide.reprintFailed'));
+  }, [w, describeFailure]);
 
   return (
     <div className="ps-slidedist-page">
@@ -118,6 +155,17 @@ const SlideDistributionStationPage: React.FC = () => {
         <button className="ps-btn-secondary" onClick={() => navigate('/worklist')}>{t('common.back')}</button>
         <h1 className="ps-slidedist-title">📬 {t('slideDistribution.pageTitle')}</h1>
       </div>
+
+      <StationCarrierPanel carrier={carrier} />
+      {/* Batch 763: the Post-Stain / Pre-Distribution QC checkpoint (staining runs and scanned images waiting for QC). */}
+      <QcCheckpointPanel refreshKey={carrier.notice} />
+      {/* Batch 729 (spec §7.4): the active slide's case scan trail. */}
+      {activeItem && <ScanTrailPanel caseAccession={activeItem.caseData.accession?.fullAccession ?? activeItem.caseData.id} />}
+      {/* Batch 731 (spec §10.6, §10.5): the slide's block when it is exhausted, and the slide's end state. */}
+      {activeItem && <ExhaustedBlockBanner specimen={activeItem.specimen} block={activeItem.block} />}
+      {endStateItem && <ItemEndStatePanel {...endStateItem} stationId={w.effectiveStationId} />}
+      {/* Batch 732 (spec §11): the slide's size and its block's pieces. */}
+      {pieceView && <BlockPieceMapPanel blockType={pieceView.blockType} slideSize={pieceView.slideSize} pieces={pieceView.pieces} />}
 
       <div className="ps-slidedist-context-bar">
         <span>{t('slideDistribution.context.queueCount')} <strong>{w.queue.length}</strong></span>
@@ -128,16 +176,11 @@ const SlideDistributionStationPage: React.FC = () => {
 
       <div className="ps-slidedist-panel ps-mb-16">
         <p className="ps-slidedist-panel-title">{t('slideDistribution.scanPrompt')}</p>
-        <form className="ps-slidedist-scan-row" onSubmit={handleScanSubmit}>
-          <input
-            type="text" className="ps-slidedist-scan-input" autoFocus
-            value={scanInput} onChange={e => setScanInput(e.target.value)}
-            placeholder={t('slideDistribution.scanPlaceholder') ?? ''}
-          />
-          <button type="submit" className="ps-btn-primary">{t('slideDistribution.scanSubmit')}</button>
-        </form>
-        {w.scanError && <div className="ps-slidedist-scan-error">{w.scanError}</div>}
+        <StationScanField onScan={handleScan} placeholder={t('slideDistribution.scanPlaceholder') ?? ''} submitLabel={t('slideDistribution.scanSubmit')} />
+        {w.scanError && <div className="ps-slidedist-scan-error">{t(w.scanError.key, w.scanError.values)}</div>}
       </div>
+
+      {w.saveError && <div className="ps-workstation-save-error" role="alert">{w.saveError}</div>}
 
       <div className="ps-slidedist-layout">
         <QueuePanel queue={w.queue} activeQueueId={w.activeQueueId} onSelect={w.setActiveQueueId} onRemove={w.removeFromQueue} />
@@ -151,22 +194,33 @@ const SlideDistributionStationPage: React.FC = () => {
           scanExceptions={w.scanExceptions}
           onFlagException={handleFlagException}
           onResolveException={handleResolveException}
-          onRequestReprint={handleRequestReprint}
+          onRequestReprint={() => { setReprintFeedback(null); setPendingReprint(true); }}
           reprintFeedback={reprintFeedback}
+          requirements={w.requirements}
         />
 
         <DestinationControlPanel
           activeItem={activeItem}
           pathologists={w.pathologists}
           subspecialties={w.subspecialties}
+          scanners={w.scanners}
           defaultRouting={defaultRouting}
           onAssignPhysical={handleAssignPhysical}
           onAssignScanner={handleAssignScanner}
           feedback={assignFeedback}
           mode={mode}
           onModeChange={setMode}
+          requirements={w.requirements}
         />
       </div>
+
+      {pendingReprint && (
+        <SlideLabelReprintModal
+          requirements={w.requirements}
+          onReprint={reason => { void handleConfirmReprint(reason); }}
+          onCancel={() => setPendingReprint(false)}
+        />
+      )}
     </div>
   );
 };

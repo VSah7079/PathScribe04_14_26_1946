@@ -52,6 +52,7 @@ import type {
   ExpressionOperator,
   AiGenerationConfig,
 } from '../../types/template';
+import { switchable } from '@/utils/a11y/pressable';
 
 interface Props {
   node: TemplateNode | null;
@@ -103,7 +104,7 @@ export const Toggle: React.FC<{
 }> = ({ checked, onChange, label }) => (
   <label className="ps-tinsp-toggle-row">
     <div
-      onClick={() => onChange(!checked)}
+      {...switchable(checked, () => onChange(!checked), label)}
       className={`ps-tinsp-toggle-track${checked ? ' ps-tinsp-toggle-track--on' : ''}`}
     >
       <div className={`ps-tinsp-toggle-thumb${checked ? ' ps-tinsp-toggle-thumb--on' : ''}`} />
@@ -117,8 +118,11 @@ export const Sel: React.FC<{
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   fullWidth?: boolean;
-}> = ({ value, onChange, options, fullWidth }) => (
+  /** Batch 524 (PS-491): the visible label's text, so the select has an accessible name. */
+  ariaLabel?: string;
+}> = ({ value, onChange, options, fullWidth, ariaLabel }) => (
   <select
+    aria-label={ariaLabel}
     value={value}
     onChange={e => onChange(e.target.value)}
     className={`ps-tinsp-select${fullWidth ? ' ps-tinsp-select--full' : ''}`}
@@ -307,7 +311,7 @@ const RichTextBlockEditor: React.FC<{ node: RichTextBlockNode; u: (n: TemplateNo
       height={120}
     />
     <Label>{t('templateInspector.richTextBlock.textAlignLabel')}</Label>
-    <Sel value={node.textAlign ?? 'left'} onChange={v => u({ ...node, textAlign: v as RichTextBlockNode['textAlign'] })}
+    <Sel ariaLabel={t('templateInspector.richTextBlock.textAlignLabel')} value={node.textAlign ?? 'left'} onChange={v => u({ ...node, textAlign: v as RichTextBlockNode['textAlign'] })}
       options={[
         { value: 'left',   label: t('templateInspector.align.left') },
         { value: 'center', label: t('templateInspector.align.center') },
@@ -333,7 +337,7 @@ const LabelConfigEditor: React.FC<{ config: LabelConfig; onChange: (c: LabelConf
   // passed through as CSS custom properties so the actual property/value
   // pairs stay defined in pathscribe.css rather than as inline style rules.
   const previewVars: React.CSSProperties = {
-    ['--lc-fontsize' as string]: `${config.fontSize ?? (config.position === 'above' ? 12 : 11)}px`,
+    ['--lc-fontsize' as string]: `${config.fontSize ?? (config.position === 'above' ? 12 : 11)}pt`,
     ['--lc-weight' as string]: config.weight === 'bold' ? 700 : 600,
     ['--lc-decoration' as string]: config.decoration === 'underline' ? 'underline' : 'none',
     ['--lc-transform' as string]: config.transform === 'uppercase' ? 'uppercase' : config.transform === 'capitalize' ? 'capitalize' : 'none',
@@ -342,12 +346,12 @@ const LabelConfigEditor: React.FC<{ config: LabelConfig; onChange: (c: LabelConf
   return (
     <div className="ps-tinsp-stack">
       <Label>{t('templateInspector.labelConfig.positionLabel')}</Label>
-      <Sel value={config.position} onChange={v => onChange({ ...config, position: v as LabelConfig['position'] })}
+      <Sel ariaLabel={t('templateInspector.labelConfig.positionLabel')} value={config.position} onChange={v => onChange({ ...config, position: v as LabelConfig['position'] })}
         options={POSITION_OPTIONS} fullWidth />
 
       {config.position !== 'none' && (<>
         <Label>{t('templateInspector.labelConfig.transformLabel')}</Label>
-        <Sel value={config.transform ?? 'uppercase'} onChange={v => onChange({ ...config, transform: v as LabelConfig['transform'] })}
+        <Sel ariaLabel={t('templateInspector.labelConfig.transformLabel')} value={config.transform ?? 'uppercase'} onChange={v => onChange({ ...config, transform: v as LabelConfig['transform'] })}
           options={[
             { value: 'uppercase',  label: t('templateInspector.labelConfig.transform.uppercase') },
             { value: 'capitalize', label: t('templateInspector.labelConfig.transform.capitalize') },
@@ -457,7 +461,7 @@ const DateEditor: React.FC<{ node: DateNode; u: (n: TemplateNode) => void }> = (
     <Label>{t('templateInspector.date.bindingKeyLabel')}</Label>
     <TextInput value={node.bindingKey} onChange={v => u({ ...node, bindingKey: v })} placeholder="diagnostic.issuedDate" mono />
     <Label>{t('templateInspector.date.formatLabel')}</Label>
-    <Sel value={node.format ?? 'date'} onChange={v => u({ ...node, format: v as DateNode['format'] })}
+    <Sel ariaLabel={t('templateInspector.date.formatLabel')} value={node.format ?? 'date'} onChange={v => u({ ...node, format: v as DateNode['format'] })}
       options={[
         { value: 'date',     label: t('templateInspector.date.format.date') },
         { value: 'datetime', label: t('templateInspector.date.format.datetime') },
@@ -475,16 +479,16 @@ const ComputedEditor: React.FC<{ node: ComputedNode; u: (n: TemplateNode) => voi
     <Div label={t('templateInspector.computed.divLabel')} />
     <Label>{t('templateInspector.computed.expressionLabel')}</Label>
     <Textarea value={node.expression} onChange={v => u({ ...node, expression: v })}
-      placeholder="e.g. specimens.length + ' specimens submitted'" height={60} mono />
+      placeholder={t('common.examplePlaceholder', { example: "specimens.length + ' specimens submitted'" })} height={60} mono />
     <Label>{t('templateInspector.computed.outputTypeLabel')}</Label>
-    <Sel value={node.outputType ?? 'text'} onChange={v => u({ ...node, outputType: v as ComputedNode['outputType'] })}
+    <Sel ariaLabel={t('templateInspector.computed.outputTypeLabel')} value={node.outputType ?? 'text'} onChange={v => u({ ...node, outputType: v as ComputedNode['outputType'] })}
       options={[
         { value: 'text',   label: t('templateInspector.computed.outputType.text') },
         { value: 'number', label: t('templateInspector.computed.outputType.number') },
         { value: 'date',   label: t('templateInspector.computed.outputType.date') },
       ]} fullWidth />
     <Label>{t('templateInspector.computed.unitLabel')}</Label>
-    <TextInput value={node.unit ?? ''} onChange={v => u({ ...node, unit: v })} placeholder="e.g. mm" />
+    <TextInput value={node.unit ?? ''} onChange={v => u({ ...node, unit: v })} placeholder={t('common.examplePlaceholder', { example: 'mm' })} />
   </>);
 };
 
@@ -495,7 +499,7 @@ const StaticLabelEditor: React.FC<{ node: StaticLabelNode; u: (n: TemplateNode) 
     <Label>{t('templateInspector.staticLabel.textLabel')}</Label>
     <Textarea value={node.text} onChange={v => u({ ...node, text: v })} height={56} />
     <Label>{t('templateInspector.staticLabel.variantLabel')}</Label>
-    <Sel value={node.variant ?? 'body'} onChange={v => u({ ...node, variant: v as StaticLabelNode['variant'] })}
+    <Sel ariaLabel={t('templateInspector.staticLabel.variantLabel')} value={node.variant ?? 'body'} onChange={v => u({ ...node, variant: v as StaticLabelNode['variant'] })}
       options={[
         { value: 'h1',      label: t('templateInspector.staticLabel.variant.h1') },
         { value: 'h2',      label: t('templateInspector.staticLabel.variant.h2') },
@@ -610,7 +614,7 @@ const PageBreakEditor: React.FC<{ node: PageBreakNode; u: (n: TemplateNode) => v
   return (<>
     <Div label={t('templateInspector.pageBreak.divLabel')} />
     <Label>{t('templateInspector.pageBreak.behaviourLabel')}</Label>
-    <Sel value={node.breakBehavior ?? 'always'} onChange={v => u({ ...node, breakBehavior: v as PageBreakNode['breakBehavior'] })}
+    <Sel ariaLabel={t('templateInspector.pageBreak.behaviourLabel')} value={node.breakBehavior ?? 'always'} onChange={v => u({ ...node, breakBehavior: v as PageBreakNode['breakBehavior'] })}
       options={[
         { value: 'always', label: t('templateInspector.pageBreak.behaviour.always') },
         { value: 'avoid',  label: t('templateInspector.pageBreak.behaviour.avoid') },
@@ -676,7 +680,7 @@ const ExpressionValueEditor: React.FC<{ node: ExpressionValueNode; u: (n: Templa
     <Div label={t('templateInspector.expressionValue.divLabel')} />
     <Label>{t('templateInspector.expressionValue.templateStringLabel')}</Label>
     <Textarea value={node.template} onChange={v => u({ ...node, template: v })}
-      placeholder="{{patient.name}}, {{patient.age}} years old" height={56} mono />
+      placeholder={t('templateInspector.expressionValue.templatePlaceholder', { name: '{{patient.name}}', age: '{{patient.age}}' })} height={56} mono />
     <div className="ps-tinsp-hint-line">
       <Trans i18nKey="templateInspector.expressionValue.hint" components={{ code: <code /> }} />
     </div>
@@ -702,7 +706,7 @@ const HeaderEditor: React.FC<{ node: HeaderNode; u: (n: TemplateNode) => void }>
   return (<>
     <Div label={t('templateInspector.header.divLabel')} />
     <Label>{t('templateInspector.header.pageScopeLabel')}</Label>
-    <Sel value={node.scope} onChange={v => u({ ...node, scope: v as HeaderNode['scope'] })}
+    <Sel ariaLabel={t('templateInspector.header.pageScopeLabel')} value={node.scope} onChange={v => u({ ...node, scope: v as HeaderNode['scope'] })}
       options={pageScopeOptions} fullWidth />
     <Label>{t('templateInspector.header.heightLabel')}</Label>
     <TextInput value={String(node.height ?? 90)} onChange={v => u({ ...node, height: parseInt(v) || 90 })} placeholder="90" />
@@ -724,7 +728,7 @@ const FooterEditor: React.FC<{ node: FooterNode; u: (n: TemplateNode) => void }>
   return (<>
     <Div label={t('templateInspector.footer.divLabel')} />
     <Label>{t('templateInspector.footer.pageScopeLabel')}</Label>
-    <Sel value={node.scope} onChange={v => u({ ...node, scope: v as FooterNode['scope'] })}
+    <Sel ariaLabel={t('templateInspector.footer.pageScopeLabel')} value={node.scope} onChange={v => u({ ...node, scope: v as FooterNode['scope'] })}
       options={pageScopeOptions} fullWidth />
     <Label>{t('templateInspector.footer.heightLabel')}</Label>
     <TextInput value={String(node.height ?? 40)} onChange={v => u({ ...node, height: parseInt(v) || 40 })} placeholder="40" />
@@ -741,7 +745,7 @@ const FooterEditor: React.FC<{ node: FooterNode; u: (n: TemplateNode) => void }>
     </>)}
     <Label>{t('templateInspector.footer.customHtmlLabel')}</Label>
     <Textarea value={node.htmlTemplate ?? ''} onChange={v => u({ ...node, htmlTemplate: v })}
-      placeholder="<div>Page {{page.number}}</div>" height={72} mono />
+      placeholder={t('templateInspector.footer.customHtmlPlaceholder', { page: '{{page.number}}' })} height={72} mono />
   </>);
 };
 
@@ -758,7 +762,7 @@ const ImageEmbedEditor: React.FC<{ node: ImageEmbedNode; u: (n: TemplateNode) =>
     <Label>{t('templateInspector.imageEmbed.captionLabel')}</Label>
     <TextInput value={node.caption ?? ''} onChange={v => u({ ...node, caption: v })} placeholder={t('templateInspector.imageEmbed.captionPlaceholder')} />
     <Label>{t('templateInspector.imageEmbed.alignmentLabel')}</Label>
-    <Sel value={node.alignment ?? 'left'} onChange={v => u({ ...node, alignment: v as ImageEmbedNode['alignment'] })}
+    <Sel ariaLabel={t('templateInspector.imageEmbed.alignmentLabel')} value={node.alignment ?? 'left'} onChange={v => u({ ...node, alignment: v as ImageEmbedNode['alignment'] })}
       options={[
         { value: 'left',   label: t('templateInspector.align.left') },
         { value: 'center', label: t('templateInspector.align.center') },
@@ -817,7 +821,7 @@ export const TemplateInspector: React.FC<Props> = ({ node, onUpdate }) => {
             this is the fallback for precise control */}
         <Label>{t('templateInspector.general.widthLabel')}</Label>
         <div className="ps-tinsp-width-row">
-          <input
+          <input aria-label={t('a11y.fields.width')}
             type="range" min={1} max={12} step={1}
             value={node.colSpan ?? 12}
             onChange={e => u({ ...node, colSpan: parseInt(e.target.value) })}

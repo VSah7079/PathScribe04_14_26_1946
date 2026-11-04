@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { resolveUnvalidatedTermKeysInAnswers, resolveTranslationAcknowledgmentIsCurrent } from './resolveSynopticTranslationValidation';
 import type { SynopticTemplate } from '@/types/cytology/SynopticTemplate';
+import { normalizeSynopticTemplate } from '@/services/templates/normalizeSynopticTemplate';
 import type { PathologyLexiconEntry } from '@/types/cytology/PathologyLexicon';
 
-const template: SynopticTemplate = {
+const template: SynopticTemplate = normalizeSynopticTemplate({
   id: 'test', name: 'Test', source: 'Custom', version: '1.0.0', category: 'CYTOLOGY_NONGYN', standard: 'Test Standard',
   sections: [
     {
@@ -19,7 +20,7 @@ const template: SynopticTemplate = {
       ],
     },
   ],
-};
+});
 
 const LEXICON: PathologyLexiconEntry[] = [
   { termKey: 'bethesda.thyroid.category.iii', canonicalTerm: 'AUS/FLUS', translations: {} },

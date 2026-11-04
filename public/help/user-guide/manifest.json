@@ -1,0 +1,2823 @@
+{
+  "articles": [
+    {
+      "slug": "accession",
+      "title": "Accession",
+      "module": "Accession",
+      "screen": "",
+      "workflow": "Specimen Intake",
+      "roles": [
+        "Accessioner",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "accession",
+        "new case",
+        "log specimen",
+        "intake",
+        "receive specimen",
+        "assign grossing template",
+        "import order",
+        "labels",
+        "requisition",
+        "downtime",
+        "outside case"
+      ],
+      "routes": [
+        "/accession",
+        "/accession/requisitions"
+      ],
+      "previous": "home",
+      "next": "grossing",
+      "related": [
+        "lockbox-drop-off",
+        "intraop-queue",
+        "search"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "add-on-orders",
+      "title": "Add-On Orders",
+      "module": "Add-On Orders",
+      "screen": "",
+      "workflow": "Case Review",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident"
+      ],
+      "keywords": [
+        "add-on order",
+        "additional levels",
+        "recut",
+        "deeper levels",
+        "special stain",
+        "immunostain",
+        "IHC",
+        "IHC panel",
+        "molecular",
+        "send-out",
+        "cart",
+        "submit order",
+        "order tracking",
+        "block exhausted",
+        "destructive cutting",
+        "control slide",
+        "reference lab"
+      ],
+      "routes": [
+        "/add-on-orders"
+      ],
+      "previous": "report",
+      "next": "workstations/microtomy",
+      "related": [
+        "report",
+        "report/microscopic-and-material",
+        "workstations/microtomy",
+        "workstations/slide-distribution",
+        "molecular/order-queue",
+        "batch-management",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "audit-log",
+      "title": "Audit Log",
+      "module": "Audit Log",
+      "screen": "",
+      "workflow": "Compliance and oversight",
+      "roles": [
+        "Laboratory Manager",
+        "QA Reviewer",
+        "Laboratory Director"
+      ],
+      "keywords": [
+        "audit log",
+        "system logs",
+        "audit trail",
+        "error log",
+        "interface log",
+        "quality assurance log",
+        "export csv",
+        "quick links",
+        "support reference",
+        "consult links",
+        "critical alerts",
+        "compliance",
+        "inspection"
+      ],
+      "routes": [
+        "/audit"
+      ],
+      "previous": "quality",
+      "next": "migration-jobs",
+      "related": [
+        "quality",
+        "my-exports",
+        "external-consult",
+        "critical-alert",
+        "help"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "autopsy/authorization-and-body-release",
+      "title": "Autopsy Authorization and Body Release",
+      "module": "Autopsy",
+      "screen": "Authorization and Body Release",
+      "workflow": "Autopsy case handling",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "autopsy",
+        "authorization",
+        "consent",
+        "written order",
+        "temporary accession",
+        "excluded organs",
+        "retention",
+        "body release",
+        "released to",
+        "released by",
+        "gross examination hold"
+      ],
+      "routes": [],
+      "previous": "accession",
+      "next": "report",
+      "related": [
+        "autopsy",
+        "report",
+        "accession",
+        "quality"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "autopsy",
+      "title": "Autopsy Dashboards",
+      "module": "Autopsy",
+      "screen": "",
+      "workflow": "Quality and compliance oversight",
+      "roles": [
+        "Lab Director",
+        "QA Reviewer",
+        "Laboratory Manager",
+        "Administrator"
+      ],
+      "keywords": [
+        "autopsy",
+        "autopsy dashboards",
+        "PAD",
+        "FAD",
+        "preliminary anatomic diagnosis",
+        "final anatomic diagnosis",
+        "turnaround",
+        "consent",
+        "organ retention",
+        "cause of death",
+        "overdue",
+        "enterprise",
+        "department"
+      ],
+      "routes": [
+        "/autopsy-dashboards"
+      ],
+      "previous": "quality",
+      "next": "outbound-queue",
+      "related": [
+        "quality",
+        "worklist",
+        "report",
+        "registry-exceptions",
+        "autopsy/authorization-and-body-release"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/disposal-report",
+      "title": "Waste Tracking Report",
+      "module": "Batch Management",
+      "screen": "Waste Tracking Report",
+      "workflow": "Retention and disposal",
+      "roles": [
+        "Laboratory Manager",
+        "Histotechnologist",
+        "Quality Reviewer"
+      ],
+      "keywords": [
+        "waste tracking",
+        "disposal report",
+        "disposed",
+        "audit",
+        "CAP",
+        "CLIA",
+        "ISO 15189",
+        "export csv",
+        "who disposed",
+        "retention compliance"
+      ],
+      "routes": [
+        "/batch-management/disposal-report"
+      ],
+      "previous": "batch-management/disposal",
+      "next": null,
+      "related": [
+        "batch-management",
+        "batch-management/disposal",
+        "batch-management/retention-holds"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/disposal",
+      "title": "Disposal Queue",
+      "module": "Batch Management",
+      "screen": "Disposal Queue",
+      "workflow": "Retention and disposal",
+      "roles": [
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "disposal",
+        "dispose",
+        "retention",
+        "discard blocks",
+        "discard slides",
+        "wet tissue",
+        "scan to dispose",
+        "red screen",
+        "retention period",
+        "eligible for disposal"
+      ],
+      "routes": [
+        "/batch-management/disposal"
+      ],
+      "previous": "batch-management/retention-holds",
+      "next": "batch-management/disposal-report",
+      "related": [
+        "batch-management",
+        "batch-management/retention-holds",
+        "batch-management/disposal-report",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/engraver-monitor",
+      "title": "Engraver Monitor",
+      "module": "Batch Management",
+      "screen": "Engraver Monitor",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "engraver",
+        "cassette engraver",
+        "device status",
+        "supply low",
+        "cassette supply",
+        "fault",
+        "offline",
+        "diagnostics",
+        "cassette engine"
+      ],
+      "routes": [
+        "/batch-management/engraver-monitor"
+      ],
+      "previous": "batch-management/label-reprint",
+      "next": "batch-management/wsi-scan",
+      "related": [
+        "batch-management",
+        "batch-management/label-reprint",
+        "grossing"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/equipment-log",
+      "title": "Equipment Log",
+      "module": "Batch Management",
+      "screen": "Equipment Log",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "equipment log",
+        "maintenance",
+        "calibration",
+        "service log",
+        "malfunction",
+        "repair",
+        "function check",
+        "overdue",
+        "due soon",
+        "instrument"
+      ],
+      "routes": [
+        "/batch-management/equipment-log"
+      ],
+      "previous": "batch-management/wsi-scan",
+      "next": "batch-management/workflow-reports",
+      "related": [
+        "batch-management",
+        "batch-management/engraver-monitor",
+        "batch-management/wsi-scan"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management",
+      "title": "Batch Management",
+      "module": "Batch Management",
+      "screen": "",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "batch",
+        "container",
+        "master barcode",
+        "reconciliation",
+        "chain of custody",
+        "decal",
+        "processing",
+        "staining",
+        "referral",
+        "rack",
+        "manifest",
+        "supervisor override",
+        "cold chain",
+        "abort batch",
+        "new container"
+      ],
+      "routes": [
+        "/batch-management"
+      ],
+      "previous": "pathology-workspace",
+      "next": "batch-management/pending-load",
+      "related": [
+        "pathology-workspace",
+        "workstations/embedding",
+        "workstations/microtomy",
+        "workstations/slide-distribution",
+        "grossing"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/label-reprint",
+      "title": "Label Reprint",
+      "module": "Batch Management",
+      "screen": "Label Reprint",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "label reprint",
+        "reprint labels",
+        "requisition label",
+        "container label",
+        "cassette label",
+        "bulk print",
+        "retry failed",
+        "accession range",
+        "on-demand guardrail"
+      ],
+      "routes": [
+        "/batch-management/label-reprint"
+      ],
+      "previous": "batch-management/pending-load",
+      "next": "batch-management/engraver-monitor",
+      "related": [
+        "batch-management",
+        "batch-management/pending-load",
+        "grossing"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/pending-load",
+      "title": "Pending Batch Load",
+      "module": "Batch Management",
+      "screen": "Pending Batch Load",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "pending load",
+        "pending batch",
+        "not yet batched",
+        "printed cassettes",
+        "engraved",
+        "waiting to be loaded",
+        "unbatched slides",
+        "find cassette"
+      ],
+      "routes": [
+        "/batch-management/pending-load"
+      ],
+      "previous": "batch-management",
+      "next": "batch-management/label-reprint",
+      "related": [
+        "batch-management",
+        "grossing",
+        "workstations/embedding",
+        "workstations/microtomy"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/retention-holds",
+      "title": "Retention Holds",
+      "module": "Batch Management",
+      "screen": "Retention Holds",
+      "workflow": "Retention and disposal",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager",
+        "Pathologist"
+      ],
+      "keywords": [
+        "retention hold",
+        "litigation hold",
+        "research hold",
+        "patient requested retention",
+        "release hold",
+        "hold queue",
+        "block disposal",
+        "export holds"
+      ],
+      "routes": [
+        "/batch-management/retention-holds"
+      ],
+      "previous": "batch-management/workflow-reports",
+      "next": "batch-management/disposal",
+      "related": [
+        "batch-management/disposal",
+        "batch-management/disposal-report",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/workflow-reports",
+      "title": "Lab Workflow Reports",
+      "module": "Batch Management",
+      "screen": "Lab Workflow Reports",
+      "workflow": "Bench chain of custody",
+      "roles": [
+        "Laboratory Manager",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist"
+      ],
+      "keywords": [
+        "reports",
+        "turnaround",
+        "TAT",
+        "volume",
+        "STAT",
+        "add-on",
+        "recut",
+        "rework",
+        "reconciliation",
+        "exceptions",
+        "batch duration",
+        "CSV",
+        "Power BI"
+      ],
+      "routes": [
+        "/batch-management/workflow-reports"
+      ],
+      "previous": "batch-management/equipment-log",
+      "next": "batch-management/retention-holds",
+      "related": [
+        "batch-management",
+        "facility-operations",
+        "workstations/embedding",
+        "workstations/microtomy",
+        "workstations/slide-distribution"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "batch-management/wsi-scan",
+      "title": "Slide Scanning",
+      "module": "Batch Management",
+      "screen": "Slide Scanning",
+      "workflow": "Digital pathology hand-off",
+      "roles": [
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "slide scanning",
+        "whole slide imaging",
+        "WSI",
+        "scan batch",
+        "slide scanner",
+        "load",
+        "send to scanner",
+        "unload",
+        "scanning queue",
+        "digital pathology",
+        "image QC"
+      ],
+      "routes": [
+        "/batch-management/wsi-scan"
+      ],
+      "previous": "batch-management/engraver-monitor",
+      "next": "batch-management/equipment-log",
+      "related": [
+        "workstations/slide-distribution",
+        "wsi-viewer",
+        "batch-management",
+        "batch-management/equipment-log"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "bench-contributions",
+      "title": "Bench Contributions",
+      "module": "Bench Contributions",
+      "screen": "",
+      "workflow": "Bench Performance Review",
+      "roles": [
+        "Histotechnologist",
+        "Pathology Assistant",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "bench contributions",
+        "accessioning rate",
+        "batch throughput",
+        "queue aging",
+        "turnaround time",
+        "molecular QC"
+      ],
+      "routes": [
+        "/bench-contributions"
+      ],
+      "previous": "home",
+      "next": null,
+      "related": [
+        "pathology-workspace"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "case-flags",
+      "title": "Case Flags",
+      "module": "Case Flags",
+      "screen": "",
+      "workflow": "Everyday case handling",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "flags",
+        "case flag",
+        "specimen flag",
+        "STAT",
+        "rush",
+        "hold",
+        "confidential",
+        "severity",
+        "flag manager",
+        "worklist",
+        "restricted printing",
+        "mdt"
+      ],
+      "routes": [],
+      "previous": "personal-settings",
+      "next": "case-search-bar",
+      "related": [
+        "report",
+        "worklist",
+        "search",
+        "report/case-team",
+        "tumor-board",
+        "case-search-bar"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "case-search-bar",
+      "title": "Case Search Bar",
+      "module": "Case Search Bar",
+      "screen": "",
+      "workflow": "Everyday navigation",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "search bar",
+        "scan",
+        "barcode",
+        "accession",
+        "MRN",
+        "find case",
+        "header search",
+        "support reference"
+      ],
+      "routes": [],
+      "previous": "case-flags",
+      "next": "session-and-connection",
+      "related": [
+        "search",
+        "report",
+        "worklist",
+        "case-flags",
+        "personal-settings"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "clinical-links",
+      "title": "Clinical Links",
+      "module": "Clinical Links",
+      "screen": "",
+      "workflow": "Everyday reference",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "clinical links",
+        "resources",
+        "external links",
+        "CAP protocols",
+        "WHO classification",
+        "PathologyOutlines",
+        "UpToDate",
+        "quick links"
+      ],
+      "routes": [],
+      "previous": "session-and-connection",
+      "next": "help",
+      "related": [
+        "personal-settings",
+        "report",
+        "worklist",
+        "search"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "critical-alert",
+      "title": "Critical Alert",
+      "module": "Critical Alert",
+      "screen": "",
+      "workflow": "Critical result notification",
+      "roles": [
+        "Receiving physician",
+        "Pathologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "critical alert",
+        "critical result",
+        "reference link",
+        "acknowledge reviewed",
+        "notification",
+        "sms",
+        "secure email",
+        "expired link",
+        "one-time link"
+      ],
+      "routes": [
+        "/critical-alert/:token"
+      ],
+      "previous": "external-consult",
+      "next": "audit-log",
+      "related": [
+        "audit-log",
+        "report",
+        "external-consult"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "cytology",
+      "title": "Cytology Worklist",
+      "module": "Cytology",
+      "screen": "",
+      "workflow": "Cytology screening and cervical screening quality",
+      "roles": [
+        "Cytotechnologist",
+        "Pathologist",
+        "Fellow",
+        "Quality Manager",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "cytology worklist",
+        "cytology workspace",
+        "pap",
+        "gyn cytology",
+        "non-gyn",
+        "fna",
+        "pool",
+        "claim",
+        "qc rescreen",
+        "hpv triage",
+        "recall needed",
+        "csms",
+        "5-year lookback",
+        "peer review",
+        "histology correlation",
+        "follow-up due",
+        "scans completed",
+        "rose",
+        "cell block",
+        "screening hours",
+        "workload limit",
+        "cytology qc queue",
+        "surgical qa",
+        "post-sign-out qa"
+      ],
+      "routes": [
+        "/cytology-worklist"
+      ],
+      "previous": "pathology-workspace",
+      "next": "cytology/screening-case",
+      "related": [
+        "worklist",
+        "quality",
+        "report",
+        "molecular",
+        "batch-management/wsi-scan",
+        "case-flags",
+        "messaging"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "cytology/screening-case",
+      "title": "Screening Case",
+      "module": "Cytology",
+      "screen": "Screening Case",
+      "workflow": "Cytology screening, QC and sign-out",
+      "roles": [
+        "Cytotechnologist",
+        "Pathologist",
+        "Fellow"
+      ],
+      "keywords": [
+        "screening case",
+        "cytology workspace",
+        "bethesda",
+        "cisoe-a",
+        "cisoea",
+        "dutch",
+        "palga",
+        "bscc",
+        "rcpath",
+        "munchen iii",
+        "sfcc",
+        "adequacy",
+        "interpretation",
+        "recommendation",
+        "hpv",
+        "reflex",
+        "qc rescreen",
+        "mandatory qc",
+        "secondary review",
+        "pathologist review",
+        "sign out",
+        "countersign",
+        "recall",
+        "follow-up",
+        "5-year lookback",
+        "retrospective review",
+        "histology correlation",
+        "cyto-histologic",
+        "rose",
+        "cell block",
+        "synoptic",
+        "final diagnosis",
+        "addendum",
+        "correction",
+        "preliminary report"
+      ],
+      "routes": [
+        "/cytology-worklist/:caseId"
+      ],
+      "previous": "cytology",
+      "next": "report/sign-out-and-release",
+      "related": [
+        "cytology",
+        "worklist",
+        "quality",
+        "molecular",
+        "wsi-viewer",
+        "case-flags",
+        "report/case-team",
+        "messaging",
+        "add-on-orders"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "demonstration-tools",
+      "title": "Demonstration Tools",
+      "module": "Demonstration Tools",
+      "screen": "",
+      "workflow": "Demonstration and training",
+      "roles": [
+        "Laboratory Manager",
+        "Trainer",
+        "Administrator"
+      ],
+      "keywords": [
+        "mock emr",
+        "demo",
+        "demonstration",
+        "training",
+        "mock interface engine",
+        "simulated",
+        "interface engine",
+        "inbound message simulator",
+        "hl7",
+        "scanner simulation",
+        "sidecar"
+      ],
+      "routes": [
+        "/mock-emr",
+        "/dev/mock-interface-engine"
+      ],
+      "previous": "migration-jobs",
+      "next": "help",
+      "related": [
+        "report",
+        "audit-log"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "external-consult",
+      "title": "External Consult",
+      "module": "External Consult",
+      "screen": "",
+      "workflow": "Second opinion",
+      "roles": [
+        "Outside consultant",
+        "Pathologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "external consult",
+        "second opinion",
+        "consult link",
+        "outside consultant",
+        "revoke link",
+        "expired link",
+        "opinion",
+        "draft",
+        "signed opinion",
+        "slides in scope"
+      ],
+      "routes": [
+        "/consult",
+        "/consult/:token"
+      ],
+      "previous": "report",
+      "next": "critical-alert",
+      "related": [
+        "audit-log",
+        "report",
+        "critical-alert"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "facility-operations",
+      "title": "Facility Operations Display",
+      "module": "Facility Operations",
+      "screen": "",
+      "workflow": "Laboratory operations",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager",
+        "Accessioner",
+        "Administrator"
+      ],
+      "keywords": [
+        "facility operations",
+        "wall display",
+        "bench display",
+        "dashboard",
+        "grossing",
+        "intake",
+        "embedding",
+        "microtome",
+        "staining",
+        "IHC",
+        "send-out",
+        "reference laboratory",
+        "scanner",
+        "carousel",
+        "display profile",
+        "display token",
+        "offline",
+        "stale data",
+        "STAT",
+        "cold chain"
+      ],
+      "routes": [
+        "/facility-ops-dashboard"
+      ],
+      "previous": "pathology-workspace",
+      "next": "or-suite",
+      "related": [
+        "batch-management",
+        "batch-management/pending-load",
+        "batch-management/wsi-scan",
+        "intraop-queue"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "grossing",
+      "title": "Grossing",
+      "module": "Grossing",
+      "screen": "",
+      "workflow": "Specimen Grossing",
+      "roles": [
+        "Pathology Assistant",
+        "Pathologist"
+      ],
+      "keywords": [
+        "grossing",
+        "gross description",
+        "blocks",
+        "cassettes",
+        "specimen dissection",
+        "triage checklist",
+        "photos",
+        "piece count",
+        "fixation",
+        "margins",
+        "ink",
+        "complete grossing",
+        "gross complete"
+      ],
+      "routes": [
+        "/workstations/grossing",
+        "/case/:caseId/grossing"
+      ],
+      "previous": "accession",
+      "next": "pathology-workspace",
+      "related": [
+        "worklist",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "help",
+      "title": "Help",
+      "module": "Help",
+      "screen": "",
+      "workflow": "Getting help",
+      "roles": [
+        "All staff"
+      ],
+      "keywords": [
+        "help",
+        "user guide",
+        "f1",
+        "help button",
+        "search the guide",
+        "you are here",
+        "previous step",
+        "next step",
+        "related actions",
+        "administrator guide",
+        "contents"
+      ],
+      "routes": [],
+      "previous": "sign-in",
+      "next": "home",
+      "related": [
+        "home",
+        "audit-log"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "home",
+      "title": "Home Dashboard",
+      "module": "Home",
+      "screen": "",
+      "workflow": "Starting your day",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Laboratory Manager",
+        "MDT Coordinator",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "home",
+        "dashboard",
+        "tiles",
+        "landing page",
+        "start",
+        "main menu",
+        "welcome"
+      ],
+      "routes": [
+        "/"
+      ],
+      "previous": null,
+      "next": "accession",
+      "related": [
+        "accession",
+        "worklist",
+        "search",
+        "sign-in",
+        "help",
+        "voice-and-keyboard",
+        "personal-settings",
+        "messaging",
+        "notifications"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "intraop-queue",
+      "title": "Intraop Queue",
+      "module": "Intraop Queue",
+      "screen": "",
+      "workflow": "Intraoperative consultation",
+      "roles": [
+        "Pathologist",
+        "Accessioner"
+      ],
+      "keywords": [
+        "intraop",
+        "frozen section",
+        "intraoperative",
+        "verbal report",
+        "unlinked entry",
+        "merge into accession",
+        "quick gross",
+        "touch prep",
+        "surgeon read-back"
+      ],
+      "routes": [
+        "/intraop-queue"
+      ],
+      "previous": "home",
+      "next": "accession",
+      "related": [
+        "accession",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "lockbox-drop-off",
+      "title": "Lockbox Drop-Off",
+      "module": "Lockbox Drop-Off",
+      "screen": "",
+      "workflow": "After-hours specimen receipt",
+      "roles": [
+        "Accessioner",
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "lockbox",
+        "drop-off",
+        "after hours",
+        "scan specimen",
+        "morning follow-up",
+        "overnight folder",
+        "placeholder",
+        "urgent drop",
+        "time to receipt"
+      ],
+      "routes": [
+        "/lockbox-drop-off"
+      ],
+      "previous": "home",
+      "next": "accession",
+      "related": [
+        "accession"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "margin-exception-review",
+      "title": "Margin Exception Review",
+      "module": "Margin Exception Review",
+      "screen": "",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident",
+        "Pathology Assistant"
+      ],
+      "keywords": [
+        "margin",
+        "margin distance",
+        "distance to margin",
+        "exception",
+        "free text",
+        "tumor board rule",
+        "resolve",
+        "dismiss",
+        "closest margin",
+        "millimetres",
+        "synoptic answer"
+      ],
+      "routes": [
+        "/margin-exception-review"
+      ],
+      "previous": "report/synoptic-reporting",
+      "next": "tumor-board",
+      "related": [
+        "report",
+        "report/synoptic-reporting",
+        "tumor-board",
+        "quality",
+        "case-flags"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "messaging",
+      "title": "Messaging",
+      "module": "Messaging",
+      "screen": "",
+      "workflow": "Everyday communication",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "messages",
+        "inbox",
+        "compose",
+        "reply",
+        "urgent",
+        "secure email",
+        "case link",
+        "notice",
+        "recently deleted",
+        "unread",
+        "internal message",
+        "send message",
+        "edit mode",
+        "mark as read"
+      ],
+      "routes": [],
+      "previous": "home",
+      "next": "notifications",
+      "related": [
+        "notifications",
+        "personal-settings",
+        "report",
+        "worklist",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "migration-jobs",
+      "title": "Migration Jobs",
+      "module": "Migration Jobs",
+      "screen": "",
+      "workflow": "Go-live and data conversion",
+      "roles": [
+        "Laboratory Manager",
+        "Administrator"
+      ],
+      "keywords": [
+        "migration",
+        "legacy import",
+        "historical data",
+        "import legacy file",
+        "csv",
+        "cross-validation",
+        "source system",
+        "draft cases",
+        "needs review",
+        "simulated import"
+      ],
+      "routes": [
+        "/migration-jobs"
+      ],
+      "previous": "audit-log",
+      "next": "demonstration-tools",
+      "related": [
+        "audit-log",
+        "accession",
+        "search"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular/batch",
+      "title": "Batch",
+      "module": "Molecular",
+      "screen": "Batch",
+      "workflow": "Building a plate and running it",
+      "roles": [
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "batch",
+        "plate",
+        "plate builder",
+        "well",
+        "controls",
+        "NTC",
+        "positive control",
+        "reagent lot",
+        "scan to well",
+        "auto-fill",
+        "worklist",
+        "dispatch",
+        "deck slot",
+        "run results",
+        "Ct value",
+        "trace",
+        "clone and supersede",
+        "superseded",
+        "blocked"
+      ],
+      "routes": [
+        "/molecular-batch/:batchId"
+      ],
+      "previous": "molecular",
+      "next": "molecular/rack-board",
+      "related": [
+        "molecular",
+        "molecular/control-rules",
+        "molecular/rack",
+        "report",
+        "batch-management"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular/control-rules",
+      "title": "Control Rules",
+      "module": "Molecular",
+      "screen": "Control Rules",
+      "workflow": "Setting the controls each molecular test requires",
+      "roles": [
+        "Laboratory Manager",
+        "Administrator",
+        "Molecular Technologist"
+      ],
+      "keywords": [
+        "control rules",
+        "assay control rules",
+        "required controls",
+        "NTC",
+        "positive control",
+        "calibrator",
+        "fixed position",
+        "random position",
+        "deck slots",
+        "sample rack slot",
+        "position enforcement"
+      ],
+      "routes": [
+        "/molecular-control-rules"
+      ],
+      "previous": "molecular/rack",
+      "next": "molecular",
+      "related": [
+        "molecular",
+        "molecular/batch",
+        "molecular/rack",
+        "molecular/rack-board"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular",
+      "title": "Molecular",
+      "module": "Molecular",
+      "screen": "",
+      "workflow": "Molecular testing, from order to result",
+      "roles": [
+        "Molecular Technologist",
+        "Laboratory Manager",
+        "Pathologist"
+      ],
+      "keywords": [
+        "molecular",
+        "workspace",
+        "workcenter",
+        "order queue",
+        "plate",
+        "batch",
+        "worklist",
+        "instrument",
+        "PCR",
+        "HPV",
+        "extraction rack",
+        "controls",
+        "run",
+        "results",
+        "send-out",
+        "reference lab",
+        "QC and specimen association"
+      ],
+      "routes": [
+        "/molecular"
+      ],
+      "previous": "pathology-workspace",
+      "next": "molecular/batch",
+      "related": [
+        "molecular/order-queue",
+        "molecular/batch",
+        "molecular/rack-board",
+        "molecular/rack",
+        "molecular/control-rules",
+        "add-on-orders",
+        "report",
+        "accession",
+        "batch-management"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular/order-queue",
+      "title": "Order Queue",
+      "module": "Molecular",
+      "screen": "Order Queue",
+      "workflow": "Molecular order messages and demonstration",
+      "roles": [
+        "Laboratory Manager",
+        "Administrator"
+      ],
+      "keywords": [
+        "molecular order queue",
+        "outbound orders",
+        "HPV co-test",
+        "reflex genotyping",
+        "simulate result",
+        "demonstration",
+        "testing tools",
+        "queued",
+        "sent",
+        "failed",
+        "instrument order"
+      ],
+      "routes": [
+        "/molecular-order-queue"
+      ],
+      "previous": "molecular",
+      "next": "molecular/batch",
+      "related": [
+        "molecular",
+        "outbound-queue",
+        "accession",
+        "demonstration-tools",
+        "cytology"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular/rack-board",
+      "title": "Rack Board",
+      "module": "Molecular",
+      "screen": "Rack Board",
+      "workflow": "Extraction racks before plate loading",
+      "roles": [
+        "Molecular Technologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "extraction rack",
+        "rack list",
+        "rack board",
+        "tube rack",
+        "lysis",
+        "extraction",
+        "occupied",
+        "needs sample IDs",
+        "placed on instrument",
+        "new rack"
+      ],
+      "routes": [
+        "/molecular-rack"
+      ],
+      "previous": "molecular/batch",
+      "next": "molecular/rack",
+      "related": [
+        "molecular",
+        "molecular/rack",
+        "molecular/batch",
+        "molecular/control-rules"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "molecular/rack",
+      "title": "Rack",
+      "module": "Molecular",
+      "screen": "Rack",
+      "workflow": "Loading tubes and placing the rack on an instrument",
+      "roles": [
+        "Molecular Technologist"
+      ],
+      "keywords": [
+        "extraction rack",
+        "rack loading",
+        "tube",
+        "scan tube",
+        "sample ID",
+        "accession",
+        "deck slot",
+        "place rack",
+        "place on instrument",
+        "deck position",
+        "LOC-INST",
+        "new rack",
+        "rack barcode",
+        "movement"
+      ],
+      "routes": [
+        "/molecular-rack/:rackId"
+      ],
+      "previous": "molecular/rack-board",
+      "next": "molecular/batch",
+      "related": [
+        "molecular",
+        "molecular/rack-board",
+        "molecular/batch",
+        "molecular/control-rules"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "my-contribution",
+      "title": "My Contribution",
+      "module": "My Contribution",
+      "screen": "",
+      "workflow": "Personal Performance Review",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant"
+      ],
+      "keywords": [
+        "my contribution",
+        "workload",
+        "quality",
+        "TAT",
+        "turnaround",
+        "trends",
+        "peer average",
+        "teaching cases"
+      ],
+      "routes": [
+        "/contribution"
+      ],
+      "previous": "home",
+      "next": null,
+      "related": [
+        "worklist",
+        "quality"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "my-exports",
+      "title": "My Exports",
+      "module": "My Exports",
+      "screen": "",
+      "workflow": "Reports and exports",
+      "roles": [
+        "Pathologist",
+        "Laboratory Manager",
+        "QA Reviewer",
+        "Administrator"
+      ],
+      "keywords": [
+        "my exports",
+        "export",
+        "download",
+        "csv",
+        "report export",
+        "preparing",
+        "ready",
+        "expired",
+        "cancel export",
+        "export notice",
+        "7 days"
+      ],
+      "routes": [
+        "/my-exports"
+      ],
+      "previous": "home",
+      "next": "audit-log",
+      "related": [
+        "audit-log",
+        "quality",
+        "search",
+        "registry-exceptions"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "notifications",
+      "title": "Notifications",
+      "module": "Notifications",
+      "screen": "",
+      "workflow": "Everyday awareness",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "notifications",
+        "alerts",
+        "badge",
+        "unread",
+        "urgent",
+        "critical finding",
+        "critical alert",
+        "banner",
+        "toast",
+        "registry exceptions",
+        "my exports",
+        "session warning",
+        "tone",
+        "bell"
+      ],
+      "routes": [],
+      "previous": "messaging",
+      "next": "personal-settings",
+      "related": [
+        "messaging",
+        "critical-alert",
+        "report/sign-out-and-release",
+        "registry-exceptions",
+        "my-exports",
+        "session-and-connection"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "or-suite",
+      "title": "OR Suite Display",
+      "module": "OR Suite",
+      "screen": "",
+      "workflow": "Intraoperative consultation",
+      "roles": [
+        "Pathologist",
+        "OR Staff",
+        "Histotechnologist",
+        "Administrator"
+      ],
+      "keywords": [
+        "OR suite",
+        "operating room board",
+        "frozen section board",
+        "wall display",
+        "intraoperative",
+        "frozen section",
+        "turnaround clock",
+        "verbal report",
+        "dismiss case",
+        "read-back",
+        "PIN",
+        "multi-suite",
+        "terminal",
+        "display token"
+      ],
+      "routes": [
+        "/or-suite-dashboard"
+      ],
+      "previous": "intraop-queue",
+      "next": "facility-operations",
+      "related": [
+        "intraop-queue",
+        "facility-operations",
+        "accession",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "outbound-queue",
+      "title": "Outbound Queue",
+      "module": "Outbound Queue",
+      "screen": "",
+      "workflow": "Quality and compliance oversight",
+      "roles": [
+        "Administrator",
+        "Interface Analyst",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "outbound queue",
+        "outbound messages",
+        "hold",
+        "release",
+        "retry",
+        "resend",
+        "dead letter",
+        "failed",
+        "rejected",
+        "not reportable",
+        "retract charge",
+        "release now",
+        "delivery schedule",
+        "reporting deadline",
+        "billing",
+        "registry",
+        "interface"
+      ],
+      "routes": [
+        "/outbound-queue"
+      ],
+      "previous": "autopsy",
+      "next": "registry-exceptions",
+      "related": [
+        "registry-exceptions",
+        "audit-log",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "pathology-workspace",
+      "title": "Pathology Workspace",
+      "module": "Pathology Workspace",
+      "screen": "",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Histotechnologist",
+        "Pathology Assistant",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "pathology workspace",
+        "microtome",
+        "embedding",
+        "slide distribution",
+        "cytology",
+        "molecular",
+        "batch management",
+        "workstation"
+      ],
+      "routes": [
+        "/pathology-workspace"
+      ],
+      "previous": "grossing",
+      "next": "worklist",
+      "related": [
+        "bench-contributions",
+        "grossing",
+        "batch-management",
+        "workstations/embedding",
+        "workstations/microtomy",
+        "workstations/slide-distribution",
+        "cytology",
+        "molecular"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "personal-settings",
+      "title": "Personal Settings",
+      "module": "Personal Settings",
+      "screen": "",
+      "workflow": "Everyday setup",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "personal settings",
+        "profile",
+        "user menu",
+        "language",
+        "theme",
+        "macros",
+        "dictionary",
+        "my dictionary",
+        "voice commands",
+        "station",
+        "bench",
+        "compact header",
+        "biometric",
+        "system information",
+        "sign out"
+      ],
+      "routes": [],
+      "previous": "notifications",
+      "next": "case-flags",
+      "related": [
+        "messaging",
+        "notifications",
+        "voice-and-keyboard",
+        "case-search-bar",
+        "session-and-connection",
+        "clinical-links",
+        "report",
+        "sign-in"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/access-requests",
+      "title": "Access Requests",
+      "module": "Quality & Compliance",
+      "screen": "Access Requests",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "access request",
+        "access requests",
+        "deny",
+        "revoke access",
+        "patient case access",
+        "turnaround",
+        "pending",
+        "granted",
+        "denied",
+        "pediatric",
+        "pool",
+        "orchestration"
+      ],
+      "routes": [],
+      "previous": "quality/ai-discordance",
+      "next": "quality/patient-matching",
+      "related": [
+        "quality",
+        "my-contribution",
+        "notifications"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/ai-discordance",
+      "title": "AI Discordance",
+      "module": "Quality & Compliance",
+      "screen": "AI Discordance",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager",
+        "Pathologist"
+      ],
+      "keywords": [
+        "AI discordance",
+        "AI vs pathologist",
+        "stalled AI results",
+        "AI product",
+        "vendor",
+        "disagreed",
+        "agreed",
+        "discordance rate",
+        "stalled after"
+      ],
+      "routes": [],
+      "previous": "quality",
+      "next": "quality/access-requests",
+      "related": [
+        "quality",
+        "my-contribution",
+        "wsi-viewer"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/cytology-qa",
+      "title": "Cytology QA",
+      "module": "Quality & Compliance",
+      "screen": "Cytology QA",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager",
+        "Cytotechnologist",
+        "Pathologist"
+      ],
+      "keywords": [
+        "cytology QA",
+        "rescreening",
+        "workload tracking",
+        "ASC-US",
+        "HPV reflex",
+        "histology correlation",
+        "5-year lookback",
+        "registry transmission",
+        "UK failsafe",
+        "EU compliance",
+        "HPV positivity",
+        "molecular QC",
+        "proficiency testing",
+        "unscreened backlog",
+        "secondary screening"
+      ],
+      "routes": [],
+      "previous": "quality/qa-dashboards",
+      "next": null,
+      "related": [
+        "quality",
+        "cytology",
+        "cytology/screening-case",
+        "molecular"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/fppe-tracking",
+      "title": "FPPE Tracking",
+      "module": "Quality & Compliance",
+      "screen": "FPPE Tracking",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "FPPE",
+        "focused professional practice evaluation",
+        "proctor",
+        "provisional hire",
+        "credentialing review",
+        "supervision",
+        "graduated early",
+        "case count",
+        "duration"
+      ],
+      "routes": [],
+      "previous": "quality/turnaround-and-linkage",
+      "next": "quality/qa-dashboards",
+      "related": [
+        "quality",
+        "my-contribution"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality",
+      "title": "Quality & Compliance",
+      "module": "Quality & Compliance",
+      "screen": "",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager",
+        "Pathologist"
+      ],
+      "keywords": [
+        "quality",
+        "compliance",
+        "deficiency",
+        "CAPA",
+        "reconciliation",
+        "audit",
+        "quality assurance queue",
+        "corrective action"
+      ],
+      "routes": [
+        "/quality-compliance",
+        "/quality-assurance"
+      ],
+      "previous": "tumor-board",
+      "next": "quality/ai-discordance",
+      "related": [
+        "report",
+        "worklist",
+        "my-contribution",
+        "quality/ai-discordance",
+        "quality/access-requests",
+        "quality/patient-matching",
+        "quality/turnaround-and-linkage",
+        "quality/fppe-tracking",
+        "quality/qa-dashboards",
+        "quality/cytology-qa"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/patient-matching",
+      "title": "Patient Match and Management",
+      "module": "Quality & Compliance",
+      "screen": "Patient Match and Management",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager",
+        "Accessioner"
+      ],
+      "keywords": [
+        "patient match review",
+        "patient management",
+        "merge patients",
+        "link patients",
+        "move a case",
+        "confirm as new patient",
+        "duplicate patient",
+        "same person",
+        "family relation",
+        "downtime identity",
+        "MRN"
+      ],
+      "routes": [],
+      "previous": "quality/access-requests",
+      "next": "quality/turnaround-and-linkage",
+      "related": [
+        "quality",
+        "accession",
+        "audit-log"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/qa-dashboards",
+      "title": "QA Dashboards and Inspection",
+      "module": "Quality & Compliance",
+      "screen": "QA Dashboards and Inspection",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "reconciliation",
+        "frozen vs final",
+        "enterprise rollup",
+        "QA dashboard",
+        "inspection mode",
+        "evidence binder",
+        "concordance",
+        "mandatory follow-up",
+        "clinical impact",
+        "root cause",
+        "CAPA threshold",
+        "jurisdiction"
+      ],
+      "routes": [],
+      "previous": "quality/fppe-tracking",
+      "next": "quality/cytology-qa",
+      "related": [
+        "quality",
+        "report/sign-out-and-release",
+        "audit-log"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "quality/turnaround-and-linkage",
+      "title": "Countersign, Linkage and Drift",
+      "module": "Quality & Compliance",
+      "screen": "Countersign, Linkage and Drift",
+      "workflow": "Quality Assurance",
+      "roles": [
+        "Quality Staff",
+        "Laboratory Manager",
+        "Pathologist"
+      ],
+      "keywords": [
+        "countersign turnaround",
+        "resident",
+        "attending",
+        "feedback",
+        "fields changed",
+        "intraoperative linkage",
+        "pending linkage",
+        "merged",
+        "post-final drift",
+        "drift correction",
+        "deferred",
+        "unresolved"
+      ],
+      "routes": [],
+      "previous": "quality/patient-matching",
+      "next": "quality/fppe-tracking",
+      "related": [
+        "quality",
+        "intraop-queue",
+        "report/sign-out-and-release",
+        "my-contribution"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "registry-exceptions",
+      "title": "Registry Exceptions",
+      "module": "Registry Exceptions",
+      "screen": "",
+      "workflow": "Quality and compliance oversight",
+      "roles": [
+        "Laboratory Manager",
+        "Lab Director",
+        "QA Reviewer",
+        "Administrator"
+      ],
+      "keywords": [
+        "registry exceptions",
+        "cancer registry",
+        "screening registry",
+        "cervical screening",
+        "rejected",
+        "held",
+        "attestation required",
+        "not delivered",
+        "no answer",
+        "conflicting answers",
+        "revised after acceptance",
+        "resend",
+        "re-validate",
+        "CAPA",
+        "transmission audit",
+        "go-live"
+      ],
+      "routes": [
+        "/registry-exceptions"
+      ],
+      "previous": "outbound-queue",
+      "next": "audit-log",
+      "related": [
+        "outbound-queue",
+        "report",
+        "cytology",
+        "quality"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report/billing-review",
+      "title": "Billing Review",
+      "module": "Report",
+      "screen": "Billing Review",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "billing review",
+        "AI billing code review",
+        "CPT",
+        "billing codes",
+        "base code",
+        "ancillary code",
+        "confirm all",
+        "override",
+        "Smart Capture",
+        "charge approval",
+        "charges awaiting approval",
+        "billing correction",
+        "credit",
+        "biopsy array",
+        "evaluated cores"
+      ],
+      "routes": [],
+      "previous": "report/sign-out-and-release",
+      "next": "report/case-team",
+      "related": [
+        "report",
+        "report/sign-out-and-release",
+        "report/synoptic-reporting",
+        "quality"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report/case-team",
+      "title": "Case Team",
+      "module": "Report",
+      "screen": "Case Team",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident",
+        "Pathology Assistant",
+        "MDT Coordinator"
+      ],
+      "keywords": [
+        "case team",
+        "participation type",
+        "add collaborator",
+        "consultant",
+        "delegate",
+        "delegation",
+        "flag for MDT",
+        "tumor board",
+        "request review",
+        "peer review",
+        "second opinion",
+        "collaborating cases",
+        "secure message",
+        "primary pathologist",
+        "cytotechnologist"
+      ],
+      "routes": [],
+      "previous": "report/sign-out-and-release",
+      "next": "report/synoptic-reporting",
+      "related": [
+        "report",
+        "report/sign-out-and-release",
+        "worklist",
+        "tumor-board",
+        "messaging",
+        "external-consult",
+        "case-flags",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report",
+      "title": "Report",
+      "module": "Report",
+      "screen": "",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist"
+      ],
+      "keywords": [
+        "report",
+        "synoptic",
+        "diagnosis",
+        "microscopic",
+        "sign out",
+        "release",
+        "preliminary",
+        "addendum",
+        "AI suggestions",
+        "confidence",
+        "dictation",
+        "templates",
+        "comments",
+        "history",
+        "intraoperative findings"
+      ],
+      "routes": [
+        "/case/:caseId/synoptic",
+        "/report/:caseId"
+      ],
+      "previous": "worklist",
+      "next": "tumor-board",
+      "related": [
+        "quality",
+        "search",
+        "worklist",
+        "report/sign-out-and-release",
+        "report/case-team",
+        "report/synoptic-reporting",
+        "report/microscopic-and-material",
+        "report/billing-review",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report/microscopic-and-material",
+      "title": "Microscopic and Material",
+      "module": "Report",
+      "screen": "Microscopic and Material",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident",
+        "Pathology Assistant",
+        "Histotechnologist"
+      ],
+      "keywords": [
+        "microscopic",
+        "microscopic description",
+        "material tab",
+        "cassette",
+        "label printing",
+        "reprints",
+        "triage checklist",
+        "block status",
+        "slide status",
+        "clinical history",
+        "history",
+        "prior cases",
+        "related patients",
+        "images",
+        "frozen section",
+        "intraoperative",
+        "version history",
+        "change history",
+        "comments",
+        "internal note",
+        "spell check",
+        "personal dictionary"
+      ],
+      "routes": [],
+      "previous": "report/synoptic-reporting",
+      "next": "report",
+      "related": [
+        "report",
+        "report/synoptic-reporting",
+        "report/sign-out-and-release",
+        "grossing",
+        "intraop-queue",
+        "wsi-viewer",
+        "messaging",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report/sign-out-and-release",
+      "title": "Sign Out and Release",
+      "module": "Report",
+      "screen": "Sign Out and Release",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident",
+        "Pathology Assistant"
+      ],
+      "keywords": [
+        "sign out",
+        "sign out and next",
+        "finalise",
+        "finalize",
+        "countersign",
+        "release",
+        "release buffer",
+        "pending release",
+        "recall",
+        "watermark",
+        "addendum",
+        "amendment",
+        "correction",
+        "preliminary",
+        "STAT bypass",
+        "held report",
+        "print policy"
+      ],
+      "routes": [],
+      "previous": "report",
+      "next": "report/case-team",
+      "related": [
+        "report",
+        "report/case-team",
+        "report/synoptic-reporting",
+        "worklist",
+        "quality",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "report/synoptic-reporting",
+      "title": "Synoptic Reporting",
+      "module": "Report",
+      "screen": "Synoptic Reporting",
+      "workflow": "Case Reporting and Sign-Out",
+      "roles": [
+        "Pathologist",
+        "Fellow",
+        "Resident",
+        "Pathology Assistant"
+      ],
+      "keywords": [
+        "synoptic",
+        "protocol",
+        "template",
+        "CAP",
+        "RCPath",
+        "ICCR",
+        "required field",
+        "conditional field",
+        "edit field",
+        "confirm field",
+        "AI suggestion",
+        "confidence",
+        "codes",
+        "SNOMED",
+        "ICD-10",
+        "margin",
+        "staging",
+        "Mohs",
+        "organ map",
+        "right panel",
+        "orchestration",
+        "dictation",
+        "enter gross",
+        "enter diagnosis"
+      ],
+      "routes": [],
+      "previous": "report/case-team",
+      "next": "report/microscopic-and-material",
+      "related": [
+        "report",
+        "report/sign-out-and-release",
+        "report/microscopic-and-material",
+        "voice-and-keyboard",
+        "wsi-viewer",
+        "tumor-board"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "search",
+      "title": "Case Search",
+      "module": "Search",
+      "screen": "",
+      "workflow": "Finding a case",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "search",
+        "find case",
+        "patient search",
+        "accession number",
+        "completed cases",
+        "filters"
+      ],
+      "routes": [
+        "/search"
+      ],
+      "previous": "home",
+      "next": "worklist",
+      "related": [
+        "worklist",
+        "report"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "session-and-connection",
+      "title": "Session and Connection",
+      "module": "Session and Connection",
+      "screen": "",
+      "workflow": "Everyday awareness",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager",
+        "Quality Staff"
+      ],
+      "keywords": [
+        "session",
+        "timeout",
+        "idle",
+        "sign out",
+        "expire",
+        "offline",
+        "reconnecting",
+        "connection",
+        "logged in elsewhere",
+        "unsaved"
+      ],
+      "routes": [],
+      "previous": "case-search-bar",
+      "next": "clinical-links",
+      "related": [
+        "notifications",
+        "sign-in",
+        "report",
+        "personal-settings"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "sign-in",
+      "title": "Sign In",
+      "module": "Sign In",
+      "screen": "",
+      "workflow": "Starting and ending a session",
+      "roles": [
+        "All staff"
+      ],
+      "keywords": [
+        "sign in",
+        "login",
+        "log in",
+        "password",
+        "single sign-on",
+        "sso",
+        "microsoft",
+        "google",
+        "temporary password",
+        "second factor",
+        "session",
+        "lockout",
+        "sign out",
+        "log out",
+        "language",
+        "station",
+        "which bench is this",
+        "idle timeout"
+      ],
+      "routes": [
+        "/login",
+        "/auth/callback/:providerId"
+      ],
+      "previous": null,
+      "next": "help",
+      "related": [
+        "help",
+        "home",
+        "personal-settings"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "tumor-board",
+      "title": "Tumor Board / MDT",
+      "module": "Tumor Board",
+      "screen": "",
+      "workflow": "Multidisciplinary Review",
+      "roles": [
+        "MDT Coordinator",
+        "Pathologist"
+      ],
+      "keywords": [
+        "tumor board",
+        "MDT",
+        "multidisciplinary",
+        "nominate case",
+        "board agenda",
+        "flag case"
+      ],
+      "routes": [
+        "/tumor-board"
+      ],
+      "previous": "report",
+      "next": "quality",
+      "related": [
+        "report",
+        "search"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "voice-and-keyboard",
+      "title": "Voice and Keyboard",
+      "module": "Voice and Keyboard",
+      "screen": "",
+      "workflow": "Working Faster",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Accessioner",
+        "Histotechnologist",
+        "Cytotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "voice commands",
+        "hotkeys",
+        "keyboard shortcuts",
+        "dictation",
+        "say",
+        "command list",
+        "Alt+J",
+        "cancel",
+        "confirm by repeating"
+      ],
+      "routes": [],
+      "previous": "home",
+      "next": "worklist",
+      "related": [
+        "report",
+        "worklist",
+        "personal-settings",
+        "help"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "worklist",
+      "title": "Worklist",
+      "module": "Worklist",
+      "screen": "",
+      "workflow": "Case Management",
+      "roles": [
+        "Pathologist",
+        "Pathology Assistant",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "worklist",
+        "pending cases",
+        "my cases",
+        "pool",
+        "claim",
+        "accept case",
+        "assignment",
+        "awaiting countersign",
+        "peer review queue",
+        "hold"
+      ],
+      "routes": [
+        "/worklist"
+      ],
+      "previous": "pathology-workspace",
+      "next": "report",
+      "related": [
+        "search",
+        "grossing",
+        "quality",
+        "cytology",
+        "case-flags",
+        "voice-and-keyboard",
+        "report/case-team"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "workstations/cytology-preparation",
+      "title": "Cytology Preparation",
+      "module": "Workstations",
+      "screen": "Cytology Preparation",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Cytotechnologist",
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "cytology preparation",
+        "fluid",
+        "decant",
+        "aliquot",
+        "cell block",
+        "hand-off",
+        "cytospin",
+        "liquid-based",
+        "ThinPrep",
+        "SurePath",
+        "volume",
+        "yield"
+      ],
+      "routes": [
+        "/workstations/cytology-prep"
+      ],
+      "previous": "workstations/embedding",
+      "next": "workstations/microtomy",
+      "related": [
+        "pathology-workspace",
+        "cytology",
+        "batch-management",
+        "workstations/microtomy"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "workstations/embedding",
+      "title": "Embedding Station",
+      "module": "Workstations",
+      "screen": "Embedding",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Histotechnologist",
+        "Pathology Assistant",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "embedding",
+        "cassette",
+        "piece count",
+        "tissue discrepancy",
+        "mold size",
+        "orientation",
+        "split block",
+        "reprint cassette",
+        "wax",
+        "embedding station",
+        "tiny tissue",
+        "fragile",
+        "decal"
+      ],
+      "routes": [
+        "/workstations/embedding"
+      ],
+      "previous": "grossing",
+      "next": "workstations/microtomy",
+      "related": [
+        "pathology-workspace",
+        "batch-management",
+        "quality",
+        "workstations/microtomy",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "workstations/microtomy",
+      "title": "Microtome Workstation",
+      "module": "Workstations",
+      "screen": "Microtome",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "microtome",
+        "microtomy",
+        "sectioning",
+        "cutting",
+        "slide label",
+        "print etch",
+        "recut",
+        "levels",
+        "add stain",
+        "control slide",
+        "decant",
+        "fluid",
+        "cytology prep",
+        "block exhausted",
+        "batch print",
+        "reprint"
+      ],
+      "routes": [
+        "/workstations/microtomy"
+      ],
+      "previous": "workstations/embedding",
+      "next": "workstations/slide-distribution",
+      "related": [
+        "pathology-workspace",
+        "batch-management",
+        "add-on-orders",
+        "workstations/embedding",
+        "workstations/slide-distribution",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "workstations/slide-distribution",
+      "title": "Slide Distribution Station",
+      "module": "Workstations",
+      "screen": "Slide Distribution",
+      "workflow": "Bench and Workstation Work",
+      "roles": [
+        "Histotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "slide distribution",
+        "qc checkpoint",
+        "stain qc",
+        "sign off",
+        "re-stain",
+        "re-cut",
+        "image qc",
+        "checkout",
+        "route slides",
+        "pathologist assignment",
+        "subspecialty pool",
+        "slide folder",
+        "tray",
+        "courier bag",
+        "digital scanner",
+        "scanner rack",
+        "chain of custody",
+        "missing glass",
+        "replacement label",
+        "split destination"
+      ],
+      "routes": [
+        "/workstations/slide-distribution"
+      ],
+      "previous": "workstations/microtomy",
+      "next": "batch-management",
+      "related": [
+        "pathology-workspace",
+        "batch-management",
+        "batch-management/wsi-scan",
+        "workstations/microtomy",
+        "add-on-orders",
+        "voice-and-keyboard"
+      ],
+      "status": "Draft"
+    },
+    {
+      "slug": "wsi-viewer",
+      "title": "Slide Images",
+      "module": "Slide Images",
+      "screen": "",
+      "workflow": "Case Review",
+      "roles": [
+        "Pathologist",
+        "Cytotechnologist",
+        "Laboratory Manager"
+      ],
+      "keywords": [
+        "slide image",
+        "reference preview",
+        "thumbnail",
+        "whole slide image",
+        "wsi",
+        "digital slide",
+        "open slide",
+        "digital pathology application",
+        "slide viewer",
+        "save position",
+        "window position",
+        "image quality",
+        "scanning",
+        "queued",
+        "wsi viewer",
+        "demonstration viewer"
+      ],
+      "routes": [
+        "/wsi-viewer",
+        "/window-position"
+      ],
+      "previous": "batch-management/wsi-scan",
+      "next": "report",
+      "related": [
+        "batch-management/wsi-scan",
+        "workstations/slide-distribution",
+        "report",
+        "cytology/screening-case",
+        "demonstration-tools"
+      ],
+      "status": "Draft"
+    }
+  ]
+}

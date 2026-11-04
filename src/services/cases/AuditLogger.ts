@@ -23,7 +23,7 @@
  * call needs no changes.
  */
 
-import { mockAuditService } from '../auditlog/mockAuditService';
+import { auditService as defaultAuditService } from '../auditlog/auditServiceInstance';
 
 export type AuditEventType =
   | 'case.read'
@@ -75,7 +75,7 @@ export class AuditLogger {
     // Real write to the same audit store the System Audit page reads
     // from. Fire-and-forget: an audit write failing must never fail the
     // case read/write it's describing.
-    mockAuditService.logEvent({
+    defaultAuditService.logEvent({
       type: 'system',
       event: EVENT_LABELS[event.eventType],
       detail: `${this.serviceId} — ${EVENT_LABELS[event.eventType]} — ${event.outcome}`,

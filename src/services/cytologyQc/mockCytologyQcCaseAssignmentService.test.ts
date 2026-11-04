@@ -1,6 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+// Batch 396: taking a review and recording its verdict check cytology:qc-review:record.
+const enforce = vi.fn();
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (...a: unknown[]) => enforce(...a) } }));
 
 beforeEach(() => {
+  enforce.mockReset();
+  enforce.mockResolvedValue({ allowed: true });
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
     getItem: (k: string) => store[k] ?? null,
@@ -60,7 +66,7 @@ describe('mockCytologyQcCaseAssignmentService', () => {
     if (!created.ok) return;
     await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, 'prov-2');
     const result = await mockCytologyQcCaseAssignmentService.recordDiscrepancy(created.data.id, {
-      primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major', reviewerCommentary: 'Missed high-grade cells.',
+      primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major', reviewerCommentary: 'Missed high-grade cells.', divergenceConfirmed: true,
     });
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -68,6 +74,27 @@ describe('mockCytologyQcCaseAssignmentService', () => {
       expect(result.data.discrepancy?.severity).toBe('major');
       expect(result.data.discrepancy?.loggedAt).toBeDefined();
     }
+  });
+
+  it('Batch 669f (cyt-6): a significantly divergent secondary code is refused until confirmed; an empty or close one is not', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) return;
+    await svc.assignReviewer(created.data.id, 'prov-2');
+    const refused = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'HSIL', severity: 'major' });
+    expect(refused.ok === false && refused.error).toBe('CYTOLOGY_QC_DIVERGENCE_NOT_CONFIRMED');
+    const noSecondary = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: '', severity: 'minor' });
+    expect(noSecondary.ok).toBe(true);
+    if (noSecondary.ok) expect(noSecondary.data.discrepancy).not.toHaveProperty('divergenceConfirmed');
+  });
+
+  it('reviewer refinement: an unrecognised secondary code is refused, not stored', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) return;
+    await svc.assignReviewer(created.data.id, 'prov-2');
+    const refused = await svc.recordDiscrepancy(created.data.id, { primaryDiagnosticCode: 'NILM', secondaryDiagnosticCode: 'not-a-code', severity: 'minor', divergenceConfirmed: true });
+    expect(refused.ok === false && refused.error).toBe('CYTOLOGY_QC_SECONDARY_CODE_UNRECOGNISED');
   });
 
   it('the real unified queue only ever contains active (QC_PENDING/QC_IN_REVIEW) assignments, never a resolved one', async () => {
@@ -134,5 +161,75 @@ describe('mockCytologyQcCaseAssignmentService', () => {
     await mockCytologyQcCaseAssignmentService.supervisorBypass(created.data.id, 'supervisor-1', 'First bypass.');
     const result = await mockCytologyQcCaseAssignmentService.supervisorBypass(created.data.id, 'supervisor-1', 'Second attempt.');
     expect(result.ok).toBe(false);
+  });
+
+  it('Batch 396: without cytology:qc-review:record, taking a review and recording a verdict are refused and nothing changes', async () => {
+    const { mockCytologyQcCaseAssignmentService } = await import('./mockCytologyQcCaseAssignmentService');
+    const { QC_REVIEW_NOT_PERMITTED } = await import('./qcReviewErrors');
+    const created = await mockCytologyQcCaseAssignmentService.create(newAssignment());
+    if (!created.ok) return;
+    enforce.mockResolvedValue({ allowed: false });
+    const assign = await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, 'prov-2');
+    expect(assign).toEqual({ ok: false, error: QC_REVIEW_NOT_PERMITTED });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:record', { caseId: 'case-1' });
+    const concur = await mockCytologyQcCaseAssignmentService.recordConcurrence(created.data.id);
+    expect(concur.ok).toBe(false);
+    const after = await mockCytologyQcCaseAssignmentService.getById(created.data.id);
+    if (after.ok) expect(after.data.state).toBe('QC_PENDING');
+  });
+
+  it('Batch 432: escalating checks cytology:qc-review:record and needs a reason; the bypass checks cytology:qc-review:bypass and needs a justification', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) throw new Error('setup failed');
+    enforce.mockImplementation(async (c: string) => ({ allowed: c !== 'cytology:qc-review:bypass' }));
+    expect(await svc.supervisorBypass(created.data.id, 'supervisor-1', 'Needed today.')).toMatchObject({ ok: false });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:bypass', expect.anything());
+    enforce.mockResolvedValue({ allowed: true });
+    expect((await svc.supervisorBypass(created.data.id, 'supervisor-1', '   ')).ok).toBe(false);
+    expect(await svc.escalateForSlaBreach(created.data.id, new Date().toISOString(), ' ')).toMatchObject({ ok: false });
+    enforce.mockResolvedValue({ allowed: false });
+    expect(await svc.escalateForSlaBreach(created.data.id, new Date().toISOString(), 'Overdue')).toMatchObject({ ok: false });
+    expect(enforce).toHaveBeenCalledWith('cytology:qc-review:record', expect.anything());
+  });
+});
+
+
+describe('mockCytologyQcCaseAssignmentService.applyAdditionalTrigger (Batch 501)', () => {
+  it('upgrades an open assignment with the trigger fields only', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create(newAssignment());
+    if (!created.ok) throw new Error('create failed');
+    const r = await svc.applyAdditionalTrigger(created.data.id, {
+      priorityTier: 'high_escalation', selectionReasons: ['rule:rule-1', 'rose_discrepancy'],
+      history: [{ at: 'now', event: 'upgraded', reason: 'rose_discrepancy', detail: 'Upgraded by rose_discrepancy: tier routine_random → high_escalation' }],
+      // not a trigger field: ignored
+      ...({ state: 'FINAL_APPROVED' } as object),
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.data.priorityTier).toBe('high_escalation');
+    expect(r.data.selectionReasons).toEqual(['rule:rule-1', 'rose_discrepancy']);
+    expect(r.data.state).toBe('QC_PENDING');
+  });
+
+  it('refuses a resolved assignment', async () => {
+    const { mockCytologyQcCaseAssignmentService: svc } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await svc.create({ ...newAssignment(), state: 'FINAL_APPROVED' });
+    if (!created.ok) throw new Error('create failed');
+    const r = await svc.applyAdditionalTrigger(created.data.id, { priorityTier: 'high_escalation' });
+    expect(r.ok).toBe(false);
+  });
+
+  it('Batch 608: assigning a reviewer outside the rule pool is refused; a member is accepted', async () => {
+    const { mockCytologyQcCaseAssignmentService } = await import('./mockCytologyQcCaseAssignmentService');
+    const created = await mockCytologyQcCaseAssignmentService.create({ ...newAssignment(), caseId: 'case-pool', eligibleReviewerRoles: ['SENIOR_CT'] } as never);
+    if (!created.ok) throw new Error('create failed');
+    // Staff 1 is a Pathologist: PATHOLOGIST pool only.
+    const refused = await mockCytologyQcCaseAssignmentService.assignReviewer(created.data.id, '1');
+    expect(refused).toMatchObject({ ok: false, error: 'CYTOLOGY_QC_REVIEWER_NOT_IN_POOL' });
+    const open = await mockCytologyQcCaseAssignmentService.create({ ...newAssignment(), caseId: 'case-pool-2', eligibleReviewerRoles: ['PATHOLOGIST'] } as never);
+    if (!open.ok) throw new Error('create failed');
+    expect((await mockCytologyQcCaseAssignmentService.assignReviewer(open.data.id, '1')).ok).toBe(true);
   });
 });

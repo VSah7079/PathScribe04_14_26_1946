@@ -3,13 +3,26 @@
 // user and audit services of this build. Exported from `@/services` as
 // `authorizationService`; tests build their own with createAuthorizationService.
 
-import { mockRoleService } from '../roles/mockRoleService';
-import { mockUserService } from '../users/mockUserService';
-import { mockAuditService } from '../auditlog/mockAuditService';
-import { createAuthorizationService } from './authorizationService';
+import { roleService as defaultRoleService } from '../roles/roleServiceInstance';
+import { userService as defaultUserService } from '../users/userServiceInstance';
+import { auditService as defaultAuditService } from '../auditlog/auditServiceInstance';
+import { chooseService } from '../apiServer/serviceSelection';
+import { createAuthorizationService, type IAuthorizationService } from './authorizationService';
+import { createHttpAuthorizationService } from './httpAuthorizationService';
 
-export const authorizationService = createAuthorizationService({
-  roleService: mockRoleService,
-  userService: mockUserService,
-  auditService: mockAuditService,
+// Batch 616 (PS-484): with an API server address the checks are put to the server
+// (httpAuthorizationService.ts); without one (the demo) they run here on the mock data.
+const mockAuthorizationService = createAuthorizationService({
+  roleService: defaultRoleService,
+  userService: defaultUserService,
+  auditService: defaultAuditService,
+  // Batch 653: a check that names only a case is judged against the case's own facility.
+  // Imported on first use: the case service itself calls this one.
+  caseFacility: async (caseId) => {
+    const { caseService } = await import('../cases/caseServiceInstance');
+    const c = await caseService.getCase(caseId);
+    return c?.order?.facilityId ?? null;
+  },
 });
+
+export const authorizationService: IAuthorizationService = chooseService<IAuthorizationService>('authorization', mockAuthorizationService, createHttpAuthorizationService);

@@ -67,6 +67,7 @@ Return ONLY a JSON array (no markdown, no preamble). Include an entry ONLY for s
       system: 'You are a pathology AI assistant. You return only valid JSON — no markdown, no preamble.',
       prompt,
       configOverride: await resolveAiConfigOverrideForClient(input.facilityId),
+      context: { feature: 'template-suggestions', facilityId: input.facilityId },
     });
     const clean = raw.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean) as Array<{
@@ -83,7 +84,7 @@ Return ONLY a JSON array (no markdown, no preamble). Include an entry ONLY for s
         continue;
       }
       if (p.confidence < threshold) {
-        warnings.push(`Suggestion for specimen ${p.specimenId} (${templateNameById.get(p.templateId)}, confidence ${p.confidence}) was below the ${threshold}% threshold — no suggestion returned for this specimen. Original reasoning: ${p.reason}`);
+        warnings.push(`Suggestion for specimen ${p.specimenId} (${templateNameById.get(p.templateId)}) did not reach the review threshold — no suggestion returned for this specimen. Original reasoning: ${p.reason}`);
         continue;
       }
       suggestions.push({

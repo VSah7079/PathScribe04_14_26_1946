@@ -3,7 +3,7 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IOutboundPatientAdtQueueService } from './IOutboundPatientAdtQueueService';
 import type { OutboundPatientAdtQueueEntry } from '@/types/patients/OutboundPatientAdtQueueEntry';
-import { auditService } from '@/services';
+import { auditService } from '../auditlog/auditServiceInstance';
 
 const KEY = 'outbound_patient_adt_queue_v1';
 

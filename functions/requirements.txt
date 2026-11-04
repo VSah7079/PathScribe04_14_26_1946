@@ -1,3 +1,5 @@
 firebase_functions~=0.5.0
 firebase_admin~=7.5.0
 reportlab==4.*
+pillow>=9.0  # Batch 461: report figures (already a reportlab dependency; stated so the PDF image path can't lose it)
+paramiko>=3.4,<4  # Batch 520 (PS-280): SFTP file drop (report_delivery.py)

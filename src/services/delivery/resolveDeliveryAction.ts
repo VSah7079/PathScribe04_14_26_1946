@@ -17,7 +17,8 @@
 // (the admin's own most recent, deliberate intent).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { DeliveryRule, DeliveryAction } from '@/types/delivery/DeliveryRule';
+import type { DeliveryRule, DeliveryAction, DeliveryChannelPlan } from '@/types/delivery/DeliveryRule';
+import { planFromAction, rulePlan } from './deliveryPlan';
 
 export interface DeliveryDecisionInput {
   providerId?: string;
@@ -33,6 +34,12 @@ export interface DeliveryDecisionResult {
    *  way, same real transparency posture as
    *  TemplateRoutingService.ts's own traceReportTemplateResolution. */
   matchedRuleId?: string;
+  /** Batch 520 (PS-280): the channels and their roles (the rule's, or its action's, or the default's).
+   *  Optional for callers that build a result themselves; absent means the action's plan. */
+  plan?: DeliveryChannelPlan;
+  /** Batch 520: the winning rule's fax number and file-drop target, when it has them. */
+  faxNumber?: string;
+  fileDropTargetId?: string;
 }
 
 /** Real, per the source spec's own stated default ("Electronic
@@ -68,6 +75,7 @@ export function resolveDeliveryAction(input: DeliveryDecisionInput, rules: Deliv
     }
   }
 
-  if (!best) return { action: DEFAULT_ACTION };
-  return { action: best.rule.action, matchedRuleId: best.rule.id };
+  if (!best) return { action: DEFAULT_ACTION, plan: planFromAction(DEFAULT_ACTION) };
+  const r = best.rule;
+  return { action: r.action, matchedRuleId: r.id, plan: rulePlan(r), faxNumber: r.faxNumber, fileDropTargetId: r.fileDropTargetId };
 }

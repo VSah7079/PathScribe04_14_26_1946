@@ -1,0 +1,53 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 665 — Assist Finalise & Next opens the next case, collaborator message, Edit Field reaches synoptic answers, Sign Out & Next survives parked checks",
+    "description": "Vitest, 2026-10-24: full suite 14,914 passed, 33 skipped; one environment error (Firestore emulator not running). Type-check clean. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "signOutAndNext.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T06:00:00Z",
+      "finish": "2026-10-24T06:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/signOutAndNext.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "useSignOutAndNext.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T06:00:00Z",
+      "finish": "2026-10-24T06:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/SynopticReportPage/hooks/__tests__/useSignOutAndNext.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "editFieldCommand.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T06:00:00Z",
+      "finish": "2026-10-24T06:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/voice/editFieldCommand.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "collaboratorCommand.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T06:00:00Z",
+      "finish": "2026-10-24T06:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cases/collaboratorCommand.test.ts"
+    }
+  ]
+}

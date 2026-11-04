@@ -52,4 +52,10 @@ export class FirestoreVoiceMacroService implements IVoiceMacroService {
     });
     await batch.commit();
   }
+
+  // Batch 430: the interface's per-person methods. This Firestore stub predates
+  // the SQL Server decision and won't be built out (CLAUDE.md), so they refuse.
+  async getMacrosForCurrentUser(): Promise<VoiceMacro[]> { throw new Error('Not implemented: production uses the PathScribe API server'); }
+  async addPersonalMacro(_macro: Omit<VoiceMacro, 'id'>): Promise<string> { throw new Error('Not implemented: production uses the PathScribe API server'); }
+  async importPersonalMacros(_macros: Omit<VoiceMacro, 'id'>[]): Promise<void> { throw new Error('Not implemented: production uses the PathScribe API server'); }
 }

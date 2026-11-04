@@ -29,7 +29,16 @@
 
 import { caseRouter } from '../cases/CaseRouter';
 import { resolveIsFinalStatus } from '../reportTemplates/TemplateRoutingService';
-import { publishReportReleasedEvent } from './publishReportReleasedEvent';
+import { updateCaseWithRetry } from '../cases/caseWrite';
+import i18n from '@/i18n/config';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import type { CapabilityDecision } from '../authorization/evaluateCapability';
+
+/** Batch 649: the capability check (surgical:preliminary:release), passed in for tests. */
+export interface ReleasePreliminaryDeps {
+  enforce: (capability: string, context?: { caseId?: string | null; facilityId?: string | null }) => Promise<Pick<CapabilityDecision, 'allowed'>>;
+}
+const defaultPreliminaryDeps: ReleasePreliminaryDeps = { enforce: (c, ctx) => authorizationService.enforce(c, ctx) };
 
 export interface ReleasePreliminaryReportResult {
   ok: boolean;
@@ -39,6 +48,10 @@ export interface ReleasePreliminaryReportResult {
    *  specimen instances at all yet), never conflated with a failure. */
   dispatchedCount: number;
   error?: string;
+  /** Batch 649: refused for want of surgical:preliminary:release (error carries the reason, in the user's language). */
+  notPermitted?: boolean;
+  /** Batch 534: held for the laboratory's release delay; when it goes (the person who released it can recall it until then). */
+  heldUntil?: string;
 }
 
 export async function releasePreliminaryReport(
@@ -50,9 +63,13 @@ export async function releasePreliminaryReport(
    *  See publishReportReleasedEvent.ts's own doc comment on this
    *  same field for the full, honest structural reason. */
   generatePdf?: () => Promise<{ pdfBase64?: string; generationError?: string }>,
+  deps: ReleasePreliminaryDeps = defaultPreliminaryDeps,
 ): Promise<ReleasePreliminaryReportResult> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return { ok: false, dispatchedCount: 0, error: 'Case not found.' };
+  // Batch 649: the capability (checked and audited, with the case's facility), before anything is sent.
+  const decision = await deps.enforce('surgical:preliminary:release', { caseId, facilityId: caseData.order?.facilityId ?? null });
+  if (!decision.allowed) return { ok: false, dispatchedCount: 0, notPermitted: true, error: i18n.t('caseActionPermissions.preliminaryRelease') };
   if (caseData.reportingMode !== 'orchestrator') {
     return { ok: false, dispatchedCount: 0, error: 'Preliminary release is only available for Orchestration-mode cases.' };
   }
@@ -75,14 +92,18 @@ export async function releasePreliminaryReport(
   // one, real, shared publish point every real release (Preliminary
   // or Final) now goes through, rather than this function owning its
   // own, separate copy of the dispatch logic.
-  const { dispatchedCount = 0 } = await publishReportReleasedEvent({
+  // Batch 534 (Pete: every report output follows the release delay): through releaseReport.
+  const { releaseThroughDelay } = await import('../reportRelease/releaseThroughDelay');
+  const outcome = await releaseThroughDelay({
     caseId,
     reportType: 'PRELIMINARY',
     releasedAt: new Date().toISOString(),
     releasedBy: { id: releasingUser.id, name: releasingUser.name },
-    performingFacilityId: (caseData as any)?.order?.facilityId,
+    performingFacilityId: caseData.order?.facilityId,
     generatePdf,
-  });
+  }, { kind: 'surgical-preliminary', releasedBy: { userId: releasingUser.id, userName: releasingUser.name } });
+  const heldUntil = 'held' in outcome ? outcome.held.expiresAt : undefined;
+  const dispatchedCount = 'published' in outcome ? outcome.published.dispatchedCount ?? 0 : 0;
 
   // Real, deliberate: sets the same, real Preliminary Reviewer
   // Attestation fields the Preliminary template itself already
@@ -92,15 +113,25 @@ export async function releasePreliminaryReport(
   // write path. Deliberately does NOT touch caseData.status at all —
   // per direct guidance, the case stays in whatever in-progress/
   // unverified state it was already in.
-  if (dispatchedCount > 0) {
+  if (dispatchedCount > 0 || heldUntil) {
+    // PS-71 (Batch 458): the attestation is applied to the case as read for
+    // the save (not the copy read before the dispatch), with its version;
+    // on a conflict it is re-applied to the newer case, so a diagnostic
+    // change saved meanwhile is kept. A lasting conflict is logged and,
+    // like any other failure here, never masks the dispatch.
+    const preliminaryRecordedAt = new Date().toISOString();
     try {
-      await caseRouter.updateCase(caseId, {
+      const r = await updateCaseWithRetry(caseId, current => ({
         diagnostic: {
-          ...caseData.diagnostic,
+          ...current.diagnostic,
           reviewerRole: releasingUser.role ?? 'Pathologist',
-          preliminaryRecordedAt: new Date().toISOString(),
+          preliminaryRecordedAt,
         },
-      } as any);
+      } as any), {
+        getCase: id => caseRouter.getCase(id),
+        updateCase: (id, updates, expectedVersion) => caseRouter.updateCase(id, updates, expectedVersion),
+      });
+      if (r.ok === false) console.error(`[PS-71] Preliminary attestation for ${caseId} not saved (${r.reason}).`);
     } catch {
       // Real, deliberate: the dispatch itself already succeeded and
       // is the real, meaningful outcome of this action — a failure to
@@ -110,5 +141,5 @@ export async function releasePreliminaryReport(
     }
   }
 
-  return { ok: true, dispatchedCount };
+  return { ok: true, dispatchedCount, ...(heldUntil ? { heldUntil } : {}) };
 }

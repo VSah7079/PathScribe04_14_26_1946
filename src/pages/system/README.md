@@ -7,7 +7,7 @@ sections get split out of their current homes.
 ## Files
 
 - **`FacilityDictionaryPage.tsx`** — Admin config page for Facility
-  Configuration (route: `/system/clients`; renders `FacilityTable.tsx`
+  Configuration (no URL route of its own: it is the `clients` section of Configuration → System, shown as "Facility Configuration" in the Integrations group; renders `FacilityTable.tsx`
   + `FacilityEditorModal.tsx` from `components/FacilityDictionary/` —
   see that folder's own README). Reconciled June 2026: previously ran
   on `contexts/useClientDictionary.ts`, a synchronous localStorage-backed
@@ -15,7 +15,7 @@ sections get split out of their current homes.
   (`client-INT-001` etc.), completely separate from
   `services/facilities/mockFacilityService.ts` — the store every other screen
   (Accession page, TAT Configuration, Subspecialties, Routing Rules,
-  Validation Studies) and existing case seed data (`order.clientId`)
+  Validation Studies) and existing case seed data (`order.facilityId`)
   actually use. Now wired to the same `facilityService` as everything else,
   so a facility added here shows up everywhere, and vice versa.
   `useClientDictionary.ts` has been retired. Correctly reuses the shared
@@ -28,7 +28,7 @@ sections get split out of their current homes.
   `.config-section-header-row` classes, added to `pathscribe.css` next to
   the rest of the `.config-section-*` family (Section 10, CONFIG / ADMIN
   SECTIONS). See `PRIORITY_FIXES.md` for the wider inline-style finding
-  this surfaced.
+  this surfaced. *(`PRIORITY_FIXES.md` is no longer in the repo — checked in the Batch 496 README audit.)*
 
   **Removed this session (i18n sweep, batch 178):** this folder used to
   also hold `ClientDictionaryPage.tsx` — an orphaned, unrouted fork of
@@ -39,6 +39,8 @@ sections get split out of their current homes.
   Confirmed zero real imports of `ClientDictionaryPage`, `ClientTable`,
   or `ClientEditorModal` anywhere in the codebase before deleting the
   whole `components/ClientDictionary/` subtree alongside it.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the page has no `/system/clients` route; it opens as the Facility Configuration section in Configuration → System (`components/Config/System/index.tsx` case `'clients'`, `systemSections.ts`). Seed data uses `order.facilityId`.*
 
 ## Notes
 
@@ -67,3 +69,11 @@ The copy's name is localized. The page test was updated to match.
 ## Batch 368
 
 `FacilityDictionaryPage.test.tsx` mocks `placeOfServiceCodeService` through `@/services`, since the editor now takes it from there.
+
+## Batch 428: Configuration permissions
+
+`ClientDictionaryPage.tsx` was deleted: nothing routed to it, and the Facility Dictionary (`FacilityDictionaryPage.tsx`) is the live screen. Saving a facility now needs `config:facilities:manage`.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

@@ -1,1 +1,223 @@
+Batch 754 (Pete, Oct 31, 2026: keep CAP- and RCPath-derived content out of customer areas): an old, unused protocol editor and its registry of "CAP …" protocols, imported by nothing in the app (the Synoptic Editor replaced them).
+
+src/protocols/ProtocolEditor.tsx
+src/protocols/protocolRegistry.ts
+src/protocols/protocolChangeSummary.ts
+src/protocols/README.md
+src/types/ProtocolDefinition.ts
+
+Batch 750 (Pete, Oct 31, 2026: no slide viewer in PathScribe): the launch button is replaced by the slide's reference preview (src/components/SlideImage/SlideImagePreview.tsx, src/services/digitalPathology/slideImages.ts).
+
+src/pages/SynopticReportPage/components/WsiViewerLaunchButton.tsx
+src/utils/buildWsiViewerLaunchUrl.ts
+src/utils/buildWsiViewerLaunchUrl.test.ts
+
+Batch 742 (Pete, Case Image & File Attachments, Release 1, Oct 30, 2026): the Attach images window is replaced by the Attachments window (src/components/CaseAttachments/CaseAttachmentsModal.tsx, src/hooks/useCaseAttachments.ts).
+
+src/components/ReportImages/AttachReportImagesModal.tsx
+src/components/ReportImages/AttachReportImagesModal.test.tsx
+src/components/ReportImages/README.md
+src/hooks/useCaseReportImages.ts
+
+Batch 736 (Pete, Oct 30, 2026): the bench's preset reasons moved into the Reason Dictionary (services/reasons/benchReasons.ts), so the fixed list from Batch 735 is gone.
+
+src/services/reasons/quickReasonSets.ts
+
+Batch 678 (Pete, Oct 25, 2026): the 73-row requirements tracker is replaced by the three-layer Readiness Matrix.
+
+docs/compliance-guide/Compliance_Requirements_Tracker.xlsx
+
+Batch 669c (Pete, Oct 24, 2026): the old embedded User Guide and Admin Guide PDFs are gone, with the two About-menu links that opened them; the guides open only from the top-bar Help buttons (the new User Guide and Administrator Guide).
+
+src/utils/guideAssets.ts
+src/hooks/useGuideAssets.ts
+scripts/Update-GuideAssets.ps1
+public/help/PathScribe_Combined_Admin_Guide.pdf
+public/help/PathScribe_User_Guide_v0_9_0.pdf
+
+Batch 668 (Pete): the Help buttons moved from floating buttons over the screen into the top bar beside the microphone (components/Help/TopBarHelpButtons.tsx); the two floating components and their tests are gone.
+
+src/components/Help/UserGuideHelpButton.tsx
+src/components/Help/UserGuideHelpButton.test.tsx
+src/components/Config/help/RouteHelpButton.tsx
+src/components/Config/help/RouteHelpButton.test.tsx
+
+Batch 663 (Pete): billing charges are guarded by the capability billing:charge:approve (chargeApproval.ts), not a role name; the role-name check had no callers.
+
+src/services/billing/canDraftOrApproveBillingCharge.ts
+src/services/billing/canDraftOrApproveBillingCharge.test.ts
+
+Batch 634 (listed late, in Batch 636): the cytology dispatch lookup test moved with its code to the shared module
+(src/services/interfaceDispatch/resolveDispatchOrganisation.test.ts). The old copy fails once the code has moved, so delete it
+(npm run cleanup:deleted).
+
+src/services/cytology/resolveCytologyDispatchOrganisation.test.ts
+
+Batch 611: the unused mock AI integration service (nothing imported it; the AI spell check it once stood beside was replaced by dictionary spell check).
+
+src/services/aiIntegration/MockAIIntegrationService.ts
+
+Batch 583 (PS-63): the browser no longer looks up e-mail recipients or writes template lifecycle e-mails; the server does
+(docs/architecture/TEMPLATE_NOTIFICATIONS_API.md). The role lookup also asked for a "clinical_lead" role PathScribe doesn't have.
+
+src/services/communications/recipientResolver.ts
+src/services/communications/emailTemplates/synopticEmailTemplates.ts
+
+Batch 549 (PS-539, finding F1, open since Batch 537): the engine-notification poll that nothing
+mounted, and the Firestore read only it used. The engine's events reach the case through the
+interface engine edge contract (docs/architecture/INTERFACE_ENGINE_EDGE.md) and the hub.
+
+src/hooks/usePendingEngineNotifications.ts
+src/services/engravers/fetchNewEngineNotifications.ts
+src/services/engravers/fetchNewEngineNotifications.test.ts
+
+Batch 539 (PS-539 D2): the browser cytology PDF renderer (jsPDF) and its helpers. The report
+renderer makes every cytology PDF now (functions/cytology_report.py); the browser only builds
+the text it draws (src/services/cytology/cytologyRenderPayload.ts). The two Liberation Sans
+fonts moved to functions/fonts/ as .ttf files.
+
+src/services/cytology/generateCytologyReportPdf.ts
+src/services/cytology/generateCytologyReportPdf.test.ts
+src/services/cytology/generateCytologyReportPdf.worker.ts
+src/services/cytology/generateCytologyReportPdfInWorker.ts
+src/services/cytology/generateCytologyReportPdfInWorker.test.ts
+src/services/documentRendering/applyContinuationPageHeaders.ts
+src/services/documentRendering/applyContinuationPageHeaders.test.ts
+src/services/documentRendering/applyDeterministicPdfMetadata.ts
+src/services/documentRendering/applyDeterministicPdfMetadata.test.ts
+src/services/documentRendering/drawBarcodeOnJsPdfDoc.ts
+src/services/documentRendering/drawBarcodeOnJsPdfDoc.test.ts
+src/services/documentRendering/resolveBarcodeVectorSpec.ts
+src/services/documentRendering/resolveBarcodeVectorSpec.test.ts
+src/services/documentRendering/embedCytologyHeaderLogo.ts
+src/services/documentRendering/embedCytologyHeaderLogo.test.ts
+src/services/documentRendering/printFonts.ts
+src/services/documentRendering/printFonts.test.ts
+src/services/documentRendering/readFontFromDisk.testSupport.ts
+src/services/documentRendering/registerEmbeddedPrintFont.ts
+src/services/documentRendering/registerEmbeddedPrintFont.test.ts
+src/services/documentRendering/validatePrintLayoutGovernance.ts
+src/services/documentRendering/validatePrintLayoutGovernance.test.ts
+src/services/documentRendering/embeddedFonts/LiberationSans-Regular-normal.ts
+src/services/documentRendering/embeddedFonts/LiberationSans-Bold-bold.ts
+src/services/documentRendering/embeddedFonts/LICENSE_NOTICE.md
+
+Batch 523 (PS-145): the clinical-pathologic mismatch window moved to
+src/components/ClinicalMismatch/, since the Cytology Workspace and autopsy sign-out use it too.
+
+src/pages/SynopticReportPage/modals/ClinicalMismatchModal.tsx
+
+Batch 517 (PS-294): stylesheets nothing loads. main.tsx loads only the index.css and
+pathscribe.css under src (checked: no import, <link> or @import of these anywhere in the
+repo). Their rules either live in pathscribe.css already or were never used.
+
+index.css
+src/App.css
+src/login-brand.css
+src/research-ticker.css
+src/styles/globals.css
+
+Batch 515 (PS-124): the legacy FPPE assignment service, retired. FPPE assignments live in the
+QA supervision service (qaSupervisionAssignmentService); every screen now reads it.
+
+src/services/cases/IFppeAssignmentService.ts
+src/services/cases/mockFppeAssignmentService.ts
+src/types/case/FppeAssignment.ts
+
+Batch 511: run  npm run cleanup:deleted  after applying the zip.
+These were excluded from type-checking in tsconfig.json. None exists in the master copy and nothing
+imports them; the exclusions are gone now (full strict type-checking), so a leftover copy would fail
+the type-check.
+
+src/Legacy/
+src/types/App.tsx
+src/utils/AppShell.tsx
+src/services/codes/firestoreCodeService.ts
+src/services/internalNotes/firestoreInternalNoteService.ts
+src/services/messages/firestoreMessageService.ts
+src/services/physicians/index.ts
+src/services/users/index.ts
+src/api/lisFlagSimulator.ts
+src/audit/AuditLogPage.tsx
+src/components/Config/System/FlagModal.tsx
+src/components/Config/System/FlagTable.tsx
+src/components/Config/System/KeyboardShortcutsModal.tsx
+src/components/Config/System/CategorySection.tsx
+
+────────────────────────────────────────────────────────────────────────────
+
+Batch 508: delete this file by hand when applying the zip, or run  npm run cleanup:deleted
+
+src/services/demoReset/demoResetKeys.auditTest.ts   (now the automated demoResetKeys.guard.test.ts)
+
+────────────────────────────────────────────────────────────────────────────
+
+Batch 506: delete this file by hand when applying the zip (a zip can't express deletions).
+
+src/components/Config/System/DemoResetTab.auditTest.ts   (moved to src/services/demoReset/demoResetKeys.auditTest.ts)
+
+Batch 499: delete these files by hand when applying the zip (a zip can't express deletions).
+Each was checked across the whole repo: nothing imports it.
+
+src/services/ai/providers/ClaudeProvider.ts      (old copy of StructuredMessagesProvider.ts)
+src/contexts/useSubspecialties.tsx               (hard-coded provider; App.tsx never mounted it)
+src/types/case/CaseFlag.ts                       (flag shape replaced by FlagInstance in Batch 452)
+src/types/case/SpecimenFlag.ts                   (same)
+src/utils/index.css                              (stale copy; main.tsx loads src/index.css)
+src/utils/isoDateToMDY.ts                        (replaced by isoDateForSearch.ts)
+src/utils/isoDateToMDY.test.ts                   (its test)
+src/assets/react.svg                             (Vite template leftover)
+BillingDictionarySection.tsx                     (repo-root stray; older copy of src/components/Config/System/)
+ProtocolDictionarySection.tsx                    (repo-root stray; older copy of src/components/Config/System/)
+
+────────────────────────────────────────────────────────────────────────────
+
+Batch 497: delete these files by hand when applying the zip (a zip can't express deletions).
+The detachable report-preview window was retired (Pete, Oct 9). Nothing opened it; it had been
+removed once before and came back because the earlier deletion never reached the working copy.
+
+src/pages/ReportPreview/ReportPreviewPage.tsx
+src/hooks/usePreviewChannel.ts
+
+Keep src/pages/ReportPreview/ReportPreviewRenderer.tsx — the report page uses it.
+
+────────────────────────────────────────────────────────────────────────────
+
+Batch 428: delete these files by hand when applying the zip (a zip can't express deletions).
+None of them was imported anywhere; each was an unused copy of a live screen.
+
+src/components/Config/Integrations/CrosswalkSection.tsx
+src/components/Config/Integrations/CrosswalkSection.tsx.DELETED.txt
+src/components/Config/Templates/AdminTemplateList.tsx
+src/pages/system/ClientDictionaryPage.tsx
+src/components/Config/System/SpecimenCategoriesSection.tsx
+src/components/Config/System/PatientMatchReviewSection.tsx
+
+────────────────────────────────────────────────────────────────────────────
+
+Earlier batches (gathered in Batch 507): files the changelogs said were deleted but that were
+never listed here. Found when a stale CreateBatchModal.tsx failed the HTML sanitising guard in
+Pete's copy (Oct 10). Each is gone from the master copy and nothing imports it.
+
+src/pages/BatchManagement/CreateBatchModal.tsx            (replaced by NewContainerModal.tsx)
+src/pages/SynopticReportPage/components/InformalReviewBanner.tsx   (Batch 355)
+src/pages/SynopticReportPage/modals/CreateMegablockModal.tsx
 src/types/case/ReportSnapshot.ts
+src/types/serviceResult.ts                                (Batch 348; services/types.ts is the one result shape)
+src/types/templateTypes.ts
+src/types/config/CaseMaskConfig.ts
+src/templates/mockDcisTemplate.ts
+src/components/Autopsy/AutopsyIntakeForm.tsx              (fields moved into AccessionPage.tsx)
+src/components/ClientDictionary/ClientEditorModal.tsx     (Batch 179; FacilityEditorModal.tsx replaced it)
+src/components/Common/Button/Button.test.tsx              (empty scaffold)
+src/components/Config/Integrations/IdentifierFormatsSection.tsx
+src/components/Config/Integrations/LISSection.tsx
+src/components/Config/System/InstrumentsSection.tsx       (Batch 358; replaced by EquipmentSection.tsx)
+src/services/instruments/                                 (Batch 358; the whole folder, replaced by services/equipment/)
+src/services/specimens/ISpecimenService.ts
+src/services/hl7/mockHL7Service.ts
+src/services/cases/concurrencyCheck.ts                    (replaced by updateCase's compare-and-swap)
+src/contexts/useClientDictionary.ts
+src/services/billing/blockDeletionQueue/       (Batch 588 first draft; billing credits are reviewed in Financials)
+
+To remove everything listed in this file in one go:  npm run cleanup:deleted

@@ -1,6 +1,7 @@
 // src/pages/SynopticReportPage/components/LeftReportPanel.tsx
 import React, { useEffect } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
+import { formatDate } from '@/utils/formatDate';
 import type { Case } from '@/types/case/Case';
 import { useAuth } from '@/contexts/AuthContext';
 import InternalNotesDrawer from '@/components/InternalNotes/InternalNotesDrawer';
@@ -12,6 +13,11 @@ import { matchSourceText } from '@/utils/sourceTextMatching';
 import MarkersPanel from './MarkersPanel';
 import { buildWatermarkBackgroundImage } from './PendingReleaseWatermark';
 import { reportReleaseService } from '@/services';
+import { getSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
+import { OPEN_INTERNAL_NOTES_FLAG } from '@/services/reports/reportOpenCommands';
+import { buildFullPatientReportRows, resolveIntraopDiagnosisText, type FullPatientReportRowId } from '@/services/reports/fullPatientReportRows';
+import { findingsForField, narrativeFieldForReportRow, splitTextByFindings } from '@/services/clinical/findingHighlight';
+import type { CriticalFindingFlag } from '@/services/clinical/detectCriticalFindings';
 
 interface LeftReportPanelProps {
   caseData: Case | null;
@@ -40,7 +46,24 @@ interface LeftReportPanelProps {
    *  Informal Review Worklist tile or a message case link — opens the
    *  drawer immediately, skipping the extra click. */
   autoOpenNotes?: boolean;
+  /** Batch 452 (PS-323): critical findings detected at the last Finalize
+   *  attempt, marked in the Gross, Microscopic and Ancillary rows. */
+  criticalFindings?: readonly CriticalFindingFlag[];
 }
+
+// PS-323 (Batch 452): marks detected critical findings in a read-only row.
+// Where they sit is decided by services/clinical/findingHighlight.ts.
+const FindingMarkedText: React.FC<{ text: string; findings: readonly CriticalFindingFlag[] }> = ({ text, findings }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      {splitTextByFindings(text, findings).map((piece, i) => piece.finding
+        ? <mark key={i} className={`ps-finding-hl ps-finding-hl--${piece.finding.severity.toLowerCase()}`}
+            title={t('findingHighlight.title', { term: piece.finding.term, severity: t(`findingHighlight.severity.${piece.finding.severity.toLowerCase()}`) })}>{piece.text}</mark>
+        : <React.Fragment key={i}>{piece.text}</React.Fragment>)}
+    </>
+  );
+};
 
 // Splits text and wraps matching substring in a highlight mark.
 // The ref callback fires whenever the mark mounts so we can scroll to it.
@@ -63,11 +86,18 @@ const HighlightedText: React.FC<{
   );
 };
 
-const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText, rawHighlightText, onMatchResolved, autoOpenNotes }) => {
-  const { t } = useTranslation();
+const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightText, rawHighlightText, onMatchResolved, autoOpenNotes, criticalFindings }) => {
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [notesOpen, setNotesOpen] = React.useState(!!autoOpenNotes);
   const [unreadNoteCount, setUnreadNoteCount] = React.useState(0);
+  // Batch 663: "Internal Note" by voice or key opens this drawer; when the Report tab was not showing, the page leaves a flag.
+  useEffect(() => {
+    if (getSessionFlag(OPEN_INTERNAL_NOTES_FLAG)) { clearSessionFlag(OPEN_INTERNAL_NOTES_FLAG); setNotesOpen(true); }
+    const open = () => setNotesOpen(true);
+    window.addEventListener('PATHSCRIBE_VOICE_INTERNAL_NOTE', open);
+    return () => window.removeEventListener('PATHSCRIBE_VOICE_INTERNAL_NOTE', open);
+  }, []);
   // Real feature, per direct follow-up: "if there is a review that
   // hasn't been opened, I would like to have some sort of effect in
   // synopticreportpage's Internal Notes button." A real, published-
@@ -186,28 +216,26 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
   useEffect(() => {
     if (!caseData?.id) { setIntraopDiagnosisText(null); return; }
     let cancelled = false;
+    // Batch 655: the findings carried onto the case at merge are shown here too (the session may be gone).
     intraoperativeService.getAll().then(res => {
-      if (cancelled || !res.ok) return;
-      const mergedSession = res.data.find(e => e.status === 'merged' && e.mergedIntoCaseId === caseData.id);
-      const withDx = (mergedSession?.specimens ?? []).filter(s => s.frozenSectionDiagnosis);
-      setIntraopDiagnosisText(
-        withDx.length > 0
-          ? withDx.map(s => `${s.specimenLabel}: ${s.frozenSectionDiagnosis}`).join('\n')
-          : null
-      );
-    }).catch(() => { if (!cancelled) setIntraopDiagnosisText(null); });
+      if (cancelled) return;
+      setIntraopDiagnosisText(resolveIntraopDiagnosisText(res.ok ? res.data : [], caseData.id, caseData.intraoperativeFindings));
+    }).catch(() => { if (!cancelled) setIntraopDiagnosisText(resolveIntraopDiagnosisText([], caseData.id, caseData.intraoperativeFindings)); });
     return () => { cancelled = true; };
-  }, [caseData?.id]);
+  }, [caseData?.id, caseData?.intraoperativeFindings]);
 
   const notRecorded = t('leftReportPanel.notRecorded');
-  const sections = caseData ? [
-    { title: t('leftReportPanel.sections.clinicalHistory'),         text: caseData.order?.clinicalIndication ?? notRecorded },
-    { title: t('leftReportPanel.sections.intraopDiagnosis'),        text: intraopDiagnosisText ?? notRecorded },
-    { title: t('leftReportPanel.sections.grossDescription'),        text: caseData.diagnostic?.grossDescription ?? notRecorded },
-    { title: t('leftReportPanel.sections.microscopicFindings'),     text: caseData.diagnostic?.microscopicDescription ?? notRecorded },
-    { title: t('leftReportPanel.sections.preliminaryDiagnosis'),    text: caseData.diagnostic?.preliminaryImpression ?? notRecorded },
-    { title: t('leftReportPanel.sections.ancillaryStudies'),        text: caseData.diagnostic?.ancillaryStudies ?? notRecorded },
-  ] : [];
+  // PS-318: row order and sources decided in services/reports/fullPatientReportRows.ts.
+  const rowTitles: Record<FullPatientReportRowId, string> = {
+    clinicalHistory:      t('leftReportPanel.sections.clinicalHistory'),
+    intraopDiagnosis:     t('leftReportPanel.sections.intraopDiagnosis'),
+    grossDescription:     t('leftReportPanel.sections.grossDescription'),
+    microscopicFindings:  t('leftReportPanel.sections.microscopicFindings'),
+    preliminaryDiagnosis: t('leftReportPanel.sections.preliminaryDiagnosis'),
+    ancillaryStudies:     t('leftReportPanel.sections.ancillaryStudies'),
+  };
+  const sections = buildFullPatientReportRows(caseData, intraopDiagnosisText)
+    .map(r => ({ title: rowTitles[r.id], text: r.text ?? notRecorded, findings: r.text ? findingsForField(criticalFindings, narrativeFieldForReportRow(r.id)) : [] }));
 
   // Extract the quoted phrase from source strings like 'Gross: "2.3 × 1.8 × 1.5 cm"'
   // Falls back to progressively shorter word sequences if the full phrase isn't found.
@@ -311,7 +339,7 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
               { label: t('leftReportPanel.patientInfo.case'),    phi: 'accession', value: caseData.accession?.fullAccession ?? caseData.accession?.accessionNumber ?? '—', mono: true },
               { label: t('leftReportPanel.patientInfo.mrn'),     phi: 'mrn',       value: caseData.patient?.mrn ?? '—' },
               { label: t('leftReportPanel.patientInfo.patient'), phi: 'name',      value: caseData.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—' },
-              { label: t('leftReportPanel.patientInfo.dob'),     phi: 'dob',       value: caseData.patient?.dateOfBirth ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—' },
+              { label: t('leftReportPanel.patientInfo.dob'),     phi: 'dob',       value: formatDate(caseData.patient?.dateOfBirth, i18n.language) },
             ].map(({ label, value, mono, phi }, i) => (
               <React.Fragment key={label}>
                 {i > 0 && <span className="ps-patient-info-sep">·</span>}
@@ -330,7 +358,10 @@ const LeftReportPanel: React.FC<LeftReportPanelProps> = ({ caseData, highlightTe
                 {s.title}
               </h4>
               <p className="ps-leftreport-section-body">
-                <HighlightedText text={s.text} highlight={matchPhrase} onMarkMount={handleMarkMount} />
+                {/* A source-citation highlight, when one is active, takes the row; otherwise any critical findings are marked. */}
+                {s.findings.length > 0 && !(matchPhrase && s.text.toLowerCase().includes(matchPhrase.toLowerCase()))
+                  ? <FindingMarkedText text={s.text} findings={s.findings} />
+                  : <HighlightedText text={s.text} highlight={matchPhrase} onMarkMount={handleMarkMount} />}
               </p>
             </div>
           ))}

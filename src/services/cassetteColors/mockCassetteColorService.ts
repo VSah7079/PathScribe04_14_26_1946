@@ -12,6 +12,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { CassetteColorDefinition, ICassetteColorService } from './ICassetteColorService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_COLORS: CassetteColorDefinition[] = [
   {
@@ -80,7 +81,7 @@ function save(colors: CassetteColorDefinition[]): void {
   storageSet(STORAGE_KEY, colors);
 }
 
-export const mockCassetteColorService: ICassetteColorService = {
+const cassetteColorServiceUnchecked: ICassetteColorService = {
   async getAll(): Promise<ServiceResult<CassetteColorDefinition[]>> {
     return { ok: true, data: load() };
   },
@@ -117,10 +118,15 @@ export const mockCassetteColorService: ICassetteColorService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<CassetteColorDefinition>> {
-    return mockCassetteColorService.update(id, { active: false });
+    return cassetteColorServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<CassetteColorDefinition>> {
-    return mockCassetteColorService.update(id, { active: true });
+    return cassetteColorServiceUnchecked.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCassetteColorService: ICassetteColorService = guardConfigWrites(cassetteColorServiceUnchecked, [
+  ['config:cassette-colors:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

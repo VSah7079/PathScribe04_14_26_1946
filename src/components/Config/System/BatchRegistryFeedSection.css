@@ -1,0 +1,9 @@
+/* Batch 620 part S (PS-800): Configuration > System > Registry Batch Files. Own file so pathscribe.css does not grow. */
+.ps-brf-column { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 4px 0; }
+.ps-brf-preview { margin: 0; padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.25); overflow-x: auto; font-size: 12px; white-space: pre; }
+.ps-brf-badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px; font-size: 12px; border: 1px solid #D97706; }
+.ps-brf-badge--off { border-color: rgba(255,255,255,0.2); opacity: 0.8; }
+.ps-brf-counts { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.ps-brf-runs { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.ps-brf-runs th, .ps-brf-runs td { text-align: left; padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.ps-brf-sha { font-family: monospace; }

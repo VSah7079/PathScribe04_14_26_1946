@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/reportTemplates/
 
 Report Template assembly — ordered AssemblySlots referencing reportParts/ building blocks. Also home to TemplateRoutingService, the Pass 0-0a-0b-1-2-3 resolution chain.
@@ -26,6 +28,29 @@ Real, per direct investigation before building anything: `SynopticReportInstance
 
 The copy's name comes from the caller, in the user's language. The English `"(copy)"` fallback is gone, and so is Template List's hard-coded `'My Surgical Pathology Report'` (now `templateListTab.defaultCustomTemplateName`).
 
+## Batch 428: Configuration permissions
+
+- `mockReportTemplateService`: `create`, `save`, `update`, `clone`, `remove`, `archive` need `config:report-template:manage`.
+- `mockReportTemplateService`: `publish` need `config:report-template:publish`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director, plus Template Author (edit) and Template Approver (publish); see `docs/architecture/AUTHORIZATION_API.md`.
+
+Publishing a report layout is `config:report-template:publish`, separate from editing it (`config:report-template:manage`). Before, a layout went live at once with no check.
+
+## Batch 463
+
+`TemplateRoutingService.ts`: PathScribe's Mohs Micrographic Surgery template is in the dermatology routing list.
+
+## Batch 465
+
+`TemplateRoutingService.ts`: `oral_cavity_resection` and `neck_dissection` route to `tmpl-gold-standard` (no head and neck report template or subspecialty exists yet, so they have no subspecialty fallback entry).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+- Batch 609 (#38): `finalDiagnosisPublishCheck.ts` runs the Declared Final Diagnosis rule where templates are published. `mockReportTemplateService.publish` refuses (error `FINAL_DIAGNOSIS_DESIGNATION`) a Final template with more than one marked field; the builders call `checkTemplateFinalDiagnosis` / `finalTemplatesBrokenByPart` to warn first. Saving stays allowed. Tests: `finalDiagnosisPublishCheck.test.ts`.
+
+## Batch 616 (part E) — server version
+
+API-server version of `ReportTemplate` (`httpReportTemplateService.ts`, contract `REPORT_TEMPLATES_API.md`), picked by `reportTemplateServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

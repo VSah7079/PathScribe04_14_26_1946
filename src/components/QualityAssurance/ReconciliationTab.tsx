@@ -14,9 +14,9 @@
 // export in this feature: patient name, MRN, DOB. Case/accession ID
 // stays in — necessary for the report to be actionable.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { qaActivityRecordService, auditService } from '@/services';
@@ -28,6 +28,11 @@ import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { caseMatchesScope, exportQaReportRows, scopeLabel, QaScope, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '@/services';
+import { facilityMonthlyTrend } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 // Real, persisted FrozenCategory enum values stay as data; only the
 // displayed label is translated. Reuses the exact intraopQueue.
@@ -62,7 +67,7 @@ const ROOT_CAUSE_LABEL_KEY: Record<QaDiscordanceRootCause, string> = {
 
 export const ReconciliationTab: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [records, setRecords] = useState<QaActivityRecord[]>([]);
   const [caseClientById, setCaseClientById] = useState<Record<string, string | undefined>>({});
@@ -124,27 +129,12 @@ export const ReconciliationTab: React.FC = () => {
   // deficiency-closure chart it inherited was the wrong metric for this
   // tab. This is the right one — concordance rate over time is exactly
   // what a QA reviewer would want to see trending on this specific page.
-  const monthlyTrend = useMemo(() => {
-    const months: { month: string; rate: number | null; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const inMonth = scoped.filter(r => {
-        const ts = new Date(r.recordedAt).getTime();
-        return ts >= monthStart && ts < monthEnd;
-      });
-      const monthConcordant = inMonth.filter(r => r.outcome === 'concordant').length;
-      months.push({
-        month: monthKey,
-        rate: inMonth.length > 0 ? +((monthConcordant / inMonth.length) * 100).toFixed(1) : null,
-        total: inMonth.length,
-      });
-    }
-    return months;
-  }, [scoped]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const monthlyTrend = useMemo(() => facilityMonthlyTrend(scoped, r => r.recordedAt, inMonth => ({
+    rate: inMonth.length > 0 ? +((inMonth.filter(r => r.outcome === 'concordant').length / inMonth.length) * 100).toFixed(1) : null,
+    total: inMonth.length,
+  }), systemConfig.facilityTimezone), [scoped, systemConfig.facilityTimezone]);
   // Real rate now — a true denominator exists because every
   // reconciliation writes a record (concordant included), not just the
   // ones that found a problem. Previously impossible to compute at all;
@@ -174,10 +164,10 @@ export const ReconciliationTab: React.FC = () => {
       'Recorded At': r.recordedAt,
       'Recorded By': r.recordedBy.userName,
     }));
-    void exportQaReportRows('qa:reconciliation:export', rows, `reconciliation-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:reconciliation:export', rows, `reconciliation-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('reconciliationTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('reconciliationTab.loading')} />;
 
   return (
     <div>
@@ -190,9 +180,9 @@ export const ReconciliationTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={monthlyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="%" />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={32} unit="%" />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -242,7 +232,7 @@ export const ReconciliationTab: React.FC = () => {
             <tbody>
               {discordant.length === 0 && <tr><td className="ps-conf-td" colSpan={8}>{t('reconciliationTab.noDiscordant')}</td></tr>}
               {discordant.map(r => (
-                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+                <tr key={r.id} className="ps-conf-tr-clickable" {...pressable(() => void openCasePage(r.caseId, 'synoptic'), { role: null })}>
                   <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                   <td className="ps-conf-td">{r.caseType}</td>
                   <td className="ps-conf-td">{t(CATEGORY_LABEL_KEY[r.fieldValues.frozenCategory as FrozenCategory])} → {t(CATEGORY_LABEL_KEY[r.fieldValues.finalCategory as FrozenCategory])}</td>
@@ -266,7 +256,7 @@ export const ReconciliationTab: React.FC = () => {
             <tbody>
               {concordant.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('reconciliationTab.noConcordant')}</td></tr>}
               {concordant.slice(0, 25).map(r => (
-                <tr key={r.id} className="ps-conf-tr-clickable" onClick={() => navigate(`/case/${r.caseId}/synoptic`)}>
+                <tr key={r.id} className="ps-conf-tr-clickable" {...pressable(() => void openCasePage(r.caseId, 'synoptic'), { role: null })}>
                   <td className="ps-conf-td" data-phi="accession">{r.caseId}</td>
                   <td className="ps-conf-td">{r.caseType}</td>
                   <td className="ps-conf-td">{t(CATEGORY_LABEL_KEY[r.fieldValues.finalCategory as FrozenCategory])}</td>

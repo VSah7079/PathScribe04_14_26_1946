@@ -18,8 +18,10 @@ import { useSystemConfig } from '../../../contexts/SystemConfigContext';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import type { AbnormalTriggerRule, AbnormalSeverity } from '../../../services/abnormalDetection/IAbnormalTriggerRuleService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { findDuplicate } from '../../../utils/validateUnique';
+import { saveAbnormalTriggerRule, toggleAbnormalTriggerRule } from '../../../services/abnormalDetection/abnormalTriggerRuleEditing';
 import { duplicateAbnormalTriggerRule } from '@/services/duplication/duplicateEntities';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { EMPTY_RULE_CODING_DRAFT, ruleCodingDraftOf, type RuleCodingDraft } from '@/services/terminologyLicence/terminologyLicence';
 
 const SEVERITIES: AbnormalSeverity[] = ['Abnormal', 'Critical', 'Malignant'];
 
@@ -38,9 +40,10 @@ const AbnormalTriggerRulesSection: React.FC = () => {
   const [labFilter, setLabFilter] = useState<'All' | 'Global' | string>('All');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; item?: AbnormalTriggerRule } | null>(null);
-  const [draft, setDraft] = useState<{ fieldLabel: string; triggerValues: string; severity: AbnormalSeverity; description: string; active: boolean; performingLabFacilityId: string }>({
-    fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '',
+  const [draft, setDraft] = useState<{ fieldLabel: string; triggerValues: string; severity: AbnormalSeverity; description: string; active: boolean; performingLabFacilityId: string; coding: RuleCodingDraft }>({
+    fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '', coding: EMPTY_RULE_CODING_DRAFT,
   });
+  const setCoding = (patch: Partial<RuleCodingDraft>) => setDraft(d => ({ ...d, coding: { ...d.coding, ...patch } }));
   const [fieldError, setFieldError] = useState('');
 
   const load = () => { abnormalTriggerRuleService.getAll().then(res => { if (res.ok) setItems(res.data); setLoading(false); }); };
@@ -56,9 +59,10 @@ const AbnormalTriggerRulesSection: React.FC = () => {
         fieldLabel: modal.item.fieldLabel, triggerValues: modal.item.triggerValues.join(', '),
         severity: modal.item.severity, description: modal.item.description ?? '',
         active: modal.item.status === 'Active', performingLabFacilityId: modal.item.performingLabFacilityId ?? '',
+        coding: ruleCodingDraftOf(modal.item.licensedCoding),
       });
     } else if (modal?.mode === 'add') {
-      setDraft({ fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '' });
+      setDraft({ fieldLabel: '', triggerValues: '', severity: 'Abnormal', description: '', active: true, performingLabFacilityId: '', coding: EMPTY_RULE_CODING_DRAFT });
     }
     setFieldError('');
   }, [modal]);
@@ -69,49 +73,33 @@ const AbnormalTriggerRulesSection: React.FC = () => {
     labFilter === 'All' || (labFilter === 'Global' ? !item.performingLabFacilityId : item.performingLabFacilityId === labFilter)
   );
 
+  // Batch 450 (PS-129): validation, scope-aware uniqueness and the write live in
+  // services/abnormalDetection/abnormalTriggerRuleEditing.ts.
   const handleSave = async () => {
-    if (!draft.fieldLabel.trim()) { setFieldError(t('abnormalTriggerRulesSection.errors.fieldLabelRequired')); return; }
-    const triggerValues = draft.triggerValues.split(',').map(v => v.trim()).filter(Boolean);
-    if (triggerValues.length === 0) { setFieldError(t('abnormalTriggerRulesSection.errors.triggerValueRequired')); return; }
-
-    // Same real, scope-aware uniqueness check as DeficienciesSection.tsx's
-    // own dictionaries — a collision only blocks the save within the
-    // same scope (same lab, or both Global).
-    const excludeId = modal?.mode === 'edit' ? modal.item?.id : undefined;
-    const collision = findDuplicate(items, { performingLabFacilityId: draft.performingLabFacilityId || undefined, fieldLabel: draft.fieldLabel.trim() }, ['performingLabFacilityId', 'fieldLabel'], excludeId);
-    if (collision) {
-      setFieldError(draft.performingLabFacilityId
-        ? t('abnormalTriggerRulesSection.errors.duplicateRuleForLab', { label: collision.fieldLabel })
-        : t('abnormalTriggerRulesSection.errors.duplicateRuleGlobal', { label: collision.fieldLabel }));
+    const outcome = await saveAbnormalTriggerRule(draft, modal, items, abnormalTriggerRuleService);
+    if (outcome.kind === 'invalid') {
+      setFieldError(t(`abnormalTriggerRulesSection.errors.${outcome.error}`));
       return;
     }
-
-    const payload = {
-      fieldLabel: draft.fieldLabel.trim(), triggerValues, severity: draft.severity,
-      description: draft.description.trim() || undefined,
-      status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
-      performingLabFacilityId: draft.performingLabFacilityId || undefined,
-    };
-    if (modal?.mode === 'add') {
-      // A duplicate carries its source's synthetic coding, which this form
-      // doesn't display; a plain Add has none.
-      const res = await abnormalTriggerRuleService.add({ ...payload, syntheticCoding: modal.item?.syntheticCoding });
-      if (res.ok) setItems(prev => [...prev, res.data]);
-    } else if (modal?.item) {
-      const res = await abnormalTriggerRuleService.update(modal.item.id, payload);
-      if (res.ok) setItems(prev => prev.map(i => i.id === res.data.id ? res.data : i));
+    if (outcome.kind === 'duplicate') {
+      setFieldError(outcome.scope === 'lab'
+        ? t('abnormalTriggerRulesSection.errors.duplicateRuleForLab', { label: outcome.label })
+        : t('abnormalTriggerRulesSection.errors.duplicateRuleGlobal', { label: outcome.label }));
+      return;
     }
+    const saved = outcome.rule;
+    if (saved) setItems(prev => outcome.mode === 'add' ? [...prev, saved] : prev.map(i => i.id === saved.id ? saved : i));
     setModal(null);
   };
 
   const handleToggleActive = async (item: AbnormalTriggerRule) => {
-    const res = item.status === 'Active' ? await abnormalTriggerRuleService.deactivate(item.id) : await abnormalTriggerRuleService.reactivate(item.id);
-    if (res.ok) setItems(prev => prev.map(i => i.id === item.id ? res.data : i));
+    const saved = await toggleAbnormalTriggerRule(item, abnormalTriggerRuleService);
+    if (saved) setItems(prev => prev.map(i => i.id === item.id ? saved : i));
   };
 
   const severityBadgeClass = (s: AbnormalSeverity) => s === 'Malignant' ? 'ps-defic-status-badge--inactive' : s === 'Critical' ? 'ps-defic-status-badge--inactive' : 'ps-defic-status-badge--active';
 
-  if (loading) return <div className="ps-defic-loading">{t('abnormalTriggerRulesSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('abnormalTriggerRulesSection.loading')} />;
 
   return (
     <div className="ps-defic-section">
@@ -149,7 +137,7 @@ const AbnormalTriggerRulesSection: React.FC = () => {
 
       {labs.length > 0 && (
         <div className="ps-conf-form-row">
-          <select value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
+          <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav value={labFilter} onChange={e => setLabFilter(e.target.value)} className="ps-conf-select">
             <option value="All">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="Global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -210,33 +198,49 @@ const AbnormalTriggerRulesSection: React.FC = () => {
             <div className="ps-ms-header">{modal.mode === 'add' ? t('abnormalTriggerRulesSection.modal.addTitle') : t('abnormalTriggerRulesSection.modal.editTitle')}</div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.fieldLabelLabel')}</label>
-              <input className="ps-ms-input" value={draft.fieldLabel} onChange={e => setDraft(d => ({ ...d, fieldLabel: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.fieldLabelPlaceholder')} />
+              <input aria-label={t('abnormalTriggerRulesSection.modal.fieldLabelLabel')} className="ps-ms-input" value={draft.fieldLabel} onChange={e => setDraft(d => ({ ...d, fieldLabel: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.fieldLabelPlaceholder')} />
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.triggerValuesLabel')}</label>
-              <input className="ps-ms-input" value={draft.triggerValues} onChange={e => setDraft(d => ({ ...d, triggerValues: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.triggerValuesPlaceholder')} />
+              <input aria-label={t('abnormalTriggerRulesSection.modal.triggerValuesLabel')} className="ps-ms-input" value={draft.triggerValues} onChange={e => setDraft(d => ({ ...d, triggerValues: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.triggerValuesPlaceholder')} />
               {fieldError && <span className="ps-conf-error-text">{fieldError}</span>}
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.severityLabel')}</label>
-              <select className="ps-ms-select" value={draft.severity} onChange={e => setDraft(d => ({ ...d, severity: e.target.value as AbnormalSeverity }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.severityLabel')} className="ps-ms-select" value={draft.severity} onChange={e => setDraft(d => ({ ...d, severity: e.target.value as AbnormalSeverity }))}>
                 {SEVERITIES.map(s => <option key={s} value={s}>{t(SEVERITY_LABEL_KEY[s])}</option>)}
               </select>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.descriptionLabel')}</label>
-              <textarea className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.descriptionPlaceholder')} />
+              <textarea aria-label={t('abnormalTriggerRulesSection.modal.descriptionLabel')} className="ps-ms-textarea" value={draft.description} onChange={e => setDraft(d => ({ ...d, description: e.target.value }))} placeholder={t('abnormalTriggerRulesSection.modal.descriptionPlaceholder')} />
+            </div>
+            <div className="ps-ms-field-group">
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.licensedCodesLabel')}</label>
+              <span className="ps-conf-field-hint">{t('abnormalTriggerRulesSection.modal.licensedCodesHint')}</span>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.snomedCodeLabel')}
+                <input className="ps-ms-input" value={draft.coding.snomedCode} onChange={e => setCoding({ snomedCode: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.snomedTermLabel')}
+                <input className="ps-ms-input" value={draft.coding.snomedDisplay} onChange={e => setCoding({ snomedDisplay: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.icdo3CodeLabel')}
+                <input className="ps-ms-input" value={draft.coding.icdo3Code} onChange={e => setCoding({ icdo3Code: e.target.value })} />
+              </label>
+              <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.icdo3TermLabel')}
+                <input className="ps-ms-input" value={draft.coding.icdo3Display} onChange={e => setCoding({ icdo3Display: e.target.value })} />
+              </label>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.performingLabLabel')}</label>
-              <select className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.performingLabLabel')} className="ps-ms-select" value={draft.performingLabFacilityId} onChange={e => setDraft(d => ({ ...d, performingLabFacilityId: e.target.value }))}>
                 <option value="">{t('abnormalTriggerRulesSection.modal.globalOption')}</option>
                 {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </div>
             <div className="ps-ms-field-group">
               <label className="ps-ms-label">{t('abnormalTriggerRulesSection.modal.statusLabel')}</label>
-              <select className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
+              <select aria-label={t('abnormalTriggerRulesSection.modal.statusLabel')} className="ps-ms-select" value={draft.active ? 'active' : 'inactive'} onChange={e => setDraft(d => ({ ...d, active: e.target.value === 'active' }))}>
                 <option value="active">{t('common.active')}</option>
                 <option value="inactive">{t('common.inactive')}</option>
               </select>

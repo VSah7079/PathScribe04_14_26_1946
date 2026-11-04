@@ -7,6 +7,8 @@
 // real modes, per that same wording — never forced into one shape.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { SendOutOrderResult } from '@/services/molecularOrders/molecularOrderTypes';
+
 export interface ReferralResultEventPayload {
   messageId: string;
   timestamp: string;
@@ -22,4 +24,8 @@ export interface ReferralResultEventPayload {
    *  when 'discrete' — a real reference to a stored PDF, never the
    *  raw bytes themselves in this event. */
   pdfAttachmentUrl?: string;
+  /** Batch 467b: coded results for the send-out molecular orders in the batch, so each reaches its order (and the
+   *  synoptic). Either result type may carry them. The order id is the one the referral manifest sent, when the
+   *  reference lab echoes it; otherwise the accession and test identify the order. */
+  orderResults?: SendOutOrderResult[];
 }

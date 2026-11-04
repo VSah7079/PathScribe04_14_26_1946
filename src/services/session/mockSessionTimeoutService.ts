@@ -11,6 +11,8 @@ import type { ISessionTimeoutService } from './ISessionTimeoutService';
 import type { ServiceResult } from '../types';
 import { facilityService } from '../index';
 import { resolvePerformingLabFacilityId } from '../facilities/IFacilityService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const ORG_IDLE_TIMEOUT_KEY = 'pathscribe_idle_timeout_minutes';
 const FALLBACK_DEFAULT_MINUTES = 15; // matches the original spec's suggested default
@@ -19,7 +21,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
 function readOrgDefault(): number {
   try {
-    const stored = localStorage.getItem(ORG_IDLE_TIMEOUT_KEY);
+    const stored = dataStorage.getItem(ORG_IDLE_TIMEOUT_KEY);
     if (stored !== null) {
       const parsed = Number(stored);
       if (!Number.isNaN(parsed) && parsed > 0) return parsed;
@@ -30,7 +32,7 @@ function readOrgDefault(): number {
   return FALLBACK_DEFAULT_MINUTES;
 }
 
-export const mockSessionTimeoutService: ISessionTimeoutService = {
+const sessionTimeoutServiceUnchecked: ISessionTimeoutService = {
 
   async getOrgDefault() {
     return ok(readOrgDefault());
@@ -38,7 +40,7 @@ export const mockSessionTimeoutService: ISessionTimeoutService = {
 
   async setOrgDefault(minutes: number) {
     try {
-      localStorage.setItem(ORG_IDLE_TIMEOUT_KEY, String(minutes));
+      dataStorage.setItem(ORG_IDLE_TIMEOUT_KEY, String(minutes));
     } catch {
       // ignore write failures
     }
@@ -63,3 +65,8 @@ export const mockSessionTimeoutService: ISessionTimeoutService = {
     return ok(labRes.data.idleTimeoutMinutesOverride ?? orgDefault);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockSessionTimeoutService: ISessionTimeoutService = guardConfigWrites(sessionTimeoutServiceUnchecked, [
+  ['config:session-security:manage', ['setOrgDefault']],
+]);

@@ -3,17 +3,18 @@
 // Authoritative Case domain model for PathScribe.
 // FHIR-aligned (ServiceRequest, DiagnosticReport, Specimen, Task)
 // ─────────────────────────────────────────────────────────────
-
-import { Patient } from "./Patient";
-import { Specimen } from "./Specimen";
+import { Patient } from "./Patient"; import { Specimen } from "./Specimen";
 import type { FlagInstance } from "../flagsRuntime";
 import type { RetentionHold } from "./RetentionHold";
 import type { CaseHold } from "./CaseHold";
 import type { MatrixBlock } from "./MatrixBlock";
 import { CaseComment } from "./CaseComment";
 import type { Icd10Code } from "@/services/diagnosisCodes/IDiagnosisCodesService";
+import type { OrderClinicalIndicationProvenance } from "./OrderClinicalIndicationProvenance";
 import type { RecordedClinicalHistoryEntry } from "@/types/clinicalHistory/RecordedClinicalHistoryEntry";
 import type { OutsidePatientFinancialData } from "@/types/billing/OutsidePatientFinancialData";
+import type { OriginatingCase } from "./OriginatingCase";
+import type { AiFieldSuggestion } from "./AiFieldSuggestion";
 import { CaseStatus } from "./CaseStatus";
 import type { FieldLineageEntry } from '@/types/reports/FieldLineage';
 import type { RevisionType } from '@/types/reports/AmendmentRecord';
@@ -26,6 +27,8 @@ export interface CaseCoding {
   snomed?: string[];
   loinc?: string[];
   cpt?: string[];
+  /** Batch 607: the same codes with their system release, source and AI detail (services/coding/codedEntry.ts). The lists above stay in step with it; a system they have no list for (OPCS-4) is kept only here. */
+  entries?: import('@/services/coding/codedEntry').CodedEntry[];
 }
 
 export interface AssignmentEvent {
@@ -35,7 +38,7 @@ export interface AssignmentEvent {
   reason?: string;
 }
 
-export interface OrderMetadata {
+export interface OrderMetadata extends OrderClinicalIndicationProvenance {
   /**
    * Fixed June 2026 — this used to be its own independent literal union
    * ("Routine" | "STAT" | "ASAP" | "Critical") that didn't match
@@ -52,6 +55,9 @@ export interface OrderMetadata {
    */
   priority: "Routine" | "Rush" | "STAT";
   requestingProvider?: string;
+  /** Batch 613: other physicians who receive a copy of the report (HL7 role copy-to), display names. Shown to the signer
+   *  when choosing related cases. The inbound mapping that fills it is interface engine work. */
+  copyToProviders?: string[];
   /**
    * Stable physician ID, distinct from requestingProvider (which is a
    * display name). Feeds TemplateRoutingService's Pass 0b (Physician
@@ -64,6 +70,9 @@ export interface OrderMetadata {
   facilityId?: string;
   /** Cached display name — avoids async lookup on every render */
   facilityName?: string;
+  /** Batch 606 (PS-37): the facility that did the technical component (processing, cutting,
+   *  staining) when it is not the lab reporting the case (a split '26' report). Optional. */
+  technicalComponentFacilityId?: string;
   /**
    * Real feature, per direct confirmation: "add the Client and
    * Location as fields to be seen in the accession page." ID
@@ -104,6 +113,11 @@ export interface OrderMetadata {
    */
   requisitionNumber?: string;
   externalOrderId?: string;
+  /** Batch 426: the LIS's placer (ORC-2) and filler (ORC-3) order numbers, as the
+   *  interface engine sent them on an Assist case's inbound updates. Echoed back on
+   *  the structured synoptic result so the engine needs no state table. */
+  placerOrderNumber?: string;
+  fillerOrderNumber?: string;
   labNumber?: string;
   blockId?: string;
   referralNumber?: string | null;
@@ -199,6 +213,8 @@ export interface OrderMetadata {
    *  is 'outside' — see OutsidePatientFinancialData.ts's own header
    *  for the full field-by-field account. */
   outsidePatientData?: OutsidePatientFinancialData;
+  /** Batch 759: an outside case's own number at the institution it came from (the Foreign Identifier). */
+  originatingCase?: OriginatingCase;
 }
 
 export interface DiagnosticMetadata {
@@ -282,20 +298,16 @@ export interface AccessionMetadata {
 // Represents one template attached to one specimen.
 // A case can have many of these (multiple specimens × multiple templates).
 // ─────────────────────────────────────────────────────────────
-export type AiFieldVerification = 'unverified' | 'verified' | 'disputed';
-
-export interface AiFieldSuggestion {
-  value: string | string[];
-  confidence: number;        // 0–100
-  source: string;            // e.g. 'Gross: "2.3 × 1.8 × 1.5 cm"'
-  verification: AiFieldVerification;
-}
+export type { AiFieldSuggestion, AiFieldVerification } from './AiFieldSuggestion';
 
 export interface SynopticReportInstance {
   /** Unique ID for this report instance */
   instanceId: string;
   /** Which specimen this report belongs to */
   specimenId: string;
+  /** Batch 426: further parts this workup covers (one resection protocol spanning
+   *  containers). Sent as the result's specimen_ids; no screen sets it yet. */
+  additionalSpecimenIds?: string[];
   /** The template used (e.g. 'breast_invasive') */
   templateId: string;
   /** Human-readable template name (cached for sidebar display) */
@@ -304,6 +316,9 @@ export interface SynopticReportInstance {
   answers: Record<string, string | string[]>;
   /** AI-suggested values per field — keyed by fieldId */
   aiSuggestions?: Record<string, AiFieldSuggestion>;
+  /** Batch 467: the questions an in-house molecular result answered (or suggested an answer for), by question id
+   *  (services/molecularOrders/molecularOrderEngine.ts). */
+  resultSources?: Record<string, { orderId: string; assayName: string; call: string; at: string }>;
   /** Draft | finalized */
   status: 'draft' | 'finalized' | 'pending-countersign';
   /** Per-report comment (html) */
@@ -370,6 +385,18 @@ export interface SynopticReportInstance {
    *  the version history being compared; unchanged fields' provenance
    *  is implicit in the ReportVersionRecord chain. See FieldLineage.ts. */
   fieldLineage?: Record<string, FieldLineageEntry>;
+  /** Batch 426: newer AI suggestions for fields the pathologist had already set
+   *  (typed or confirmed), from a re-evaluation of new or changed narrative. Never
+   *  applied on their own: the synoptic panel asks "keep or update?" per field. */
+  reevaluations?: Record<string, PendingReevaluation>;
+}
+
+/** Batch 426: one re-evaluated field waiting for the pathologist's choice. */
+export interface PendingReevaluation {
+  value: string | string[];
+  confidence: number;
+  source: string;
+  suggestedAt: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -594,12 +621,12 @@ export interface ProtocolChange {
    *
    * Previously ProtocolChange existed only transiently as
    * evaluateSynopticAssignment's input/output — nothing persisted what
-   * happened to a proposal after the modal closed. Needed now so a
-   * Stage 2 background check (fires on Save Draft with non-empty
-   * Microscopic content, separate from the blocking pre-finalize check)
-   * can leave a quiet, PERSISTENT badge for the pathologist to review on
-   * their own schedule, rather than only ever surfacing as an ephemeral
-   * toast or a forced interruption.
+   * happened to a proposal after the modal closed. It is persisted so a
+   * proposal can leave a quiet, PERSISTENT badge for the pathologist to
+   * review on their own schedule. Batch 651 correction: today the only
+   * writer is the Assist-mode LIS poll (services/assistPolling/). The
+   * Stage 2 BACKGROUND check on Save Draft in Orchestration mode that this
+   * comment used to describe was never built (Planned; KNOWN_GAPS.md).
    */
   reviewStatus?: 'pending' | 'accepted' | 'dismissed';
 }
@@ -647,16 +674,12 @@ export interface Case {
    *  cost/latency concern) for every row on every render. null/undefined
    *  = no confirmed abnormal finding on this case. */
   abnormalDetectionStatus?: { severity: 'Abnormal' | 'Critical' | 'Malignant'; confirmedAt: string } | null;
-  /** Real, per direct guidance: architecture-testing only, NEVER a
-   *  real, licensed SNOMED CT / ICD-O-3 code — PS-130 (the real
-   *  implementation) stays genuinely blocked on a real terminology
-   *  source. See resolveSyntheticCoding.ts (services/abnormalDetection/)
-   *  for the full safety reasoning — every real code value here is
-   *  structurally, unmistakably fake even read completely alone,
-   *  never relying on this field's own name/comment as the only
-   *  safeguard. Set alongside abnormalDetectionStatus above, same
-   *  real confirm moment, same lifecycle. */
-  syntheticAbnormalCoding?: { system: 'TEST-SNOMED' | 'TEST-ICDO3'; code: string; display: string }[];
+  /** The code(s) attached to the confirmed abnormal finding. Test codes ("TEST-" inside the
+   *  code string itself, so they can never pass for real ones) until the customer records a
+   *  SNOMED CT / ICD-O-3 licence; after that, the rule's own real codes while that licence is
+   *  on and unexpired (Batch 623, PS-130; resolveFindingCoding.ts). Set alongside
+   *  abnormalDetectionStatus above, at the same confirm moment. The name predates real codes. */
+  syntheticAbnormalCoding?: { system: 'TEST-SNOMED' | 'TEST-ICDO3' | 'SNOMED-CT' | 'ICD-O-3'; code: string; display: string }[];
 
   /** When grossing was first, genuinely completed for this case - real
    *  fix, added specifically for TAT (turnaround time) calculation
@@ -694,6 +717,8 @@ export interface Case {
   // ── Multi-report synoptic system ──────────────────────────
   // Each entry is one template instance attached to one specimen.
   synopticReports?: SynopticReportInstance[];
+  /** Batch 461: organ-map images the pathologist inserted into the report (services/organMapping/organMapFigures.ts). */
+  organMapFigures?: import('@/services/organMapping/organMapFigures').OrganMapFigure[];
 
   // ── Grossing report system (Orchestration Stage 0/1) ──────
   // Each entry is one Grossing Template instance attached to one specimen,
@@ -711,20 +736,16 @@ export interface Case {
   // finalize-blocking rules built against this field.
   microscopicReports?: MicroscopicReportInstance[];
 
-  // ── Synoptic fit re-evaluation (Orchestration Stage 2) ─────
-  // Persisted result of the most recent evaluateSynopticAssignment() run
-  // triggered by the Stage 2 BACKGROUND check (Save Draft with non-empty
-  // Microscopic content — see SynopticReportPage.tsx's handleSaveDraft).
-  // Distinct from the Stage 2 BLOCKING check at pre-finalize time
-  // (handlePreFinalConfirm), which surfaces its own ProtocolChangeModal
-  // immediately and doesn't need to persist anything past that moment —
-  // this field exists specifically so a quiet background-check result
-  // survives until the pathologist chooses to look at it (this session's
-  // stated design: persistent over ephemeral), shown as a badge in
-  // Sidebar.tsx next to the affected specimen/synoptic row. Cleared (or
-  // its entries marked 'accepted'/'dismissed') once the pathologist
-  // reviews them via ProtocolChangeModal, opened on demand by clicking
-  // the badge — see ProtocolChange.reviewStatus.
+  // ── Synoptic fit re-evaluation ─────
+  // Persisted template-fit proposals from evaluateSynopticAssignment(). Batch 651
+  // correction: this field is written ONLY by the Assist-mode LIS poll
+  // (services/assistPolling/runAssistPollCycle.ts), not by any Orchestration
+  // Save Draft. The "Stage 2 background check on Save Draft" this comment used to
+  // describe (handleSaveDraft in SynopticReportPage.tsx, which does not exist)
+  // is PLANNED, not built: Orchestration re-evaluates only at Gross Complete
+  // (useGrossingCompletion.ts, Stage 1). Shown as a badge in Sidebar.tsx next to
+  // the affected specimen/synoptic row; entries are marked 'accepted'/'dismissed'
+  // once the pathologist reviews them via ProtocolChangeModal (ProtocolChange.reviewStatus).
   pendingProtocolChanges?: ProtocolChange[];
 
   // ── Legacy single-report fields (kept for backwards compat) ──
@@ -790,7 +811,10 @@ export interface Case {
   order: OrderMetadata;
   assignmentHistory?: AssignmentEvent[];
   diagnostic?: DiagnosticMetadata;
+  intraoperativeFindings?: import('@/types/intraop/CaseIntraoperativeFinding').CaseIntraoperativeFinding[]; // Batch 652: intraop frozen dx + photos, never the final diagnosis
   coding?: CaseCoding;
+  importSource?: { kind: 'simulated_bulk_import'; jobId: string; sourceSystemName: string; importedAt: string }; // Batch 611: set only on a draft a legacy import created ('simulated_bulk_import' is the browser-side demo)
+  lockboxReceiptId?: string; // Batch 652: the Lockbox receipt this case was accessioned from (LockboxResolution.caseId is the other way)
   // Real, confirmed fix, per direct follow-up (Jira PS-57: "two
   // incompatible flag-tracking systems corrupt each other's data",
   // plus the follow-up "should be able to assign Flags at either a
@@ -824,7 +848,7 @@ export interface Case {
    *  DiagnosticMetadata — a different field entirely from the one
    *  finalizeCase actually writes at the case root. */
   finalizedAt?: string;
-  finalizedBy?: string;
+  finalizedBy?: string | null; // null when signed out with no signing user (useSignOutWorkflow.ts)
   /** Real feature, per direct follow-up: "How will pathscribe know it
    *  needs to retain the patient's specimen? ... The hold Retention
    *  flag should be also on the accession screen." See
@@ -943,6 +967,20 @@ export interface Case {
    *  pathologist's preference, then the ordering facility's default,
    *  applies (services/spellcheck/resolveSpellingLocale.ts). */
   spellingLocaleOverride?: string | null;
+  /** Batch 411: a cytology case finalized before every cytology specimen was
+   *  signed out (cytology:case:finalize): who, when, why, and which specimens
+   *  were left unsigned. Absent when the case finalized normally. */
+  cytologyEarlyFinalization?: {
+    finalizedBy: string;
+    finalizedByName: string;
+    finalizedAt: string;
+    reason: string;
+    unsignedSpecimenIds: string[];
+  };
+  /** Batch 533 (Pete, Oct 12): urgent preliminary reports sent for single
+   *  cytology specimens before the case report, oldest first. Written once,
+   *  never edited (types/cytology/CytologyPreliminaryRelease.ts). */
+  cytologyPreliminaryReleases?: import('@/types/cytology/CytologyPreliminaryRelease').CytologyPreliminaryRelease[];
   /** Real, flat denormalization of participants — the specific staffIds
    *  currently eligible to finalize this case (active Primary/
    *  Attending), maintained automatically by CaseRouter.ts whenever a

@@ -1,0 +1,1910 @@
+<h1 id="top">Voice and Keyboard</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Every command PathScribe can run can be run three ways: by clicking, by a keyboard shortcut, or by saying it. This article lists them all, explains the rules that decide which command runs, and shows how to cancel or confirm by voice.</p>
+<p><strong>Intended users.</strong> Everyone. Pathologists use voice and keys most on the Report screen; accessioners and histotechnologists on their own screens.</p>
+<p><strong>Where it fits.</strong> The same command does the same thing however you start it. A command does nothing you could not do with the mouse: if a button is greyed out because you lack the permission, the key and the phrase are refused too.</p>
+<div class="admonition note">
+<p class="admonition-title">The list below is today's list</p>
+<p>There are 286 commands. Your laboratory's administrator can change a shortcut or a spoken phrase for the whole laboratory (Configuration &gt; Action Registry), and you can teach the system your own spoken corrections. If a key or phrase here does not work for you, look at the Action Registry screen or ask your administrator.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/voice-and-keyboard-overview.png" alt="The voice bar and the Go to panel"><figcaption>The voice bar and the Go to panel</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Command</td>
+<td>One thing PathScribe can do, such as Next Case or Sign Out Case.</td>
+</tr>
+<tr>
+<td>Shortcut</td>
+<td>The key combination that runs it. Written as Alt+W (hold Alt and press W). A shortcut shown as "Alt+J, then W" means press Alt+J, release, then press W.</td>
+</tr>
+<tr>
+<td>Phrase</td>
+<td>What you say. Phrases are lower case here. You can say them in English, French, German, Dutch, Korean or Spanish; the phrases in the other five languages are in the Action Registry screen. Your screen language chooses which set is listened for.</td>
+</tr>
+<tr>
+<td>Always on</td>
+<td>A command that works on every screen (the System and Go to groups).</td>
+</tr>
+<tr>
+<td>Screen command</td>
+<td>A command that only works on one screen (for example the Report screen).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microphone button / voice bar</td>
+<td>Turns listening on and off. While it is on, the bar shows what it heard and what it will do.</td>
+</tr>
+<tr>
+<td>Alt+J</td>
+<td>Opens the "Go to" panel: a small list of the always-on commands by their keys. Press the key shown to run one.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Microphone active</td>
+<td>The system is listening.</td>
+</tr>
+<tr>
+<td>"Say it again to confirm"</td>
+<td>The command is hard to undo, so it asks you to say the same phrase again within 8 seconds.</td>
+</tr>
+<tr>
+<td>Greyed button</td>
+<td>You do not hold the permission; the key and phrase are refused as well.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Confirmation timed out.</strong> A command that is hard to undo waits for you to say it again. If you do not repeat it within 8 seconds the overlay briefly shows "Not confirmed in time: …" with the command's name, and nothing runs. Say the command once more and then confirm it in time.</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+J, then a key</td>
+<td>Runs the always-on command with that key, even when a screen command has taken the key. Esc, a click elsewhere, Ctrl or an unknown key cancels it; it closes by itself after 3 seconds.</td>
+</tr>
+<tr>
+<td>F1</td>
+<td>View Help: opens the article for the screen you are on.</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+J</td>
+<td>Cancel: closes the open window, stops dictation or drops a command that is waiting to be confirmed (see "Cancel by voice").</td>
+</tr>
+</tbody>
+</table>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Turn the microphone on (button on the voice bar, or the voice-bar shortcut shown in the Action Registry).</li>
+<li>Say a command phrase exactly as listed below, for example "next case". The bar shows what it heard.</li>
+<li>The command runs. If it is one of the hard-to-undo commands, nothing runs yet and the bar asks you to say it again; say the same phrase within 8 seconds and it runs.</li>
+<li>To dictate, say "enter gross", "enter micro" or "enter diagnosis" on the Report screen. What you say next goes into that section until you say "cancel dictation" or move to another section.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Use the key instead: hold the keys shown in the Shortcut column.</li>
+<li>If a key does nothing on your screen, a screen command may be using it. Press Alt+J and then the key to reach the always-on command.</li>
+<li>Or click the button. Every command presses the same button you would click.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If the system hears a phrase that matches two commands, the command for the screen you are on wins. The always-on command is reached with Alt+J, then its key.</li>
+<li>Two phrases are special on the Report screen: "back" and "forward" move between sections there (not between screens). Say "go back to report" to close a window.</li>
+<li>If a command is refused, the voice bar says why (not available on this screen, you did not repeat the phrase, or you did not repeat it in time). Refusals are recorded in the Audit Log, without what you said.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the system heard something wrong and a command ran, use the screen's own undo or the Cancel command; nothing runs that you could not do with the mouse, and every protected action still asks its own confirmation.</li>
+<li>If you started dictating by mistake, say "cancel dictation". The system asks you to say it again to discard what was dictated in this session; if you say something else, the dictation simply stops and keeps the text.</li>
+<li>If the wrong phrase keeps being heard, add a learned correction in your personal settings (see <a href="/help/personal-settings">Personal Settings</a>).</li>
+</ol>
+<h2 id="the-rules-that-decide-which-command-runs">The rules that decide which command runs</h2>
+<ul>
+<li><strong>The screen in focus wins.</strong> If a screen command and an always-on command use the same key or phrase, the screen command runs. The always-on command is reached with Alt+J, then its key.</li>
+<li><strong>No two commands on one screen share a key or a phrase.</strong> The product's own tests enforce this.</li>
+<li><strong>Hard-to-undo voice commands ask twice.</strong> These are: Delete Row (Worklist), Delete Message, Delete All Selected, Recall a released report, Release Case From Hold and Release Autopsy Body. A key press is already a deliberate act, so keys do not ask. Commands that open their own confirmation window (Sign Out Case, Confirm Finalise, Discard Unsaved Changes, delegation) do not ask a second time by voice.</li>
+<li><strong>Cancel by voice.</strong> Saying "cancel" closes the open window, or drops a command that is waiting to be confirmed. While you are dictating, "cancel dictation" asks you to repeat it before discarding what you dictated in this session.</li>
+<li><strong>Everything is audited.</strong> Every voice command that runs, and every one that is refused, writes an Audit Log entry with the command, the screen and the person, never what was said and never a case.</li>
+</ul>
+<h2 id="voice-button-and-prompts-more-detail">Voice button and prompts: more detail</h2>
+<p>The microphone button changes its tooltip with its state:</p>
+<table>
+<thead>
+<tr>
+<th>Tooltip</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Click to enable voice</td>
+<td>Voice is off.</td>
+</tr>
+<tr>
+<td>Voice AI — click to enable</td>
+<td>Voice with AI clean-up is available.</td>
+</tr>
+<tr>
+<td>Voice AI active — click for Local</td>
+<td>AI voice is on; click to switch to local voice.</td>
+</tr>
+<tr>
+<td>Voice Local — click to stop</td>
+<td>Local voice is listening.</td>
+</tr>
+<tr>
+<td>Dictating — click to stop</td>
+<td>Dictation mode is on.</td>
+</tr>
+<tr>
+<td>Voice is disabled for this deployment</td>
+<td>Your organisation has turned voice off.</td>
+</tr>
+<tr>
+<td>AI refinement unavailable</td>
+<td>A warning that the AI clean-up step cannot run, so text is not refined.</td>
+</tr>
+</tbody>
+</table>
+<p>While AI polishes your words the overlay says <strong>Refining…</strong>. A phrase PathScribe cannot match flashes <strong>UNRECOGNISED COMMAND</strong>. When there are close matches the prompt asks <strong>DID YOU MEAN?</strong>; each choice says <strong>tap to learn</strong>, and choosing it teaches PathScribe your wording. In the voice settings, the macro list shows <strong>Loading voice macros...</strong> while it loads, and <strong>Syncing...</strong> and <strong>Settings saved to cloud</strong> show that your settings are being stored.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Saying a phrase on the wrong screen. A screen command only works on its own screen; check the heading of the table below that matches where you are.</li>
+<li>Expecting a key to work when a window is open. Many keys belong to the screen underneath.</li>
+<li>Saying a phrase in the wrong language. Your screen language chooses the phrases that are listened for.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Learn the five or six commands you use most: Next Case, Previous Case, Open History, Save Report Draft, Enter Gross, Enter Diagnosis.</li>
+<li>Use Alt+J, then a key for always-on commands you need on the Report screen.</li>
+<li>Say short phrases clearly with a short pause before and after.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Pathologists: dictate with Enter Gross / Enter Micro / Enter Diagnosis, then use Edit Field to correct a single answer by voice.</li>
+<li>Bench staff: use the station commands (Microtome, Embedding, Slide Distribution) so you never touch the keyboard with gloves on.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/help">Help</a></li>
+<li><a href="/help/personal-settings">Personal Settings</a></li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a></li>
+<li><a href="/help/worklist">Worklist</a></li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A key does nothing</td>
+<td>A screen command is using it, you are on a different screen, or a window is open. Try Alt+J then the key.</td>
+</tr>
+<tr>
+<td>The microphone is on but nothing happens</td>
+<td>The phrase is not in the list for your screen language, or the command belongs to a different screen.</td>
+</tr>
+<tr>
+<td>The command is greyed out</td>
+<td>You do not hold the permission for the action.</td>
+</tr>
+<tr>
+<td>"Say it again to confirm" keeps appearing</td>
+<td>The command is hard to undo. Say the same phrase again within 8 seconds.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Check the table below for the screen you are on.</li>
+<li>Try the key; if the key does nothing, try Alt+J then the key.</li>
+<li>Check your screen language.</li>
+<li>Ask your administrator to look at the command in Configuration &gt; Action Registry.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a listed phrase is never recognised in your language, or a command runs that you did not say. Have the screen, the phrase and the time ready.</p>
+<h2 id="every-command-by-screen">Every command, by screen</h2>
+<p>Phrases are the English ones; the same commands have phrases in French, German, Dutch, Korean and Spanish. Keys are the defaults. A blank Key means the command has no default key.</p>
+<h3 id="everywhere-go-to-a-screen-11-commands">Everywhere (go to a screen) (11 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go to Lockbox Drop-Off</td>
+<td>Alt+Shift+Z</td>
+<td>open lockbox drop-off; go to lockbox drop-off; open lockbox; lockbox drop-off</td>
+</tr>
+<tr>
+<td>My Contribution</td>
+<td>Alt+K</td>
+<td>my contribution; open my contribution; go to my contribution; contribution</td>
+</tr>
+<tr>
+<td>Next Case</td>
+<td>Alt+N</td>
+<td>next case; go to next case; next patient; open next case</td>
+</tr>
+<tr>
+<td>Next Tab / Section</td>
+<td>Alt+.</td>
+<td>next tab; go to next tab; tab right; next section</td>
+</tr>
+<tr>
+<td>Open Configuration</td>
+<td>Alt+C</td>
+<td>open configuration; go to configuration; configuration; open config</td>
+</tr>
+<tr>
+<td>Open Intraop Queue</td>
+<td>Alt+O</td>
+<td>open intraop queue; show intraop queue; open intraoperative queue; unlinked intraoperative entries</td>
+</tr>
+<tr>
+<td>Open Search</td>
+<td>Alt+F</td>
+<td>open search; go to search; search cases; search</td>
+</tr>
+<tr>
+<td>Open Worklist</td>
+<td>Alt+W</td>
+<td>open worklist; go to worklist; show worklist; worklist</td>
+</tr>
+<tr>
+<td>Previous Case</td>
+<td>Alt+P</td>
+<td>previous case; go to previous case; prior case; last case</td>
+</tr>
+<tr>
+<td>Previous Tab / Section</td>
+<td>Alt+,</td>
+<td>previous tab; go to previous tab; tab left; prior tab</td>
+</tr>
+<tr>
+<td>System Audit</td>
+<td>Alt+U</td>
+<td>open audit; system audit; open system audit; go to audit</td>
+</tr>
+</tbody>
+</table>
+<h3 id="everywhere-system-13-commands">Everywhere (system) (13 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Focus Case Search</td>
+<td>Alt+Shift+B</td>
+<td>search case; find case; look up case; case search</td>
+</tr>
+<tr>
+<td>Go Back</td>
+<td>Alt+ArrowLeft</td>
+<td>go back; back; previous page; go to previous page</td>
+</tr>
+<tr>
+<td>Go Forward</td>
+<td>Alt+ArrowRight</td>
+<td>go forward; forward; next page; go to next page</td>
+</tr>
+<tr>
+<td>Go Home</td>
+<td>Alt+H</td>
+<td>go home; home page; go to home; open home</td>
+</tr>
+<tr>
+<td>Log Out</td>
+<td>Alt+L</td>
+<td>log out; sign out system; logout; log me out</td>
+</tr>
+<tr>
+<td>Open Clinical Resources</td>
+<td>Alt+Q</td>
+<td>open resources; clinical resources; open clinical resources; quick links</td>
+</tr>
+<tr>
+<td>Open Enhancement Request</td>
+<td>Alt+Y</td>
+<td>open enhancement request; enhancement request; open enhancement</td>
+</tr>
+<tr>
+<td>Open Messages</td>
+<td>Alt+I</td>
+<td>open messages; open message; show messages; messages</td>
+</tr>
+<tr>
+<td>Open Participation Types</td>
+<td>Alt+Shift+W</td>
+<td>participation types; open participation types; case participation; manage participation types</td>
+</tr>
+<tr>
+<td>Open Routing Rules</td>
+<td>Alt+R</td>
+<td>open routing rules; routing rules; case routing; open case routing</td>
+</tr>
+<tr>
+<td>Open Testing Feedback</td>
+<td>Alt+X</td>
+<td>open testing feedback; testing feedback; QA feedback; open feedback</td>
+</tr>
+<tr>
+<td>Test Routing Rule</td>
+<td>Alt+Shift+T</td>
+<td>test routing; test rule; check routing; route this specimen</td>
+</tr>
+<tr>
+<td>View System Help</td>
+<td>F1</td>
+<td>view help; open help; system help; show help</td>
+</tr>
+</tbody>
+</table>
+<h3 id="worklist-38-commands">Worklist (38 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clear Filter</td>
+<td>Alt+Shift+C</td>
+<td>clear filter; remove filter; show all; reset filter</td>
+</tr>
+<tr>
+<td>Clear Search</td>
+<td>Ctrl+Alt+A</td>
+<td>clear search; clear the search; remove search; reset search</td>
+</tr>
+<tr>
+<td>Clear Sort</td>
+<td>Ctrl+Alt+C</td>
+<td>clear sort; remove sort; reset sort; clear sorting</td>
+</tr>
+<tr>
+<td>Collaborating Cases</td>
+<td>Ctrl+Alt+F</td>
+<td>collaborating cases; show collaborations; show consult cases; cases i collaborate on</td>
+</tr>
+<tr>
+<td>Delete Row</td>
+<td>Alt+D</td>
+<td>delete row; delete this row; remove row; delete entry</td>
+</tr>
+<tr>
+<td>Deselect All</td>
+<td>Alt+Shift+D</td>
+<td>deselect all; clear selection; uncheck all; deselect everything</td>
+</tr>
+<tr>
+<td>Filter Autopsy</td>
+<td>Alt+Shift+Q</td>
+<td>filter autopsy; autopsy cases; show autopsy cases</td>
+</tr>
+<tr>
+<td>Filter Awaiting Countersign</td>
+<td>Alt+A</td>
+<td>awaiting countersign; needs countersign; pending countersign; countersign cases</td>
+</tr>
+<tr>
+<td>Filter by Physician</td>
+<td>Alt+Shift+F</td>
+<td>filter by; cases by; show cases by; physician filter</td>
+</tr>
+<tr>
+<td>Filter Completed</td>
+<td>Alt+C</td>
+<td>filter completed; show completed; completed cases; show completed cases</td>
+</tr>
+<tr>
+<td>Filter Digital Pathology</td>
+<td>Ctrl+Alt+Y</td>
+<td>filter dp; filter digital pathology; dp cases; show dp cases</td>
+</tr>
+<tr>
+<td>Filter GYN Cytology</td>
+<td>Ctrl+Alt+Z</td>
+<td>filter gyn cytology; gyn cytology cases; show gyn cytology; filter gyn</td>
+</tr>
+<tr>
+<td>Filter New Cases</td>
+<td>Alt+Shift+U</td>
+<td>filter new cases; new cases; show new cases; unopened cases</td>
+</tr>
+<tr>
+<td>Filter Non-GYN Cytology / FNA</td>
+<td>Alt+Shift+K</td>
+<td>filter non gyn cytology; non gyn cytology cases; filter fna; fna cases</td>
+</tr>
+<tr>
+<td>Filter Pool Cases</td>
+<td>Alt+Shift+P</td>
+<td>pool cases; show pool; unassigned cases; filter pool</td>
+</tr>
+<tr>
+<td>Filter Urgent</td>
+<td>Alt+F</td>
+<td>filter urgent; urgent cases; filter stat; stat cases</td>
+</tr>
+<tr>
+<td>First Row</td>
+<td>Alt+Home</td>
+<td>first; go to first; top of list; first row</td>
+</tr>
+<tr>
+<td>Go to Row</td>
+<td>Alt+7</td>
+<td>go to row; jump to row; row number</td>
+</tr>
+<tr>
+<td>Last Row</td>
+<td>Alt+End</td>
+<td>last; go to last; end of list; last row</td>
+</tr>
+<tr>
+<td>Next Row</td>
+<td>Alt+ArrowDown</td>
+<td>next; next row; move down; down one</td>
+</tr>
+<tr>
+<td>Open Case by Accession</td>
+<td>Alt+8</td>
+<td>open accession; go to accession; open case number</td>
+</tr>
+<tr>
+<td>Open Selected</td>
+<td>Alt+Enter</td>
+<td>open; open selected; open case; open this case</td>
+</tr>
+<tr>
+<td>Open Slide Details</td>
+<td>Ctrl+Alt+X</td>
+<td>open slide details; show slide details; slide details</td>
+</tr>
+<tr>
+<td>Page Down</td>
+<td>Alt+PageDown</td>
+<td>page down; scroll down; more results</td>
+</tr>
+<tr>
+<td>Page Up</td>
+<td>Alt+PageUp</td>
+<td>page up; scroll up; back to top</td>
+</tr>
+<tr>
+<td>Previous Row</td>
+<td>Alt+ArrowUp</td>
+<td>previous; previous row; move up; up one</td>
+</tr>
+<tr>
+<td>Read AI Triage</td>
+<td>Ctrl+Alt+W</td>
+<td>read ai triage; ai result; read ai result; what is the ai finding</td>
+</tr>
+<tr>
+<td>Read Digital Readiness</td>
+<td>Ctrl+Alt+V</td>
+<td>read digital readiness; slide status; scan status; read scan status</td>
+</tr>
+<tr>
+<td>Read Flags</td>
+<td>Alt+Shift+R</td>
+<td>read flags; what are the flags; case flags; list flags</td>
+</tr>
+<tr>
+<td>Read Specimen</td>
+<td>Ctrl+Alt+R</td>
+<td>read specimen; what is the specimen; specimen type; confirm specimen</td>
+</tr>
+<tr>
+<td>Refresh</td>
+<td>Alt+R</td>
+<td>refresh; reload; refresh list; refresh worklist</td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Alt+/</td>
+<td>search worklist; find in list; search the list</td>
+</tr>
+<tr>
+<td>Select All</td>
+<td>Alt+Shift+A</td>
+<td>select all; check all; tick all; select everything</td>
+</tr>
+<tr>
+<td>Select Row</td>
+<td>Alt+Space</td>
+<td>select; select this; select row; check this</td>
+</tr>
+<tr>
+<td>Sort By Column</td>
+<td>Ctrl+Alt+S</td>
+<td>sort by; sort column; order by</td>
+</tr>
+<tr>
+<td>Sort by Date</td>
+<td>Alt+S</td>
+<td>sort by date; sort by time; order by date; newest first</td>
+</tr>
+<tr>
+<td>Sort by Priority</td>
+<td>Alt+P</td>
+<td>sort by priority; urgent first; show urgent first; order by priority</td>
+</tr>
+<tr>
+<td>Sort by Status</td>
+<td>Alt+Shift+S</td>
+<td>sort by status; order by status; group by status</td>
+</tr>
+</tbody>
+</table>
+<h3 id="search-3-commands">Search (3 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Clear Search</td>
+<td>Alt+C</td>
+<td>clear search; reset search; clear all; new search</td>
+</tr>
+<tr>
+<td>Execute Search</td>
+<td>Alt+E</td>
+<td>execute search; run search; search now; go</td>
+</tr>
+<tr>
+<td>Load Saved Search</td>
+<td>Alt+L</td>
+<td>load search; open saved search; search protocol; saved search</td>
+</tr>
+</tbody>
+</table>
+<h3 id="accession-10-commands">Accession (10 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Case Comment</td>
+<td>Alt+Shift+C</td>
+<td>add case comment; open case comment; case comment</td>
+</tr>
+<tr>
+<td>Add Specimen</td>
+<td>Alt+N</td>
+<td>add specimen; add another specimen; new specimen; add a specimen</td>
+</tr>
+<tr>
+<td>Clinical History — Category 1 (SCR)</td>
+<td>Alt+1</td>
+<td>category one; screening category; jump to screening</td>
+</tr>
+<tr>
+<td>Clinical History — Category 2 (SYM)</td>
+<td>Alt+2</td>
+<td>category two; symptoms category; jump to symptoms</td>
+</tr>
+<tr>
+<td>Clinical History — Category 3 (RAD_LAB)</td>
+<td>Alt+3</td>
+<td>category three; radiology lab category; jump to radiology</td>
+</tr>
+<tr>
+<td>Clinical History — Category 4 (PRIOR_PATH)</td>
+<td>Alt+4</td>
+<td>category four; prior pathology category; jump to prior pathology</td>
+</tr>
+<tr>
+<td>Clinical History — Category 5 (MAL_STAGE)</td>
+<td>Alt+5</td>
+<td>category five; malignancy staging category; jump to staging</td>
+</tr>
+<tr>
+<td>Clinical History — Category 6 (HIGH_RISK)</td>
+<td>Alt+6</td>
+<td>category six; high risk category; jump to high risk</td>
+</tr>
+<tr>
+<td>Import From Order</td>
+<td>Alt+I</td>
+<td>import order; import from order; search orders; find order</td>
+</tr>
+<tr>
+<td>Submit Case</td>
+<td>Alt+Enter</td>
+<td>submit case; submit accession; complete accession; finish accession</td>
+</tr>
+</tbody>
+</table>
+<h3 id="grossing-3-commands">Grossing (3 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cancel Complete Grossing</td>
+<td>Alt+Shift+F11</td>
+<td>cancel complete grossing; do not complete grossing</td>
+</tr>
+<tr>
+<td>Complete Grossing</td>
+<td>Alt+Shift+F9</td>
+<td>complete grossing; finish grossing; grossing done</td>
+</tr>
+<tr>
+<td>Confirm Complete Grossing</td>
+<td>Alt+Shift+F10</td>
+<td>confirm complete grossing; yes complete grossing; confirm finish grossing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="report-screen-132-commands">Report screen (132 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accept Pool Case</td>
+<td>Alt+A</td>
+<td>accept case; take this case; assign to me</td>
+</tr>
+<tr>
+<td>Add Addendum</td>
+<td>Ctrl+Alt+Shift+B</td>
+<td>add addendum; open addendum; addendum request; request addendum</td>
+</tr>
+<tr>
+<td>Add Amendment</td>
+<td>Ctrl+Alt+E</td>
+<td>add amendment; open amendment; request amendment; amendment</td>
+</tr>
+<tr>
+<td>Add Block (Add Orders)</td>
+<td>Ctrl+Alt+Shift+8</td>
+<td>confirm block order; save block order</td>
+</tr>
+<tr>
+<td>Add Block / Recut</td>
+<td>Alt+B</td>
+<td>add block; add recut; add cassette; order deeper levels</td>
+</tr>
+<tr>
+<td>Add Code</td>
+<td>Ctrl+Alt+H</td>
+<td>add code; open add code; new code; add medical code</td>
+</tr>
+<tr>
+<td>Add Collaborator</td>
+<td>Ctrl+Alt+Shift+0</td>
+<td>add collaborator; add a collaborator; invite collaborator</td>
+</tr>
+<tr>
+<td>Add New Specimen</td>
+<td>Alt+N</td>
+<td>add new specimen; add specimen container; new tissue container</td>
+</tr>
+<tr>
+<td>Add Note</td>
+<td>Ctrl+Alt+Shift+N</td>
+<td>add note; new note; open add note</td>
+</tr>
+<tr>
+<td>Add Orders</td>
+<td>Ctrl+Alt+A</td>
+<td>add orders; open add orders; new order</td>
+</tr>
+<tr>
+<td>Add Synoptic</td>
+<td>Alt+Z</td>
+<td>add synoptic; open add synoptic; add report; new synoptic</td>
+</tr>
+<tr>
+<td>Add Team Member</td>
+<td>Alt+M</td>
+<td>add team member; add participant; add to team; assign participant</td>
+</tr>
+<tr>
+<td>Apply STAT Flag</td>
+<td>Alt+S</td>
+<td>flag stat; mark stat; stat flag; urgent stat</td>
+</tr>
+<tr>
+<td>Assign to Participation Type</td>
+<td>Alt+Shift+A</td>
+<td>assign as; assign to; set as primary; set as consultant</td>
+</tr>
+<tr>
+<td>Batch Print Case Slides</td>
+<td>Alt+Shift+P</td>
+<td>batch print case slides; print all cassettes; print all cassettes for case</td>
+</tr>
+<tr>
+<td>Bold</td>
+<td>Ctrl+Alt+1</td>
+<td>make bold; bold text; toggle bold</td>
+</tr>
+<tr>
+<td>Bullets</td>
+<td>Ctrl+Alt+4</td>
+<td>bullet list; make bullets; toggle bullets</td>
+</tr>
+<tr>
+<td>Cancel</td>
+<td>Ctrl+Alt+J</td>
+<td>cancel; close modal; dismiss; go back to report</td>
+</tr>
+<tr>
+<td>Cancel AI Review</td>
+<td>Escape</td>
+<td>cancel review; exit review; stop review</td>
+</tr>
+<tr>
+<td>Cancel Finalise</td>
+<td>Ctrl+Alt+Escape</td>
+<td>cancel finalise; cancel finalize; cancel sign off</td>
+</tr>
+<tr>
+<td>Cancel Flags</td>
+<td>Ctrl+Alt+Shift+X</td>
+<td>cancel flags; discard flag changes; close flag manager</td>
+</tr>
+<tr>
+<td>Cancel Note</td>
+<td>Ctrl+Alt+B</td>
+<td>cancel note; discard note</td>
+</tr>
+<tr>
+<td>Case Comment</td>
+<td>Ctrl+Alt+C</td>
+<td>case comment; open case comment; add case comment; dictate case comment</td>
+</tr>
+<tr>
+<td>Close History</td>
+<td>Alt+Shift+H</td>
+<td>close history; close similar cases; close prior cases</td>
+</tr>
+<tr>
+<td>Close Notes</td>
+<td>Ctrl+Alt+D</td>
+<td>close notes; close drawer; close internal notes</td>
+</tr>
+<tr>
+<td>Confirm AI Finding</td>
+<td>Space</td>
+<td>confirm; accept; agree; correct</td>
+</tr>
+<tr>
+<td>Confirm Delegation</td>
+<td>Ctrl+Enter</td>
+<td>confirm delegation; send case; complete transfer</td>
+</tr>
+<tr>
+<td>Confirm Field</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>confirm field; accept field; approve field; confirm answer</td>
+</tr>
+<tr>
+<td>Confirm Finalise</td>
+<td>Ctrl+Alt+Shift+C</td>
+<td>confirm finalise; confirm finalize; confirm sign off; yes finalise</td>
+</tr>
+<tr>
+<td>Confirm Post-Sign-Out Billing Change</td>
+<td>Ctrl+Alt+Shift+1</td>
+<td>confirm billing change; confirm post signout billing change</td>
+</tr>
+<tr>
+<td>Confirm Triage</td>
+<td>Alt+Shift+T</td>
+<td>confirm triage; triage complete; triage confirmed</td>
+</tr>
+<tr>
+<td>Continue Past Collection/Receipt Date Gate</td>
+<td>Ctrl+Alt+Shift+6</td>
+<td>continue date gate; continue receipt date gate</td>
+</tr>
+<tr>
+<td>Continue Past Fixation Time Gate</td>
+<td>Ctrl+Alt+Shift+5</td>
+<td>continue fixation gate; continue fixation time</td>
+</tr>
+<tr>
+<td>Correct Applied Billing Code</td>
+<td>Ctrl+Alt+Shift+2</td>
+<td>correct billing code; correct applied code</td>
+</tr>
+<tr>
+<td>Decrease Indent</td>
+<td>Ctrl+Alt+7</td>
+<td>indent less; decrease indent</td>
+</tr>
+<tr>
+<td>Deselect All</td>
+<td>Ctrl+Alt+M</td>
+<td>deselect all; clear selection; deselect all specimens</td>
+</tr>
+<tr>
+<td>Dictate Administrative Header</td>
+<td></td>
+<td>dictate administrative; dictate admin; dictate clinical header; dictate header</td>
+</tr>
+<tr>
+<td>Dictate Final Diagnosis Section</td>
+<td></td>
+<td>dictate ancillary; dictate final diagnosis; dictate conclusion</td>
+</tr>
+<tr>
+<td>Dictate Gross Description Section</td>
+<td></td>
+<td>dictate gross description; dictate specimen; dictate macroscopic</td>
+</tr>
+<tr>
+<td>Dictate Note</td>
+<td>Alt+Shift+N</td>
+<td>dictate note; dictate; dictate into note</td>
+</tr>
+<tr>
+<td>Dictate section 1</td>
+<td></td>
+<td>dictate section one; dictate first section</td>
+</tr>
+<tr>
+<td>Dictate section 2</td>
+<td></td>
+<td>dictate section two; dictate second section</td>
+</tr>
+<tr>
+<td>Dictate section 3</td>
+<td></td>
+<td>dictate section three; dictate third section</td>
+</tr>
+<tr>
+<td>Dictate section 4</td>
+<td></td>
+<td>dictate section four; dictate fourth section</td>
+</tr>
+<tr>
+<td>Dictate Synoptic Summary</td>
+<td></td>
+<td>dictate synoptic; dictate synoptic summary; dictate summary</td>
+</tr>
+<tr>
+<td>Discard Unsaved Changes</td>
+<td>Alt+U</td>
+<td>discard changes; undo all changes; revert changes; cancel changes</td>
+</tr>
+<tr>
+<td>Edit Field</td>
+<td>Alt+E</td>
+<td>edit field; change field; correct field; modify field</td>
+</tr>
+<tr>
+<td>Enter Addendum</td>
+<td>Alt+Shift+D</td>
+<td>enter addendum; start addendum; dictate addendum</td>
+</tr>
+<tr>
+<td>Enter Diagnosis</td>
+<td>Ctrl+Alt+Shift+D</td>
+<td>enter diagnosis; start diagnosis; dictate diagnosis; add diagnosis</td>
+</tr>
+<tr>
+<td>Enter Gross Description</td>
+<td>Ctrl+Alt+Shift+G</td>
+<td>enter gross; start gross; dictate gross; gross description</td>
+</tr>
+<tr>
+<td>Enter Microscopic Description</td>
+<td>Alt+Shift+G</td>
+<td>enter micro; start micro; dictate micro; microscopic description</td>
+</tr>
+<tr>
+<td>Finalise Report</td>
+<td>Ctrl+Alt+Shift+F</td>
+<td>finalise; finalize; finalise report; finalize report</td>
+</tr>
+<tr>
+<td>Find in Text</td>
+<td>Ctrl+Alt+8</td>
+<td>find in text; find in report; open find</td>
+</tr>
+<tr>
+<td>Full View</td>
+<td>Alt+V</td>
+<td>full view; show full view; expand view; all sections</td>
+</tr>
+<tr>
+<td>Generate Report Draft</td>
+<td></td>
+<td>generate report; generate narrative; create report</td>
+</tr>
+<tr>
+<td>Go to Codes</td>
+<td>Ctrl+Alt+G</td>
+<td>goto codes; go to codes; codes tab; open codes</td>
+</tr>
+<tr>
+<td>Go to section 1</td>
+<td></td>
+<td>go to section one; section one; first section</td>
+</tr>
+<tr>
+<td>Go to section 2</td>
+<td></td>
+<td>go to section two; section two; second section</td>
+</tr>
+<tr>
+<td>Go to section 3</td>
+<td></td>
+<td>go to section three; section three; third section</td>
+</tr>
+<tr>
+<td>Go to section 4</td>
+<td></td>
+<td>go to section four; section four; fourth section</td>
+</tr>
+<tr>
+<td>Increase Indent</td>
+<td>Ctrl+Alt+6</td>
+<td>indent more; increase indent</td>
+</tr>
+<tr>
+<td>Insert Macro</td>
+<td>Alt+Shift+I</td>
+<td>insert macro; add macro</td>
+</tr>
+<tr>
+<td>Insert Signature Line</td>
+<td>Ctrl+Alt+[</td>
+<td>insert signature line; add signature line</td>
+</tr>
+<tr>
+<td>Insert Table</td>
+<td>Ctrl+Alt+/</td>
+<td>insert table; add table</td>
+</tr>
+<tr>
+<td>Internal Note</td>
+<td>Alt+I</td>
+<td>internal note; open internal note; open notes</td>
+</tr>
+<tr>
+<td>Italic</td>
+<td>Ctrl+Alt+2</td>
+<td>make italic; italic text; toggle italic</td>
+</tr>
+<tr>
+<td>Log Surgeon Report</td>
+<td>Alt+L</td>
+<td>report logged; surgeon notified; log the report; confirm report</td>
+</tr>
+<tr>
+<td>Mark Block Grossed</td>
+<td>Alt+G</td>
+<td>mark grossed; block grossed; block complete; grossing complete</td>
+</tr>
+<tr>
+<td>Maximise View</td>
+<td>Alt+Shift+M</td>
+<td>max; maximise; maximize; full screen</td>
+</tr>
+<tr>
+<td>Minimise View</td>
+<td>Alt+Shift+V</td>
+<td>min; minimise; minimize; exit full screen</td>
+</tr>
+<tr>
+<td>Next Block</td>
+<td>Alt+.</td>
+<td>next block; go to next block</td>
+</tr>
+<tr>
+<td>Next Field</td>
+<td>Tab</td>
+<td>next field; next question; go forward; forward</td>
+</tr>
+<tr>
+<td>Next Required Field</td>
+<td>Ctrl+Alt+Shift+R</td>
+<td>next required; go to next required; next required field; show required</td>
+</tr>
+<tr>
+<td>Next Section</td>
+<td></td>
+<td>next section; go to next section</td>
+</tr>
+<tr>
+<td>Next Section in Text</td>
+<td>Ctrl+Alt+.</td>
+<td>next section in text; next heading</td>
+</tr>
+<tr>
+<td>Next Unanswered Field</td>
+<td>Ctrl+Alt+U</td>
+<td>next unanswered; go to next unanswered; next empty field; next blank</td>
+</tr>
+<tr>
+<td>Note Visibility Private</td>
+<td>Alt+Shift+J</td>
+<td>visibility private; set private; private note; make private</td>
+</tr>
+<tr>
+<td>Note Visibility Shared</td>
+<td>Ctrl+Alt+N</td>
+<td>visibility shared; set shared; shared note; make shared</td>
+</tr>
+<tr>
+<td>Numbered List</td>
+<td>Ctrl+Alt+5</td>
+<td>numbered list; make numbered list; toggle numbering</td>
+</tr>
+<tr>
+<td>Open Case Team</td>
+<td>Alt+T</td>
+<td>open case team; case team; manage team; show team</td>
+</tr>
+<tr>
+<td>Open Delegation Menu</td>
+<td>Alt+D</td>
+<td>open delegation; delegate case; transfer case; show handoff</td>
+</tr>
+<tr>
+<td>Open Flag Manager</td>
+<td>Alt+F</td>
+<td>open flags; manage flags; show flags; add flag</td>
+</tr>
+<tr>
+<td>Open Full Report</td>
+<td></td>
+<td>open full report; show full report; view report</td>
+</tr>
+<tr>
+<td>Open History</td>
+<td>Alt+H</td>
+<td>open history; show history; prior cases; similar cases</td>
+</tr>
+<tr>
+<td>Open Report Draft</td>
+<td></td>
+<td>open report draft; show report draft; go to draft</td>
+</tr>
+<tr>
+<td>Open Sequencer</td>
+<td></td>
+<td>open sequencer; show sequencer; synoptic fields</td>
+</tr>
+<tr>
+<td>Order Stain / Sectioning</td>
+<td>Alt+Shift+S</td>
+<td>order stain; order sectioning; add stain; order ihc</td>
+</tr>
+<tr>
+<td>Override AI Finding</td>
+<td>O</td>
+<td>override; incorrect; wrong; override finding</td>
+</tr>
+<tr>
+<td>Pass Pool Case</td>
+<td>Ctrl+Alt+P</td>
+<td>pass case; skip case; return to pool; pass</td>
+</tr>
+<tr>
+<td>Place Case On Hold</td>
+<td>Alt+Shift+F5</td>
+<td>place hold; place case on hold; place retention hold</td>
+</tr>
+<tr>
+<td>Post Comment</td>
+<td>Alt+Shift+F8</td>
+<td>post comment; post the comment</td>
+</tr>
+<tr>
+<td>Preview Report</td>
+<td>Ctrl+Alt+Shift+P</td>
+<td>preview report; show preview; report preview; preview</td>
+</tr>
+<tr>
+<td>Previous Block</td>
+<td>Alt+,</td>
+<td>previous block; go to previous block; prior block</td>
+</tr>
+<tr>
+<td>Previous Field</td>
+<td>Shift+Tab</td>
+<td>previous field; previous question; go back; back</td>
+</tr>
+<tr>
+<td>Previous Section</td>
+<td></td>
+<td>previous section; prior section</td>
+</tr>
+<tr>
+<td>Previous Section in Text</td>
+<td>Ctrl+Alt+,</td>
+<td>previous section in text; previous heading</td>
+</tr>
+<tr>
+<td>Print Current Cassette</td>
+<td>Alt+Shift+O</td>
+<td>print current cassette; print this cassette; print cassette</td>
+</tr>
+<tr>
+<td>Recall Report</td>
+<td>Ctrl+Alt+Shift+V</td>
+<td>recall report; pull back report; recall the report</td>
+</tr>
+<tr>
+<td>Record Autopsy Authorization</td>
+<td>Ctrl+Alt+Shift+3</td>
+<td>record authorization; record autopsy authorization</td>
+</tr>
+<tr>
+<td>Record Critical Notification</td>
+<td>Alt+Shift+F7</td>
+<td>record notification; record critical notification</td>
+</tr>
+<tr>
+<td>Record Frozen-Final Reconciliation</td>
+<td>Ctrl+Alt+Shift+Z</td>
+<td>record discordance; record reconciliation; confirm concordant</td>
+</tr>
+<tr>
+<td>Regenerate All Sections</td>
+<td></td>
+<td>regenerate report; regenerate all; redo report</td>
+</tr>
+<tr>
+<td>Release Autopsy Body</td>
+<td>Ctrl+Alt+Shift+4</td>
+<td>release body; confirm body release</td>
+</tr>
+<tr>
+<td>Release Case From Hold</td>
+<td>Alt+Shift+F6</td>
+<td>release hold; release retention hold</td>
+</tr>
+<tr>
+<td>Replace in Text</td>
+<td>Ctrl+Alt+9</td>
+<td>replace in text; find and replace; open replace</td>
+</tr>
+<tr>
+<td>Request Consultation</td>
+<td>Ctrl+Alt+R</td>
+<td>request consultation; request review; send for review; consult colleague</td>
+</tr>
+<tr>
+<td>Return to Trainee</td>
+<td>Ctrl+Alt+Shift+T</td>
+<td>return to trainee; reject with notes; send back to resident; return case to resident</td>
+</tr>
+<tr>
+<td>Save Amendment or Addendum</td>
+<td>Alt+Shift+F3</td>
+<td>save amendment; save correction; release addendum</td>
+</tr>
+<tr>
+<td>Save Biopsy Array</td>
+<td>Alt+Shift+F12</td>
+<td>save biopsy array; save array</td>
+</tr>
+<tr>
+<td>Save Flags</td>
+<td>Ctrl+Alt+O</td>
+<td>save flags; apply flags</td>
+</tr>
+<tr>
+<td>Save Note</td>
+<td>Ctrl+Alt+Shift+S</td>
+<td>save note; submit note; save</td>
+</tr>
+<tr>
+<td>Save Report Draft</td>
+<td>Alt+R</td>
+<td>save draft; save report; save changes; save my work</td>
+</tr>
+<tr>
+<td>Save Specimen</td>
+<td>Alt+Shift+F2</td>
+<td>save specimen; save specimen details</td>
+</tr>
+<tr>
+<td>Select All Specimens</td>
+<td>Ctrl+Alt+L</td>
+<td>select all specimens; all specimens; flag all specimens</td>
+</tr>
+<tr>
+<td>Select All Text</td>
+<td>Ctrl+Alt+0</td>
+<td>select all text; select all in editor</td>
+</tr>
+<tr>
+<td>Select Case</td>
+<td>Ctrl+Alt+K</td>
+<td>select case; flag case; case flag</td>
+</tr>
+<tr>
+<td>Select Formal Consult</td>
+<td>Alt+2</td>
+<td>formal consultation; add consultant; official consult</td>
+</tr>
+<tr>
+<td>Select Full Transfer</td>
+<td>Alt+3</td>
+<td>full transfer; transfer ownership; assign to pool</td>
+</tr>
+<tr>
+<td>Select Peer Review</td>
+<td>Alt+1</td>
+<td>request peer review; internal review; informal opinion</td>
+</tr>
+<tr>
+<td>Select Report Template</td>
+<td>Alt+Shift+R</td>
+<td>select template; change template; choose template; switch template</td>
+</tr>
+<tr>
+<td>Select Specimen</td>
+<td>Ctrl+Alt+I</td>
+<td>select specimen; goto specimen; go to specimen; specimen one</td>
+</tr>
+<tr>
+<td>Show / Hide Formatting Marks</td>
+<td>Ctrl+Alt+;</td>
+<td>show formatting marks; hide formatting marks; toggle formatting marks</td>
+</tr>
+<tr>
+<td>Show / Hide Ruler</td>
+<td>Ctrl+Alt+]</td>
+<td>show ruler; hide ruler; toggle ruler</td>
+</tr>
+<tr>
+<td>Show NHS Number Status</td>
+<td>Ctrl+Alt+Shift+9</td>
+<td>NHS status; show NHS status; check NHS number; NHS number status</td>
+</tr>
+<tr>
+<td>Sign Out and Next</td>
+<td>Ctrl+Alt+Shift+O</td>
+<td>signout next; sign out next; finalize and next; sign out and next</td>
+</tr>
+<tr>
+<td>Sign Out Case</td>
+<td>Alt+Shift+X</td>
+<td>sign out case; sign out the case; case sign out</td>
+</tr>
+<tr>
+<td>Skip AI Finding</td>
+<td>S</td>
+<td>skip; skip this; skip finding</td>
+</tr>
+<tr>
+<td>Skip Field</td>
+<td>Ctrl+Alt+Q</td>
+<td>skip field; skip this field; move on; leave blank</td>
+</tr>
+<tr>
+<td>Specimen Comment</td>
+<td>Ctrl+Alt+S</td>
+<td>specimen comment; open specimen comment; add specimen comment; dictate specimen comment</td>
+</tr>
+<tr>
+<td>Tabbed View</td>
+<td>Ctrl+Alt+T</td>
+<td>tabbed view; show tabbed view; tab view; collapse view</td>
+</tr>
+<tr>
+<td>Toggle Dark Mode</td>
+<td></td>
+<td>dark mode; toggle dark mode; night mode</td>
+</tr>
+<tr>
+<td>Underline</td>
+<td>Ctrl+Alt+3</td>
+<td>make underlined; underline text; toggle underline</td>
+</tr>
+</tbody>
+</table>
+<h3 id="intraop-queue-11-commands">Intraop Queue (11 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Log Cytology / Fluid Evaluation</td>
+<td>Alt+Shift+C</td>
+<td>log cytology; cytology evaluation; log fluid evaluation; fluid evaluation done</td>
+</tr>
+<tr>
+<td>Log Frozen Section Cut</td>
+<td>Alt+Shift+L</td>
+<td>log frozen section cut; frozen section cut; frozen cut logged</td>
+</tr>
+<tr>
+<td>Log Gross Only / Intraoperative Consultation</td>
+<td>Alt+Shift+G</td>
+<td>log gross only; gross only; intraoperative consultation only</td>
+</tr>
+<tr>
+<td>Log Squash Prep</td>
+<td>Alt+Shift+S</td>
+<td>log squash prep; squash prep; squash prep done</td>
+</tr>
+<tr>
+<td>Log Touch Prep Performed</td>
+<td>Alt+Shift+Y</td>
+<td>log touch prep performed; touch prep performed; touch prep done</td>
+</tr>
+<tr>
+<td>Merge Intraop Session into Case</td>
+<td>Ctrl+Alt+Shift+4</td>
+<td>merge session; confirm merge</td>
+</tr>
+<tr>
+<td>Save Specimen and Close Session (Intraop)</td>
+<td>Ctrl+Alt+Shift+3</td>
+<td>save and close session; close and save</td>
+</tr>
+<tr>
+<td>Save Specimen and Next (Intraop)</td>
+<td>Ctrl+Alt+Shift+2</td>
+<td>save and next specimen; next specimen</td>
+</tr>
+<tr>
+<td>Skip Touch Prep</td>
+<td>Alt+T</td>
+<td>skip touch prep; no touch prep; direct to frozen</td>
+</tr>
+<tr>
+<td>Start Intraop Session (Continue to Specimen)</td>
+<td>Ctrl+Alt+Shift+1</td>
+<td>continue to specimen; start the session</td>
+</tr>
+<tr>
+<td>Start New Intraop Entry</td>
+<td>Alt+S</td>
+<td>start new intraop entry; start intraop entry; new intraop entry; start entry</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lockbox-drop-off-4-commands">Lockbox Drop-Off (4 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Focus the Lockbox Scan Field</td>
+<td>Alt+S</td>
+<td>focus the scan field; lockbox scan field; ready to scan</td>
+</tr>
+<tr>
+<td>Mark the Next Lockbox Drop Urgent</td>
+<td>Alt+G</td>
+<td>mark drop urgent; next drop urgent; urgent drop</td>
+</tr>
+<tr>
+<td>Show Lockbox Drop-Off</td>
+<td>Alt+D</td>
+<td>show drop-off; drop-off tab; show lockbox scan</td>
+</tr>
+<tr>
+<td>Show the Overnight Folder</td>
+<td>Alt+M</td>
+<td>show overnight folder; overnight folder; open overnight folder</td>
+</tr>
+</tbody>
+</table>
+<h3 id="messages-25-commands">Messages (25 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Recipient</td>
+<td>Alt+R</td>
+<td>add recipient; add this person; select recipient; confirm recipient</td>
+</tr>
+<tr>
+<td>Clear Message Body</td>
+<td>Alt+Shift+M</td>
+<td>clear message; erase message; delete message body; start over</td>
+</tr>
+<tr>
+<td>Clear Subject</td>
+<td>Alt+C</td>
+<td>clear subject; erase subject; delete subject; remove subject</td>
+</tr>
+<tr>
+<td>Close Messages</td>
+<td>Escape</td>
+<td>close messages; close; dismiss messages; hide messages</td>
+</tr>
+<tr>
+<td>Delete All Selected</td>
+<td>Alt+D</td>
+<td>delete all; delete all selected; delete all messages; empty deleted</td>
+</tr>
+<tr>
+<td>Delete Message</td>
+<td>Alt+Delete</td>
+<td>delete message; delete this message; remove message; delete</td>
+</tr>
+<tr>
+<td>Go to Message Body</td>
+<td>Alt+B</td>
+<td>goto message; go to message; enter message; type message</td>
+</tr>
+<tr>
+<td>Go to Subject</td>
+<td>Alt+G</td>
+<td>goto subject; go to subject; enter subject; type subject</td>
+</tr>
+<tr>
+<td>Mark All as Read</td>
+<td>Alt+A</td>
+<td>read all; mark all read; mark all as read; read all messages</td>
+</tr>
+<tr>
+<td>Mark as Read</td>
+<td>Alt+M</td>
+<td>mark as read; mark read; read this message</td>
+</tr>
+<tr>
+<td>Mark as Unread</td>
+<td>Alt+U</td>
+<td>mark as unread; mark unread; unread; set as unread</td>
+</tr>
+<tr>
+<td>New Internal Message</td>
+<td>Alt+Shift+C</td>
+<td>compose; compose message; new message; write message</td>
+</tr>
+<tr>
+<td>Next Message</td>
+<td>Alt+ArrowDown</td>
+<td>next message; next; move to next message</td>
+</tr>
+<tr>
+<td>Previous Message</td>
+<td>Alt+ArrowUp</td>
+<td>previous message; previous; prior message</td>
+</tr>
+<tr>
+<td>Reply</td>
+<td>Alt+Shift+R</td>
+<td>reply; reply to message; respond; respond to message</td>
+</tr>
+<tr>
+<td>Restore Message</td>
+<td>Ctrl+Alt+R</td>
+<td>restore; restore message; undelete; undelete message</td>
+</tr>
+<tr>
+<td>Search Messages</td>
+<td>Alt+Shift+S</td>
+<td>search messages; search; find message; filter messages</td>
+</tr>
+<tr>
+<td>Search Recipients</td>
+<td>Alt+S</td>
+<td>search recipients; find user; search for user; browse users</td>
+</tr>
+<tr>
+<td>Send Message</td>
+<td>Alt+Shift+Enter</td>
+<td>send; send message; send this message; submit message</td>
+</tr>
+<tr>
+<td>Send Secure Email</td>
+<td>Alt+Shift+E</td>
+<td>secure email; send secure email; send email; external email</td>
+</tr>
+<tr>
+<td>Submit Secure Email</td>
+<td>Ctrl+Alt+Shift+7</td>
+<td>submit secure email; deliver secure email</td>
+</tr>
+<tr>
+<td>Toggle Edit Mode</td>
+<td>Alt+E</td>
+<td>edit; edit messages; select messages; manage messages</td>
+</tr>
+<tr>
+<td>Toggle Urgent</td>
+<td>Alt+T</td>
+<td>urgent; mark urgent; toggle urgent; set urgent</td>
+</tr>
+<tr>
+<td>View Messages</td>
+<td>Alt+Shift+V</td>
+<td>view messages; show messages list; back to messages; inbox</td>
+</tr>
+<tr>
+<td>View Recently Deleted</td>
+<td>Alt+V</td>
+<td>view deleted; show deleted; recently deleted; deleted messages</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cytology-15-commands">Cytology (15 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Cell Block</td>
+<td>Ctrl+Alt+Shift+I</td>
+<td>add cell block; new cell block</td>
+</tr>
+<tr>
+<td>Add Residual Fluid</td>
+<td>Ctrl+Alt+Shift+H</td>
+<td>add residual fluid; new residual fluid</td>
+</tr>
+<tr>
+<td>Complete Retrospective Review</td>
+<td>Ctrl+Alt+Shift+C</td>
+<td>complete retrospective review; complete review</td>
+</tr>
+<tr>
+<td>Insert Generated Narrative</td>
+<td>Ctrl+Alt+Shift+L</td>
+<td>insert narrative; insert into notes; insert generated narrative</td>
+</tr>
+<tr>
+<td>Open Cytology Synoptic</td>
+<td>Ctrl+Alt+Shift+J</td>
+<td>open synoptic; show synoptic; open synoptic form</td>
+</tr>
+<tr>
+<td>Open Material</td>
+<td>Ctrl+Alt+Shift+E</td>
+<td>open material; show material; open material drawer</td>
+</tr>
+<tr>
+<td>Record Cyto-Histologic Correlation</td>
+<td>Ctrl+Alt+Shift+D</td>
+<td>record correlation; confirm correlation</td>
+</tr>
+<tr>
+<td>Save CISOE-A Review</td>
+<td>Ctrl+Alt+Shift+B</td>
+<td>save cisoe-a review; save cisoea</td>
+</tr>
+<tr>
+<td>Save Cytology Review</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>save review; save cytology review</td>
+</tr>
+<tr>
+<td>Save Cytology Synoptic</td>
+<td>Ctrl+Alt+Shift+K</td>
+<td>save synoptic; save template; save synoptic report</td>
+</tr>
+<tr>
+<td>Select Lymph Node Template</td>
+<td>Ctrl+Alt+Shift+W</td>
+<td>select lymph node template; lymph node template</td>
+</tr>
+<tr>
+<td>Select Pancreaticobiliary Template</td>
+<td>Ctrl+Alt+Shift+Q</td>
+<td>select pancreaticobiliary template; pancreaticobiliary template</td>
+</tr>
+<tr>
+<td>Select Salivary Gland Template</td>
+<td>Ctrl+Alt+Shift+U</td>
+<td>select salivary gland template; salivary gland template</td>
+</tr>
+<tr>
+<td>Select Thyroid Template</td>
+<td>Ctrl+Alt+Shift+M</td>
+<td>select thyroid template; thyroid template; use thyroid template</td>
+</tr>
+<tr>
+<td>Select Urine Template</td>
+<td>Ctrl+Alt+Shift+Y</td>
+<td>select urine template; urine template</td>
+</tr>
+</tbody>
+</table>
+<h3 id="molecular-2-commands">Molecular (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create Plate (Molecular)</td>
+<td>Ctrl+Alt+Shift+N</td>
+<td>create plate; create batch</td>
+</tr>
+<tr>
+<td>Place Rack on Instrument (Molecular)</td>
+<td>Ctrl+Alt+Shift+P</td>
+<td>place rack; rack on instrument</td>
+</tr>
+</tbody>
+</table>
+<h3 id="batch-management-1-commands">Batch Management (1 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create Container (Batch Management)</td>
+<td>Ctrl+Alt+Shift+N</td>
+<td>create container; generate container</td>
+</tr>
+</tbody>
+</table>
+<h3 id="microtome-station-2-commands">Microtome station (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Comment (Microtome)</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>add comment; save comment</td>
+</tr>
+<tr>
+<td>Add Stain to Slide Grid</td>
+<td>Ctrl+Alt+Shift+B</td>
+<td>add stain; add slide</td>
+</tr>
+</tbody>
+</table>
+<h3 id="embedding-station-2-commands">Embedding station (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Comment (Embedding)</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>add comment; save comment</td>
+</tr>
+<tr>
+<td>Confirm Embedding (Piece Count)</td>
+<td>Ctrl+Alt+Shift+C</td>
+<td>confirm count; confirm embedding</td>
+</tr>
+</tbody>
+</table>
+<h3 id="slide-distribution-station-2-commands">Slide Distribution station (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Confirm Physical Routing (Slide Distribution)</td>
+<td>Ctrl+Alt+Shift+P</td>
+<td>confirm checkout; check out slide</td>
+</tr>
+<tr>
+<td>Confirm Scanner Routing (Slide Distribution)</td>
+<td>Ctrl+Alt+Shift+D</td>
+<td>confirm scanner; send to scanner</td>
+</tr>
+</tbody>
+</table>
+<h3 id="add-on-orders-2-commands">Add-On Orders (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add to Add-On Order</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>add to order; add to cart</td>
+</tr>
+<tr>
+<td>Submit Add-On Order</td>
+<td>Ctrl+Alt+Shift+S</td>
+<td>submit order; submit add-on order</td>
+</tr>
+</tbody>
+</table>
+<h3 id="my-contribution-8-commands">My Contribution (8 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Show Awaiting Response Trend</td>
+<td>Alt+A</td>
+<td>show awaiting response; awaiting response trend; how long am i waiting; consultation awaiting</td>
+</tr>
+<tr>
+<td>Show Cold Ischaemia TAT Trend</td>
+<td>Alt+C</td>
+<td>show cold ischemia; cold ischemia trend; cold ischaemia; ischemia trend</td>
+</tr>
+<tr>
+<td>Show First Touch TAT Trend</td>
+<td>Alt+S</td>
+<td>show first touch; first touch trend; first touch tat</td>
+</tr>
+<tr>
+<td>Show Frozen Section TAT Trend</td>
+<td>Alt+F</td>
+<td>show frozen section; frozen section trend; frozen section tat; intraop trend</td>
+</tr>
+<tr>
+<td>Show Grossing TAT Trend</td>
+<td>Alt+G</td>
+<td>show grossing; grossing trend; grossing tat</td>
+</tr>
+<tr>
+<td>Show My Response Time Trend</td>
+<td>Alt+R</td>
+<td>show my response time; response time trend; consultation response trend; how fast do i respond</td>
+</tr>
+<tr>
+<td>Show Sign-Out TAT Trend</td>
+<td>Alt+Shift+S</td>
+<td>show sign out; sign out trend; sign out tat; signout trend</td>
+</tr>
+<tr>
+<td>Show Total Case TAT Trend</td>
+<td>Alt+T</td>
+<td>show total case; total case trend; total tat</td>
+</tr>
+</tbody>
+</table>
+<h3 id="audit-log-2-commands">Audit Log (2 commands)</h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Key</th>
+<th>You can say</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dispatch Now</td>
+<td>Alt+D</td>
+<td>dispatch now; send now; dispatch this message</td>
+</tr>
+<tr>
+<td>Retry Dispatch</td>
+<td>Alt+R</td>
+<td>retry dispatch; retry send; resend</td>
+</tr>
+</tbody>
+</table>

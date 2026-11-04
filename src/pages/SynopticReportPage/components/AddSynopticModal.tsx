@@ -8,6 +8,7 @@ import type { Case, SynopticReportInstance } from '@/types/case/Case';
 import { suggestSynopticTemplates } from '@/services/templateSuggestions/synopticTemplateSuggestionService';
 import { templateSuggestionSignalService } from '@/services';
 import type { SynopticTemplateSuggestion } from '@/services/templateSuggestions/ISynopticTemplateSuggestionService';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface Protocol {
   id:   string;
@@ -235,7 +236,7 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
               return (
                 <div
                   key={spec.id}
-                  onClick={() => toggleSpecimen(spec.id)}
+                  {...pressable(() => toggleSpecimen(spec.id))}
                   className={`ps-addsyn-specimen-row${isSelected ? ' ps-addsyn-specimen-row--selected' : ''}`}
                 >
                   {/* Checkbox */}
@@ -314,7 +315,7 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setSelectedProtocol(isSelected ? '' : p.id)}
+                    {...pressable(() => setSelectedProtocol(isSelected ? '' : p.id))}
                     className={`ps-addsyn-protocol-row${isSelected ? ' ps-addsyn-protocol-row--selected' : ''}`}
                   >
                     <div className="ps-addsyn-protocol-info">
@@ -325,7 +326,7 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
                         if (!match) return null;
                         return (
                           <span title={match.reason} className="ps-addsyn-suggestion-badge">
-                            ✨ {t('addSynopticModal.protocolList.suggested', { confidence: match.confidence })}
+                            ✨ {t('addSynopticModal.protocolList.suggested')}
                           </span>
                         );
                       })()}
@@ -354,7 +355,8 @@ const AddSynopticModal: React.FC<AddSynopticModalProps> = ({
             <div className="ps-addsyn-learn-wrap">
               <label className="ps-addsyn-learn-label">
                 <div className={`ps-addsyn-checkbox${learnPairing ? ' ps-addsyn-checkbox--checked ps-addsyn-checkbox--checked-learn' : ''}`}
-                  onClick={() => setLearnPairing(p => !p)}
+                  {...pressable(() => setLearnPairing(p => !p), { role: 'checkbox' })}
+                  aria-checked={learnPairing} aria-label={t('addSynopticModal.learnPairing.title')}
                 >
                   {learnPairing && <span className="ps-addsyn-checkbox-check">✓</span>}
                 </div>

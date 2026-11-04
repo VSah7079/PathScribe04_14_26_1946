@@ -1,0 +1,496 @@
+<h1 id="top">Messaging</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Messaging is PathScribe's built-in way to talk to colleagues without leaving the case. It holds your inbox, lets you write a new internal message or reply to one, and lets you send a secure email to someone outside your organisation. It is also where PathScribe delivers notices about your work: a follow-up that is overdue, a report that could not be delivered, an access request waiting for you, a case corrected in the laboratory system.</p>
+<p><strong>Intended users.</strong> Everyone who signs in. Reading messages needs no special permission. Sending a message or a reply ("Send a message or reply") and sending a secure email ("Send a secure email") are two separate permissions. Most roles have both by default, and your administrator can change that. Without the permission the Send button is grey and a line under the form says so; you can still read everything.</p>
+<p><strong>Where it fits.</strong> Messaging is not a page of its own. It is a panel that slides in over whatever screen you are on, opened from the speech-bubble button in the top bar (or with Alt+I). Close it and you are back exactly where you were. A message that mentions a case gives you a link that opens that case; from the case you can return to the panel with one click.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data today</p>
+<p>In this version the people you can message come from a small demonstration list of staff and departments (for example Lab Manager, System Admin, QA Team, Billing Dept). Messages are kept in the browser. Secure email is <strong>Simulated</strong>: the window works from start to finish, but no gateway is connected, so nothing is delivered and the window says so. After a send, the window also shows "This message is recorded in the audit log." once the Audit Log entry has been written.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/messaging-inbox.png" alt="The Messages panel with the message list on the left and a conversation on the right"><figcaption>The Messages panel with the message list on the left and a conversation on the right</figcaption></figure>
+
+<p>The panel has a top bar, a list of messages on the left and the open conversation (or the new message form) on the right. On a phone-sized window only one side shows at a time and a back arrow at the top returns you to the list.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Message list (left)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sender's name (button)</td>
+<td>Opens the message. In Edit mode it ticks or unticks the message instead.</td>
+</tr>
+<tr>
+<td>Round initials</td>
+<td>The first and last initial of the sender. Red for an urgent message.</td>
+</tr>
+<tr>
+<td>Subject</td>
+<td>The subject line, or "(No subject)".</td>
+</tr>
+<tr>
+<td>Preview</td>
+<td>The opening text of the conversation. A reply does not change it; open the conversation to read the replies. A reply, sent or received, moves the conversation to the top of the list (urgent conversations stay first).</td>
+</tr>
+<tr>
+<td>Time</td>
+<td>Today's messages show the time of day, yesterday's say "Yesterday", the past week shows the weekday, older ones the date (with the year once it is over a year old).</td>
+</tr>
+<tr>
+<td>Blue dot</td>
+<td>The message is unread for you. A message you wrote, or a conversation where your reply is the latest, never shows a dot to you.</td>
+</tr>
+<tr>
+<td>Urgent pill</td>
+<td>The message was marked Urgent. Urgent messages sort to the top; within each group the newest comes first.</td>
+</tr>
+<tr>
+<td>Search box</td>
+<td>Filters the list by the sender's name or the message text. It does not search the subject line.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Open conversation (right)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name and Urgent badge</td>
+<td>Who the message is with, and whether it is urgent.</td>
+</tr>
+<tr>
+<td>Subject</td>
+<td>The subject of the conversation.</td>
+</tr>
+<tr>
+<td>Case link ("Case" plus the number)</td>
+<td>Opens that case. Shown when the message belongs to a case, and for case numbers PathScribe finds written in the subject or text (only for cases you are allowed to open).</td>
+</tr>
+<tr>
+<td>Open Configuration</td>
+<td>Shown on some notices from the system. Takes you straight to the setting the notice is about.</td>
+</tr>
+<tr>
+<td>Conversation bubbles</td>
+<td>Each reply, with the sender and time. Your own are on the right.</td>
+</tr>
+<tr>
+<td>Reply box</td>
+<td>Type a reply and press Enter or the send arrow. Placeholder "Reply…".</td>
+</tr>
+<tr>
+<td>⋯ menu</td>
+<td><strong>Mark as unread</strong> and <strong>Delete message</strong>. <strong>Mark as unread</strong> is greyed out, with the tip "You wrote the latest message, so it cannot be marked unread", when you wrote the latest message in the conversation.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>New message form</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>To</td>
+<td>One or more recipients, shown as name tags. Type a name to see suggestions. Required.</td>
+</tr>
+<tr>
+<td>Magnifying-glass button</td>
+<td>Opens <strong>Find a recipient</strong> to search by name or department.</td>
+</tr>
+<tr>
+<td>Subject</td>
+<td>Placeholder "Enter subject…". Required unless your organisation has switched the requirement off (an asterisk beside the label shows what is required).</td>
+</tr>
+<tr>
+<td>Urgent</td>
+<td>Toggles the urgent mark. When on, the button is highlighted in red.</td>
+</tr>
+<tr>
+<td>Message text</td>
+<td>The body of the message. Required.</td>
+</tr>
+<tr>
+<td>Still required line</td>
+<td>A line under the form names anything still missing, for example "Still required: Recipient, Subject". Send stays grey until nothing is missing.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Wording you may meet in the messaging window</strong></p>
+<ul>
+<li><strong>Find a recipient.</strong> Opened by the magnifying-glass button, whose tooltip is "Browse all internal users". Tick the people you want. The button at the foot reads <strong>Add recipients</strong> (greyed) until you tick someone, then <strong>Add 1 recipient</strong>, <strong>Add 2 recipients</strong> and so on. "No users found." means nothing matches what you typed.</li>
+<li><strong>Type your message here…</strong> is the hint inside the empty message box of a new message.</li>
+<li><strong>Send as secure external email</strong> is the tooltip of the <strong>Secure Email</strong> button. It is greyed until the message can be sent that way.</li>
+<li><strong>Synoptic Template Request</strong> is the title of the banner on a message that asks for a new synoptic template.</li>
+<li><strong>Open configuration page</strong> is the tooltip of <strong>Open Configuration</strong> on a system notice.</li>
+<li><strong>Back to message list</strong> is the arrow shown on a narrow screen to leave an open message and return to the list.</li>
+<li><strong>Permanently Delete Messages.</strong> In Edit mode, <strong>Delete</strong> on ticked messages asks this question first. It says how many messages will be removed and that this cannot be undone. Confirm with <strong>Delete</strong> or cancel.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Speech-bubble button in the top bar</td>
+<td>Opens or closes the panel. A number on it counts your unread messages; it turns red when any unread message is urgent.</td>
+</tr>
+<tr>
+<td>Edit / Done (top left of the panel)</td>
+<td>Edit mode puts a tick box on each message. <strong>Read All</strong> marks the ticked messages as read; <strong>Delete</strong> moves them to Recently Deleted. Choose <strong>Done</strong> to leave Edit mode.</td>
+</tr>
+<tr>
+<td>Filter button (three lines)</td>
+<td>Chooses <strong>Messages</strong> (your inbox) or <strong>Recently Deleted</strong>.</td>
+</tr>
+<tr>
+<td>Pencil button (bottom of the list)</td>
+<td>Starts a new internal message. Greyed while you are already writing one.</td>
+</tr>
+<tr>
+<td>Lock-and-envelope button (bottom of the list)</td>
+<td>Opens the secure email window ("Send secure external email").</td>
+</tr>
+<tr>
+<td>Close (×)</td>
+<td>Closes the panel. If you have typed an unsent message you are asked first.</td>
+</tr>
+<tr>
+<td>Recently Deleted: Restore</td>
+<td>Puts a message back in the inbox.</td>
+</tr>
+<tr>
+<td>Recently Deleted: Delete</td>
+<td>Removes one message for good, after a confirmation.</td>
+</tr>
+<tr>
+<td>Recently Deleted: Delete All</td>
+<td>Removes every message in Recently Deleted for good, after a confirmation.</td>
+</tr>
+<tr>
+<td>New message: Cancel</td>
+<td>Leaves the form and returns to the message you were reading.</td>
+</tr>
+<tr>
+<td>New message: Secure Email</td>
+<td>Sends the text you have written as a secure email instead (see the procedures).</td>
+</tr>
+<tr>
+<td>New message: Send</td>
+<td>Sends the message to every recipient.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Number on the speech bubble</td>
+<td>Count of messages that are unread for you (deleted ones, and ones you wrote last, are not counted).</td>
+</tr>
+<tr>
+<td>Red speech bubble</td>
+<td>At least one unread message is urgent. A short two-beep tone also plays when an unread urgent message first arrives. Some browsers keep sound off until you have clicked on the page once.</td>
+</tr>
+<tr>
+<td>Blue dot beside a message</td>
+<td>Unread. Opening the message marks it read.</td>
+</tr>
+<tr>
+<td>Red initials / Urgent pill</td>
+<td>Urgent message.</td>
+</tr>
+<tr>
+<td>"Loading…"</td>
+<td>The list is being read.</td>
+</tr>
+<tr>
+<td>"Your inbox is empty." / "No deleted messages."</td>
+<td>Nothing to show.</td>
+</tr>
+<tr>
+<td>"Select a message to read"</td>
+<td>Nothing is open yet.</td>
+</tr>
+<tr>
+<td>Template request banner</td>
+<td>A message that asks for a new synoptic template shows the standard, organ and procedure with a <strong>＋ Create Template</strong> button (for people who build templates).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>These keys act while the Messages panel is open. A few of them are also used by the screen underneath; if a key does something else, press Alt+J and then the key (see <a href="/help/voice-and-keyboard">Voice and Keyboard</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+I</td>
+<td>Open Messages (from any screen)</td>
+</tr>
+<tr>
+<td>Escape</td>
+<td>Close Messages</td>
+</tr>
+<tr>
+<td>Alt+Down / Alt+Up</td>
+<td>Next message / previous message</td>
+</tr>
+<tr>
+<td>Alt+Shift+R</td>
+<td>Reply</td>
+</tr>
+<tr>
+<td>Alt+Shift+C</td>
+<td>New internal message</td>
+</tr>
+<tr>
+<td>Alt+Shift+Enter</td>
+<td>Send the message or reply</td>
+</tr>
+<tr>
+<td>Alt+T</td>
+<td>Toggle Urgent</td>
+</tr>
+<tr>
+<td>Alt+S</td>
+<td>Search recipients (opens Find a recipient)</td>
+</tr>
+<tr>
+<td>Alt+R</td>
+<td>Add the highlighted recipient</td>
+</tr>
+<tr>
+<td>Alt+G / Alt+B</td>
+<td>Go to Subject / go to the message text</td>
+</tr>
+<tr>
+<td>Alt+C / Alt+Shift+M</td>
+<td>Clear the subject / clear the message text</td>
+</tr>
+<tr>
+<td>Alt+Shift+E</td>
+<td>Open the secure email window</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+7</td>
+<td>Send the secure email (while the secure email window is open)</td>
+</tr>
+<tr>
+<td>Alt+M / Alt+U</td>
+<td>Mark as read / mark as unread</td>
+</tr>
+<tr>
+<td>Alt+A</td>
+<td>Mark all as read</td>
+</tr>
+<tr>
+<td>Alt+Delete</td>
+<td>Delete the open message (permanently, if you are in Recently Deleted)</td>
+</tr>
+<tr>
+<td>Alt+E</td>
+<td>Toggle Edit mode</td>
+</tr>
+<tr>
+<td>Alt+D</td>
+<td>Delete all selected</td>
+</tr>
+<tr>
+<td>Alt+Shift+S</td>
+<td>Search messages</td>
+</tr>
+<tr>
+<td>Alt+V / Alt+Shift+V</td>
+<td>View Recently Deleted / view Messages</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+R</td>
+<td>Restore the open deleted message</td>
+</tr>
+</tbody>
+</table>
+<p>Every one of these can also be spoken, for example "open messages". The phrases are in <a href="/help/voice-and-keyboard">Voice and Keyboard</a>.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Read and reply</strong></p>
+<ol>
+<li>Select the speech-bubble button (or press Alt+I). The panel opens with your messages, urgent ones first.</li>
+<li>Select a sender's name. The conversation opens on the right and the blue dot goes away.</li>
+<li>Type your answer in the <strong>Reply…</strong> box and press Enter. Your reply appears as a bubble on the right. The other person sees the conversation as unread again; you do not.</li>
+</ol>
+<p><strong>Write a new message</strong></p>
+<ol>
+<li>Open the panel and select the pencil button. The <strong>New Message</strong> form opens.</li>
+<li>In <strong>To</strong>, start typing a name. Choose a suggestion with the arrow keys and press Enter or Tab, or select it with the mouse. The name appears as a tag. Repeat for more recipients; Backspace in an empty box removes the last tag.</li>
+<li>Type the <strong>Subject</strong> and the message text.</li>
+<li>Turn on <strong>Urgent</strong> only when the message cannot wait. Urgent messages ring a tone and show red on the recipient's bubble.</li>
+<li>Select <strong>Send</strong>. The form closes and the message is in your list.</li>
+</ol>
+<p><strong>Message a colleague from the Worklist</strong></p>
+<ol>
+<li>On the <a href="/help/worklist">Worklist</a>, find the case and look in its Staff column. Each person has a small envelope button ("Message" and their name).</li>
+<li>Select it. The panel opens already addressed to that person, with the subject "Case" plus the case number.</li>
+<li>Write your text and select <strong>Send</strong>.</li>
+</ol>
+<p><strong>Open the case a message is about</strong></p>
+<ol>
+<li>Open the message and select the <strong>Case …</strong> link beside the subject.</li>
+<li>The panel closes and the case opens in the <a href="/help/report">Report</a> screen.</li>
+<li>To return, select <strong>← Back to Messages</strong> at the top left of the report. The panel opens again.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p><strong>Send a secure email to someone outside your organisation</strong></p>
+<ol>
+<li>Select the lock-and-envelope button at the bottom of the message list (or write your message first and select <strong>Secure Email</strong> on the form, which carries over your subject and text).</li>
+<li>In the <strong>New Secure Message</strong> window, check the <strong>From</strong> line. If your laboratory has set up more than one secure gateway, choose one in <strong>Send through</strong>.</li>
+<li>Type the recipient's address in <strong>To</strong>. For a clinical messaging gateway the box is <strong>To (recipient ID)</strong> and takes the recipient's ID in that network's directory.</li>
+<li>Type the <strong>Subject</strong> and the message.</li>
+<li>Leave <strong>Contains patient or case details</strong> ticked if the message names a patient or a finding. Untick it only when it truly does not. A gateway that has no agreement in force with your organisation cannot carry patient details; the window says so and keeps <strong>Send Securely</strong> grey.</li>
+<li>Select <strong>Send Securely</strong>. You see "Message sent securely" and who it was delivered to. In this version you also see a line beginning "Simulated" because no gateway is connected.</li>
+</ol>
+<p><strong>Clean up</strong></p>
+<ol>
+<li>Select <strong>Edit</strong>, tick the messages, then <strong>Delete</strong> (they go to Recently Deleted) or <strong>Read All</strong>.</li>
+<li>To recover one, choose the filter button, then <strong>Recently Deleted</strong>, hover over the message and select <strong>Restore</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>You cannot send.</strong> If Send is grey and a line says "You don't have permission to send messages.", your role cannot send messages. You can still read. Ask your laboratory manager.</li>
+<li><strong>A notice asks you to act in Configuration.</strong> Select <strong>Open Configuration</strong>. If you cannot open Configuration, forward the notice to your administrator.</li>
+<li><strong>A message mentions a case you cannot open.</strong> The number stays plain text, with no link. This is deliberate: PathScribe does not confirm that a case exists to someone who cannot open it.</li>
+<li><strong>You want to write to someone who is not in the list.</strong> Use secure email if they are outside your organisation. Staff who do not appear in the recipient list must be added by your administrator.</li>
+<li><strong>Secure email says your lab has no secure messaging gateway.</strong> An administrator sets one up in the laboratory's facility settings, under Secure messaging.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>"The message could not be sent. Try again."</strong> Your draft is kept. Select <strong>Send</strong> again. Several recipients are sent one after another; if one fails, the ones before it have already gone.</li>
+<li><strong>You closed the panel by mistake with a draft open.</strong> If you had typed message text, PathScribe asks "You have an unsent message. Are you sure you want to close?" Choose Cancel to keep writing. A draft with only a subject is not counted as unsent text.</li>
+<li><strong>You deleted a message by mistake.</strong> Open Recently Deleted and select <strong>Restore</strong>.</li>
+<li><strong>You marked a message read and need to remember it.</strong> Open the ⋯ menu and choose <strong>Mark as unread</strong>.</li>
+<li><strong>A permanent delete</strong> ("Permanently Delete Message", "Empty Deleted Messages") cannot be undone. Read the confirmation before you accept it.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Permanent deletion cannot be undone</p>
+<p>Delete in the inbox only moves a message to Recently Deleted. <strong>Delete</strong> inside Recently Deleted, and <strong>Delete All</strong>, remove messages for good after a confirmation. Do not delete a notice you may need as evidence of a critical result conversation.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Patient details in messages</p>
+<p>Internal messages stay in PathScribe. Secure email leaves your organisation. Put patient details only in a secure email, through a gateway that shows an agreement on file, and use case numbers rather than names wherever you can.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Writing the patient's name in a message when the case number is enough. Use the case number; the recipient can open the case from the link.</li>
+<li>Using Urgent for routine questions. When everything is urgent, nothing is. Reserve it for results and problems that cannot wait.</li>
+<li>Expecting a reply to a system notice to reach a person. Notices from "PathScribe System", the delivery monitor or follow-up tracking are automatic. Act on them in the screen they name; do not wait for an answer.</li>
+<li>Searching for a subject in the search box. It looks at the sender's name and the message text only.</li>
+<li>Looking in the list for the newest reply. The preview keeps the opening message; open the conversation to read the replies. A new reply shows as a blue dot and moves the conversation to the top of the list.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Press Alt+I to open Messages from any screen, Alt+Down and Alt+Up to move through messages, and Escape to close.</li>
+<li>Use the envelope on the Worklist's Staff column to start a message already addressed and subjected.</li>
+<li>Use Edit, then <strong>Read All</strong> to clear a run of notices in one action.</li>
+<li>Say "open messages" if you work by voice.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Check the red speech bubble at the start of the shift and after a break. An unread urgent message is the most common thing that needs action first.</li>
+<li>Keep case conversation attached to the case: use the case link and the internal notes rather than long threads.</li>
+<li>Close the panel when you are done. It stays open across a page reload within the same session.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/notifications">Notifications</a>: what raises a message, a badge or an alert, and what to do about each.</li>
+<li><a href="/help/worklist">Worklist</a>: the Staff column starts a message about a case.</li>
+<li><a href="/help/report">Report</a>: sending a review request or adding a collaborator sends the colleague a message.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: the case link opens the case; <strong>← Back to Messages</strong> returns you.</li>
+<li><a href="/help/personal-settings">Personal Settings</a>: your language, station and personal lists in the top bar.</li>
+<li><a href="/help/voice-and-keyboard">Voice and Keyboard</a>: every message command and the phrases that run it.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Send is grey</td>
+<td>Recipient, subject or text is missing (read the "Still required" line), or your role may not send messages.</td>
+</tr>
+<tr>
+<td>The Secure Email button on the New Message form is grey</td>
+<td>It needs the same fields as an internal message, including a recipient. Use the lock-and-envelope button at the bottom of the list to open the secure email window directly.</td>
+</tr>
+<tr>
+<td>My own sent message appears in my list</td>
+<td>Your list holds the messages you sent as well as those you received, and each row shows the sender's name, which is yours for a message you sent. Your own messages and replies never show a blue dot or count in your number. <strong>Mark as unread</strong> is greyed out on a conversation where you wrote the latest message; its tip says so.</td>
+</tr>
+<tr>
+<td>No sound for an urgent message</td>
+<td>The browser has not been allowed to play sound yet. Click anywhere on the page once; check the computer's volume.</td>
+</tr>
+<tr>
+<td>A case number in a message is not a link</td>
+<td>You cannot open that case, or the number is not a known case number.</td>
+</tr>
+<tr>
+<td>Secure email says "Simulated"</td>
+<td>No secure-mail gateway is connected in this version. Nothing was delivered.</td>
+</tr>
+<tr>
+<td>The panel opens again after I reload</td>
+<td>It remembers that it was open within the same session. Select Close.</td>
+</tr>
+<tr>
+<td>I cannot find a person</td>
+<td>The recipient list shows only the staff your organisation has loaded.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the line under the form: it names exactly what is missing or refused.</li>
+<li>Check that the panel is open on the right side (<strong>Messages</strong>, not <strong>Recently Deleted</strong>).</li>
+<li>Close the panel and open it again to reload the list.</li>
+<li>For a refused send, ask your laboratory manager whether your role includes "Send a message or reply" or "Send a secure email".</li>
+<li>For secure email problems, read the message in red in the window; it names the gateway and the missing agreement.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when messages you know were sent never arrive, when the unread number does not match the list, or when a send is refused although your manager has confirmed your permission. Have the time, the sender and recipient names and the case number (never the patient's name) ready.</p>

@@ -1,5 +1,5 @@
 import { AuditEvent } from "../types/AuditEvent";
-import { mockAuditService } from "../services/auditlog/mockAuditService";
+import { auditService } from "../services/auditlog/auditServiceInstance";
 
 // Real bug found and fixed via a direct audit: this file used to be a
 // completely separate, parallel audit system — its own localStorage key
@@ -11,7 +11,7 @@ import { mockAuditService } from "../services/auditlog/mockAuditService";
 // missed) were calling logEvent() here believing they were writing to
 // the real audit trail. They weren't — AuditLogPage.tsx (the real
 // System Audit page) reads exclusively from services/auditlog/'s
-// mockAuditService, which has zero awareness this file's storage key
+// auditService, which has zero awareness this file's storage key
 // even exists. Every synoptic-editor action and inline comment routed
 // through TemplateRenderer.tsx was silently invisible to any real audit
 // review. Fixed here, not by touching the three consumer files — they
@@ -36,14 +36,14 @@ const CATEGORY_TO_TYPE: Record<AuditEvent['category'], 'ai' | 'user' | 'system'>
  * I don't believe we include the physical location of that action,
  * just the person - Correct?" Confirmed, then fixed — but NOT here.
  * A direct trace found 16 separate real files calling
- * mockAuditService.logEvent(), most going straight there rather than
+ * auditService.logEvent(), most going straight there rather than
  * through this one wrapper — the real, single choke point every one
- * of them funnels through is mockAuditService.logEvent() itself,
+ * of them funnels through is auditService.logEvent() itself,
  * which now injects getEffectiveScanStationId() unconditionally on
  * every real write. stationId is still excluded from this function's
  * own caller-facing input type below (no caller anywhere needs to
  * know or care that this field exists at all), but the actual
- * injection lives one level down — see mockAuditService.ts's own
+ * injection lives one level down — see auditService.ts's own
  * comment for the full reasoning.
  */
 export function logEvent(event: Omit<AuditEvent, "id" | "timestamp" | "stationId">) {
@@ -51,7 +51,7 @@ export function logEvent(event: Omit<AuditEvent, "id" | "timestamp" | "stationId
   // (an audit write failing must never block or fail the action it
   // describes) and keeps this function's own signature synchronous, so
   // none of the three real callers need to change how they call it.
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: CATEGORY_TO_TYPE[event.category] ?? 'system',
     event: event.action,
     detail: event.detail,

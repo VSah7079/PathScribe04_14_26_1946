@@ -10,13 +10,16 @@
  */
 
 // Generic transport
-export { sendEmail }                    from './notificationService';
-
-// Recipient resolution (exposed for custom use cases)
-export { resolveByRoles, resolveTemplateOwner, mergeRecipients } from './recipientResolver';
+export { sendEmail, postTemplateLifecycleEvent } from './notificationService';
 
 // Domain-specific services
 export { sendSynopticNotification }     from './synopticNotificationService';
 
 // Types
-export type { EmailPayload, Recipient } from './types';
+export { buildTemplateLifecycleEventPayload, isNotifiableTemplateEvent } from './templateLifecycleEvent';
+export type { TemplateLifecycleEventPayload } from './templateLifecycleEvent';
+export type { EmailPayload, EmailAttachment } from './types';
+export {
+  recordSimulatedEmail, recordSimulatedTemplateEvent, listSimulatedEmails, clearSimulatedEmails,
+  subscribeSimulatedMail, type SimulatedEmail,
+} from './simulatedMailOutbox';

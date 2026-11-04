@@ -16,13 +16,19 @@ Substantial pre-copyright-deposit codebase hardening was completed
 this session, specifically because it matters for a clean deposit:
 
 - A comprehensive dead-code sweep across `services/` and `components/`
-  (two confirmed-dead files removed: `ClaudeProvider.ts`, a near-
-  verbatim duplicate never actually used; `PatientMatchReviewSection.tsx`,
-  a stale copy left behind by an incomplete move).
+  (`ClaudeProvider.ts` was identified as a near-verbatim, unused
+  duplicate of `StructuredMessagesProvider.ts`, but it is still present
+  in `src/services/ai/providers/` with no consumers; a stale copy of
+  `PatientMatchReviewSection.tsx` left behind by an incomplete move was
+  removed, and the live one is `components/QualityAssurance/`).
 - A hardcoded third-party API key (UMLS) found and removed from source,
   with the key itself rotated.
-- Every folder in `src/` now has its own `README.md` — 169 folders,
-  programmatically verified for coverage.
+- At the time, every folder in `src/` had its own `README.md` (169
+  folders). `src/` has since grown to about 360 folders, and about 47
+  have no `README.md` of their own (most are `src/types/` subfolders,
+  test fixtures and small subfolders such as `services/auth/sso`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `ClaudeProvider.ts` was not removed (see `services/ai/providers/README.md`), and README coverage is no longer complete.*
 
 ## What's a real, concrete, buildable task if wanted
 

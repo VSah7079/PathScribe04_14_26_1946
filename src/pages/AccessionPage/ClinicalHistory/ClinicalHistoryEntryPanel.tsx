@@ -35,9 +35,10 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockClinicalHistoryDictionaryService } from '../../../services/clinicalHistory/mockClinicalHistoryDictionaryService';
+
 import type { ClinicalHistoryDictionaryEntry } from '../../../services/clinicalHistory/IClinicalHistoryDictionaryService';
 import type { ClinicalHistoryCategoryCode, RecordedClinicalHistoryEntry } from '@/types/clinicalHistory/RecordedClinicalHistoryEntry';
+import { clinicalHistoryDictionaryService } from '@/services';
 
 const CATEGORY_LABEL_KEY: Record<ClinicalHistoryCategoryCode, string> = {
   SCR: 'accessionPage.clinicalHistory.categoryLabel.screening',
@@ -95,9 +96,10 @@ const ClinicalHistoryEntryPanel: React.FC<ClinicalHistoryEntryPanelProps> = ({ s
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    mockClinicalHistoryDictionaryService.getActive().then(r => { if (r.ok) setDictionary(r.data); });
+    clinicalHistoryDictionaryService.getActive().then(r => { if (r.ok) setDictionary(r.data); });
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- picks a default only when the list of types arrives; an already-chosen type is never replaced
   useEffect(() => { if (!specimenType && specimenTypes[0]) setSpecimenType(specimenTypes[0]); }, [specimenTypes]);
 
   useEffect(() => {

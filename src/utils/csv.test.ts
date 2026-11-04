@@ -97,3 +97,30 @@ describe('isCsvFile', () => {
     expect(isCsvFile(new File(['x'], 'data.csv', { type: 'image/png' }))).toBe(false);
   });
 });
+
+describe('Batch 543 (finding F8): formula cells are neutralized, and restored on import', () => {
+  it('a text cell starting with =, +, -, @, a tab or a carriage return gets a leading apostrophe', async () => {
+    const { neutralizeFormula, csvField, csvQuoted } = await import('./csv');
+    for (const v of ['=HYPERLINK("http://x","click")', '+SUM(A1)', '-2+3', '@cmd', '\t=1', '\r=1']) expect(neutralizeFormula(v), JSON.stringify(v)).toBe(`'${v}`);
+    expect(csvField('=1+1')).toBe("'=1+1");
+    expect(csvQuoted('=A1')).toBe(`"'=A1"`);
+    expect(csvField('=HYPERLINK("x")')).toBe(`"'=HYPERLINK(""x"")"`);
+  });
+
+  it('numbers, booleans and number-like text stay as they are; ordinary text is untouched', async () => {
+    const { neutralizeFormula } = await import('./csv');
+    expect(neutralizeFormula(-5)).toBe('-5');
+    expect(neutralizeFormula(true)).toBe('true');
+    for (const v of ['-5', '+1.5', '-0.25', '1e-3', '-.5']) expect(neutralizeFormula(v), v).toBe(v);
+    for (const v of ['Negative for malignancy', 'S26-0001', 'a=b', '']) expect(neutralizeFormula(v), v).toBe(v);
+    expect(neutralizeFormula(null)).toBe('');
+  });
+
+  it('an exported dictionary re-imports unchanged (the apostrophe is removed on import)', async () => {
+    const { toCsv, parseCsv } = await import('./csv');
+    const rows = [{ code: '=CMD', label: '-Left', note: "'=already quoted", amount: '-12.5' }];
+    const text = toCsv(rows);
+    expect(text).toContain("'=CMD");
+    expect(parseCsv(text)).toEqual(rows);
+  });
+});

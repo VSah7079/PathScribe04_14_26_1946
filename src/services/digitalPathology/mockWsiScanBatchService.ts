@@ -6,7 +6,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
-import type { IWsiScanBatchService, WsiScanBatch } from './IWsiScanBatchService';
+import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
+import type { WsiScanBatchChange } from '../liveUpdates/liveUpdateContract';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { wallScanDemoBatches } from '../batches/wallDisplayDemoBatches';
+import { allSlidesScanned, type IWsiScanBatchService, type WsiScanBatch } from './IWsiScanBatchService';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // Real, per direct follow-up ("Can you put some seed data in so that
@@ -15,10 +19,15 @@ import type { IWsiScanBatchService, WsiScanBatch } from './IWsiScanBatchService'
 // real, already-seeded surgical pathology cases (mockCaseService.ts),
 // not fabricated case ids. S26-4404's own real 6 specimens (Gleason
 // 7/Grade Group 2 prostate biopsy) map to 6 real slides here.
+// Batch 434: scanners are Equipment register codes (mockEquipmentService.ts
+// seeds APERIO_GT450_01/02 and GENIUS_01); batches with an unload time are
+// 'unloaded' (the old unload bug left them 'completed').
+const minutesAgo = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
+
 const SEED_WSI_BATCHES: WsiScanBatch[] = [
   {
-    id: 'wsi-batch-seed-4404', batchBarcode: 'WSI-20260913-0001', scannerInstrumentId: 'Leica Aperio GT450 #2',
-    status: 'completed', loadedAt: '2026-09-13T08:00:00.000Z', dispatchedAt: '2026-09-13T08:05:00.000Z', unloadedAt: '2026-09-13T09:10:00.000Z',
+    id: 'wsi-batch-seed-4404', batchBarcode: 'WSI-20260913-0001', scannerInstrumentId: 'APERIO_GT450_02',
+    status: 'unloaded', loadedAt: '2026-09-13T08:00:00.000Z', dispatchedAt: '2026-09-13T08:05:00.000Z', unloadedAt: '2026-09-13T09:10:00.000Z',
     slides: [
       { slidePosition: '1', caseId: 'S26-4404', specimenId: 'S26-4404-SP-1', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-13T08:15:00.000Z', acquisitionMode: 'single_plane' },
       { slidePosition: '2', caseId: 'S26-4404', specimenId: 'S26-4404-SP-2', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-13T08:20:00.000Z', acquisitionMode: 'single_plane' },
@@ -33,18 +42,19 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // (Focus Fail)") — so the Digital Readiness badge's own three real
   // color states all have something real to show, not just green.
   {
-    id: 'wsi-batch-seed-4408', batchBarcode: 'WSI-20260913-0002', scannerInstrumentId: 'Leica Aperio GT450 #1',
-    status: 'scanning', loadedAt: '2026-09-13T09:00:00.000Z', dispatchedAt: '2026-09-13T09:05:00.000Z',
+    id: 'wsi-batch-seed-4408', batchBarcode: 'WSI-20260913-0002', scannerInstrumentId: 'APERIO_GT450_01',
+    // Batch 747 (S8): still scanning, so its times are relative to the reset (it showed as weeks old on the wall).
+    status: 'scanning', loadedAt: minutesAgo(140), dispatchedAt: minutesAgo(135),
     slides: [
-      { slidePosition: '1', caseId: 'S26-4408', specimenId: 'S26-4408-SP-1', scanStatus: 'completed', qcPassed: false, scanCompletedAt: '2026-09-13T09:20:00.000Z', failureReason: 'Out-of-focus', acquisitionMode: 'single_plane' },
+      { slidePosition: '1', caseId: 'S26-4408', specimenId: 'S26-4408-SP-1', scanStatus: 'completed', qcPassed: false, scanCompletedAt: minutesAgo(120), failureReason: 'Out-of-focus', acquisitionMode: 'single_plane' },
       { slidePosition: '2', caseId: 'S26-4408', specimenId: 'S26-4408-SP-2', scanStatus: 'scanning', acquisitionMode: 'single_plane' },
     ],
   },
   // Real, a genuine Z-stack acquisition example (Cytology) — see
   // IWsiScanBatchService.ts's own WsiAcquisitionMode doc comment.
   {
-    id: 'wsi-batch-seed-5002cyt', batchBarcode: 'WSI-20260913-0003', scannerInstrumentId: 'Hologic Genius Digital Diagnostics System',
-    status: 'completed', loadedAt: '2026-09-13T07:00:00.000Z', dispatchedAt: '2026-09-13T07:05:00.000Z', unloadedAt: '2026-09-13T07:20:00.000Z',
+    id: 'wsi-batch-seed-5002cyt', batchBarcode: 'WSI-20260913-0003', scannerInstrumentId: 'GENIUS_01',
+    status: 'unloaded', loadedAt: '2026-09-13T07:00:00.000Z', dispatchedAt: '2026-09-13T07:05:00.000Z', unloadedAt: '2026-09-13T07:20:00.000Z',
     slides: [
       { slidePosition: '1', caseId: 'S26-5002-CYT-001', specimenId: 'S26-5002-SP-1', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-13T07:12:00.000Z', acquisitionMode: 'z_stack', focalPlaneCount: 9 },
     ],
@@ -61,7 +71,7 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // O26-0001 (colon resection, 3 specimens A/B/C) — a clean, fully
   // "ready" batch: every specimen scanned, passed QC.
   {
-    id: 'wsi-batch-seed-o26-0001', batchBarcode: 'WSI-20260918-0004', scannerInstrumentId: 'Leica Aperio GT450 #2',
+    id: 'wsi-batch-seed-o26-0001', batchBarcode: 'WSI-20260918-0004', scannerInstrumentId: 'APERIO_GT450_02',
     status: 'unloaded', loadedAt: '2026-09-18T08:00:00.000Z', dispatchedAt: '2026-09-18T08:05:00.000Z', unloadedAt: '2026-09-18T09:00:00.000Z',
     slides: [
       { slidePosition: '1', caseId: 'O26-0001', specimenId: 'O26-0001-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-18T08:20:00.000Z', acquisitionMode: 'single_plane' },
@@ -75,10 +85,10 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // scanning, so the Digital Readiness badge has a real "Partial"
   // state to show for an Outreach case too, not just S26-4408.
   {
-    id: 'wsi-batch-seed-o26-0002', batchBarcode: 'WSI-20260918-0005', scannerInstrumentId: 'Leica Aperio GT450 #1',
-    status: 'scanning', loadedAt: '2026-09-18T09:00:00.000Z', dispatchedAt: '2026-09-18T09:05:00.000Z',
+    id: 'wsi-batch-seed-o26-0002', batchBarcode: 'WSI-20260918-0005', scannerInstrumentId: 'APERIO_GT450_01',
+    status: 'scanning', loadedAt: minutesAgo(70), dispatchedAt: minutesAgo(65),
     slides: [
-      { slidePosition: '1', caseId: 'O26-0002', specimenId: 'O26-0002-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-18T09:15:00.000Z', acquisitionMode: 'single_plane' },
+      { slidePosition: '1', caseId: 'O26-0002', specimenId: 'O26-0002-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: minutesAgo(55), acquisitionMode: 'single_plane' },
       { slidePosition: '2', caseId: 'O26-0002', specimenId: 'O26-0002-SP-B', scanStatus: 'scanning', acquisitionMode: 'single_plane' },
     ],
   },
@@ -88,7 +98,7 @@ const SEED_WSI_BATCHES: WsiScanBatch[] = [
   // fails automated QC, giving the Outreach worklist a real "Error"
   // state example as well.
   {
-    id: 'wsi-batch-seed-o26-0003', batchBarcode: 'WSI-20260918-0006', scannerInstrumentId: 'Leica Aperio GT450 #2',
+    id: 'wsi-batch-seed-o26-0003', batchBarcode: 'WSI-20260918-0006', scannerInstrumentId: 'APERIO_GT450_02',
     status: 'unloaded', loadedAt: '2026-09-18T10:00:00.000Z', dispatchedAt: '2026-09-18T10:05:00.000Z', unloadedAt: '2026-09-18T11:00:00.000Z',
     slides: [
       { slidePosition: '1', caseId: 'O26-0003', specimenId: 'O26-0003-SP-A', scanStatus: 'completed', qcPassed: true, scanCompletedAt: '2026-09-18T10:20:00.000Z', acquisitionMode: 'single_plane' },
@@ -103,8 +113,19 @@ const ok = <T>(data: T) => ({ ok: true as const, data });
 const err = (message: string) => ({ ok: false as const, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-const load = (): WsiScanBatch[] => storageGet(STORE_KEY, SEED_WSI_BATCHES);
+// Batch 747 (S8): the wall display's scanner runs (batches/wallDisplayDemoBatches.ts) are added to a browser's stored
+// runs when missing, never replacing one.
+const load = (): WsiScanBatch[] => {
+  const { records, added } = withMissingSeedRecords(storageGet<WsiScanBatch[] | null>(STORE_KEY, null), [...SEED_WSI_BATCHES, ...wallScanDemoBatches()]);
+  if (added > 0) storageSet(STORE_KEY, records);
+  return records;
+};
 const persist = (data: WsiScanBatch[]) => storageSet(STORE_KEY, data);
+// Batch 434: what the API server does after it commits a batch write — tell
+// the Slide scanning screens to re-read (ids only; liveUpdates/).
+const announce = (batch: WsiScanBatch, change: WsiScanBatchChange) => {
+  try { localLiveUpdateService.publishWsiScanBatchChange({ batchId: batch.id, change, facilityId: batch.facilityId }); } catch { /* live updates are best-effort */ }
+};
 
 export const mockWsiScanBatchService: IWsiScanBatchService = {
   async getAll() {
@@ -133,10 +154,11 @@ export const mockWsiScanBatchService: IWsiScanBatchService = {
       loadedAt: new Date().toISOString(),
     };
     persist([...all, created]);
+    announce(created, 'loaded');
     return ok(created);
   },
 
-  async markDispatched(id) {
+  async markDispatched(id, sentBy) {
     await delay();
     const all = load();
     const idx = all.findIndex(b => b.id === id);
@@ -144,28 +166,46 @@ export const mockWsiScanBatchService: IWsiScanBatchService = {
     if (all[idx].status !== 'loaded') {
       return err(`Batch ${all[idx].batchBarcode} is not "loaded" (currently "${all[idx].status}") — a batch can only be dispatched once, from a real, freshly-loaded state.`);
     }
-    const updated: WsiScanBatch = { ...all[idx], status: 'scanning', dispatchedAt: new Date().toISOString() };
+    const updated: WsiScanBatch = { ...all[idx], status: 'scanning', dispatchedAt: new Date().toISOString(), sentBy, sendError: undefined };
     const next = [...all];
     next[idx] = updated;
     persist(next);
+    announce(updated, 'sent');
     return ok(updated);
   },
 
-  async markUnloaded(id) {
+  async recordSendFailure(id, error) {
+    await delay();
+    const all = load();
+    const idx = all.findIndex(b => b.id === id);
+    if (idx === -1) return err(`No WSI scan batch found with id "${id}".`);
+    const updated: WsiScanBatch = { ...all[idx], sendError: { ...error, at: new Date().toISOString() } };
+    const next = [...all];
+    next[idx] = updated;
+    persist(next);
+    announce(updated, 'sendFailed');
+    return ok(updated);
+  },
+
+  async markUnloaded(id, unloadedBy) {
     await delay();
     const all = load();
     const idx = all.findIndex(b => b.id === id);
     if (idx === -1) return err(`No WSI scan batch found with id "${id}".`);
     const batch = all[idx];
-    const stillPending = batch.slides.filter(s => s.scanStatus === 'pending' || s.scanStatus === 'scanning');
-    if (stillPending.length > 0) {
+    if (batch.status === 'unloaded') return err(`Batch ${batch.batchBarcode} is already unloaded.`);
+    // A batch whose manifest was never accepted can be unloaded as it is
+    // (nothing is scanning); otherwise every slide needs its outcome first.
+    if (batch.status !== 'loaded' && !allSlidesScanned(batch)) {
+      const stillPending = batch.slides.filter(s => s.scanStatus === 'pending' || s.scanStatus === 'scanning');
       return err(`${stillPending.length} of ${batch.slides.length} real slides in batch ${batch.batchBarcode} have not reached a real, terminal scan outcome yet — the instrument can't honestly be unloaded while a real slide is still pending/scanning.`);
     }
-    const anyFailed = batch.slides.some(s => s.scanStatus === 'failed');
-    const updated: WsiScanBatch = { ...batch, status: anyFailed ? 'failed' : 'completed', unloadedAt: new Date().toISOString() };
+    // Batch 434: really 'unloaded' (before, this set 'completed' or 'failed').
+    const updated: WsiScanBatch = { ...batch, status: 'unloaded', unloadedAt: new Date().toISOString(), unloadedBy };
     const next = [...all];
     next[idx] = updated;
     persist(next);
+    announce(updated, 'unloaded');
     return ok(updated);
   },
 
@@ -179,10 +219,15 @@ export const mockWsiScanBatchService: IWsiScanBatchService = {
     if (slideIdx === -1) return err(`Batch ${batch.batchBarcode} has no real slide at position "${slidePosition}".`);
     const updatedSlides = [...batch.slides];
     updatedSlides[slideIdx] = { ...updatedSlides[slideIdx], ...update };
-    const updated: WsiScanBatch = { ...batch, slides: updatedSlides };
+    // Batch 434: once every slide has an outcome, a scanning batch is
+    // 'completed', or 'failed' when any slide failed to scan.
+    const done = batch.status === 'scanning' && allSlidesScanned({ slides: updatedSlides });
+    const status = done ? (updatedSlides.some(s => s.scanStatus === 'failed') ? 'failed' : 'completed') : batch.status;
+    const updated: WsiScanBatch = { ...batch, slides: updatedSlides, status };
     const next = [...all];
     next[idx] = updated;
     persist(next);
+    announce(updated, 'slideStatus');
     return ok(updated);
   },
 };

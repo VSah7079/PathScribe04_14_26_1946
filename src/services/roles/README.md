@@ -1,3 +1,13 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
+## Batch 601
+
+`actionSeeds.ts` also offers the 89 open/filter/move commands (and QA Reviewer is now seeded).
+
+## Batch 600
+
+`actionSeeds.ts` offers each built-in role the commands added to the roles list, once (`Role.seededActions`); applied when roles load in `mockRoleService.ts`. A removal sticks; custom roles and copies are untouched.
+
 # services/roles/
 
 Staff role dictionary: capabilities (enforced, `services/authorization/`), voice/keyboard commands, case/config access. (The role-level pediatric and orchestration switches were removed in Batch 370; those are staff-record flags.)
@@ -21,7 +31,7 @@ Per Pete, the template roles are system roles every site has out of the box.
   - **Renames reach staff:** `update()` carries a role rename over to every staff record holding the old name. Staff records store role names, so before this, renaming a role silently removed it from everyone who had it.
 - **Not done:**
   - **Firestore:** `firestoreRoleService.ts` is still a stub. Its seed or migration should call `mergeBuiltInRoles` with the same seeds when it is built.
-  - **Identity-provider mapping:** SSO sign-in exists since Batch 343, but it takes roles from the staff record (`services/auth/sessionRole.ts`). Mapping identity-provider group claims to these role ids is not built. (Corrected in Batch 369: this line used to say PathScribe had no single sign-on.)
+  - **Identity-provider mapping:** SSO sign-in exists since Batch 343, but it takes roles from the staff record (`services/auth/sessionRole.ts`). Mapping identity-provider group claims to these role ids is not built, and is after the first release (Pete, Oct 15, 2026): user accounts sync from the directory first (SCIM, phase 2e); when mapping comes, a group may grant bench roles only, a second admin approves each mapping, and each role shows whether it came from the directory or was added by hand (`docs/architecture/AUTHENTICATION_OIDC.md`). (Corrected in Batch 369: this line used to say PathScribe had no single sign-on.)
 
 ## Capabilities on roles (Batch 369, PS-355)
 
@@ -46,7 +56,7 @@ Per Pete, the template roles are system roles every site has out of the box.
 
 ## Batch 371: Superadmin is ForMedrixAI's
 
-- **Locked.** `mockRoleService.load()` runs `lockPlatformRoles`, so Superadmin always holds the whole catalog. `update()` refuses any change to a role staff can't be given.
+- **Locked.** `mockRoleService.load()` runs `lockPlatformRoles`, so Superadmin always holds the whole catalog except `config:ai-prompt:approve` (separation of duties, Batch 536). `update()` refuses any change to a role staff can't be given.
 - **`saveRole`** refuses edits to Superadmin (`platformRole`) and refuses platform-only capabilities on a hospital role.
 
 ## Batch 374: bench roles
@@ -55,6 +65,23 @@ Four new built-in roles, so each bench screen has a role to hold it by default: 
 
 `caseAccess` and `configAccess` stay as they were: they decide whether an SSO sign-in gets the app at all (`auth/sessionRole.ts`), and now also which screens a hospital's own role is first offered.
 
+## Batch 441
+
+- The built-in Cytotechnologist role now lists the `cytotechnologist` participation type. A stored copy with an empty list (the seed before this batch) is filled on load (`systemRoles.withCytotechParticipationType`); a list an administrator set is kept.
+- `roleAdministration.saveRole` refuses the Cytotechnologist role listing a pathologist type (`cytotechPathologistType`). The Role Dictionary shows those types locked for that role.
+
+
+## Batch 536 (PS-554)
+
+`roleAdministration.saveRole` refuses a role that would hold both duties of a separation-of-duty pair (`separationOfDuties`), and, given `userService`, a change that would give someone holding the role and another one both (`separationOfDutiesStaff`).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 513 (PS-269)
+
+`builtInRoleText.ts`: the built-in roles' seeded descriptions and their locale keys. `builtInRoleDescriptionKey()` gives a key only while a role still carries the exact seeded text, so a lab's own edit is never replaced by a translation. Test: `builtInRoleText.test.ts`. `mockRoleService` seeds from the same text.
+
+
+Batch 616: server version in `httpRoleService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `roleServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.

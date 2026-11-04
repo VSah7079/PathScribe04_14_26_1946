@@ -3,7 +3,7 @@
 // Real, per PS-289's own comment thread's "default action fires on the
 // next scan" piece — the single highest-leverage turnaround-time
 // mechanism in that whole design: the most probable action at a
-// given bench (e.g. "Log Slide/Block" at a Microtomy desk) fires the
+// given bench (e.g. "Log Slide/Block" at a Microtome desk) fires the
 // moment a technician scans, with no click in between.
 //
 // Mirrors useGlobalMaterialScanTracking.ts's own real, proven
@@ -31,10 +31,9 @@
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import { useEffectiveScanStation } from './useEffectiveScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
-import { mockActionRegistryService } from '@/services/actionRegistry/mockActionRegistryService';
+
 import type { ScanEvent } from '@/contexts/ScannerProvider';
+import { scanStationService, workstationGroupService, actionRegistryService } from '@/services';
 
 export function useDefaultActionOnScan() {
   const { effectiveStationId } = useEffectiveScanStation();
@@ -50,18 +49,20 @@ export function useDefaultActionOnScan() {
     // — the Disposal Queue's own scan meaning ("dispose this") must
     // never be overridden by an unrelated default action.
     if (location.pathname.startsWith('/batch-management/disposal')) return;
+    // Batch 645: a Lockbox Drop-Off scan means "receive this container", whatever has focus; no default action or tracking may also run.
+    if (location.pathname.startsWith('/lockbox-drop-off')) return;
 
     if (!effectiveStationId) return;
-    const stationRes = await mockScanStationService.getById(effectiveStationId);
+    const stationRes = await scanStationService.getById(effectiveStationId);
     if (!stationRes.ok || !stationRes.data.workstationGroupId) return;
 
-    const groupRes = await mockWorkstationGroupService.getById(stationRes.data.workstationGroupId);
+    const groupRes = await workstationGroupService.getById(stationRes.data.workstationGroupId);
     if (!groupRes.ok || !groupRes.data.defaultActionId) return;
 
-    const action = mockActionRegistryService.getActionById(groupRes.data.defaultActionId);
+    const action = actionRegistryService.getActionById(groupRes.data.defaultActionId);
     if (!action || !action.isActive) return;
 
-    mockActionRegistryService.executeAction(action, scanEvent.raw);
+    actionRegistryService.executeAction(action, scanEvent.raw);
   }, [effectiveStationId, location.pathname]);
 
   useEffect(() => {

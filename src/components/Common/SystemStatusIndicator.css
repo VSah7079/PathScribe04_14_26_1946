@@ -1,0 +1,9 @@
+/* Batch 669h (footer): Home footer system status. Replaces .ps-home-status-dot. */
+.ps-sysstatus { display: flex; align-items: center; gap: 8px; }
+.ps-sysstatus-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ps-text-dim); }
+.ps-sysstatus-dot--operational { background: #10B981; box-shadow: 0 0 8px #10B981; }
+.ps-sysstatus-dot--degraded { background: #F59E0B; box-shadow: 0 0 8px #F59E0B; }
+.ps-sysstatus-dot--unavailable { background: #EF4444; box-shadow: 0 0 8px #EF4444; }
+.ps-sysstatus-dot--checking { background: var(--ps-text-dim); }
+.ps-sysstatus-dot--statusUnavailable { background: transparent; border: 1px solid var(--ps-text-dim); }
+.ps-sysstatus-demo { font-style: italic; }

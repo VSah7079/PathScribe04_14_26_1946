@@ -1,16 +1,24 @@
 // src/pages/SynopticReportPage/components/HeaderBar.tsx
 // Rich case header — white bar with accession, patient info, progress steps.
 
+import { ForeignIdTag } from '@/components/Workstation/BenchIdentity';
+import { CaseRequisitionLink } from '@/components/Requisitions/CaseRequisitionLink';
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { RegistryOptOutBadge } from '@/components/Common/RegistryOptOutBadge';
+import { NhsNumberBadge } from '@/components/Common/NhsNumberBadge';
+import { sexAtBirthLabelKey } from '@/services/patients/patientSexAtBirth';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatDate } from '@/utils/formatDate';
 import { useNavigate } from 'react-router';
 import { useMessaging } from '@/contexts/MessagingContext';
 import type { Case } from '@/types/case/Case';
 import type { BlockStatus } from '@/types/case/Specimen';
 import { getOrgOrchestratorDefault, resolveOrchestratorMode } from '@/components/Config/AI/orchestratorModeConfig';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
-import { lisSyncService, flagService } from '@/services';
-import type { LisSyncState, LisSyncPendingFlag } from '@/services';
+import { lisSyncService, resolveLisFlagDefinitionId } from '@/services';
+import { applyLisSyncFlags } from '@/services/flags/applyLisSyncFlags';
+import type { LisSyncState } from '@/services';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { getSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
 import { getCaseStatusLabel, hasDisplayableRevision } from '@/utils/caseRevisionDisplay';
@@ -48,31 +56,31 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
   Cancelled: 'headerBar.blockStatusLabels.cancelled',
   Lost:      'headerBar.blockStatusLabels.lost',
   Damaged:   'headerBar.blockStatusLabels.damaged',
+  Deleted:   'headerBar.blockStatusLabels.deleted',
+  Invalidated: 'headerBar.blockStatusLabels.invalidated',
 };
 
-// ── AI Synthesis Status — Gatekeeper Badge model. Matches the type defined
-// in SynopticReportPage.tsx (duplicated here rather than imported to avoid
-// a cross-directory type-only import cycle; keep these two in sync if the
-// shape changes).
-export interface AiSynthesisStatus {
-  state: 'none' | 'draft-ready' | 'review-required';
-  overallConfidence?:      number;
-  flaggedFieldId?:          string;
-  flaggedFieldConfidence?:  number;
-}
+// ── AI Synthesis Status — the Gatekeeper Badge. One definition, in
+// services/templates/aiSynthesisStatus.ts (Batch 437).
+import type { AiSynthesisStatus } from '@/services/templates/aiSynthesisStatus';
+import { pressable } from '@/utils/a11y/pressable';
+import { caseReturnTarget, type CaseReturnTarget } from '@/utils/search/caseReturnTarget';
+export type { AiSynthesisStatus };
+
+const DEFAULT_RETURN = caseReturnTarget('worklist');
 
 interface HeaderBarProps {
   caseData:      Case | null;
   onSignOut:     () => void;
   onNavigate:    (path: string) => void;
+  /** PS-101: where the breadcrumb and the compact Back go, and their label (utils/search/caseReturnTarget.ts). Worklist when omitted. */
+  returnTarget?: CaseReturnTarget;
   /**
    * Gatekeeper Badge status — replaces the old flat `aiConfidence` percentage.
-   * SHORT-TERM model (per clinical review): conservative binary state — ANY
-   * AI-suggested field below the configured confidence threshold trips
-   * 'review-required', regardless of which field it is. A true tiered
-   * "floor" model (gating only on diagnosis/staging-critical fields) is the
-   * intended long-term design, deferred until tier classification can be
-   * sourced from the real CAP eCC template schema rather than guessed.
+   * PS-329 (Batch 437): an unreviewed AI suggestion below the configured
+   * confidence threshold trips 'review-required' only when its field is
+   * Must Have (required in the template and shown). Fields the template
+   * doesn't list still count, the safe side.
    */
   aiSynthesisStatus?: AiSynthesisStatus;
   /** "Unpacking" — clicking the badge in 'review-required' state should
@@ -106,6 +114,12 @@ interface HeaderBarProps {
   /** Batch 368 (PS-353): saves recorded in the report's change log. */
   changeCount?: number;
   onOpenChangeHistory?: () => void;
+  /** Batch 483 (PS-359 tracker follow-up): signature records from
+   *  services/signatures/ — same "real history, zero UI reading it"
+   *  gap as the deficiency/version indicators above, closed the same
+   *  way. */
+  signatureCount?: number;
+  onOpenSignatureHistory?: () => void;
   /** Highlights the matching block chip and shows its status — the
    *  block a Grossing voice command (next/previous/mark grossed) would
    *  currently act on. Undefined outside grossing-relevant contexts. */
@@ -155,8 +169,8 @@ function stepClass(status: StepStatus): string {
   return `ps-hb-step-circle ps-hb-step-circle--${status}`;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
-  const { t } = useTranslation();
+const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, onNavigate, returnTarget, aiSynthesisStatus, onAiStatusClick, compact = false, onChangePriority, priorityLevels, deficiencyCount, onOpenDeficiencyHistory, versionCount, onOpenVersionHistory, changeCount, onOpenChangeHistory, signatureCount, onOpenSignatureHistory, focusedBlockId, onOpenBlockEditor, onCaseUpdate, onToggleManualCompact }) => {
+  const { t, i18n } = useTranslation();
   // Real fix, found via a direct audit: this used to call the old,
   // superseded getOrchestratorMode() (org-level only, from the now-
   // dead NarrativeTemplates/index.tsx) instead of the real
@@ -182,6 +196,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // history), so this needs its own copy of the same reactive
   // sessionStorage check rather than anything AppShell tracks.
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
+  const back = returnTarget ?? DEFAULT_RETURN;
   // Batch 375 (Pete): Add-On Orders is an action on the case, for whoever may open that screen.
   const capabilities = useCapabilities();
   const { setPortalOpen } = useMessaging();
@@ -218,23 +234,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
   // case-level. Deduplicates against an already-applied, non-deleted
   // instance of the same definition, same real check
   // caseFlagsApi.ts's own applyFlags() uses.
-  const resolveOrCreateFlagDefId = async (pf: LisSyncPendingFlag): Promise<string> => {
-    const catalog = await flagService.getAll();
-    const existing = catalog.ok ? catalog.data.find(f => f.lisCode === pf.lisCode) : undefined;
-    if (existing) return existing.id;
-    const created = await flagService.add({
-      name: pf.name,
-      lisCode: pf.lisCode,
-      description: `Auto-created from LIS sync (code: ${pf.lisCode})`,
-      level: pf.specimenId ? 'Specimen' : 'Case',
-      severity: pf.severity,
-      status: 'Active',
-      tagClass: pf.tagClass,
-      autoCreated: true,
-    });
-    if (created.ok) return created.data.id;
-    throw new Error((created as { ok: false; error: string }).error);
-  };
+  // Batch 428: the catalog lookup and auto-create live in services/flags/resolveLisFlagDefinition.ts.
+  const resolveOrCreateFlagDefId = resolveLisFlagDefinitionId;
 
   const handleCheckNow = async () => {
     if (!caseData?.id || checkingNow) return;
@@ -250,42 +251,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         // whatever came back onto the case the same way any other flag
         // addition would, just built as real FlagInstance records here.
         if (res.data.newFlags.length > 0 && onCaseUpdate && caseData) {
-          const now = new Date().toISOString();
-          let updatedCaseFlags = (caseData.caseFlags ?? []).slice();
-          const specimenFlagAdds = new Map<string, any[]>();
-
-          for (const pf of res.data.newFlags) {
-            const flagDefinitionId = await resolveOrCreateFlagDefId(pf);
-            const inst = {
-              id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-              flagDefinitionId,
-              appliedAt: now,
-              appliedBy: 'LIS Sync',
-              source: 'lis' as const,
-              deletedAt: null,
-              deletedBy: null,
-            };
-            if (pf.specimenId) {
-              const existingOnSpecimen = (caseData.specimens ?? []).find(sp => sp.id === pf.specimenId)?.specimenFlags ?? [];
-              const alreadyApplied = existingOnSpecimen.some(f => f.flagDefinitionId === flagDefinitionId && !f.deletedAt);
-              if (!alreadyApplied) {
-                if (!specimenFlagAdds.has(pf.specimenId)) specimenFlagAdds.set(pf.specimenId, []);
-                specimenFlagAdds.get(pf.specimenId)!.push(inst);
-              }
-            } else {
-              const alreadyApplied = updatedCaseFlags.some(f => f.flagDefinitionId === flagDefinitionId && !f.deletedAt);
-              if (!alreadyApplied) updatedCaseFlags = [...updatedCaseFlags, inst];
-            }
-          }
-
-          const updated: Case = {
-            ...caseData,
-            caseFlags: updatedCaseFlags,
-            specimens: (caseData.specimens ?? []).map(sp => {
-              const adds = specimenFlagAdds.get(sp.id);
-              return adds ? { ...sp, specimenFlags: [...(sp.specimenFlags ?? []), ...adds] } : sp;
-            }),
-          };
+          // Batch 450 (PS-57): placement and de-duplication live in services/flags/applyLisSyncFlags.ts.
+          const updated = await applyLisSyncFlags(caseData, res.data.newFlags, {
+            resolveDefinitionId: resolveOrCreateFlagDefId,
+            now: new Date().toISOString(),
+            newId: () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+          });
           onCaseUpdate(updated);
         }
       }
@@ -308,10 +279,13 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
   const accession = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '—';
   const patient   = caseData?.patient ? `${caseData.patient.lastName}, ${caseData.patient.firstName}` : '—';
-  const dob       = caseData?.patient?.dateOfBirth
-    ? new Date(caseData.patient.dateOfBirth).toLocaleDateString() : '—';
+  // Batch 445: the shared helper, in the user's language; a date-only birth
+  // date no longer shows as the day before west of UTC.
+  const dob       = formatDate(caseData?.patient?.dateOfBirth, i18n.language);
   const mrn       = caseData?.patient?.mrn ?? '—';
-  const sex       = caseData?.patient?.sex ?? '—';
+  // Batch 662: sex at birth in words (UK target), a dash when none is recorded.
+  const sexKey    = sexAtBirthLabelKey(caseData?.patient?.sex);
+  const sex       = sexKey ? t(sexKey) : '—';
   const status    = caseData?.status ?? 'draft';
   const hospital    = getOrganisationByHospitalId(caseData?.originHospitalId ?? '');
   const clientName  = caseData?.order?.facilityName ?? null;
@@ -391,6 +365,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
         {/* Left: accession + patient + priority */}
         <div className="ps-hb-compact-left">
           <span className="ps-hb-compact-acc" data-phi="accession">{accession}</span>
+          <ForeignIdTag order={caseData?.order} />
           <span className="ps-hb-compact-sep">·</span>
           <span className="ps-hb-compact-patient" data-phi="name">{patient}</span>
           {caseData?.patient?.dateOfBirth && (
@@ -405,6 +380,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             <>
               <span className="ps-hb-compact-sep">·</span>
               <span className="ps-hb-compact-meta" data-phi="mrn">{t('headerBar.field.mrnInline', { mrn })}</span>
+            </>
+          )}
+          {caseData?.patient?.nationalIdentifiers?.some(i => i.system === 'mrn_nhs') && (
+            <>
+              <span className="ps-hb-compact-sep">·</span>
+              <span className="ps-hb-compact-meta"><NhsNumberBadge identifiers={caseData.patient.nationalIdentifiers} /></span>
             </>
           )}
           {(caseData?.order as any)?.priority && (
@@ -452,11 +433,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
               <button
                 className="ps-hb-compact-conf ps-hb-compact-conf--warn ps-hb-reset-button"
                 onClick={onAiStatusClick}
-                title={
-                  aiSynthesisStatus.flaggedFieldConfidence !== undefined
-                    ? t('headerBar.aiStatus.reviewTooltipWithPct', { pct: aiSynthesisStatus.flaggedFieldConfidence })
-                    : t('headerBar.aiStatus.reviewTooltip')
-                }
+                title={t('headerBar.aiStatus.reviewTooltip')}
               >
                 <span className="ps-hb-compact-conf-pct">⚠</span>
                 <span className="ps-hb-compact-conf-label">{t('headerBar.aiStatus.reviewPending')}</span>
@@ -470,9 +447,9 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <div className="ps-hb-compact-nav-group">
             <button
               className="ps-hb-compact-nav-btn"
-              onClick={() => onNavigate('/worklist')}
-              title={t('headerBar.nav.backToWorklistTooltip')}
-            >← {t('headerBar.breadcrumb.worklist')}</button>
+              onClick={() => onNavigate(back.path)}
+              title={t(back.tooltipKey)}
+            >← {t(back.labelKey)}</button>
             {onToggleManualCompact && (
               <button
                 className="ps-hb-compact-nav-btn"
@@ -495,16 +472,16 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <>
             <span
               className="ps-hb-crumb ps-hb-crumb--messages"
-              onClick={() => { clearSessionFlag('ps_reopen_messages'); setShowBackToMessages(false); setPortalOpen(true); navigate(-1); }}
+              {...pressable(() => { clearSessionFlag('ps_reopen_messages'); setShowBackToMessages(false); setPortalOpen(true); navigate(-1); })}
             >
               ← {t('headerBar.breadcrumb.backToMessages')}
             </span>
             <span className="ps-hb-crumb-sep">│</span>
           </>
         )}
-        <span className="ps-hb-crumb" onClick={() => onNavigate('/')}>{t('headerBar.breadcrumb.home')}</span>
+        <span className="ps-hb-crumb" {...pressable(() => onNavigate('/'))}>{t('headerBar.breadcrumb.home')}</span>
         <span className="ps-hb-crumb-sep">›</span>
-        <span className="ps-hb-crumb" onClick={() => onNavigate('/worklist')}>{t('headerBar.breadcrumb.worklist')}</span>
+        <span className="ps-hb-crumb" {...pressable(() => onNavigate(back.path))}>{t(back.labelKey)}</span>
         <span className="ps-hb-crumb-sep">›</span>
         <span className="ps-hb-crumb ps-hb-crumb--active">{t('headerBar.breadcrumb.caseReport')}</span>
 
@@ -552,7 +529,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           )}
           {caseData && capabilities.has('screen:add-on-orders:open') && (
             <button className="ps-hb-block-edit-btn" title={t('headerBar.blocks.addOnOrderTitle')}
-              onClick={() => navigate(`/add-on-orders?case=${encodeURIComponent(caseData.id)}`)}>
+              onClick={() => void openCasePage(caseData.id, 'addOnOrders')}>
               {t('headerBar.blocks.addOnOrder')}
             </button>
           )}
@@ -572,7 +549,7 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
 
       {/* Version history indicator — real fix, Phase 5: same real gap
           as the deficiency indicator above, closed the same way. */}
-      {((!!versionCount && onOpenVersionHistory) || (!!changeCount && onOpenChangeHistory)) && (
+      {((!!versionCount && onOpenVersionHistory) || (!!changeCount && onOpenChangeHistory) || (!!signatureCount && onOpenSignatureHistory)) && (
         <div className="ps-hb-blocks-row">
           {!!versionCount && onOpenVersionHistory && (
             <button className="ps-hb-version-chip" onClick={onOpenVersionHistory}>
@@ -583,6 +560,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           {!!changeCount && onOpenChangeHistory && (
             <button className="ps-hb-version-chip" onClick={onOpenChangeHistory}>
               📝 {t('headerBar.blocks.changeChip', { count: changeCount })}
+            </button>
+          )}
+          {/* Batch 483 (PS-359 tracker follow-up): signature records. */}
+          {!!signatureCount && onOpenSignatureHistory && (
+            <button className="ps-hb-version-chip" onClick={onOpenSignatureHistory}>
+              🖊 {t('headerBar.blocks.signatureChip', { count: signatureCount })}
             </button>
           )}
         </div>
@@ -598,6 +581,10 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
           <div className="ps-hb-accession">
             <div className="ps-hb-field-label">{t('headerBar.field.accession')}</div>
             <div className="ps-hb-accession-number" data-phi="accession">{accession}</div>
+            {/* Batch 759 (Patient Verification spec §2.1): an outside case's Foreign Identifier, beside the accession, for good. */}
+            <ForeignIdTag order={caseData?.order} />
+            {/* Batch 762: the scanned requisition linked to this case (case:requisition:view). */}
+            <CaseRequisitionLink caseId={caseData?.id} accession={caseData?.accession?.fullAccession} />
             {hospital && (
               <div className="ps-hb-hospital-sublabel">
                 {hospital.shortName} · {hospital.country === 'UK' ? 'NHS' : hospital.country}
@@ -625,11 +612,19 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.patient')}</div>
               <div className="ps-hb-field-value ps-hb-field-value--lg" data-phi="name">{patient}</div>
+              {/* Batch 425: the patient's registry opt-outs. */}
+              <RegistryOptOutBadge consent={caseData?.patient?.registryConsent} />
             </div>
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.sex')}</div>
               <div className="ps-hb-field-value">{sex}</div>
             </div>
+            {caseData?.patient?.nationalIdentifiers?.some(i => i.system === 'mrn_nhs') && (
+              <div className="ps-hb-field">
+                <div className="ps-hb-field-label">{t('headerBar.field.nhsNumber')}</div>
+                <div className="ps-hb-field-value"><NhsNumberBadge identifiers={caseData.patient.nationalIdentifiers} /></div>
+              </div>
+            )}
             <div className="ps-hb-field">
               <div className="ps-hb-field-label">{t('headerBar.field.dateOfBirth')}</div>
               <div className="ps-hb-field-value" data-phi="dob">{dob}</div>
@@ -681,20 +676,12 @@ const HeaderBar: React.FC<HeaderBarProps> = ({ caseData, onSignOut: _onSignOut, 
                   title={t('headerBar.aiStatus.reviewScoreTooltip')}
                 >
                   <span className="ps-hb-confidence-pct">⚠ {t('headerBar.aiStatus.reviewPending')}</span>
-                  {aiSynthesisStatus.flaggedFieldConfidence !== undefined && (
-                    <span className="ps-hb-confidence-label">
-                      {t('headerBar.aiStatus.fieldAtConfidence', { pct: aiSynthesisStatus.flaggedFieldConfidence })}
-                    </span>
-                  )}
                 </button>
               ) : (
                 <div className="ps-hb-confidence-score ps-hb-confidence-score--neutral">
                   <span className="ps-hb-confidence-pct">{t('headerBar.aiStatus.aiDrafted')}</span>
                   <span className="ps-hb-confidence-label">
                     {t('headerBar.aiStatus.noFieldsBelowThreshold')}
-                    {aiSynthesisStatus.overallConfidence !== undefined
-                      ? ` · ${t('headerBar.aiStatus.avgConfidence', { pct: aiSynthesisStatus.overallConfidence })}`
-                      : ''}
                   </span>
                 </div>
               )

@@ -18,9 +18,12 @@ export type SignatureOutcome = 'signed' | 'finalized' | 'released_for_countersig
 
 /** The record the signature belongs to, where there is one besides the case. */
 export interface SignatureRecordLink {
-  kind: 'report-version' | 'autopsy-snapshot' | 'cytology-sign-out';
+  kind: 'report-version' | 'autopsy-snapshot' | 'cytology-sign-out' | 'cytology-preliminary';
   id?: string;
   tier?: 'PAD' | 'FAD';
+  /** Batch 649: for a report version, its number and the SHA-256 of its signed PDF bytes (absent when the PDF failed to render). */
+  versionNumber?: number;
+  pdfSha256?: string;
 }
 
 export interface SignatureRecord {

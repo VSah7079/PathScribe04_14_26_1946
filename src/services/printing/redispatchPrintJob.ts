@@ -26,19 +26,64 @@
 // print queue already has.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockPrintQueueService } from './mockPrintQueueService';
-import { attemptPrintDelivery, type AttemptPrintDeliveryResult } from './attemptPrintDelivery';
+import { printQueueService } from './printQueueServiceInstance';
+import { PRINT_JOB_NOT_PERMITTED } from './printJobCodes';
+import { attemptPrintDelivery } from './attemptPrintDelivery';
+
+/** A Retry or Redirect's result. 'refused': the person lacks the permission (Batch 515, PS-283). */
+export interface RedispatchPrintJobResult {
+  outcome: 'dispatched' | 'failed' | 'refused';
+  jobId: string;
+  /** Batch 553: set when a Redirect itself was refused (the job wasn't redirected), e.g. PRINT_JOB_WRONG_SITE. */
+  redirectError?: string;
+}
 import type { PrintDestination } from '@/types/printRouting/PrintDestination';
 
-export async function redispatchPrintJob(jobId: string): Promise<AttemptPrintDeliveryResult> {
-  const jobRes = await mockPrintQueueService.getById(jobId);
+// Batch 515 (PS-283): a Retry is a person's action on the Print Queue, so it
+// needs print:job:retry. A bulk retry checks once.
+const permitRetry = async (): Promise<boolean> => {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return (await authorizationService.enforce('print:job:retry')).allowed;
+};
+
+export async function redispatchPrintJob(jobId: string): Promise<RedispatchPrintJobResult> {
+  if (!(await permitRetry())) return { outcome: 'refused', jobId };
+  return redispatchPermitted(jobId);
+}
+
+/** Batch 521 (PS-281): the system's own automatic retry of a failed release print job (on the lab's
+ *  retry schedule, deliveryRetries.ts). No person acts, so no person's permission applies; a person's
+ *  Retry from the Print Queue still needs print:job:retry. */
+export function retryPrintJobAutomatically(jobId: string): Promise<RedispatchPrintJobResult> {
+  return redispatchPermitted(jobId);
+}
+
+async function redispatchPermitted(jobId: string): Promise<RedispatchPrintJobResult> {
+  const jobRes = await printQueueService.getById(jobId);
   if (!jobRes.ok) {
     return { outcome: 'failed', jobId };
   }
   const job = jobRes.data;
 
-  if (!job.pdfBase64) {
-    await mockPrintQueueService.markFailed(jobId, {
+  // Batch 538: a job of a stored release document keeps only the document's id; the bytes are read
+  // back from the store, checked against their SHA-256 (a mismatch is not printed).
+  let pdfBase64 = job.pdfBase64;
+  if (!pdfBase64 && job.reportDocumentId) {
+    const [{ documentPdf }, { reportDocumentService }] = await Promise.all([
+      import('../reportDocuments/reportDocumentService'), import('../reportDocuments/reportDocumentInstance'),
+    ]);
+    const doc = await documentPdf(job.reportDocumentId, reportDocumentService)();
+    if (!doc.pdfBase64) {
+      // Batch 556: the server not answering (or this person not allowed) is not a lasting fault: keep the job retryable.
+      const passing = doc.documentError === 'unavailable' || doc.documentError === 'notPermitted';
+      await printQueueService.markFailed(jobId, { errorCode: 'PRINT_REJECTED', errorMessage: `The release's report document can't be printed: ${doc.generationError}.`, maxRetriesExceeded: !passing });
+      return { outcome: 'failed', jobId };
+    }
+    pdfBase64 = doc.pdfBase64;
+  }
+
+  if (!pdfBase64) {
+    await printQueueService.markFailed(jobId, {
       errorCode: 'PRINT_REJECTED',
       errorMessage: 'No persisted PDF available to retry — this job predates PS-279’s pdfBase64 persistence, or its original dispatch never reached a successfully-rendered PDF.',
       maxRetriesExceeded: true,
@@ -53,7 +98,7 @@ export async function redispatchPrintJob(jobId: string): Promise<AttemptPrintDel
   // that fails again lands honestly on FAILED with an incremented
   // count rather than silently staying on whatever real status it
   // was in before this call.
-  await mockPrintQueueService.retryDispatch(jobId);
+  await printQueueService.retryDispatch(jobId);
 
   const destination = job.redirectedToDestination ?? job.resolvedDestination;
 
@@ -63,8 +108,9 @@ export async function redispatchPrintJob(jobId: string): Promise<AttemptPrintDel
     reportType: job.reportType,
     priority: job.priority,
     mode: job.mode,
-    pdfBase64: job.pdfBase64,
+    pdfBase64,
     printerName: job.printerName,
+    facilityId: job.performingFacilityId,
     paperSize: job.paperSize,
     destination,
     presentation: { paperSource: job.paperSource, duplexMode: job.duplexMode },
@@ -76,10 +122,11 @@ export async function redispatchPrintJob(jobId: string): Promise<AttemptPrintDel
  *  IPrintQueueService's own bulk methods already document: a real,
  *  large selection never opens dozens of concurrent socket/HTTP
  *  connections to potentially the same real printer at once. */
-export async function redispatchManyPrintJobs(jobIds: string[]): Promise<AttemptPrintDeliveryResult[]> {
-  const results: AttemptPrintDeliveryResult[] = [];
+export async function redispatchManyPrintJobs(jobIds: string[]): Promise<RedispatchPrintJobResult[]> {
+  if (!(await permitRetry())) return jobIds.map(jobId => ({ outcome: 'refused' as const, jobId }));
+  const results: RedispatchPrintJobResult[] = [];
   for (const jobId of jobIds) {
-    results.push(await redispatchPrintJob(jobId));
+    results.push(await redispatchPermitted(jobId));
   }
   return results;
 }
@@ -98,12 +145,15 @@ export async function redirectAndRedispatchPrintJob(
   jobId: string,
   destination: PrintDestination,
   redirectedBy: string,
-): Promise<AttemptPrintDeliveryResult> {
-  const redirectRes = await mockPrintQueueService.redirectPrintJob(jobId, destination, redirectedBy);
+): Promise<RedispatchPrintJobResult> {
+  // Batch 515: needs print:job:redirect (checked by the queue service) and print:job:retry.
+  if (!(await permitRetry())) return { outcome: 'refused', jobId };
+  const redirectRes = await printQueueService.redirectPrintJob(jobId, destination, redirectedBy);
   if (!redirectRes.ok) {
-    return { outcome: 'failed', jobId };
+    const error = (redirectRes as { ok: false; error: string }).error;
+    return error === PRINT_JOB_NOT_PERMITTED ? { outcome: 'refused', jobId } : { outcome: 'failed', jobId, redirectError: error };
   }
-  return redispatchPrintJob(jobId);
+  return redispatchPermitted(jobId);
 }
 
 /** Real, per PS-279 §2.2.3 — the real, bulk variant of the composition
@@ -113,8 +163,8 @@ export async function redirectAndRedispatchManyPrintJobs(
   jobIds: string[],
   destination: PrintDestination,
   redirectedBy: string,
-): Promise<AttemptPrintDeliveryResult[]> {
-  const results: AttemptPrintDeliveryResult[] = [];
+): Promise<RedispatchPrintJobResult[]> {
+  const results: RedispatchPrintJobResult[] = [];
   for (const jobId of jobIds) {
     results.push(await redirectAndRedispatchPrintJob(jobId, destination, redirectedBy));
   }

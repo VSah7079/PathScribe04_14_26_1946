@@ -23,7 +23,7 @@ Outside a provider, `PathScribeEditor` and `SpellCheckedTextarea` fall back to t
   - A right-click on a squiggle opens the menu; anywhere else the browser's menu is used.
   - `requestSpellRecheck(view)` re-checks after a language or word-list change.
 - **`SpellCheckedTextarea.tsx`:** a drop-in `<textarea>`. Inside a provider it draws squiggles on a layer behind the text box: the layer and the box share one grid cell and the same class, so they are the same size and the text lines up, and the layer scrolls with the box. A replacement goes through the textarea's native value setter and an `input` event, so the parent's `onChange` runs as if the word had been typed.
-- **`SpellCheckMenu.tsx`:** the right-click menu (a portal to `document.body`): suggestions, Ignore for this session, Add to my dictionary, and Add to the facility dictionary for admin roles. Arrow keys move and Escape closes. What it offers comes from `services/spellcheck/spellMenuModel.ts`.
+- **`SpellCheckMenu.tsx`:** the right-click menu (a portal to `document.body`): suggestions, Ignore for this session, Add to my dictionary, and Add to the facility dictionary for people with `config:facilities:manage` (a role check until Batch 432; corrected in the Batch 496 README audit). Arrow keys move and Escape closes. What it offers comes from `services/spellcheck/spellMenuModel.ts`.
 - **`SpellingLanguageControl.tsx`:** shows the language and why it applies ("English (United Kingdom) (facility default)"), and lets the pathologist choose another for this case, or **Default** to clear the choice. It replaced the retired AI check's "British/American English" badge in the report editor's header, and also sits in the microscopic entry panel, the cytology screening header and the intraop capture form.
 
 ## Styling
@@ -40,5 +40,13 @@ On a UK case (Royal Manchester Centre, facility default en-GB):
 
 Frame gaps stayed at 16.8 ms at most while typing. The Case Hold note, the cytology notes and the intraop quick gross were also checked; the squiggles lined up with the text.
 
+## Batch 432
+
+`DictionaryWordList.tsx` (new): a dictionary's words with add and remove, for "My dictionary" and a facility's Spelling tab. The context now carries `canManageFacility` (the capability) instead of the role.
+
 ---
 *See [components/README.md](../README.md) for the rest of the components/ layer.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.

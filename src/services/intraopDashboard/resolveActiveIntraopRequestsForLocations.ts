@@ -13,7 +13,7 @@ import { resolveIntraopTatStatus } from './resolveIntraopTatStatus';
 import type { IntraoperativeEntry, MilestoneType } from '@/types/intraop/IntraoperativeEntry';
 
 /** Real, per the OR Suite Live Board spec's own State 1 ask: "Displays
- *  the current laboratory workflow step (e.g., Grossing, Microtomy,
+ *  the current laboratory workflow step (e.g., Grossing, Microtome,
  *  Pathologist Review)." Derived from this app's own real, existing
  *  milestones[] (types/intraop/IntraoperativeEntry.ts) — the step
  *  shown is the real step that logically follows the most recently
@@ -87,6 +87,8 @@ export interface ActiveIntraopRequest {
    *  it's still true and useful (the optimistic UI update between a
    *  tech confirming dismissal and the next real poll). */
   dismissed: boolean;
+  /** Batch 610 (#68): which FROZEN_SECTION target this row counts against. */
+  urgency: 'STAT' | 'ROUTINE';
   tat: ReturnType<typeof resolveIntraopTatStatus>;
 }
 
@@ -99,6 +101,11 @@ export function resolveActiveIntraopRequestsForLocations(
   targetMinutes?: number,
   warningMinutesBefore?: number,
   now: Date = new Date(),
+  /** Batch 610 (#68, #91): the clock for one session and urgency, from TAT
+   *  configuration (resolveFrozenSectionClock). When given it replaces the two
+   *  scalars above, so each facility and each STAT or routine specimen counts
+   *  against its own target. */
+  clockFor?: (entry: IntraoperativeEntry, urgency: 'STAT' | 'ROUTINE') => { targetMinutes: number; warningMinutes: number },
 ): ActiveIntraopRequest[] {
   const locationSet = new Set(locationIds);
   const requests: ActiveIntraopRequest[] = [];
@@ -134,7 +141,16 @@ export function resolveActiveIntraopRequestsForLocations(
         frozenSectionDiagnosis: specimen.frozenSectionDiagnosis,
         currentWorkflowStep: resolveCurrentWorkflowStep(specimen.milestones ?? []),
         dismissed: false,
-        tat: resolveIntraopTatStatus(specimen.arrivalTimestamp, targetMinutes, warningMinutesBefore, now),
+        urgency: specimen.urgency ?? 'STAT',
+        tat: (() => {
+          const clock = clockFor?.(entry, specimen.urgency ?? 'STAT');
+          return resolveIntraopTatStatus(
+            specimen.arrivalTimestamp,
+            clock?.targetMinutes ?? targetMinutes,
+            clock?.warningMinutes ?? warningMinutesBefore,
+            now,
+          );
+        })(),
       });
     }
   }

@@ -69,7 +69,14 @@ if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet(SEED_VERSION_KEY, SEED_VERSION);
 }
 
-const load    = (): FacilityRegistryOverride[] => storageGet<FacilityRegistryOverride[]>(STORAGE_KEY, SEED);
+// Batch 414: facility overrides saved on the old Cytology Registry screen
+// ('facilityCytologyRegistryOverrides', never read by sign-out) are kept
+// for any facility that has none here.
+const load    = (): FacilityRegistryOverride[] => {
+  const current = storageGet<FacilityRegistryOverride[]>(STORAGE_KEY, SEED);
+  const legacy = storageGet<FacilityRegistryOverride[]>('facilityCytologyRegistryOverrides', []);
+  return [...current, ...legacy.filter(l => !current.some(c => c.facilityId === l.facilityId))];
+};
 const persist = (data: FacilityRegistryOverride[]) => storageSet(STORAGE_KEY, data);
 
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });

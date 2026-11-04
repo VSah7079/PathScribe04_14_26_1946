@@ -13,27 +13,31 @@
 // configured for (services/scanStations/ — cassetteSlidePrinterProfileId
 // points at the real PrinterProfile that carries the real bridgeType).
 //
-// Real, honest routing: only 'qz_tray' (qzTrayBridge.ts) and
-// 'direct_interface_engine' (dispatchNetworkPrintJob.ts, cassette
-// labels only — see printSlideLabel's own note) have real, working
-// dispatch implementations today. The other bridge types
-// (zebra_browser_print, bartender_rest, pathscribe_agent,
-// os_print_dialog) are real, valid PrinterProfile configurations — see
-// that type's own doc comment — but this module refuses cleanly with
-// a real, specific "not yet implemented" message rather than silently
-// doing nothing or pretending to print through a path this app hasn't
-// actually built.
+// Routing: 'qz_tray' and 'pathscribe_agent' go through dispatchZplLabel.ts,
+// which refuses every other bridge type with a "not yet implemented"
+// message (zebra_browser_print, bartender_rest, os_print_dialog).
+// 'direct_interface_engine' goes to networkPrintJobs, whose sender
+// (dispatchNetworkPrintJob.ts) is still a stub: network label printing on
+// site is the site agent's (docs/architecture/SITE_AGENT_API.md,
+// print.label). *(Corrected in Batch 546: this said pathscribe_agent was
+// refused here; it has been sent through dispatchZplLabel.ts since that file
+// gained it.)*
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { validateGs1Fields, buildGs1DataMatrix } from './gs1DataMatrix';
 import type { Gs1LabelFields } from './gs1DataMatrix';
-import { buildCassetteZplTemplate, buildSlideZplTemplate } from './zplTemplates';
+import { buildCassetteZplTemplate, buildSlideZplTemplate, zplEscapeGs1 } from './zplTemplates';
+import { applySavedLayout } from '@/services/labelDesigner/savedLayoutRegistry';
 import { dispatchZplLabel } from './dispatchZplLabel';
 import { buildNetworkPrintPayload } from './dispatchNetworkPrintJob';
 import { networkPrintJobs } from '@/services/networkPrint/networkPrintJobsInstance';
 import i18n from '@/i18n/config';
+import { slideLevelText } from '@/utils/specimenLabeling';
+import type { LabelDesignation } from '@/services/labeling/labelStyle';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
-import type { CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
+import type { CassetteLabelLayoutConfig, SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
+import type { BlockType } from '@/types/case/blockPieces';
+import { BLOCK_TYPE_PROFILES } from '@/utils/blockPieceRules';
 
 export interface PrintCassetteSlideLabelResult {
   ok: true;
@@ -69,6 +73,9 @@ export interface PrintCassetteLabelInput {
    *  own doc comment for the real, deliberate underscore-to-hyphen
    *  substitution this app makes vs. the spec's own literal example. */
   cellBlockNumber?: number;
+  /** Batch 737 (spec §11.1, §11.7): the block's type; a megablock's label goes to the megablock cassette template
+   *  (BLOCK_TYPE_PROFILES) through the interface engine. */
+  blockType?: BlockType;
   /** Real, per direct follow-up flagging a real, confirmed gap: this
    *  field existed on HistologyBlock and was editable, but never
    *  actually reached the printed label — see buildCassetteZplTemplate's
@@ -139,6 +146,7 @@ export async function printCassetteLabel(
       caseId: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
       blockId: cassetteId, patientName: input.patientName, gtin, printer,
       copies: input.copies ?? 1,
+      cassetteTemplate: BLOCK_TYPE_PROFILES[input.blockType ?? 'standard'].cassetteTemplate,
     });
     // Real, deliberate cast — same tsconfig-driven strictNullChecks
     // narrowing limitation as the qz_tray branch above; see that
@@ -150,12 +158,17 @@ export async function printCassetteLabel(
     return { ok: true };
   }
 
-  const zpl = buildCassetteZplTemplate({
+  const builtInZpl = buildCassetteZplTemplate({
     gs1, accessionNumber: input.fullAccession, specimenDesignator: input.specimenLabel,
     blockId: blockLabel, patientName: input.patientName, tissueDescription: input.tissueDescription,
     layout: cassetteLabelLayout, dpi: printer.dpi,
   });
-  return dispatchZplLabel(printer, zpl, input.copies ?? 1);
+  // Batch 606 (PS-26): a block layout saved in the label designer replaces the built-in one.
+  const zpl = applySavedLayout('block', {
+    accessionNumber: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
+    blockId: blockLabel, patientName: input.patientName, barcode: zplEscapeGs1(gs1),
+  }, printer.dpi, builtInZpl);
+  return dispatchZplLabel(printer, zpl, input.copies ?? 1, undefined, { document: 'cassette-label', documentId: cassetteId, caseId: input.fullAccession });
 }
 
 export interface PrintSlideLabelInput {
@@ -166,11 +179,16 @@ export interface PrintSlideLabelInput {
   stainName: string;
   slideId: string;
   copies?: number;
+  /** Batch 715: Letters prints the level as "La", "Lb" instead of "L1", "L2" (the
+   *  case's slide setting). Text only: the barcode and slide id keep the L1 code. */
+  slideDesignation?: LabelDesignation;
   /** Same real reasoning as PrintCassetteLabelInput's own field above
    *  — a slide cut from a real cell block needs the same real,
    *  distinguishing suffix, per the spec's own "Cell block labels
    *  AND cassettes use the same GS1 DataMatrix formats." */
   cellBlockNumber?: number;
+  /** Batch 732 (spec §11.1): a large-format slide's label (template ZPL-SLIDE-LF-V1 through the interface engine; "LF" after the level on a direct ZPL label). */
+  slideSize?: 'standard' | 'large_format';
 }
 
 /** Real, top-level entry point for a printed (not engraved) slide
@@ -179,6 +197,7 @@ export async function printSlideLabel(
   input: PrintSlideLabelInput,
   printer: PrinterProfile,
   gtin: string,
+  slideLabelLayout?: SlideLabelLayoutConfig,
 ): Promise<PrintCassetteSlideLabelResult | PrintCassetteSlideLabelError> {
   if (!gtin.trim()) {
     return { ok: false, message: i18n.t('networkPrint.label.noGtinSlide') };
@@ -193,6 +212,7 @@ export async function printSlideLabel(
     ? buildCellBlockCassetteId(input.blockLabel, input.cellBlockNumber)
     : input.blockLabel;
 
+  const levelText = slideLevelText(input.level, input.slideDesignation) + (input.slideSize === 'large_format' && printer.bridgeType !== 'direct_interface_engine' ? ' LF' : '');
   const gs1Fields: Gs1LabelFields = { gtin, accessionNumber: input.fullAccession, blockId: slideId };
   const validationErrors = validateGs1Fields(gs1Fields);
   if (validationErrors.length > 0) {
@@ -208,16 +228,31 @@ export async function printSlideLabel(
     const built = buildNetworkPrintPayload({
       caseId: input.fullAccession, fullAccession: input.fullAccession, specimenDesignator: input.specimenLabel,
       blockId: slideId, patientName: '', gtin, printer,
-      copies: input.copies ?? 1, slide: { level: input.level, stainName: input.stainName },
+      copies: input.copies ?? 1, slide: { level: levelText, stainName: input.stainName, ...(input.slideSize ? { slideSize: input.slideSize } : {}) },
     });
     if (built.ok === false) return { ok: false, message: built.errors.join('; ') };
     await networkPrintJobs.send(built.payload);
     return { ok: true };
   }
 
-  const zpl = buildSlideZplTemplate({
+  // Batch 606 (PS-15 / PS-165): the saved slide layout from Print settings
+  // drives the slide ZPL when the caller did not pass one.
+  let layoutToUse = slideLabelLayout;
+  if (!layoutToUse) {
+    try {
+      const { printSettingsService } = await import('@/services/printSettings/printSettingsServiceInstance');
+      const settings = await printSettingsService.get();
+      if (settings.ok) layoutToUse = settings.data.slideLabelLayout;
+    } catch { /* built-in layout */ }
+  }
+
+  const builtInSlideZpl = buildSlideZplTemplate({
     gs1, fullAccession: input.fullAccession, specimenLabel: input.specimenLabel,
-    blockLabel, level: input.level, stainName: input.stainName,
-  });
-  return dispatchZplLabel(printer, zpl, input.copies ?? 1);
+    blockLabel, level: levelText, stainName: input.stainName,
+  }, layoutToUse, printer.dpi);
+  const zpl = applySavedLayout('slide', {
+    fullAccession: input.fullAccession, specimenLabel: input.specimenLabel, blockLabel,
+    level: levelText, stainName: input.stainName, barcode: zplEscapeGs1(gs1),
+  }, printer.dpi, builtInSlideZpl);
+  return dispatchZplLabel(printer, zpl, input.copies ?? 1, undefined, { document: 'slide-label', documentId: slideId, caseId: input.fullAccession });
 }

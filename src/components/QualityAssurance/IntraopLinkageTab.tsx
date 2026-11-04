@@ -20,6 +20,7 @@
 // and the `.ps-mt-20`/`.ps-mb-8`/`.ps-defic-review-banner-label`
 // utility classes verbatim — no new CSS needed for this batch.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
@@ -34,12 +35,18 @@ import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { caseMatchesScope, exportQaReportRows, scopeLabel, QaScope, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { auditService } from '@/services';
+import { facilityMonthlyTrend, averageHours } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 const hoursSince = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
 
 export const IntraopLinkageTab: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [entries, setEntries] = useState<IntraoperativeEntry[]>([]);
   const [mergeLogs, setMergeLogs] = useState<AuditLog[]>([]);
@@ -101,26 +108,11 @@ export const IntraopLinkageTab: React.FC = () => {
   // matters for this tab: not "how many merged" but "how long is data
   // sitting unlinked before it gets there." Mirrors the same pattern as
   // the Reconciliation tab's concordance trend.
-  const tatTrend = useMemo(() => {
-    const months: { month: string; avgHours: number | null; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const inMonth = scopedMerged.filter(e => {
-        if (!e.mergedAt) return false;
-        const ts = new Date(e.mergedAt).getTime();
-        return ts >= monthStart && ts < monthEnd;
-      });
-      const avgHours = inMonth.length > 0
-        ? +(inMonth.reduce((s, e) => s + (new Date(e.mergedAt!).getTime() - new Date(e.createdAt).getTime()) / 3600000, 0) / inMonth.length).toFixed(1)
-        : null;
-      months.push({ month: monthKey, avgHours, total: inMonth.length });
-    }
-    return months;
-  }, [scopedMerged]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const tatTrend = useMemo(() => facilityMonthlyTrend(scopedMerged, e => e.mergedAt, inMonth => ({
+    avgHours: averageHours(inMonth, e => e.createdAt, e => e.mergedAt!), total: inMonth.length,
+  }), systemConfig.facilityTimezone), [scopedMerged, systemConfig.facilityTimezone]);
 
   const handleExport = () => {
     // CSV export headers and content stay in English — persisted/
@@ -143,10 +135,10 @@ export const IntraopLinkageTab: React.FC = () => {
       'Performed By': e.performedBy.userName,
       'OR Number': e.orNumber,
     }));
-    void exportQaReportRows('qa:intraop-linkage:export', [...mergedRows, ...pendingRows], `intraoperative-linkage-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:intraop-linkage:export', [...mergedRows, ...pendingRows], `intraoperative-linkage-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('intraopLinkageTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('intraopLinkageTab.loading')} />;
 
   return (
     <div>
@@ -159,9 +151,9 @@ export const IntraopLinkageTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={tatTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="h" />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={32} unit="h" />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -202,7 +194,7 @@ export const IntraopLinkageTab: React.FC = () => {
             <tbody>
               {scopedPending.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('intraopLinkageTab.noPendingMessage')}</td></tr>}
               {scopedPending.map(e => (
-                <tr key={e.id} className="ps-conf-tr-clickable" onClick={() => navigate('/intraop-queue')}>
+                <tr key={e.id} className="ps-conf-tr-clickable" {...pressable(() => navigate('/intraop-queue'), { role: null })}>
                   <td className="ps-conf-td">{e.id}</td>
                   <td className="ps-conf-td">{e.performedBy.userName}</td>
                   <td className="ps-conf-td">{e.orNumber}</td>
@@ -225,7 +217,7 @@ export const IntraopLinkageTab: React.FC = () => {
               {scopedMerged.map(e => {
                 const log = e.mergedIntoCaseId ? logForCase(e.mergedIntoCaseId) : undefined;
                 return (
-                  <tr key={e.id} className="ps-conf-tr-clickable" onClick={() => e.mergedIntoCaseId && navigate(`/case/${e.mergedIntoCaseId}/synoptic`)}>
+                  <tr key={e.id} className="ps-conf-tr-clickable" {...pressable(() => e.mergedIntoCaseId && void openCasePage(e.mergedIntoCaseId, 'synoptic'), { role: null })}>
                     <td className="ps-conf-td">{e.id}</td>
                     <td className="ps-conf-td">{e.mergedIntoCaseId}</td>
                     <td className="ps-conf-td">{e.mergedAt ? new Date(e.mergedAt).toLocaleString() : ''}</td>

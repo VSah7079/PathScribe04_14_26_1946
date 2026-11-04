@@ -4,11 +4,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('../cases/CaseRouter', () => ({
   caseRouter: { getCase: vi.fn() },
 }));
+vi.mock('./resolveOruReportPdf', async (orig) => ({
+  ...(await orig<typeof import('./resolveOruReportPdf')>()),
+  resolveOruReportPdf: vi.fn().mockResolvedValue({ ok: true, pdfBase64: 'PDF', source: 'release' }),
+}));
 vi.mock('./buildOruR01Payload', () => ({
   buildOruR01Payload: vi.fn(),
 }));
 vi.mock('./mockOutboundResultQueueService', () => ({
-  mockOutboundResultQueueService: { enqueue: vi.fn() },
+  mockOutboundResultQueueService: { enqueue: vi.fn(), markFailed: vi.fn() },
 }));
 vi.mock('../interfaceDispatch/dispatchInterfaceMessage', () => ({
   dispatchInterfaceMessage: vi.fn().mockResolvedValue({ ok: true }),
@@ -18,6 +22,7 @@ import { caseRouter } from '../cases/CaseRouter';
 import { buildOruR01Payload } from './buildOruR01Payload';
 import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
+import { resolveOruReportPdf } from './resolveOruReportPdf';
 import { dispatchPreliminaryCaseInstances } from './dispatchPreliminaryCaseInstances';
 
 function makeCase(overrides: any = {}) {
@@ -49,7 +54,7 @@ describe('dispatchPreliminaryCaseInstances', () => {
     vi.mocked(caseRouter.getCase).mockResolvedValue(makeCase() as any);
     const count = await dispatchPreliminaryCaseInstances('CASE-1');
     expect(count).toBe(1);
-    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'PRELIMINARY');
+    expect(buildOruR01Payload).toHaveBeenCalledWith('CASE-1', 'INST-1', 'PRELIMINARY', expect.any(Function), undefined, undefined);
     expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalledWith(expect.objectContaining({ resultState: 'PRELIMINARY' }));
     expect(dispatchInterfaceMessage).toHaveBeenCalledTimes(1);
   });
@@ -78,5 +83,27 @@ describe('dispatchPreliminaryCaseInstances', () => {
     const count = await dispatchPreliminaryCaseInstances('CASE-1');
     expect(count).toBe(0);
     expect(dispatchInterfaceMessage).not.toHaveBeenCalled();
+  });
+
+  describe('Batch 392: with its PDF, or held for retry', () => {
+    it('with no PDF it is queued, marked failed with the reason, and not sent', async () => {
+      vi.mocked(resolveOruReportPdf).mockResolvedValueOnce({ ok: false, error: 'No report PDF has been made for this result.' });
+      vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', patient: { organisationId: 'ORG-1' }, synopticReports: [{ instanceId: 'INST-1' }] } as any);
+      vi.mocked(buildOruR01Payload).mockResolvedValue({ messageId: 'm' } as any);
+      vi.mocked(mockOutboundResultQueueService.enqueue).mockResolvedValue({ ok: true, data: { id: 'q-1' } } as any);
+      await dispatchPreliminaryCaseInstances('CASE-1');
+      expect(mockOutboundResultQueueService.enqueue).toHaveBeenCalled();
+      expect(dispatchInterfaceMessage).not.toHaveBeenCalled();
+      expect(mockOutboundResultQueueService.markFailed).toHaveBeenCalledWith('q-1', expect.objectContaining({ errorCode: 'DISPATCH_REJECTED', maxRetriesExceeded: false, errorMessage: expect.stringContaining('Held: the report PDF is not available.') }));
+    });
+    it('the PDF the release made is handed on', async () => {
+      const gen = vi.fn();
+      vi.mocked(resolveOruReportPdf).mockClear();
+      vi.mocked(caseRouter.getCase).mockResolvedValue({ id: 'CASE-1', patient: { organisationId: 'ORG-1' }, synopticReports: [{ instanceId: 'INST-1' }] } as any);
+      vi.mocked(buildOruR01Payload).mockResolvedValue({ messageId: 'm' } as any);
+      vi.mocked(mockOutboundResultQueueService.enqueue).mockResolvedValue({ ok: true, data: { id: 'q-1' } } as any);
+      await dispatchPreliminaryCaseInstances('CASE-1', gen);
+      expect(vi.mocked(resolveOruReportPdf).mock.calls[0][0]).toMatchObject({ generatePdf: gen });
+    });
   });
 });

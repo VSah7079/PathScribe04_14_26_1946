@@ -11,8 +11,15 @@
 // pdf-lib is not yet installed anywhere in this project; this file
 // assumes it will be added (see this folder's own README).
 //
-// Real, deliberate scope: this only ever extends
-// generateCytologyReportPdf.ts's own real, in-repo, client-side
+// Batch 539: not used by any report. It extended the browser's cytology
+// renderer, which is removed (PS-539 D2: the report renderer makes every PDF
+// that leaves PathScribe).
+// Batch 609 (PS-44): used again. caseReportImages.ts calls it on the PDF bytes
+// the renderer returns, in the surgical report and in the cytology report, so
+// the images attached on the Attach images screen print after the report's own
+// pages (one image per page, with its caption). The renderer is not asked to
+// draw them, so no server change is needed.
+// Before Batch 539: it only extended the browser cytology
 // pipeline. The main synoptic report pipeline generates its PDF via
 // an external, source-inaccessible Firebase Cloud Function
 // (SynopticReportPage.tsx's generateReportPdfSnapshot) — this
@@ -34,13 +41,17 @@
 // without a real network call.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import type { PDFDocument } from 'pdf-lib';
+// Batch 505 (PS-475): pdf-lib (about 170 KB gzipped) loads when a PDF is
+// actually built, not with the first page.
 import type { ImageAssociation } from '@/types/imageAssociation/ImageAssociation';
 import { resolveImageAssociationEmbedKind } from './resolveImageAssociationEmbedKind';
 import { resolveAndLogImageUrl } from './logImageFallbackTrigger';
 import { resolveImageUnavailablePlaceholder } from './resolveImageUnavailablePlaceholder';
 import type { UrlHealthCheckResult } from './resolveImageUrlWithFallback';
 import { checkEmbeddedImageResolution, MIN_REQUIRED_DPI } from '@/services/documentRendering/checkEmbeddedImageResolution';
+import { fitImageToReportPage, REPORT_IMAGE_PAGE } from './fitImageToReportPage';
+import { detectImageFormat } from './readImageSize';
 
 export type FetchAssetBytes = (url: string) => Promise<{ result: UrlHealthCheckResult; bytes?: Uint8Array }>;
 
@@ -74,8 +85,21 @@ async function resolveAssetBytes(
  *  here and could not be resolved. */
 async function addPlaceholderPage(doc: PDFDocument, message: string): Promise<void> {
   const page = doc.addPage([612, 792]);
+  const { StandardFonts, rgb } = await import('pdf-lib');
   const font = await doc.embedFont(StandardFonts.Helvetica);
   page.drawText(message, { x: 50, y: 700, size: 12, font, color: rgb(0.6, 0.1, 0.1) });
+}
+
+/** Batch 609: a caption under the image, in the built-in Helvetica. A character it can't draw (anything
+ *  outside Latin-1) prints as a question mark rather than stopping the report. */
+async function drawCaption(doc: PDFDocument, page: ReturnType<PDFDocument['addPage']>, caption: string, y: number): Promise<void> {
+  const { StandardFonts, rgb } = await import('pdf-lib');
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const safe = Array.from(caption.replace(/\s+/g, ' ').trim()).map(ch => (ch.codePointAt(0)! <= 0xff ? ch : '?')).join('');
+  let text = safe;
+  const maxWidth = REPORT_IMAGE_PAGE.widthPt - 2 * REPORT_IMAGE_PAGE.marginPt;
+  while (text.length > 4 && font.widthOfTextAtSize(text, 10) > maxWidth) text = `${text.slice(0, -4)}...`;
+  page.drawText(text, { x: REPORT_IMAGE_PAGE.marginPt, y, size: 10, font, color: rgb(0.2, 0.2, 0.2) });
 }
 
 export interface EmbedImageAssociationsResult {
@@ -99,7 +123,9 @@ export async function embedImageAssociationsIntoPdf(
   imageAssociations: ImageAssociation[],
   fetchAssetBytes: FetchAssetBytes = defaultFetchAssetBytes,
 ): Promise<EmbedImageAssociationsResult> {
-  const doc = await PDFDocument.load(baseReportBytes);
+  const { PDFDocument } = await import('pdf-lib');
+  // Batch 609: the report's own metadata (creator, dates, the cytology template mark) is kept as the renderer wrote it.
+  const doc = await PDFDocument.load(baseReportBytes, { updateMetadata: false });
   const warnings: string[] = [];
 
   for (const assoc of imageAssociations) {
@@ -110,7 +136,7 @@ export async function embedImageAssociationsIntoPdf(
       continue;
     }
 
-    const kind = resolveImageAssociationEmbedKind(assoc.imageUrl);
+    const kind = resolveImageAssociationEmbedKind(assoc.imageUrl, assoc.mimeType);
     if (kind === 'pdf_page') {
       // Real, per spec §3.2 — stream-level merge, never rasterized.
       const attachmentDoc = await PDFDocument.load(resolved);
@@ -120,18 +146,26 @@ export async function embedImageAssociationsIntoPdf(
       // Real, per spec §3.1 — pdf-lib embeds the original image bytes
       // directly (PNG losslessly; JPEG preserves the original encoded
       // bytes exactly) — never a destructive re-compression pass.
-      const isPng = assoc.imageUrl.toLowerCase().split('?')[0].endsWith('.png');
+      // Batch 609: the format is read from the bytes (a JPEG renamed .png is
+      // still embedded as a JPEG); the URL's extension is the fallback.
+      const detected = detectImageFormat(resolved);
+      const isPng = detected ? detected === 'png' : assoc.imageUrl.toLowerCase().split('?')[0].endsWith('.png');
       const embedded = isPng ? await doc.embedPng(resolved) : await doc.embedJpg(resolved);
-      const page = doc.addPage([612, 792]);
-      const scale = Math.min(512 / embedded.width, 692 / embedded.height, 1);
-      const printedWidthPt = embedded.width * scale;
-      page.drawImage(embedded, { x: 50, y: 50, width: printedWidthPt, height: embedded.height * scale });
-
+      const page = doc.addPage([REPORT_IMAGE_PAGE.widthPt, REPORT_IMAGE_PAGE.heightPt]);
       // Real, per PS-276 §1.1.3 — checked against the WIDTH dimension:
-      // `scale` is applied uniformly to both dimensions, so effective
+      // the scale is applied uniformly to both dimensions, so effective
       // DPI is identical along both; checking one is real, not a
       // shortcut that skips the other.
-      const { dpi, meetsMinimum } = checkEmbeddedImageResolution(embedded.width, printedWidthPt);
+      const fitted = fitImageToReportPage(embedded.width, embedded.height);
+      const captionRoom = assoc.caption ? 24 : 0;
+      const fitHeight = Math.min(fitted.heightPt, REPORT_IMAGE_PAGE.heightPt - 2 * REPORT_IMAGE_PAGE.marginPt - captionRoom);
+      const shrink = fitHeight / fitted.heightPt;
+      const drawWidth = fitted.widthPt * shrink;
+      const y = REPORT_IMAGE_PAGE.heightPt - REPORT_IMAGE_PAGE.marginPt - fitHeight;
+      page.drawImage(embedded, { x: REPORT_IMAGE_PAGE.marginPt, y, width: drawWidth, height: fitHeight });
+      if (assoc.caption) await drawCaption(doc, page, assoc.caption, y - 16);
+
+      const { dpi, meetsMinimum } = checkEmbeddedImageResolution(embedded.width, drawWidth);
       if (!meetsMinimum) {
         warnings.push(
           `Image association ${assoc.id} embedded at ~${Math.round(dpi)} DPI, below the ${MIN_REQUIRED_DPI} DPI minimum for diagnostic-quality print (PS-276 §1.1.3).`,

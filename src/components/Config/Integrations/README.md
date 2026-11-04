@@ -7,7 +7,15 @@ here as their own major tab. Per direct follow-up, reversed: all of
 those sections now live exclusively under `Config/System/index.tsx`,
 as a real, named sixth group ("Integrations") in that file's own
 existing group-tag pattern — not restored to the old, ungrouped flat
-list they lived in pre-PS-85.
+list they lived in pre-PS-85. Three of the 11 (`lis`, `identifiers`,
+`facility_setup`) were later retired outright rather than moved (see
+below); the System Integrations group (`Config/System/systemSections.ts`)
+now lists ten items: Assist LIS Ingestion, Case Mask Configuration, Case
+Routing, Facility Configuration, Order Types & Inbound Rules (crosswalk),
+Outbound Interface Message Preview, Physicians, Routing Rules, Specimen
+Deficiencies and Terminology Services.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): "all of those sections" was too broad; current group membership added.*
 
 **Real, honest history.** This file previously (twice) claimed the
 reversal above was complete when it wasn't — `index.tsx` was still
@@ -44,6 +52,10 @@ the full account of where things went and why, not just a 404.
 
 - `RvuCodeMapSection.tsx` and `BillingDictionarySection.tsx` were never here — always stayed in `Config/System/` directly, billing/coding rules rather than external-system connectivity.
 - **HL7/FHIR Segment Mapping deliberately has no nav entry anywhere** — confirmed directly: PS-81 built the real provider-resolution engine, never an admin UI for it. Not an oversight if it's missing when this file is next read.
+
+## Batch 428: Configuration permissions
+
+`CrosswalkSection.tsx` and its `.DELETED.txt` note were removed at last (nothing imported them; the live screen is `System/CrosswalkSection.tsx`). Editing the crosswalk now needs `config:crosswalk:manage`.
 
 ---
 *See [components/Config/README.md](../README.md) if one exists for how this folder fits the whole Config/ layer.*

@@ -1,0 +1,17 @@
+{
+  "source": "Demonstration drop folder (stands in for a network share such as \\\\fileserver\\requisitions\\inbox)",
+  "files": [
+    {
+      "fileName": "REQ-BATCH-0001.pdf",
+      "mimeType": "application/pdf"
+    },
+    {
+      "fileName": "REQ-BATCH-0002.pdf",
+      "mimeType": "application/pdf"
+    },
+    {
+      "fileName": "REQ-SCAN-0003.tif",
+      "mimeType": "image/tiff"
+    }
+  ]
+}

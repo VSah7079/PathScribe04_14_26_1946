@@ -36,6 +36,12 @@ describe('voiceProfiles — real, per direct fix on the RFP-APLIS-2026-GLOBAL Mu
     expect(getVoiceProfileRecognitionLang('KO-KR')).toBe('ko-KR');
   });
 
+  it('Batch 638: Belgian Dutch is its own option that uses the Dutch voice commands, and Dutch (Netherlands) is still there to switch back to', () => {
+    expect(getVoiceProfileRecognitionLang('NL-BE')).toBe('nl-BE');
+    expect(getVoiceProfileLanguage('NL-BE')).toBe('nl');
+    expect(VOICE_PROFILES.some(p => p.id === 'NL-NL')).toBe(true);
+  });
+
   it('real, getVoiceProfileLanguage correctly identifies the four new, genuine language profiles', () => {
     expect(getVoiceProfileLanguage('FR-FR')).toBe('fr');
     expect(getVoiceProfileLanguage('DE-DE')).toBe('de');

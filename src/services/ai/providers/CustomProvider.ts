@@ -17,7 +17,6 @@ import type {
   AIConnectionTest,
 } from '../IAIProvider';
 import { streamOpenAiStyleResponse, parseOpenAiStyleError } from './openAiStyleStreaming';
-import { isDevMode } from '@/components/Config/AI/aiProviderConfig';
 
 const DEFAULT_MAX_TOKENS = 1024;
 
@@ -31,24 +30,15 @@ export class CustomProvider implements IAIProvider {
   readonly modelId:     string;
   readonly displayName: string;
 
-  private customEndpoint?: string;
-  private devApiKey?:      string;
-
-  constructor(modelId: string, customEndpoint?: string, devApiKey?: string) {
-    this.modelId        = modelId;
-    this.displayName    = `Custom endpoint · ${modelId}`;
-    this.customEndpoint = customEndpoint;
-    this.devApiKey      = devApiKey;
+  // Batch 444: always through the proxy, which holds the endpoint and its
+  // key (vite.config.ts in development, the API server in production).
+  constructor(modelId: string, _customEndpoint?: string) {
+    this.modelId     = modelId;
+    this.displayName = `Custom endpoint · ${modelId}`;
   }
 
   private buildRequest(): { url: string; headers: Record<string, string> } {
-    const devMode = isDevMode() && !!this.devApiKey && !!this.customEndpoint;
-    const url = devMode
-      ? `${this.customEndpoint}/chat/completions`
-      : `/api/ai/custom/chat/completions`;
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (devMode) headers['Authorization'] = `Bearer ${this.devApiKey}`;
-    return { url, headers };
+    return { url: '/api/ai/custom/chat/completions', headers: { 'Content-Type': 'application/json' } };
   }
 
   async generate(request: AIGenerationRequest): Promise<AIGenerationResult> {

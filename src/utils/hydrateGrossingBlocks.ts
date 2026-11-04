@@ -23,6 +23,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '@/services/cases/CaseRouter';
+import { updateCaseWithRetry } from '@/services/cases/caseWrite';
 import { resolveBlockCassetteColor } from './resolveBlockCassetteColor';
 import { resolveProtocolIdForSpecimen } from './resolveProtocolIdForSpecimen';
 import type { HistologyBlock } from '@/types/case/Specimen';
@@ -57,12 +58,27 @@ export async function hydrateGrossingBlocks(caseId: string, specimenId: string):
   const specimenProtocolId = await resolveProtocolIdForSpecimen(specimen.specimenDictionaryEntryId);
   const cassetteColorId = await resolveBlockCassetteColor({ protocolId: specimenProtocolId, priority: caseData.order?.priority });
 
+  // PS-71 (Batch 458): the colour is applied to the newest copy of the case
+  // and saved with its version (updateCaseWithRetry); on a conflict it is
+  // re-applied to the newer case, so another person's change to other
+  // blocks or specimens is kept. Only blocks still pending and uncoloured on
+  // that copy are hydrated, and only those are returned. A save that never
+  // lands hydrates nothing and returns [] (never claims a hydration).
   const pendingBlockIds = new Set(pendingBlocks.map(b => b.id));
-  const updatedSpecimens = caseData.specimens?.map(s => s.id !== specimen.id ? s : {
-    ...s,
-    blocks: (s.blocks ?? []).map((b): HistologyBlock => pendingBlockIds.has(b.id) ? { ...b, cassetteColorId } : b),
-  });
-  await caseRouter.updateCase(caseId, { specimens: updatedSpecimens });
+  let hydrated: HistologyBlock[] = [];
+  const write = await updateCaseWithRetry(caseId, current => {
+    const sp = current.specimens?.find(s => s.id === specimenId);
+    hydrated = (sp?.blocks ?? []).filter(b => pendingBlockIds.has(b.id) && b.status === 'Pending' && !b.cassetteColorId);
+    if (hydrated.length === 0) return null;
+    const ids = new Set(hydrated.map(b => b.id));
+    return {
+      specimens: current.specimens?.map(s => s.id !== specimenId ? s : {
+        ...s,
+        blocks: (s.blocks ?? []).map((b): HistologyBlock => ids.has(b.id) ? { ...b, cassetteColorId } : b),
+      }),
+    };
+  }, caseRouter);
+  if (!write.ok) return [];
 
-  return pendingBlocks.map(b => ({ blockId: b.id, blockLabel: b.label, cassetteColorId }));
+  return hydrated.map(b => ({ blockId: b.id, blockLabel: b.label, cassetteColorId }));
 }

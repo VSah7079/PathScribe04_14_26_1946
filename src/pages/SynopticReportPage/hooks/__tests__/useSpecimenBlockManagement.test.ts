@@ -25,6 +25,11 @@
 
 import '@/i18n/config';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import React from 'react';
 import { renderHook as rtlRenderHook, act, waitFor } from '@testing-library/react';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -48,6 +53,8 @@ import type { Case } from '@/types/case/Case';
 // exercised for real here.
 vi.mock('@/utils/labels/qzTrayBridge', () => ({
   printZplViaQzTray: vi.fn(),
+  isQzTrayConnected: vi.fn(() => true),
+  connectToQzTray: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 import { printZplViaQzTray } from '@/utils/labels/qzTrayBridge';
 import { printSettingsService } from '@/services/index';
@@ -66,7 +73,7 @@ const renderHook: typeof rtlRenderHook = (callback, options) =>
   rtlRenderHook(callback, { ...options, wrapper: ({ children }) => React.createElement(AuthProvider, null, children) });
 
 vi.mock('@/services/cases/CaseRouter', () => ({
-  caseRouter: { updateCase: vi.fn() },
+  caseRouter: { updateCase: vi.fn(), getCase: vi.fn() },
 }));
 
 function makeTestCase(overrides: Partial<Case> = {}): Case {
@@ -171,7 +178,7 @@ describe('useSpecimenBlockManagement — handleAdvanceFocusedBlockStatus', () =>
     const untouchedBlock2 = (patch as any).specimens[0].blocks.find((b: any) => b.id === 'BLK-2');
     expect(patchedBlock1.status).toBe('Grossed');
     expect(untouchedBlock2.status).toBe('Grossed'); // BLK-2 was already Grossed and unrelated to this call
-    expect(markDirty).toHaveBeenCalledWith('Block status');
+    expect(markDirty).toHaveBeenCalledWith('blockStatus');
   });
 
   it('does nothing for a terminal status (Embedded) — not voice-advanceable, matching the real nextStatus map having no entry for it', async () => {
@@ -404,28 +411,108 @@ describe('useSpecimenBlockManagement — handleAddBlock', () => {
     expect(newBlock.stains[0].status).toBe('Pending Cut');
   });
 
-  it('deliberately FORCES the write through on a conflict rather than surfacing the modal — the LIS already has the physical order by this point, so there is no safe "discard" option', async () => {
+  // PS-71 (Batch 458): this used to re-save WITHOUT a version on a conflict,
+  // silently overwriting the other person's change. Now the new block is
+  // re-applied to the newest case and saved with that case's version.
+  it('on a conflict, re-applies the new block to the newest case with its version: the other person\'s change survives, no modal', async () => {
     const { caseRouter } = await import('@/services/cases/CaseRouter');
+    knownVersionRef.current = 1;
+    const theirs = makeTestCase({ version: 9 } as any);
+    (theirs.specimens as any)[1].blocks.push({ id: 'BLK-THEIRS', label: '2', status: 'Grossed', stains: [] });
+    vi.mocked(caseRouter.getCase).mockReset().mockResolvedValue(theirs);
     vi.mocked(caseRouter.updateCase)
-      .mockRejectedValueOnce(new ConcurrencyConflictError('TEST-CASE-BLOCKS', 1, 9)) // Phase 1 initial: conflict
-      .mockResolvedValueOnce(undefined) // Phase 1 retry: succeeds
-      .mockResolvedValueOnce(undefined); // Phase 2 (confirm/reject): succeeds
+      .mockRejectedValueOnce(new ConcurrencyConflictError('TEST-CASE-BLOCKS', 1, 9)) // Phase 1 on the screen's version: conflict
+      .mockResolvedValueOnce(undefined) // Phase 1 re-applied to version 9
+      .mockResolvedValueOnce(undefined); // Phase 2 (confirm/reject) on the screen's own version (see below)
     const setConcurrencyConflict = vi.fn();
     const showToast = vi.fn();
-    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ setConcurrencyConflict, showToast })));
+    const sendMaterialOrderToLis = vi.fn().mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ setConcurrencyConflict, showToast, sendMaterialOrderToLis })));
 
     await act(async () => { await result.current.handleAddBlock('SP-1'); });
 
-    // The conflict modal must NOT be shown for this specific write
     expect(setConcurrencyConflict).not.toHaveBeenCalled();
-    // Real, genuinely different count from before this session's
-    // optimistic-UI rewrite: Phase 1's own initial-conflict + retry,
-    // plus Phase 2's own separate write (confirm/reject) — a real,
-    // additional persisted write that didn't exist in the old,
-    // single-phase flow, not a regression in this count.
-    expect(caseRouter.updateCase).toHaveBeenCalledTimes(3);
-    // The pathologist must be told this happened, even though it succeeded
+    const calls = vi.mocked(caseRouter.updateCase).mock.calls;
+    // Never without a version. After a merged save the page keeps its own
+    // version (1), not the merged one: its copy of the rest of the case is
+    // older than the saved case, so its next save is checked again (Batch 458).
+    expect(calls.map(c => c[2])).toEqual([1, 9, 1]);
+    const retried = calls[1][1] as any;
+    expect(retried.specimens.find((sp: any) => sp.id === 'SP-2').blocks.map((b: any) => b.id)).toContain('BLK-THEIRS');
+    expect(retried.specimens.find((sp: any) => sp.id === 'SP-1').blocks).toHaveLength(3);
+    // The page keeps its own version after a merge (then +1 for its own phase-2 save on it).
+    expect(knownVersionRef.current).toBe(2);
+    expect(sendMaterialOrderToLis).toHaveBeenCalledTimes(1);
     expect(showToast).toHaveBeenCalledWith(expect.stringContaining('unsaved changes elsewhere'), 'warning');
+  });
+
+  it('when the block keeps conflicting it is not saved, the optimistic block is taken back out, and the LIS is never asked', async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    knownVersionRef.current = 1;
+    vi.mocked(caseRouter.getCase).mockReset().mockResolvedValue(makeTestCase({ version: 9 } as any));
+    vi.mocked(caseRouter.updateCase).mockReset().mockRejectedValue(new ConcurrencyConflictError('TEST-CASE-BLOCKS', 1, 99));
+    const setCaseData = vi.fn();
+    const showToast = vi.fn();
+    const sendMaterialOrderToLis = vi.fn().mockResolvedValue({ ok: true });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ setCaseData, showToast, sendMaterialOrderToLis })));
+
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+
+    expect(vi.mocked(caseRouter.updateCase).mock.calls.every(c => typeof c[2] === 'number')).toBe(true);
+    expect(sendMaterialOrderToLis).not.toHaveBeenCalled();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('Not saved'), 'warning');
+    const revert = setCaseData.mock.calls[setCaseData.mock.calls.length - 1][0];
+    expect(revert(makeTestCase()).specimens.find((sp: any) => sp.id === 'SP-1').blocks).toHaveLength(2);
+    expect(knownVersionRef.current).toBe(1);
+  });
+});
+
+// Batch 715: the report page's Add Block follows the letters-or-numbers setting
+// (was: always a number, from the count of blocks).
+describe('useSpecimenBlockManagement — handleAddBlock follows the label style (Batch 715)', () => {
+  beforeEach(async () => {
+    const { caseRouter } = await import('@/services/cases/CaseRouter');
+    vi.mocked(caseRouter.updateCase).mockReset().mockResolvedValue(undefined);
+  });
+
+  const withBlocks = (labels: string[], labelStyle?: Case['labelStyle']) => makeTestCase({
+    labelStyle,
+    specimens: [{ id: 'SP-1', label: labels.length ? 'A' : 'A', description: 'x', blocks: labels.map((l, i) => ({ id: `B${i}`, label: l, status: 'Grossed', stains: [] })) }] as unknown as Case['specimens'],
+  });
+
+  it('block letters: A, B -> the new block is C, with its cassette id', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['A', 'B'], { specimen: 'letters', block: 'letters', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    const block = setCaseData.mock.calls[0][0].specimens[0].blocks[2];
+    expect(block.label).toBe('C');
+    expect(block.displayId).toBe('TEST-CASE-BLOCKS-AC');
+    expect(block.stains[0].displayId).toBe('TEST-CASE-BLOCKS-AC-L1');
+  });
+
+  it('block numbers: 1, 2 -> 3 (today\'s labels)', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['1', '2'], { specimen: 'letters', block: 'numbers', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[2].label).toBe('3');
+  });
+
+  it('a first block on a specimen with none follows the style: letters give A', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks([], { specimen: 'numbers', block: 'letters', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[0].label).toBe('A');
+  });
+
+  it('after a block was removed the new label is never one already in use', async () => {
+    const setCaseData = vi.fn();
+    const caseData = withBlocks(['1', '3'], { specimen: 'letters', block: 'numbers', slide: 'numbers' });
+    const { result } = renderHook(() => useSpecimenBlockManagement(baseParams({ caseData, setCaseData })));
+    await act(async () => { await result.current.handleAddBlock('SP-1'); });
+    expect(setCaseData.mock.calls[0][0].specimens[0].blocks[2].label).toBe('4');
   });
 });
 
@@ -488,6 +575,9 @@ describe('useSpecimenBlockManagement — attemptPrintedLabel real, end-to-end QZ
     // printCassetteLabel/printSlideLabel refuse cleanly before ever
     // reaching bridge dispatch when gs1Gtin is empty (the real default).
     await printSettingsService.update({ gs1Gtin: '00850000000000' });
+    // Batch 738: the seeded profile now uses the PathScribe agent (simulated in the demo); this suite tests the QZ Tray path.
+    const { printerProfileService } = await import('@/services/index');
+    await printerProfileService.update('printer-zt411-example', { bridgeType: 'qz_tray' });
   });
 
   it('printCassetteForBlock reaches the real QZ Tray dispatch when the effective station is configured for printing', async () => {
@@ -1060,5 +1150,64 @@ describe('useSpecimenBlockManagement — integration test (real mock case data, 
     // Restore the mock case's original state so this test doesn't leave
     // shared mock data permanently mutated for other tests / manual runs.
     await mockCaseService.updateCase('S26-4402-COLON-RES', { specimens: before.specimens } as any);
+  });
+});
+
+// ── Batch 452: decants go through the case material store ──────────────────
+vi.mock('@/services/material/caseMaterialService', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/services/material/caseMaterialService')>()),
+  applyDecantChangeLive: vi.fn(),
+}));
+vi.mock('@/utils/resolveDecantCassetteColor', () => ({ resolveDecantCassetteColor: vi.fn().mockResolvedValue('green') }));
+import { applyDecantChangeLive } from '@/services/material/caseMaterialService';
+
+describe('useSpecimenBlockManagement — decants (Batch 452)', () => {
+  beforeEach(() => { vi.mocked(applyDecantChangeLive).mockReset(); });
+  const papCase = () => makeTestCase({
+    specimens: [{ id: 'SP-PAP', label: 'A', description: 'Pap', blocks: [], decants: [{ id: 'DC-1', label: 'D1', decantType: 'residual_fluid', stains: [], createdAt: 't' }] }] as never,
+  });
+  const ok = (specimens: unknown[], version: number) => ({ ok: true, specimens, version, change: 'added', event: {}, billing: { changed: [], removedMaterialIds: [] } });
+
+  it('adding a cell block split from a decant saves it through the atomic call, on the current version, and shows it at once', async () => {
+    knownVersionRef.current = 6;
+    vi.mocked(applyDecantChangeLive).mockImplementation(async (_id, change: any) => ok([{ id: 'SP-PAP', decants: [change.decant] }], 7) as never);
+    const params = baseParams({ caseData: papCase() });
+    const { result } = renderHook(() => useSpecimenBlockManagement(params));
+    await act(async () => { await result.current.handleAddDecant('SP-PAP', 'cell_block', 'DC-1'); });
+    const [caseId, change, version] = vi.mocked(applyDecantChangeLive).mock.calls[0] as any[];
+    expect(caseId).toBe('TEST-CASE-BLOCKS');
+    expect(version).toBe(6);
+    expect(change).toMatchObject({ kind: 'add', specimenId: 'SP-PAP', decant: { label: 'D2', decantType: 'cell_block', parentDecantId: 'DC-1', cassetteColorId: 'green' } });
+    // The optimistic tree reached the case before the save resolved.
+    const updater = vi.mocked(params.setCaseData).mock.calls[0][0] as (c: Case) => Case;
+    expect(updater(papCase()).specimens[0].decants!.map(d => d.label)).toEqual(['D1', 'D2']);
+    expect(knownVersionRef.current).toBe(7);
+    expect(params.showToast).toHaveBeenCalledWith(expect.stringContaining('D2'));
+  });
+
+  it('a failed save rolls the case back and says so; a refused delete says why', async () => {
+    knownVersionRef.current = 3;
+    vi.mocked(applyDecantChangeLive).mockResolvedValueOnce({ ok: false, error: 'saveFailed' } as never);
+    const params = baseParams({ caseData: papCase() });
+    const { result } = renderHook(() => useSpecimenBlockManagement(params));
+    await act(async () => { await result.current.handleAddDecant('SP-PAP', 'residual_fluid'); });
+    const calls = vi.mocked(params.setCaseData).mock.calls.map(c => (c[0] as (x: Case) => Case)(papCase()).specimens[0].decants!.length);
+    expect(calls).toEqual([2, 1]); // shown, then rolled back
+    expect(params.showToast).toHaveBeenLastCalledWith('The decant change could not be saved and was undone.', 'error');
+    expect(knownVersionRef.current).toBe(3);
+
+    vi.mocked(applyDecantChangeLive).mockResolvedValueOnce({ ok: false, error: 'notPermitted' } as never);
+    await act(async () => { await result.current.handleDeleteDecant('DC-1'); });
+    expect(params.showToast).toHaveBeenLastCalledWith('You don’t have permission to remove decants.', 'error');
+  });
+
+  it('a stale version opens the edit-conflict dialog instead of forcing the save through', async () => {
+    knownVersionRef.current = 3;
+    vi.mocked(applyDecantChangeLive).mockResolvedValueOnce({ ok: false, error: 'conflict', currentVersion: 5 } as never);
+    const params = baseParams({ caseData: papCase() });
+    const { result } = renderHook(() => useSpecimenBlockManagement(params));
+    await act(async () => { await result.current.handleUpdateDecant('SP-PAP', 'DC-1', { totalVolumeMl: 10 }); });
+    expect(params.setConcurrencyConflict).toHaveBeenCalledWith(expect.objectContaining({ actualVersion: 5 }));
+    expect(applyDecantChangeLive).toHaveBeenCalledTimes(1);
   });
 });

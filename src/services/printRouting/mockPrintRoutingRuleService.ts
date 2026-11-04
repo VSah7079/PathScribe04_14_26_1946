@@ -13,10 +13,13 @@
 // ('loc-fgh-theatre-2') — rather than inventing a parallel demo site.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { printDestinationProblem, routingRuleSite } from './printDestinationRules';
+import { isAgentPrintDestination } from '@/types/printRouting/PrintDestination';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IPrintRoutingRuleService } from './IPrintRoutingRuleService';
 import type { PrintRoutingRule } from '@/types/printRouting/PrintRoutingRule';
+import { CONFIG_NOT_PERMITTED, guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const KEY = 'print_routing_rules_v1';
 
@@ -100,13 +103,29 @@ const SEED_RULES: PrintRoutingRule[] = [
   },
 ];
 
+/** Batch 553: the destination's problem, or 'agentPrinterOtherSite' when a facility-tier rule names another site's agent printer. */
+export function routingRuleDestinationProblem(rule: Pick<PrintRoutingRule, 'scopeType' | 'scopeId' | 'printDestination'>): string | null {
+  const problem = printDestinationProblem(rule.printDestination);
+  if (problem) return problem;
+  const site = routingRuleSite(rule.scopeType, rule.scopeId ?? '');
+  if (site !== null && isAgentPrintDestination(rule.printDestination) && rule.printDestination.agentPrinter.siteId !== site) return 'agentPrinterOtherSite';
+  return null;
+}
+
+/** Batch 553: naming a site's agent printer needs config:print-routing:manage at that site, as seeing its printers does. */
+async function maySiteBeUsed(rule: Pick<PrintRoutingRule, 'printDestination'>): Promise<boolean> {
+  if (!isAgentPrintDestination(rule.printDestination)) return true;
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return (await authorizationService.evaluate('config:print-routing:manage', { facilityId: rule.printDestination.agentPrinter.siteId })).allowed;
+}
+
 const load    = (): PrintRoutingRule[] => storageGet<PrintRoutingRule[]>(KEY, SEED_RULES);
 const persist = (data: PrintRoutingRule[]) => storageSet(KEY, data);
 
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
+const printRoutingRuleServiceUnchecked: IPrintRoutingRuleService = {
   async getAll() {
     return ok(load());
   },
@@ -116,6 +135,10 @@ export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
   },
 
   async create(rule) {
+    // Batch 553: a destination that can't be used, or an agent printer off a facility-tier rule's own site, is refused.
+    const problem = routingRuleDestinationProblem(rule);
+    if (problem) return err(problem);
+    if (!(await maySiteBeUsed(rule))) return err(CONFIG_NOT_PERMITTED);
     const now = new Date().toISOString();
     const newRule: PrintRoutingRule = { ...rule, id: 'prr-' + Date.now().toString(36), createdAt: now, updatedAt: now };
     persist([...load(), newRule]);
@@ -127,6 +150,9 @@ export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
     const idx = all.findIndex(r => r.id === id);
     if (idx === -1) return err(`Print routing rule ${id} not found`);
     const updated: PrintRoutingRule = { ...all[idx], ...changes, updatedAt: new Date().toISOString() };
+    const problem = routingRuleDestinationProblem(updated);
+    if (problem) return err(problem);
+    if (changes.printDestination && !(await maySiteBeUsed(updated))) return err(CONFIG_NOT_PERMITTED);
     const next = [...all];
     next[idx] = updated;
     persist(next);
@@ -138,3 +164,8 @@ export const mockPrintRoutingRuleService: IPrintRoutingRuleService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockPrintRoutingRuleService: IPrintRoutingRuleService = guardConfigWrites(printRoutingRuleServiceUnchecked, [
+  ['config:print-routing:manage', ['create', 'update', 'remove']],
+]);

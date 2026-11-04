@@ -33,7 +33,12 @@ export interface CytologyPrimaryHpvFailsafeSpecimenInput {
   /** Real, per this module's own established adequacy convention —
    *  only meaningful when cytologyTriagePerformed is true. */
   cytologyTriageInadequate: boolean;
+  /** Batch 608 (#51, #76): the recorded follow-up on a positive result (Specimen.cytologyScreening.hpvFollowUp). */
+  followUp?: { action: 'colposcopy_referral' | 'repeat_hpv' | 'no_action'; referredAt?: string; responseAt?: string };
 }
+
+/** A referral with no recorded response after this many days is a non-responded failsafe alert. */
+export const FAILSAFE_RESPONSE_DAYS = 28;
 
 export interface CytologyPrimaryHpvFailsafeAuditRow {
   jurisdiction: string;
@@ -43,12 +48,15 @@ export interface CytologyPrimaryHpvFailsafeAuditRow {
    *  genuine "nothing to report a rate on," not a data gap. */
   inadequateCytologyRatePercent: number;
   /** Real, honest undefined — see this file's own header. */
-  failsafeDirectColposcopyReferrals: undefined;
-  nonRespondedFailsafeAlerts: undefined;
+  /** Batch 608: positives with a colposcopy referral recorded. */
+  failsafeDirectColposcopyReferrals: number;
+  /** Batch 608: referrals with no response recorded after FAILSAFE_RESPONSE_DAYS. */
+  nonRespondedFailsafeAlerts: number;
 }
 
 export function resolveCytologyPrimaryHpvFailsafeAuditReport(
   specimens: CytologyPrimaryHpvFailsafeSpecimenInput[],
+  asOf: Date = new Date(),
 ): CytologyPrimaryHpvFailsafeAuditRow[] {
   const byJurisdiction = new Map<string, CytologyPrimaryHpvFailsafeSpecimenInput[]>();
   for (const sp of specimens) {
@@ -62,6 +70,7 @@ export function resolveCytologyPrimaryHpvFailsafeAuditReport(
     const triaged = group.filter(sp => sp.cytologyTriagePerformed);
     const cytologyTriagePerformedCount = triaged.length;
     const inadequateCount = triaged.filter(sp => sp.cytologyTriageInadequate).length;
+    const referrals = group.filter(sp => sp.hpvPositive && sp.followUp?.action === 'colposcopy_referral');
     const inadequateCytologyRatePercent = cytologyTriagePerformedCount === 0 ? 0 : (inadequateCount / cytologyTriagePerformedCount) * 100;
 
     return {
@@ -69,8 +78,12 @@ export function resolveCytologyPrimaryHpvFailsafeAuditReport(
       totalHpvPrimaryPositives,
       cytologyTriagePerformedCount,
       inadequateCytologyRatePercent,
-      failsafeDirectColposcopyReferrals: undefined,
-      nonRespondedFailsafeAlerts: undefined,
+      failsafeDirectColposcopyReferrals: referrals.length,
+      nonRespondedFailsafeAlerts: referrals.filter(sp => {
+        if (sp.followUp?.responseAt) return false;
+        const sent = sp.followUp?.referredAt ? Date.parse(sp.followUp.referredAt) : NaN;
+        return Number.isFinite(sent) && (asOf.getTime() - sent) / 86_400_000 > FAILSAFE_RESPONSE_DAYS;
+      }).length,
     };
   });
 }

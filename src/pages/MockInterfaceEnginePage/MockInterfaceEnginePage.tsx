@@ -24,9 +24,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import '../../pathscribe.css';
-import { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings } from '../../services/mockInterfaceEngine/mockInterfaceEngineSettings';
-import type { MockInterfaceEngineMode, MockInterfaceEngineSettings } from '../../services/mockInterfaceEngine/mockInterfaceEngineSettings';
+import RegistryAnswerSimulatorPanel from '@/components/MockInterfaceEngine/RegistryAnswerSimulatorPanel';
+import SimulatedEngineLogPanel from '@/components/MockInterfaceEngine/SimulatedEngineLogPanel';
+import InboundSimulatorPanel from '@/components/MockInterfaceEngine/InboundSimulatorPanel';
+import { getMockInterfaceEngineSettings, setMockInterfaceEngineSettings, type MockInterfaceEngineMode, type MockInterfaceEngineSettings } from '@/services';
+
+
 
 const MODE_LABEL_KEY: Record<MockInterfaceEngineMode, string> = {
   always_succeed: 'mockInterfaceEnginePage.modeLabels.alwaysSucceed',
@@ -42,6 +47,11 @@ const MODE_DESCRIPTION_KEY: Record<MockInterfaceEngineMode, string> = {
 
 const MockInterfaceEnginePage: React.FC = () => {
   const { t } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('mockInterfaceEnginePage.title'), '/dev/mock-interface-engine'); }, [pushCrumb, t]);
   const [settings, setSettings] = useState<MockInterfaceEngineSettings>(getMockInterfaceEngineSettings());
   const [workerStatus, setWorkerStatus] = useState<'stopped' | 'starting' | 'running'>('stopped');
 
@@ -114,6 +124,25 @@ const MockInterfaceEnginePage: React.FC = () => {
           </label>
         ))}
 
+        {/* Batch 434: the slide scanner's replies after a WSI scan manifest. */}
+        <label className="ps-mie-radio-label ps-mt-12">
+          <input type="checkbox" checked={settings.simulateWsiScanner !== false} onChange={e => updateSettings({ simulateWsiScanner: e.target.checked })} className="ps-mr-8" />
+          <strong>{t('mockInterfaceEnginePage.simulateWsiScanner')}</strong>
+          <div className="ps-helper-text ps-ml-22">{t('mockInterfaceEnginePage.simulateWsiScannerHint')}</div>
+        </label>
+
+        {/* Batch 467b: the molecular instrument's results after a worklist (each well's order id echoed). */}
+        <div className="ps-mt-12">
+          <label className="ps-label" htmlFor="mie-molecular-call">{t('mockInterfaceEnginePage.molecularInstrument')}</label>
+          <select id="mie-molecular-call" className="ps-input-dark" value={settings.molecularInstrumentCall ?? 'off'}
+            onChange={e => updateSettings({ molecularInstrumentCall: e.target.value as 'POSITIVE' | 'NEGATIVE' | 'off' })}>
+            <option value="POSITIVE">{t('mockInterfaceEnginePage.molecularCall.POSITIVE')}</option>
+            <option value="NEGATIVE">{t('mockInterfaceEnginePage.molecularCall.NEGATIVE')}</option>
+            <option value="off">{t('mockInterfaceEnginePage.molecularCall.off')}</option>
+          </select>
+          <div className="ps-helper-text">{t('mockInterfaceEnginePage.molecularInstrumentHint')}</div>
+        </div>
+
         {settings.mode === 'always_fail' && (
           <div className="ps-mt-12">
             <label className="ps-label" htmlFor="mie-failure-status">{t('mockInterfaceEnginePage.failureHttpStatusLabel')}</label>
@@ -127,6 +156,9 @@ const MockInterfaceEnginePage: React.FC = () => {
           </div>
         )}
       </div>
+      <InboundSimulatorPanel />
+      <SimulatedEngineLogPanel />
+      <RegistryAnswerSimulatorPanel />
     </div>
   );
 };

@@ -87,3 +87,37 @@ describe('resolveSurgicalBiopsyToResectionCorrelationCandidates - anatomic site/
     expect(result[0].siteMatchStatus).toBe('matched');
   });
 });
+
+// Batch 453: the window is the configured rule, from collection by default.
+import { DEFAULT_BIOPSY_RESECTION_RULE } from './resolveSurgicalBiopsyToResectionCorrelationCandidates';
+
+describe('resolveSurgicalBiopsyToResectionCorrelationCandidates - configured window (Batch 453)', () => {
+  const DAY = 86_400_000;
+  const t0 = '2026-01-01T00:00:00.000Z';
+  const at = (d: number) => new Date(Date.parse(t0) + d * DAY).toISOString();
+
+  it('by default runs 180 days from the biopsy\'s collection, so a resection 175 days after collection matches even if the biopsy was received 10 days late', () => {
+    const specimens = [
+      spec({ caseId: 'bx', specimenId: 'b1', collectedAt: t0, receivedAt: at(10) }),
+      spec({ caseId: 'rx', specimenId: 'r1', collectedAt: at(175), receivedAt: at(186) }),
+    ];
+    expect(DEFAULT_BIOPSY_RESECTION_RULE).toMatchObject({ windowDays: 180, anchor: 'collection' });
+    expect(resolveSurgicalBiopsyToResectionCorrelationCandidates(specimens)).toHaveLength(1);
+    // A resection collected on day 195 is outside the window:
+    expect(resolveSurgicalBiopsyToResectionCorrelationCandidates([specimens[0], spec({ caseId: 'rx', specimenId: 'r1', collectedAt: at(195), receivedAt: at(196) })])).toEqual([]);
+  });
+
+  it('follows a facility rule: a shorter window, or one anchored on the earlier case\'s sign-out', () => {
+    const specimens = [
+      spec({ caseId: 'bx', specimenId: 'b1', collectedAt: t0, receivedAt: at(1), signedOutAt: at(20) }),
+      spec({ caseId: 'rx', specimenId: 'r1', collectedAt: at(100), receivedAt: at(101) }),
+    ];
+    expect(resolveSurgicalBiopsyToResectionCorrelationCandidates(specimens, { windowDays: 90, anchor: 'collection', source: 'facility' })).toEqual([]);
+    expect(resolveSurgicalBiopsyToResectionCorrelationCandidates(specimens, { windowDays: 90, anchor: 'signOut', source: 'facility' })).toHaveLength(1);
+  });
+
+  it('a specimen with no usable date is skipped, not treated as day zero', () => {
+    const specimens = [spec({ caseId: 'bx', specimenId: 'b1' } as never), spec({ caseId: 'rx', specimenId: 'r1', collectedAt: t0 })];
+    expect(resolveSurgicalBiopsyToResectionCorrelationCandidates(specimens)).toEqual([]);
+  });
+});

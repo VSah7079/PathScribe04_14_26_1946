@@ -24,3 +24,12 @@ describe('resolveMolecularMovementRecord — real, per the given specification\'
     expect(viaRack.fromLevel).toBe('secondary_rack');
   });
 });
+
+describe('molecularActor (Batch 406)', () => {
+  it('names the signed-in user, falling back to the id, and records an unknown user plainly', async () => {
+    const { molecularActor } = await import('./resolveMolecularMovementRecord');
+    expect(molecularActor({ id: 'u1', firstName: 'Ana', lastName: 'Ruiz' })).toEqual({ byUserId: 'u1', byUserName: 'Ana Ruiz' });
+    expect(molecularActor({ id: 'u2' })).toEqual({ byUserId: 'u2', byUserName: 'u2' });
+    expect(molecularActor(null)).toEqual({ byUserId: 'unknown', byUserName: 'Unknown User' });
+  });
+});

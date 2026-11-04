@@ -1,0 +1,36 @@
+/* src/components/Workstation/StationScanField.css — touch spec T1: the one scan field every station uses. */
+.ps-station-scan {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.ps-station-scan--compact { margin-bottom: 0; flex-wrap: nowrap; }
+
+.ps-station-scan-input {
+  flex: 1;
+  min-width: 180px;
+  max-width: 360px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+.ps-station-scan-input:focus { outline: none; border-color: var(--ps-teal, #14b8a6); box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.25); }
+.ps-station-scan--compact .ps-station-scan-input { min-width: 160px; max-width: 240px; }
+
+.ps-station-scan-keyboard {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 6px;
+  color: #cbd5e1;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ps-station-scan-keyboard--on { border-color: var(--ps-teal, #14b8a6); color: #5eead4; }
+.ps-station-scan-submit { white-space: nowrap; }

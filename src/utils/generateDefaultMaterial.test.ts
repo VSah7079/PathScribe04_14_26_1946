@@ -215,3 +215,50 @@ describe('generateDefaultMaterial \u2014 real seeded Autopsy Cardiac Sectioning 
     expect(result.blocks.every(b => b.stains.length === 1 && b.stains[0].stainName === 'st-he')).toBe(true);
   });
 });
+
+// Batch 715: block labels follow the resolved letters-or-numbers style, in every combination.
+describe('generateDefaultMaterial — letters or numbers for blocks (Batch 715)', () => {
+  const twoBlocks = protocolWith([
+    pathway({ id: 'p1', pathwayName: 'One', materialKind: 'block', defaultCount: 2 }),
+    pathway({ id: 'p2', pathwayName: 'Two', materialKind: 'block' }),
+  ]);
+  const cases: Array<[string, Parameters<typeof generateDefaultMaterial>[2], string[], string[]]> = [
+    ['block numbers (today)', { specimen: 'letters', block: 'numbers', slide: 'numbers' }, ['1', '2', '3'], ['S26-1-A1', 'S26-1-A2', 'S26-1-A3']],
+    ['block letters', { specimen: 'letters', block: 'letters', slide: 'numbers' }, ['A', 'B', 'C'], ['S26-1-AA', 'S26-1-AB', 'S26-1-AC']],
+    ['numeric-specimen preset (1A, 1B)', 'numeric-specimen', ['A', 'B', 'C'], ['S26-1-AA', 'S26-1-AB', 'S26-1-AC']],
+  ];
+  it.each(cases)('%s', async (_n, style, labels, ids) => {
+    const r = await generateDefaultMaterial(entryWithProtocol(twoBlocks.id), 'sp1', style, [], [twoBlocks], 'S26-1', 'A');
+    expect(r.blocks.map(b => b.label)).toEqual(labels);
+    expect(r.blocks.map(b => b.displayId)).toEqual(ids);
+  });
+
+  it('the specimen-letter prefix follows the specimen label it is given (numbers)', async () => {
+    const r = await generateDefaultMaterial(entryWithProtocol(twoBlocks.id), 'sp1', { specimen: 'numbers', block: 'letters', slide: 'numbers' }, [], [twoBlocks], 'S26-1', '2');
+    expect(r.blocks.map(b => b.displayId)).toEqual(['S26-1-2A', 'S26-1-2B', 'S26-1-2C']);
+  });
+
+  it('with no protocol, the one default block follows the style too', async () => {
+    const r = await generateDefaultMaterial(undefined, 'sp1', { specimen: 'letters', block: 'letters', slide: 'numbers' }, [], [], 'S26-1', 'A');
+    expect(r.blocks[0].label).toBe('A');
+  });
+
+  it('slide level codes (L1) are not changed by the slide setting: ids and barcodes stay as they were', async () => {
+    const withStains = protocolWith([pathway({ id: 'p1', tasks: [{ id: 't1', stepOrder: 1, action: 'H&E', stainTypeIds: ['st-he', 'st-pas'] }] })]);
+    const r = await generateDefaultMaterial(entryWithProtocol(withStains.id), 'sp1', { specimen: 'letters', block: 'numbers', slide: 'letters' }, [stainType('st-he', 'H&E'), stainType('st-pas', 'PAS')], [withStains], 'S26-1', 'A');
+    expect(r.blocks[0].stains.map(s => s.displayId)).toEqual(['S26-1-A1-L1', 'S26-1-A1-L2']);
+  });
+});
+
+// Batch 739 (Pete, fluid decision 6): a decant track says what it makes; an aliquot carries its purpose and no cassette.
+describe('generateDefaultMaterial — aliquot tracks (Batch 739)', () => {
+  it('makes an HPV aliquot from the Pap with HPV co-test protocol, and a cell block when the track does not say', async () => {
+    const { CYTOLOGY_DEMO_PROTOCOLS, CYTOLOGY_DEMO_PROTOCOL_IDS } = await import('@/services/protocols/cytologyDemoProtocols');
+    const hpv = await generateDefaultMaterial({ id: 'e', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynThinPrepHpv } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(hpv.decants.map(d => [d.decantType, d.aliquotPurpose, d.cassetteColorId])).toEqual([['aliquot', 'hpv', undefined]]);
+    const fluid = await generateDefaultMaterial({ id: 'f', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.fluidCellBlock } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(fluid.decants.map(d => d.decantType)).toEqual(['cell_block', 'cell_block']);
+    const pap = await generateDefaultMaterial({ id: 'p', protocolId: CYTOLOGY_DEMO_PROTOCOL_IDS.gynSurePath } as never, 'SP', undefined, [], CYTOLOGY_DEMO_PROTOCOLS);
+    expect(pap.decants.map(d => [d.decantType, d.stains.length])).toEqual([['residual_fluid', 1]]);
+  });
+});

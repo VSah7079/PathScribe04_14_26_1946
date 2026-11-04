@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 605 \u2014 simulated interface engine: inbound simulator, identity binding, outbound dispatch, monitors, registry check (unit and component tests)",
+    "description": "Vitest, 2026-10-18: full suite 1247 files; 10,297 tests passed on the first run; the failures that run showed (PHI-tag guard, explicit-any baseline, direct mock import guard, one test mock) were fixed in Batch 605 files and their tests re-run and passed. firestore.rules.test.ts needs the Firestore emulator (not run). Not run: browser check; real engine, printers, vendors, site agent and server (not in this repository); native-speaker review of fr/de/nl/ko text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-770",
+      "start": "2026-10-17T22:10:00Z",
+      "finish": "2026-10-18T07:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/hooks/useAutoBlockOrderDispatch.test.ts\nPASSED: src/pages/ServerJobsSection.test.tsx\nPASSED: src/pages/Synoptic/Codes/RegistryCheckNote.test.tsx\nPASSED: src/services/assistPolling/simulatedAssistSchedule.test.ts\nPASSED: src/services/billing/frozenSectionSuggestionReview.test.ts\nPASSED: src/services/billing/jsonWebhookBuilder.test.ts\nPASSED: src/services/engravers/simulatedEngraverData.test.ts\nPASSED: src/services/hl7/ormBuilder.test.ts\nPASSED: src/services/interfaceDispatch/dispatchCharge.test.ts\nPASSED: src/services/interfaceDispatch/dispatchHardwareOrders.test.ts\nPASSED: src/services/interfaceEngine/buildOrderCreationPayload.test.ts\nPASSED: src/services/interfaceExceptions/bindPatientManagementException.test.ts\nPASSED: src/services/mockInterfaceEngine/inboundSimulator.test.ts\nPASSED: src/services/mockInterfaceEngine/simulatedEngineReceiver.test.ts\nPASSED: src/services/orderIntake/mockOrderIntakeService.test.ts\nPASSED: src/services/patientHistory/runHistoryRefreshSweep.test.ts\nPASSED: src/services/registrySubmission/simulateRegistryAcknowledgement.test.ts\nPASSED: src/services/registrySubmission/simulateRegistrySubmission.test.ts\nPASSED: src/services/serverJobs/simulatedServerJobsApi.test.ts\nPASSED: src/services/specimens/simulateSpecimenLisAck.test.ts\nPASSED: src/services/terminologySearch/simulatedCodeLookup.test.ts\nPASSED: src/utils/dispatchMaterialScanEvent.test.ts"
+    }
+  ]
+}

@@ -31,12 +31,12 @@ import '../../pathscribe.css';
 import { qaSupervisionAssignmentService, qaSupervisionAssignmentTypeService, qaActivityRecordService, countersignService, subspecialtyService } from '@/services';
 import { useAuth } from '@contexts/AuthContext';
 import type { Subspecialty } from '@/services';
-import { FROZEN_FINAL_ACTIVITY_TYPE_ID } from '@/services';
+import { FROZEN_FINAL_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from '@/services';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { QaSupervisionAssignmentType } from '@/types/quality/QaSupervisionAssignmentType';
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { CountersignRecord } from '@/types/case/CountersignRecord';
-import { buildSubspecialtyBreakdown, describeSupervisionProgress, applyExpectedCaseMix } from './caseMixCalculations';
+import { buildSubspecialtyBreakdown, buildCytologyCountersignBreakdown, describeSupervisionProgress, applyExpectedCaseMix } from './caseMixCalculations';
 
 const MentorTab: React.FC = () => {
   const { t } = useTranslation();
@@ -66,8 +66,12 @@ const MentorTab: React.FC = () => {
           ? teachRes.data.filter(r => r.activityTypeId === FROZEN_FINAL_ACTIVITY_TYPE_ID && r.draftedBy?.userId && superviseeIds.has(r.draftedBy.userId))
           : []
       );
+      // Batch 486: kept un-filtered by status (beyond 'pending', which has
+      // no real outcome yet) — buildCytologyCountersignBreakdown below
+      // needs 'returned' records too, not just 'countersigned' ones, to
+      // report a Cytotech Competency trainee's real coverage honestly.
       setCountersignRecords(
-        csRes.ok ? csRes.data.filter(r => r.status === 'countersigned' && superviseeIds.has(r.residentId)) : []
+        csRes.ok ? csRes.data.filter(r => r.status !== 'pending' && superviseeIds.has(r.residentId)) : []
       );
       setSubspecialties(subRes.ok ? subRes.data : []);
       setLoaded(true);
@@ -88,8 +92,10 @@ const MentorTab: React.FC = () => {
     <div className="ps-contrib-mentor-grid">
       {supervisees.map(assignment => {
         const progress = describeSupervisionProgress(assignment);
+        const isCytotechCompetency = assignment.activityTypeId === CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID;
         const superviseeTeaching = teachingRecords.filter(r => r.draftedBy?.userId === assignment.superviseeUserId);
-        const superviseeCountersigns = countersignRecords.filter(r => r.residentId === assignment.superviseeUserId);
+        const superviseeAllCountersigns = countersignRecords.filter(r => r.residentId === assignment.superviseeUserId);
+        const superviseeCountersigns = superviseeAllCountersigns.filter(r => r.status === 'countersigned');
         // Real target config, when one exists — scoped to this
         // assignment's own subspecialty when it has one (a
         // single-subspecialty assignment showing an unrelated
@@ -97,7 +103,18 @@ const MentorTab: React.FC = () => {
         // useful signal).
         const type = supervisionTypes.find(st => st.id === assignment.activityTypeId);
         const targets = (type?.expectedCaseMix ?? []).filter(t => !assignment.subspecialtyId || t.subspecialtyId === assignment.subspecialtyId);
-        const breakdown = applyExpectedCaseMix(buildSubspecialtyBreakdown(superviseeTeaching, subspecialties), targets, subspecialties);
+        // Batch 486: a Cytotech Competency supervisor sees real cytology
+        // sign-out coverage (CountersignRecord), never frozen-section
+        // teaching cases (QaActivityRecord) — cytology sign-out doesn't
+        // produce those. See buildCytologyCountersignBreakdown's own
+        // header for why "clean rate" isn't the same signal as
+        // diagnostic concordance.
+        const breakdown = applyExpectedCaseMix(
+          isCytotechCompetency
+            ? buildCytologyCountersignBreakdown(superviseeAllCountersigns, subspecialties)
+            : buildSubspecialtyBreakdown(superviseeTeaching, subspecialties),
+          targets, subspecialties,
+        );
 
         return (
           <div key={assignment.id} className="ps-contrib-tile">
@@ -123,6 +140,9 @@ const MentorTab: React.FC = () => {
 
             {breakdown.length > 0 && (
               <div className="ps-contrib-teaching-breakdown">
+                <div className="ps-contrib-tile-subtitle">
+                  {t(isCytotechCompetency ? 'mentorTab.cleanCountersignRateLabel' : 'mentorTab.concordanceRateLabel')}
+                </div>
                 {breakdown.map(b => (
                   <div key={b.id} className="ps-contrib-teaching-row">
                     <span className="ps-contrib-teaching-row-name">{b.name} ({b.total})</span>
@@ -139,7 +159,7 @@ const MentorTab: React.FC = () => {
             )}
             {breakdown.length === 0 && (
               <div className="ps-contrib-tile-subtitle mt-noRecords">
-                {t('mentorTab.noFrozenSectionRecords')}
+                {t(isCytotechCompetency ? 'mentorTab.noCytologyCountersignRecords' : 'mentorTab.noFrozenSectionRecords')}
               </div>
             )}
           </div>

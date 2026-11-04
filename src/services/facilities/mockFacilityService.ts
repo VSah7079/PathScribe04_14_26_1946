@@ -1,8 +1,18 @@
 import { ServiceResult, ID } from '../types';
+import { organMapDeliveryChangeDetail, organMapDeliveryOf, validateOrganMapDelivery } from '../organMapping/organMapDeliveryRules';
 import { storageGet, storageSet } from '../mockStorage';
 import type { Facility, IFacilityService } from './IFacilityService';
-import { mockSubspecialtyService } from '../subspecialties/mockSubspecialtyService';
+// Batch 428: the catch-all subspecialty is part of saving the facility (already
+// checked under config:facilities:manage), so it is added unchecked.
+import { subspecialtyServiceUnchecked as mockSubspecialtyService } from '../subspecialties/mockSubspecialtyService';
 import { linkFacilitiesToOrganisations } from './facilityHierarchy';
+import { REFERENCE_LAB_SEEDS } from './referenceLabSeeds';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { readSessionProfile } from '../auth/sessionProfile';
+import { facilityPrintProblem } from '../printing/facilityReportPrinting';
+import { linkFieldProblem } from '../links/externalLink';
 
 // Facility and IFacilityService now live in IFacilityService.ts — re-exporting
 // here so every existing `import { mockFacilityService, Facility } from
@@ -104,7 +114,7 @@ async function ensureDefaultCatchAllPool(facility: Facility): Promise<void> {
 const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   {
     id: 'c1', name: 'Metro General Hospital',   assigningAuthority: 'MGH',  address: '100 Main St',      phone: '555-2001', fax: '555-2002', email: 'lab@metrogeneral.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: 18,   authorizedPediatricPathologistIds: [],
     // Academic centre — tight SLAs negotiated in contract
     tatFirstTouchHours: 4,  tatTotalHours: 24,
@@ -112,7 +122,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c2', name: 'Riverside Medical Center', assigningAuthority: 'RMC',  address: '200 River Rd',     phone: '555-2003', fax: '555-2004', email: 'lab@riverside.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Community hospital — standard 2-day TAT
     tatFirstTouchHours: 8,  tatTotalHours: 48,
@@ -120,7 +130,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c3', name: 'Northside Clinic',         assigningAuthority: 'NSC',  address: '300 North Ave',    phone: '555-2005', fax: '555-2006', email: 'lab@northside.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Small clinic — no custom targets, inherits system defaults
     tatFirstTouchHours: null, tatTotalHours: null,
@@ -128,7 +138,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c4', name: 'Westview Surgery Center',  assigningAuthority: 'WSC',  address: '400 West Blvd',    phone: '555-2007', fax: '555-2008', email: 'lab@westview.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Active',   pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Surgical centre — rapid intra-op consults expected
     tatFirstTouchHours: 6,  tatTotalHours: 36,
@@ -136,7 +146,7 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
   },
   {
     id: 'c5', name: 'Eastpark Oncology',        assigningAuthority: 'EPO',  address: '500 East Park Dr', phone: '555-2009', fax: '555-2010', email: 'lab@eastpark.org',
-    roles: ['external_ordering_client', 'specimen_acquisition'], jurisdiction: 'US', reporting: defaultReporting(),
+    roles: ['external_ordering_client', 'specimen_acquisition'], performingLabFacilityId: 'c-ent-dvmc', jurisdiction: 'US', reporting: defaultReporting(),
     status: 'Inactive', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     // Oncology centre — fast first touch, 24h total
     tatFirstTouchHours: 4,  tatTotalHours: 24,
@@ -328,6 +338,13 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
     address: '1234 Desert Blvd, Phoenix, AZ 85001', phone: '', fax: '', email: '',
     roles: ['performing_lab'], isEnterprise: true, jurisdiction: 'US', reporting: defaultReporting(),
     legacyTenantIds: ['ORG-DVMC', 'HOSP-001', 'HOSP-002', 'HOSP-003'],
+    // Batch 606: printing is on for the demo lab so released reports flow through the labelled Simulated network transport.
+    printDeliveryConfig: {
+      enabled: true, mode: 'DIRECT_NETWORK_PRINT', paperSize: 'LETTER',
+      directNetworkPrintDestination: { protocol: 'IPP', ipAddress: '10.20.30.40', displayName: 'Histology LaserJet (demo)' },
+    },
+    // Batch 751 (seed row S15): the demo lab sends the organ map to its laboratory system as text and a PNG file.
+    organMapDelivery: { mode: 'textAndFile', fileFormat: 'png', destination: 'sftp://demo-interface.example/organ-maps' },
     status: 'Active', pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [],
     tatFirstTouchHours: null, tatTotalHours: null,
     escalationTargets: [], escalationPriority: 'high',
@@ -618,14 +635,38 @@ const SEED_FACILITIES: Facility[] = linkFacilitiesToOrganisations([
 // unprotected gap this file's own new Korean facility
 // (c-kr-seoul-general) would otherwise silently never reach anyone
 // with pre-existing cached facility data.
-const SEED_VERSION = '8'; // Batch 372: hospital ids linked to their organisations; the international screening labs are their own organisations. (7, Batch 354: Manchester clients under their hospital sites; 6, Batch 352: the ordering clients of the Manchester, Midwest, Henry Ford and Desert Valley labs. 5: Lagan Valley Women's Health Centre.)
+const SEED_VERSION = '9'; // Batch 751: the demo lab's organ map delivery (Text and image file). 8, Batch 372: hospital ids linked to their organisations; the international screening labs are their own organisations. (7, Batch 354: Manchester clients under their hospital sites; 6, Batch 352: the ordering clients of the Manchester, Midwest, Henry Ford and Desert Valley labs. 5: Lagan Valley Women's Health Centre.)
 const SEED_VERSION_KEY = 'pathscribe_facilities_seed_version';
 if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet('pathscribe_facilities', SEED_FACILITIES);
   storageSet(SEED_VERSION_KEY, SEED_VERSION);
 }
 
-const load = () => storageGet<Facility[]>('pathscribe_facilities', SEED_FACILITIES);
+// Batch 403: the demo reference labs (referenceLabSeeds.ts) are added to a
+// browser's stored facilities when missing, without replacing anything an
+// administrator changed.
+const load = () => {
+  const stored = storageGet<Facility[] | null>('pathscribe_facilities', null);
+  const { records: withRefLabs, added } = withMissingSeedRecords(stored ?? SEED_FACILITIES, REFERENCE_LAB_SEEDS);
+  // Batch 441: Desert Valley's US ordering clients (c1–c5) named no
+  // performing lab, so their cases had none (the peer-review gate, among
+  // others, couldn't be set for them). A stored copy still without one gets
+  // Desert Valley Medical Center; one an administrator set is kept.
+  const { records, filled } = withDemoClientPerformingLab(withRefLabs);
+  if (added > 0 || filled) storageSet('pathscribe_facilities', records);
+  return records;
+};
+const DESERT_VALLEY_CLIENT_IDS = new Set(['c1', 'c2', 'c3', 'c4', 'c5']);
+/** Batch 441. Exported for its test. */
+export function withDemoClientPerformingLab(records: Facility[]): { records: Facility[]; filled: boolean } {
+  let filled = false;
+  const out = records.map(f => {
+    if (!DESERT_VALLEY_CLIENT_IDS.has(f.id) || f.performingLabFacilityId) return f;
+    filled = true;
+    return { ...f, performingLabFacilityId: 'c-ent-dvmc' };
+  });
+  return { records: filled ? out : records, filled };
+}
 const persist = (data: Facility[]) => storageSet('pathscribe_facilities', data);
 let MOCK_FACILITIES: Facility[] = load();
 
@@ -642,11 +683,22 @@ void (async () => {
   }
 })();
 
+/**
+ * Batch 517 (PS-337): add and update leave report printing alone; only
+ * setPrintSettings (config:print-settings:manage) changes it. Stops a facility
+ * edit from overwriting printing saved meanwhile from the Printing tab, and
+ * someone with only config:facilities:manage from changing printing.
+ */
+function withoutPrintSettings<T extends Partial<Facility>>(input: T): T {
+  const { printDeliveryConfig: _d, printPresentationPreference: _p, allowDirectDevicePrinting: _x, organMapDelivery: _m, ...rest } = input;
+  return rest as T;
+}
+
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockFacilityService: IFacilityService = {
+const facilityServiceUnchecked: IFacilityService = {
   async getAll() { await delay(); return ok([...MOCK_FACILITIES]); },
 
   async getById(id: ID) {
@@ -655,8 +707,11 @@ export const mockFacilityService: IFacilityService = {
     return f ? ok({ ...f }) : err(`Facility ${id} not found`);
   },
 
-  async add(facility) {
+  async add(facilityWithPrint) {
     await delay();
+    // Batch 549: a link field that isn't an https link is refused here as well as in the editor (links only, Pete, Oct 13, 2026).
+    if (linkFieldProblem((facilityWithPrint as { headerLogoUrl?: string }).headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
+    const facility = withoutPrintSettings(facilityWithPrint);
     const nowIso = new Date().toISOString();
     const newF: Facility = withDerivedContactName({ ...facility, id: 'c' + Date.now(), createdAt: nowIso, updatedAt: nowIso });
     MOCK_FACILITIES = [...MOCK_FACILITIES, newF];
@@ -665,19 +720,67 @@ export const mockFacilityService: IFacilityService = {
     return ok({ ...newF });
   },
 
-  async update(id, changes) {
+  async update(id, changesWithPrint) {
     await delay();
+    if (linkFieldProblem((changesWithPrint as { headerLogoUrl?: string }).headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
+    const changes = withoutPrintSettings(changesWithPrint);
     const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
     if (idx === -1) return err(`Facility ${id} not found`);
     MOCK_FACILITIES = MOCK_FACILITIES.map(f => f.id === id ? withDerivedContactName({ ...f, ...changes, updatedAt: new Date().toISOString() }) : f);
     persist(MOCK_FACILITIES);
     await ensureDefaultCatchAllPool(MOCK_FACILITIES[idx]);
+    // Batch 431: adding someone to the authorized pediatric pathologists
+    // closes their matching open pediatric access requests.
+    if ('authorizedPediatricPathologistIds' in changes) {
+      void import('../access/closeGrantedAccessRequests').then(m => m.afterAccessMayHaveChanged());
+    }
     return ok({ ...MOCK_FACILITIES[idx] });
   },
 
-  async deactivate(id) { return mockFacilityService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockFacilityService.update(id, { status: 'Active' }); },
-  async verify(id) { return mockFacilityService.update(id, { status: 'Active' }); },
+  async setPrintSettings(id, settings) {
+    await delay();
+    const problem = facilityPrintProblem(settings, id);
+    if (problem) return err(problem);
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const next: Facility = { ...MOCK_FACILITIES[idx], updatedAt: new Date().toISOString() };
+    if (settings.printDeliveryConfig) next.printDeliveryConfig = settings.printDeliveryConfig; else delete next.printDeliveryConfig;
+    if (settings.printPresentationPreference) next.printPresentationPreference = settings.printPresentationPreference; else delete next.printPresentationPreference;
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    return ok({ ...next });
+  },
+
+  async setDirectDevicePrinting(id, allowed) {
+    await delay();
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const next: Facility = { ...MOCK_FACILITIES[idx], allowDirectDevicePrinting: allowed || undefined, updatedAt: new Date().toISOString() };
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    const who = readSessionProfile();
+    void mockAuditService.logEvent({ type: 'user', event: 'Direct Device Printing Changed', detail: `Direct browser-to-printer printing turned ${allowed ? 'on' : 'off'} for facility ${next.name} (${id}).`, user: who?.name ?? who?.id ?? 'unknown', caseId: null, confidence: null }).catch(() => undefined);
+    return ok({ ...next });
+  },
+
+  async setOrganMapDelivery(id, settings) {
+    await delay();
+    const idx = MOCK_FACILITIES.findIndex(f => f.id === id);
+    if (idx === -1) return err(`Facility ${id} not found`);
+    const checked = validateOrganMapDelivery(settings);
+    if (!checked.ok) return err(`ORGAN_MAP_DELIVERY_${checked.problem}`);
+    const before = organMapDeliveryOf(MOCK_FACILITIES[idx]);
+    const next: Facility = { ...MOCK_FACILITIES[idx], organMapDelivery: checked.settings.mode === 'off' && !checked.settings.destination ? undefined : checked.settings, updatedAt: new Date().toISOString() };
+    MOCK_FACILITIES = MOCK_FACILITIES.map((f, i) => (i === idx ? next : f));
+    persist(MOCK_FACILITIES);
+    const who = readSessionProfile();
+    void mockAuditService.logEvent({ type: 'user', event: 'Organ Map Delivery Changed', detail: organMapDeliveryChangeDetail(next.name, id, before, checked.settings), user: who?.name ?? who?.id ?? 'unknown', caseId: null, confidence: null }).catch(() => undefined);
+    return ok({ ...next });
+  },
+
+  async deactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
+  async verify(id) { return facilityServiceUnchecked.update(id, { status: 'Active' }); },
 
   async findOrCreateByAssigningAuthority(assigningAuthority, name, note) {
     await delay();
@@ -711,3 +814,14 @@ export const mockFacilityService: IFacilityService = {
     return ok({ ...newF });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFacilityService: IFacilityService = guardConfigWrites(facilityServiceUnchecked, [
+  ['config:facilities:manage', ['add', 'update', 'deactivate', 'reactivate', 'verify']],
+  // Batch 517 (PS-337): report printing has its own permission.
+  ['config:print-settings:manage', ['setPrintSettings']],
+  // Batch 734 (Pete, Decision 6): direct browser-to-printer printing has its own permission.
+  ['config:direct-device-printing:manage', ['setDirectDevicePrinting']],
+  // Batch 751 (spec section 12.3): organ map delivery to the laboratory system has its own permission.
+  ['config:organ-map-delivery:manage', ['setOrganMapDelivery']],
+]);

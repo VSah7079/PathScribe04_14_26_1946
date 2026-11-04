@@ -1,14 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { verifyEngineAuth, claimMessageId, upsertEngraverStatus, logIntegrationError } = vi.hoisted(() => ({
+const { verifyEngineAuth, upsertEngraverStatus, logIntegrationError } = vi.hoisted(() => ({
   verifyEngineAuth: vi.fn(),
-  claimMessageId: vi.fn(),
   upsertEngraverStatus: vi.fn(),
   logIntegrationError: vi.fn(),
 }));
 
 vi.mock('./_lib/verifyEngineAuth', () => ({ verifyEngineAuth }));
-vi.mock('./_lib/idempotency', () => ({ claimMessageId }));
 vi.mock('./_lib/upsertEngraverStatus', () => ({ upsertEngraverStatus }));
 vi.mock('./_lib/logIntegrationError', () => ({ logIntegrationError }));
 
@@ -29,11 +27,9 @@ function makeRequest(body: unknown, method = 'POST'): Request {
 describe('engraver-status webhook handler', () => {
   beforeEach(() => {
     verifyEngineAuth.mockReset();
-    claimMessageId.mockReset();
     upsertEngraverStatus.mockReset();
     logIntegrationError.mockReset();
     verifyEngineAuth.mockReturnValue({ ok: true });
-    claimMessageId.mockResolvedValue({ alreadyProcessed: false });
     upsertEngraverStatus.mockResolvedValue('applied');
   });
 
@@ -66,12 +62,12 @@ describe('engraver-status webhook handler', () => {
     expect((await handler(makeRequest({ messageId: 'msg-1' }))).status).toBe(400);
   });
 
-  it('returns 200 already-processed on a redelivered messageId, without calling upsertEngraverStatus', async () => {
-    claimMessageId.mockResolvedValue({ alreadyProcessed: true });
+  it('returns 200 already-processed on a redelivered messageId (Batch 549: the claim is checked inside the status update)', async () => {
+    upsertEngraverStatus.mockResolvedValue('already-processed');
     const res = await handler(makeRequest(validPayload));
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe('already-processed');
-    expect(upsertEngraverStatus).not.toHaveBeenCalled();
+    expect(upsertEngraverStatus).toHaveBeenCalledWith(expect.anything(), { messageId: validPayload.messageId, eventType: 'engraver-status' });
   });
 
   it('applies a real status update and returns 200', async () => {
@@ -79,7 +75,7 @@ describe('engraver-status webhook handler', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.status).toBe('applied');
-    expect(upsertEngraverStatus).toHaveBeenCalledWith(expect.objectContaining({ deviceId: 'ENG-NY-04', status: 'warning' }));
+    expect(upsertEngraverStatus).toHaveBeenCalledWith(expect.objectContaining({ deviceId: 'ENG-NY-04', status: 'warning' }), expect.objectContaining({ eventType: 'engraver-status' }));
   });
 
   it('surfaces a stale-ignored outcome from upsertEngraverStatus rather than reporting it as applied', async () => {

@@ -1,5 +1,7 @@
 # services/documentRendering/
 
+> **Batch 539 (PS-539 D2): most of this folder is removed.** The browser no longer draws any report PDF; the report renderer does (`functions/cytology_report.py` for cytology). Removed: `applyContinuationPageHeaders`, `applyDeterministicPdfMetadata`, `drawBarcodeOnJsPdfDoc`, `resolveBarcodeVectorSpec`, `embedCytologyHeaderLogo`, `printFonts`, `registerEmbeddedPrintFont`, `validatePrintLayoutGovernance`, `embeddedFonts/` and their tests (`DELETED_FILES.txt`). Their rules carry over to the server template: 15 mm margins checked against the 0.5 inch minimum, only embedded fonts (Liberation Sans, now `functions/fonts/*.ttf`; Pretendard for Korean), the accession barcode, the continuation line with Page X of Y, keep-with-next headings, the addendum page, and the same bytes for the same request. What remains here: `checkEmbeddedImageResolution.ts` (used by `imageAssociation/`) and `svgToPng.ts` (organ maps). The sections below describe the removed browser pipeline and are kept as history.
+
 **Real, per PS-276 ("Document Rendering Engine — PDF/A compliance,
 deterministic re-rendering, vector/raster/barcode support") and PS-277
 ("Master Template Engine — modular headers/footers, conditional
@@ -18,13 +20,16 @@ of this (not assumed):
   pdf-lib code (`services/cytology/generateCytologyReportPdf.ts`).
   Genuinely extensible from this repo — this is the pipeline every
   file in this folder actually reaches.
-- **Surgical pathology** reports (the majority of real cases) render
-  via an external, source-inaccessible Firebase `render_report` Cloud
-  Function (`SynopticReportPage.tsx`'s own `generateReportPdfSnapshot`).
-  This folder cannot inspect, verify, or extend that pipeline at all —
-  the equivalent PDF/A/determinism/barcode work for it is real,
-  separate backend work, tracked in the Jira ticket filed alongside
-  this batch (see "Real, remaining gaps" below).
+- **Surgical pathology** (and autopsy) reports render via the Python
+  `render_report` Cloud Function (ReportLab), called from
+  `SynopticReportPage.tsx`'s own `generateReportPdfSnapshot`. Its
+  source is in this repo at `functions/main.py` (see
+  `functions/README.md`), not in this folder; none of the
+  PDF/A/determinism/barcode work below has been done there (see "Real,
+  remaining gaps" below). Production rendering will move to the API
+  server (`docs/architecture/REPORT_RENDERING_SERVICE.md`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the `render_report` source is in this repo (`functions/main.py`), not an external, inaccessible repository.*
 
 ## What's real and closed here (PS-276 §1.1, cytology pipeline only)
 
@@ -254,12 +259,16 @@ of this (not assumed):
   own ticket with its own data-model decision. See
   `resolveFacilityPrintBranding.ts`'s own header comment for the same
   disclosure at the point where it actually bites.
+- *(Batch 498: `render_report` now draws an accession barcode and document reference in every page footer, plus the release-buffer watermark and revision banner — see `functions/README.md`. PDF/A and deterministic re-rendering for that pipeline are still open, below.)*
 - **Everything on the surgical-pathology (`render_report` Cloud
   Function) side of the fork above** — PDF/A, determinism, and
   barcode embedding for the majority of real reports this app
-  produces. Entirely backend work in a separate repository this
-  session cannot reach — see the Jira ticket filed alongside this
-  batch for the specific scope handed to whoever owns that function.
+  produces. None of it is in `functions/main.py` today; production
+  rendering is planned for the API server instead
+  (`docs/architecture/REPORT_RENDERING_SERVICE.md`). See the Jira
+  ticket filed alongside this batch for the scope.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the last gap no longer says the renderer is in a separate, unreachable repository; it is `functions/main.py`. The gaps themselves are still open.*
 
 ## Files
 
@@ -288,7 +297,37 @@ The §1.1.4 Web Worker offload itself lives in `services/cytology/`
 `generateCytologyReportPdfInWorker.ts`), not this folder — see
 [services/cytology/README.md](../cytology/README.md).
 
+## Batch 391: Pretendard for Korean reports
+
+- **`printFonts.ts`:** `loadPrintFont(language)` returns the font a language needs beyond Liberation Sans (Korean: Pretendard, SIL OFL 1.1; the files ship in `public/fonts/pretendard/` since Batch 394), fetched from the app's own origin only when needed and cached; `registerPrintFont(doc, font)` embeds it with Identity-H, so jsPDF subsets it to the glyphs used (about 300 KB per weight in the PDF). The files are the package's own, unmodified (the licence reserves the name for the original); provenance and obligations in `embeddedFonts/LICENSE_NOTICE.md`. `fetchBytes` is injectable (tests read from disk with `readFontFromDisk.testSupport.ts`).
+- **`validatePrintLayoutGovernance.ts`:** `Pretendard` added to the allowed print fonts.
+- **`applyContinuationPageHeaders.ts`:** takes the line's wording (MRN, accession, "Page X of Y") and the font family, so continuation pages match the report's language; defaults are the previous English wording and Liberation Sans.
+
+## Batch 393
+
+`printFontLanguageFor(content)`: a report needs Pretendard when it is Korean or contains Hangul anywhere (a Korean patient's name in a US lab). The cytology PDF paths use it; the surgical/autopsy renderer applies the same rule. The notice in `embeddedFonts/LICENSE_NOTICE.md` now also covers `functions/fonts/`.
+
+## Batch 394 (fix)
+
+`printFonts.ts` no longer imports the font through the `pretendard` npm package (`...ttf?url`). On a machine without the package that import failed, and because `services/index.ts` reaches it, 44 unrelated test files failed with it (Pete's run). The font files now ship in `public/fonts/pretendard/` and load from `/fonts/pretendard/...`; the package is no longer a dependency. A test fails if anything in `src/` imports the package again.
+
+## Batch 461: `svgToPng.ts`
+
+`svgToPngDataUrl(svg, scale = 4)` draws a standalone SVG to a canvas and returns a PNG data URL (undefined where there is no DOM, or when drawing fails). Used for the organ-map image the pathologist inserts into the report: the PDF renderer embeds the PNG, the SVG is kept alongside.
+
 ---
 *See [services/cytology/README.md](../cytology/README.md) for how the
 cytology PDF pipeline this folder extends actually works end to end.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 505 (PS-475)
+
+`applyDeterministicPdfMetadata.ts` and `embedCytologyHeaderLogo.ts` load `pdf-lib` when they run (`await import('pdf-lib')`), so its ~170 KB gzipped is no longer in the first page load. Guarded by `services/loadSize/loadSize.guard.test.ts`.
+
+## Batch 532
+
+`registerEmbeddedPrintFont.ts`: `toWinAnsiText` maps the Windows-1252 characters outside Latin-1 (em and en dash, curly quotes, bullet, ellipsis, euro) to their WinAnsi byte. jsPDF sent them as UTF-16, which the embedded WinAnsi font can't show, so the em dash in "Cytology Report — …" printed as a blank (the file's note that report text is "entirely Latin-1" was wrong; corrected there). Used by the cytology report and `applyContinuationPageHeaders.ts`. Korean (Pretendard) is unaffected.
+
+## Batch 751
+
+`imagePdf.ts` (new, pure): a one-page PDF holding one JPEG as it is (DCTDecode), for an organ map file sent as PDF. `svgToPng.ts`: `svgToJpegDataUrl` (on white) beside `svgToPngDataUrl`. Test: `imagePdf.test.ts`.

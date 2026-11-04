@@ -21,13 +21,15 @@ interface Props {
   title: string;
   message?: string;
   confirmLabel: string;
+  /** Batch 642: the case's ordering facility; its performing facility's sign-out policy applies. */
+  orderingFacilityId?: string | null;
   onConfirmed: (confirmation: SignatureConfirmation) => void;
   onCancel: () => void;
 }
 
-export const SignatureConfirmModal: React.FC<Props> = ({ show, action, caseRef, title, message, confirmLabel, onConfirmed, onCancel }) => {
+export const SignatureConfirmModal: React.FC<Props> = ({ show, action, caseRef, title, message, confirmLabel, orderingFacilityId, onConfirmed, onCancel }) => {
   const { t } = useTranslation();
-  const signer = useSignerConfirmation(action, caseRef);
+  const signer = useSignerConfirmation(action, caseRef, orderingFacilityId);
   const { reset } = signer;
   useEffect(() => { if (!show) reset(); }, [show, reset]);
   if (!show) return null;
@@ -51,8 +53,9 @@ export const SignatureConfirmModal: React.FC<Props> = ({ show, action, caseRef, 
             className="ps-btn-green ps-modal-dark-footer__flex-btn"
             onClick={submit}
             disabled={signer.busy || signer.method === 'unavailable'}
+            title={signer.buttonTitle}
           >
-            {signer.busy ? t('signerConfirmation.confirming') : confirmLabel}
+            {signer.busy ? t('signerConfirmation.confirming') : signer.buttonLabel(confirmLabel)}
           </button>
         </div>
       </div>

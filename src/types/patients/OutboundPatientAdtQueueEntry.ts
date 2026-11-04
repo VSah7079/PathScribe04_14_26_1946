@@ -45,7 +45,9 @@ export interface OutboundPatientAdtQueueEntry {
    *  operation id/method name that produced this entry, for a real,
    *  honest audit trail of what actually happened, distinct from the
    *  HL7-level eventType above. */
-  sourceOperation: 'mergeIntoExistingPatient' | 'breakGlassRebind' | 'updateDemographics';
+  sourceOperation: 'mergeIntoExistingPatient' | 'breakGlassRebind' | 'updateDemographics'
+    /** Batch 425: a national identifier recorded or removed after accessioning (an A08). */
+    | 'recordNationalIdentifier';
   /** Real Story-3-style concern (payload generation/actual dispatch)
    *  — 'QUEUED' is the only real status this queue itself produces.
    *  'SENT'/'FAILED' are left here, not fabricated as working, same

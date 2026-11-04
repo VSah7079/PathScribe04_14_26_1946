@@ -7,11 +7,22 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { storageGet, storageSet } from '../mockStorage';
+import { withMissingSeedRecords, withSeedFieldBackfill } from '../mockSeedMerge';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
 import type {
   IMolecularAssayControlRuleService, MolecularAssayControlRule, NewMolecularAssayControlRule,
 } from './IMolecularAssayControlRuleService';
+import { MOLECULAR_CONTROL_RULE_NOT_PERMITTED, MOLECULAR_CONTROL_RULE_DUPLICATE, MOLECULAR_CONTROL_RULE_NOT_FOUND, MOLECULAR_CONTROL_RULE_REASON_REQUIRED, MOLECULAR_CONTROL_RULE_NO_CONTROLS } from './IMolecularAssayControlRuleService';
+import { mockAuditService } from '../auditlog/mockAuditService';
+import { getSessionUser } from '../auth/caseAccessControl';
+import { normaliseDeckSlotId } from '../equipment/equipmentRules';
 
 const STORE_KEY = 'molecular_assay_control_rules';
+// Each later seed reaches a browser once, under its own flag (Batch 746 adds the KRAS rule).
+const LATE_SEEDS: { key: string; ids: string[] }[] = [
+  { key: 'molecular_assay_control_rules_seed_467', ids: ['rule-467-egfr'] },
+  { key: 'molecular_assay_control_rules_seed_746', ids: ['rule-746-kras'] },
+];
 const ok = <T>(data: T) => ({ ok: true as const, data });
 const err = (message: string) => ({ ok: false as const, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
@@ -33,16 +44,88 @@ const SEED: MolecularAssayControlRule[] = [
       { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
       { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
     ],
+    // Batch 406 (Pete's example): this assay's sample rack goes in Slot A1 or A2.
+    allowedSampleRackSlotIds: ['SLOT_A1', 'SLOT_A2'],
     createdAt: '2026-09-06T15:00:00.000Z',
   },
+  {
+    // Batch 467: the in-house EGFR mutation PCR — a no-template control and a mutation-positive control, fixed.
+    id: 'rule-467-egfr',
+    assayCode: 'st-egfr-pcr',
+    requiredControls: [
+      { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
+      { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
+    ],
+    createdAt: '2026-10-06T15:00:00.000Z',
+  },
+  {
+    // Batch 746 (S7): the in-house KRAS mutation PCR at Desert Valley, laid out as the EGFR plate is.
+    id: 'rule-746-kras',
+    assayCode: 'st-kras-pcr',
+    requiredControls: [
+      { sampleType: 'CONTROL_NTC', positionMode: 'fixed', fixedWellPosition: 'A01' },
+      { sampleType: 'CONTROL_PTC_HIGH', positionMode: 'fixed', fixedWellPosition: 'A02' },
+    ],
+    createdAt: '2026-10-30T15:00:00.000Z',
+  },
 ];
+/** The seeded rules, as a new browser starts with them (tests and the demo seed check against these). */
+export const MOLECULAR_CONTROL_RULE_SEED: readonly MolecularAssayControlRule[] = SEED;
 
-const load = (): MolecularAssayControlRule[] => storageGet(STORE_KEY, SEED);
+// Batch 406: the seeded rule's allowed deck slots reach browsers that stored it earlier.
+const load = (): MolecularAssayControlRule[] => {
+  const stored = storageGet(STORE_KEY, SEED);
+  // Batch 467: a rule seeded later (the EGFR PCR one) reaches browsers that stored the rules earlier — once, so a
+  // rule an admin deletes afterwards stays deleted.
+  let late = { records: stored, added: 0 };
+  for (const seed of LATE_SEEDS) {
+    if (storageGet<boolean>(seed.key, false)) continue;
+    const merged = withMissingSeedRecords(late.records, SEED.filter(r => seed.ids.includes(r.id)));
+    late = { records: merged.records, added: late.added + merged.added };
+    storageSet(seed.key, true);
+  }
+  const { records, filled } = withSeedFieldBackfill(late.records, SEED, 'allowedSampleRackSlotIds');
+  if (filled > 0 || late.added > 0) storageSet(STORE_KEY, records);
+  return records;
+};
+
+/** Batch 406 (Pete): changing, adding or deleting a rule needs config:molecular-control-rules:manage. */
+async function permitted(): Promise<boolean> {
+  return (await authorizationService.enforce('config:molecular-control-rules:manage')).allowed;
+}
+/** Batch 669 (ctl): reading the rules on the Control Rules page needs config:molecular-control-rules:view (or manage, which needs view). */
+async function mayRead(): Promise<boolean> {
+  if ((await authorizationService.enforce('config:molecular-control-rules:view')).allowed) return true;
+  return (await authorizationService.evaluate('config:molecular-control-rules:manage')).allowed;
+}
+/** Slot ids as the equipment stores them (upper case, no blanks or repeats). */
+function tidySlots<T extends { allowedSampleRackSlotIds?: string[] }>(rule: T): T {
+  if (!rule.allowedSampleRackSlotIds) return rule;
+  const ids = rule.allowedSampleRackSlotIds.map(normaliseDeckSlotId).filter(Boolean);
+  return { ...rule, allowedSampleRackSlotIds: [...new Set(ids)] };
+}
 const persist = (data: MolecularAssayControlRule[]) => storageSet(STORE_KEY, data);
+
+/** Batch 669 (mol-14): who changed a rule and why, in the audit log (the detail is literal English, as audit text is). */
+function recordChange(event: string, rule: Pick<MolecularAssayControlRule, 'assayCode' | 'requiredControls'>, reason: string): void {
+  const u = getSessionUser();
+  const user = u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || u.id : 'Unknown user';
+  const controls = rule.requiredControls.map(c => `${c.sampleType} ${c.positionMode === 'fixed' ? `fixed at ${c.fixedWellPosition ?? '?'}` : 'random'}`).join(', ');
+  mockAuditService.logEvent({
+    type: 'user', event, detail: `Molecular control rule for assay ${rule.assayCode} (${controls || 'no controls'}). Reason: ${reason.trim()}`,
+    user, caseId: null, confidence: null,
+  }).catch(() => {});
+}
 
 export const mockMolecularAssayControlRuleService: IMolecularAssayControlRuleService = {
   async getAll() {
     await delay();
+    return ok(load());
+  },
+
+  async listForReview() {
+    await delay();
+    if (!(await mayRead())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
     return ok(load());
   },
 
@@ -51,34 +134,49 @@ export const mockMolecularAssayControlRuleService: IMolecularAssayControlRuleSer
     return ok(load().find(r => r.assayCode === assayCode) ?? null);
   },
 
-  async create(rule: NewMolecularAssayControlRule) {
+  async create(rule: NewMolecularAssayControlRule, reason: string) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
+    if (!reason?.trim()) return err(MOLECULAR_CONTROL_RULE_REASON_REQUIRED);
+    if (!rule.requiredControls?.length) return err(MOLECULAR_CONTROL_RULE_NO_CONTROLS);
     const all = load();
     if (all.some(r => r.assayCode === rule.assayCode)) {
-      return err(`A control rule already exists for assay "${rule.assayCode}" — update it instead of creating a second one.`);
+      return err(MOLECULAR_CONTROL_RULE_DUPLICATE);
     }
-    const created: MolecularAssayControlRule = { ...rule, id: 'rule-' + Date.now(), createdAt: new Date().toISOString() };
+    const created: MolecularAssayControlRule = { ...tidySlots(rule), id: 'rule-' + Date.now(), createdAt: new Date().toISOString() };
     persist([...all, created]);
+    recordChange('Molecular Control Rule Created', created, reason);
     return ok(created);
   },
 
-  async update(id, patch) {
+  async update(id, patch, reason: string) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
+    if (!reason?.trim()) return err(MOLECULAR_CONTROL_RULE_REASON_REQUIRED);
     const all = load();
     const idx = all.findIndex(r => r.id === id);
-    if (idx === -1) return err(`No control rule found with id "${id}".`);
-    const updated: MolecularAssayControlRule = { ...all[idx], ...patch };
+    if (idx === -1) return err(MOLECULAR_CONTROL_RULE_NOT_FOUND);
+    // Batch 669 (mol-14): the same two checks create makes. Moving a rule onto another rule's assay is a duplicate; a rule
+    // keeps at least one control.
+    if (patch.assayCode !== undefined && all.some(r => r.id !== id && r.assayCode === patch.assayCode)) return err(MOLECULAR_CONTROL_RULE_DUPLICATE);
+    if (patch.requiredControls !== undefined && !patch.requiredControls.length) return err(MOLECULAR_CONTROL_RULE_NO_CONTROLS);
+    const updated: MolecularAssayControlRule = { ...all[idx], ...tidySlots(patch) };
     const next = [...all];
     next[idx] = updated;
     persist(next);
+    recordChange('Molecular Control Rule Updated', updated, reason);
     return ok(updated);
   },
 
-  async delete(id) {
+  async delete(id, reason: string) {
     await delay();
+    if (!(await permitted())) return err(MOLECULAR_CONTROL_RULE_NOT_PERMITTED);
+    if (!reason?.trim()) return err(MOLECULAR_CONTROL_RULE_REASON_REQUIRED);
     const all = load();
-    if (!all.some(r => r.id === id)) return err(`No control rule found with id "${id}".`);
+    const gone = all.find(r => r.id === id);
+    if (!gone) return err(MOLECULAR_CONTROL_RULE_NOT_FOUND);
     persist(all.filter(r => r.id !== id));
+    recordChange('Molecular Control Rule Deleted', gone, reason);
     return ok(undefined);
   },
 };

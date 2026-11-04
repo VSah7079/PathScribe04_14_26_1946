@@ -62,7 +62,8 @@ import type { ServiceResult } from '../types';
  *  numbering from CISOE-A's own S-axis despite surface resemblance —
  *  see resolveNcsrSquamousResultCode.ts's own real, confirmed mapping
  *  from Bethesda categories. */
-export type CytologyRegistryId = 'none' | 'kncsp_kccr_korea' | 'csms_uk' | 'cervicalcheck_ireland' | 'palga_netherlands' | 'ncsr_australia';
+/** Batch 414: the same ids as RegistryId (services/screeningRegistry/screeningRegistryDefinitions.ts). */
+export type CytologyRegistryId = import('../facilities/IRegistrySettingsService').RegistryId;
 
 export interface CytologyRegistrySettingsConfig {
   registryId: CytologyRegistryId;

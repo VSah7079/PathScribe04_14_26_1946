@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports · PathScribe Administrator Guide (ForMedrixAI internal edition)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html" aria-current=page>10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch10-report-templates">Part A: Report templates, parts and routing</a></li><li class="l3"><a href="#ch10-part-copy">A1. Copy an existing part (Duplicate)</a></li><li class="l3"><a href="#ch10-part-create">A2. Create a new part</a></li><li class="l3"><a href="#ch10-part-archive">A3. Edit, archive or restore a part</a></li><li class="l3"><a href="#ch10-rt-create">A4. Create a report template</a></li><li class="l3"><a href="#ch10-rt-copy">A5. Copy a report template (Duplicate)</a></li><li class="l3"><a href="#ch10-rt-edit">A6. Edit, delete or archive a report template</a></li><li class="l3"><a href="#ch10-routing">A7. Route cases to a template (Routing Rules)</a></li><li class="l2"><a href="#ch10-synoptic">Part B: Synoptic templates (protocols)</a></li><li class="l3"><a href="#ch10-syn-rules">B1. Who may do what, and the review rules</a></li><li class="l3"><a href="#ch10-syn-create">B2. Create a synoptic template from scratch</a></li><li class="l3"><a href="#ch10-syn-copy">B3. Copy a synoptic template (Duplicate or Build / Customise)</a></li><li class="l3"><a href="#ch10-syn-edit">B4. Edit an existing synoptic template</a></li><li class="l3"><a href="#ch10-syn-newversion">B5. Publish a new version of a published template</a></li><li class="l3"><a href="#ch10-syn-review">B6. Review, approve and publish</a></li><li class="l3"><a href="#ch10-syn-export">B7. Export a synoptic template to a file</a></li><li class="l3"><a href="#ch10-syn-archive">B8. Archive and restore a synoptic template</a></li><li class="l2"><a href="#ch10-json">Part C: Building a synoptic template from a JSON file</a></li><li class="l3"><a href="#ch10-json-roundtrip">C1. The easiest way: export, edit, import</a></li><li class="l3"><a href="#ch10-json-structure">C2. The file layout</a></li><li class="l3"><a href="#ch10-json-minimal">C3. A minimal file</a></li><li class="l3"><a href="#ch10-json-full">C4. A fuller file</a></li><li class="l3"><a href="#ch10-json-import">C5. Import a JSON file</a></li><li class="l3"><a href="#ch10-json-errors">C6. Errors and warnings from the check</a></li><li class="l3"><a href="#ch10-json-notchecked">C7. What the import does not check</a></li><li class="l2"><a href="#ch10-scheduling">Part D: Scheduling reports and report delivery</a></li><li class="l3"><a href="#ch10-delivery-rules">D1. Choose where released reports go (Delivery Configuration Rules)</a></li><li class="l3"><a href="#ch10-print-routing">D2. Choose the printer for the print channel</a></li><li class="l3"><a href="#ch10-delivery-schedule">D3. Set when feeds go out (Delivery Schedules)</a></li><li class="l3"><a href="#ch10-saved-schedule">D4. Schedule a saved report (Search &amp;gt; Report &amp;gt; Schedules)</a></li><li class="l2"><a href="#ch10-gaps">What is not covered, and what to check</a></li></ul></aside><article><h1 id="ch10"><a class="anchor" href="#ch10" aria-label="Link to this section">#</a> Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</h1>
+<p>This chapter is a set of numbered procedures. The screen chapters (<a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Chapter 6</a> for templates, the Synoptic Library and delivery) say what each field means; this chapter says what to click, in what order, what you should see, and how to undo it. Each procedure names the screen it uses, so you can jump to the field reference. Labels, billing and registries are in <a href="11-procedures-labels-billing.html#ch11">Chapter 11</a>.</p>
+<p>Read these points first.</p>
+<ol>
+<li><strong>Status.</strong> Every screen used here is <strong>Built</strong>, except Delivery Schedules, which is <strong>Partial</strong>, and saved-report schedules, which are <strong>Demonstration</strong> (nothing is delivered). Today most data services are browser-held demonstration services; the production <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> is connected service by service. A step that works in the demonstration may not yet be backed by the production server.</li>
+<li><strong>There are two different kinds of template.</strong> A <strong>report template</strong> (Configuration tab <strong>Report Templates</strong>) lays out the printed report: header, body and footer parts. A <strong><a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> template</strong>, also called a <strong><a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a></strong> (Configuration tab <strong>Synoptic Library</strong>), is the structured checklist of questions a pathologist answers for a cancer or cytology <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>. They are built on different screens, saved in different formats and routed by different rules. Only the synoptic template has a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> file (see <a href="#ch10-json">Part C</a>); a report template has none.</li>
+<li><strong>Draft first, and a second person to publish.</strong> A synoptic template is never published straight from the editor. It goes Draft, then In Review, then Approved, then Published. By default the person who wrote it cannot approve or publish it (see <a href="#ch10-syn-rules">Review rules</a>).</li>
+<li><strong>Permissions.</strong> Each procedure lists the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> it needs. If a button is greyed out, you do not hold the capability. Who holds it by default is in the Permissions line of the screen's own section in Chapter 6.</li>
+<li><strong>Copy names.</strong> A copy made by <strong>Duplicate</strong> is named <code>&lt;name&gt; (Copy)</code> in English. The wording follows the language of the person who made it, and the name is stored, so it does not change if someone later switches language.</li>
+</ol>
+<h2 id="ch10-report-templates"><a class="anchor" href="#ch10-report-templates" aria-label="Link to this section">#</a> Part A: Report templates, parts and routing</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<p>A report template is built from <strong>parts</strong>. The order of work is always the same: make or copy the parts, publish them, assemble them into a template, publish the template, then tell routing which cases use it. Only <strong>published</strong> parts can be placed in a template, and only a <strong>published</strong> template can be chosen by routing.</p>
+<p>Permissions: opening the tab needs <code>screen:configuration:open</code>. Create, edit, duplicate, delete and archive need <code>config:report-template:manage</code>. Publish needs <code>config:report-template:publish</code>. Both are high risk and audited. Admin and Lab Director hold both; Template Author holds manage; Template Approver holds publish. Reference: <a href="06-tier5-reporting-synoptic-scheduler.html#screen-templates-parts">Part Library</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-templates-templates">Report Templates</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-templates-routing">Routing Rules</a>.</p>
+<h3 id="ch10-part-copy"><a class="anchor" href="#ch10-part-copy" aria-label="Link to this section">#</a> A1. Copy an existing part (Duplicate)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Part Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Part Library</span></nav>
+
+<p>Use this to change a built-in part, because a built-in part (the card shows a <strong>Built-in</strong> badge) cannot be edited or archived.</p>
+<ol>
+<li>Open the Configuration tab <strong>Report Templates</strong>, then the sub-tab <strong>Part Library</strong>.</li>
+<li>Find the part. Type part of its name in <strong>Search</strong>, or narrow with the type buttons (<strong>All</strong>, <strong>Headers</strong>, <strong>Bodies</strong>, <strong>Footers</strong>) and the lab filter.</li>
+<li>On the part's card, select <strong>Duplicate</strong>. The button reads "Duplicating…" for a moment.</li>
+<li>The part builder opens on the copy, named <code>&lt;original name&gt; (Copy)</code>, in Draft. Change what you need (see <a href="#ch10-part-create">A2</a>, steps 5 to 9).</li>
+<li>Select <strong>Publish</strong> when it is ready.</li>
+</ol>
+<p>To undo: archive the copy (see <a href="#ch10-part-archive">A3</a>). The original is never changed.</p>
+<h3 id="ch10-part-create"><a class="anchor" href="#ch10-part-create" aria-label="Link to this section">#</a> A2. Create a new part</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Part Library &gt; Part builder"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Part Library</span> <span aria-hidden="true">›</span> <span>Part builder</span></nav>
+
+<ol>
+<li>Open <strong>Report Templates</strong> &gt; <strong>Part Library</strong>.</li>
+<li>Select <strong>New Part</strong>. The page asks "What kind of part are you creating?". The three choices are <strong>Header Part</strong> (institution branding, <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>, patient demographics, at the top of pages), <strong>Body Part</strong> (the clinical content: diagnosis, gross description, microscopic, <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> data) and <strong>Footer Part</strong> (page numbers, confidentiality notice, patient identity line). Choose one. The kind cannot be changed afterwards, because it decides which template slot the part can go in.</li>
+<li>The part builder opens with a name such as <code>New Body Part</code>. Click the name and type a clear one, for example <code>Surgical body: diagnosis and microscopic</code>.</li>
+<li>Select <strong>Settings</strong> to open the details. Optionally fill in <strong>Specialty</strong> (blank means General), <strong>Description</strong>, <strong>Standard</strong> (None, <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath or Custom; this is a label only and does not load or check any <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>) and <strong>Performing Lab</strong>. Leave <strong>Performing Lab</strong> on "Global (every <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>)" unless the part is only for one laboratory.</li>
+<li>Drag components from the <strong>Components</strong> palette (groups: Structure, Content Blocks, Layout, Conditional) onto the canvas.</li>
+<li>Click a component on the canvas. Its settings appear in the inspector on the right: label, width, binding key, required, hide when empty, visibility conditions and so on. The full list is in <a href="06-tier5-reporting-synoptic-scheduler.html#ch6-template-inspector">Inspector</a>. A field that shows <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data needs its <strong>Binding key</strong>.</li>
+<li>Drag components up or down to reorder them. Use <strong>Grid on / Grid off</strong> if the grid gets in your way; it only changes the display.</li>
+<li>Watch the save indicator at the top: it reads Unsaved, Saving, Saved or Error. The part saves as you edit.</li>
+<li>Select <strong>Publish</strong>. The button then reads <strong>Published</strong>. If the part marks a field as the final diagnosis and a template that already uses it would end up with more than one, publishing is refused with a message naming the template. Unmark the extra field and publish again.</li>
+</ol>
+<p>You should see the part on its card in the library under Headers, Bodies or Footers, with a Published badge. Use the back arrow (←) to return to the library.</p>
+<h3 id="ch10-part-archive"><a class="anchor" href="#ch10-part-archive" aria-label="Link to this section">#</a> A3. Edit, archive or restore a part</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Part Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Part Library</span></nav>
+
+<ol>
+<li>In the Part Library, find the part and select <strong>Edit</strong> (not offered on built-in parts).</li>
+<li>Change it as in <a href="#ch10-part-create">A2</a>, steps 3 to 8.</li>
+<li>To take a part out of use, select <strong>Archive</strong> on its card, then <strong>Yes</strong> to confirm (<strong>No</strong> cancels). Archived parts are hidden from the list and from the template editor's part picker.</li>
+</ol>
+<p>Templates that already contain the part are not rewritten when you archive it. Whether the part still appears in a template that was published earlier is not verified here; check with a preview before you rely on it.</p>
+<h3 id="ch10-rt-create"><a class="anchor" href="#ch10-rt-create" aria-label="Link to this section">#</a> A4. Create a report template</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<ol>
+<li>Open <strong>Report Templates</strong> &gt; the sub-tab <strong>Report Templates</strong>. The page is titled "Report Templates".</li>
+<li>Choose how to start.
+   - <strong>From Standard</strong> (also <strong>Use Standard Template</strong> when the list is empty). Copies the standard surgical pathology layout as a new draft named <code>My Surgical Pathology Report</code> and opens the editor. This is the quickest start.
+   - <strong>New Template</strong> (also <strong>Start Blank</strong>). Opens the editor on an empty draft.</li>
+<li>In the editor, click the template name at the top and type the real name. It saves when you click out of the box.</li>
+<li>In the <strong>Part Library</strong> panel on the left, set the <strong>Performing lab</strong> filter. "All Labs (Global + every lab)" shows every published part; <strong>Global</strong> or one lab narrows the list. Use <strong>Search parts</strong> to find one by name. If the panel says "No published parts found", publish the parts first (<a href="#ch10-part-create">A2</a>).</li>
+<li>Click the <strong>+</strong> in a zone of the page layout to choose where the next part goes. The zones are <strong>Page 1 Header</strong>, <strong>Pages 2+ Header</strong>, <strong>Body</strong>, <strong>Pages 2+ Footer</strong> and <strong>Page 1 Footer</strong>. The panel header changes to "Click a part to add" and the target.</li>
+<li>Click a part in the panel. It is placed in the zone you chose. Repeat for each zone. A header or footer zone holds one part; the Body zone holds a list. Pages 2+ can read "same as Page 1".</li>
+<li>Drag body parts to reorder them. Use the dot (●) on a slot to switch it off or on without removing it. Use the remove button to take a part out. Body parts continue across all pages.</li>
+<li>Select <strong>Style</strong> to set the template's default font family, size (points), bold, underline and text transform for headers, body or footers. Leave a value blank to follow the laboratory default from <a href="06-tier5-reporting-synoptic-scheduler.html#screen-document_style">Document Style</a>. A single component can still override it.</li>
+<li>If the template should use AI-assisted writing in Orchestration mode, select a component and set its AI generation fields in the inspector (see <a href="05-tier4-ai-framework.html#ch5">Chapter 5</a>).</li>
+<li>Select <strong>Preview</strong> to see the template filled with mock <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data, with the page count. Margins and page size here apply to the preview only.</li>
+<li>Check that no message under "Assembly issues" remains. Mark at most one field as the final diagnosis if the template is a Final template: with more than one, <strong>Publish</strong> is refused ("A Final template may have only one; unmark the others before publishing").</li>
+<li>Select <strong>Publish</strong>. The button then reads <strong>Published</strong>. The indicator reads "Saved" when the last change has been stored.</li>
+</ol>
+<p>You should now see the template in the list with a Published badge, an <strong>AI</strong> badge if AI generation is on, and the number of active slots.</p>
+<h3 id="ch10-rt-copy"><a class="anchor" href="#ch10-rt-copy" aria-label="Link to this section">#</a> A5. Copy a report template (Duplicate)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<ol>
+<li>Open <strong>Report Templates</strong> &gt; <strong>Report Templates</strong>. Use <strong>Search templates…</strong> or the status buttons (<strong>All</strong>, <strong>Published</strong>, <strong>Draft</strong>, <strong>Archived</strong>) to find the template.</li>
+<li>Point at the row. Its buttons appear on hover: <strong>Edit</strong>, <strong>Duplicate</strong> and <strong>Delete</strong> (a draft) or <strong>Archive</strong> (anything that was ever published).</li>
+<li>Select <strong>Duplicate</strong>. A copy named <code>&lt;name&gt; (Copy)</code> is created as a draft and the editor opens on it.</li>
+<li>Change the copy as in <a href="#ch10-rt-create">A4</a>, steps 3 to 11, then select <strong>Publish</strong>.</li>
+</ol>
+<p>The standard template shows a <strong>STANDARD</strong> badge and has no <strong>Edit</strong> button; copy it to change it.</p>
+<h3 id="ch10-rt-edit"><a class="anchor" href="#ch10-rt-edit" aria-label="Link to this section">#</a> A6. Edit, delete or archive a report template</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<ol>
+<li>To change a template, select <strong>Edit</strong> on its row and work as in <a href="#ch10-rt-create">A4</a>. The editor offers Edit on every row except the standard template. To change a template that is already in use, the safest route is to <strong>Duplicate</strong> it, edit the copy, publish the copy, point routing at the copy (<a href="#ch10-routing">A7</a>), then archive the old one.</li>
+<li>To remove a draft that was never published, select <strong>Delete</strong>, then <strong>Yes</strong> at the "Delete?" prompt. This removes it for good.</li>
+<li>To retire a template that was ever published, select <strong>Archive</strong>, then <strong>Yes</strong> at "Archive?". It is not deleted, so the structure of reports already generated from it stays available.</li>
+</ol>
+<p>Whether editing a published template in place changes reports that are already open is not verified here. Do not edit a template in place during clinical hours; use the copy route in step 1.</p>
+<h3 id="ch10-routing"><a class="anchor" href="#ch10-routing" aria-label="Link to this section">#</a> A7. Route cases to a template (Routing Rules)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Routing Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Routing Rules</span></nav>
+
+<p>Routing decides which published report template a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> uses. The built-in chain is <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>, then <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a>, then the gold standard. Rules you add override it. Permission: <code>config:template-routing:manage</code> (Admin and Lab Director). Reference: <a href="06-tier5-reporting-synoptic-scheduler.html#screen-templates-routing">Routing Rules</a>.</p>
+<ol>
+<li>Open <strong>Report Templates</strong> &gt; the sub-tab <strong>Routing Rules</strong> ("Template Routing Rules").</li>
+<li>Choose the section that fits.
+   - <strong>Facility Overrides</strong>: a given <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> always uses a given template. Select <strong>Add Facility Rule</strong>.
+   - <strong>Physician Preferences</strong>: a given physician always uses a given template. Select <strong>Add Physician Rule</strong>.
+   - <strong>Protocol Mappings</strong>: a given <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> protocol uses a given template. Select <strong>Add Protocol Mapping</strong>. Use this when you have published a new or changed synoptic protocol and want it to use a template without waiting for a software release.</li>
+<li>In the window, pick the facility, physician or protocol. A protocol that is not yet published shows its state in brackets, and archived protocols are not offered.</li>
+<li>Pick the <strong>Performing Lab</strong>: "Global (every <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>)" or one lab. A lab-specific rule is checked before a Global rule for that lab's own cases.</li>
+<li>Pick the <strong>Report Template</strong>. Only published templates are listed.</li>
+<li>Optionally type a <strong>Note</strong> ("Why does this override exist?"). Select <strong>Add Rule</strong>.</li>
+<li>To test, scroll to <strong>Test Template Routing</strong>. Choose a <strong>Performing Facility</strong>, <strong>Ordering Physician</strong>, <strong>Subspecialty</strong> and <strong>Synoptic Template ID</strong> (each can stay "Any" or "None"), then select <strong>Test Routing</strong>. The result names the template and the pass that chose it, and the <strong>Resolution priority</strong> panel highlights that pass. An "Ambiguous" result lists the templates that qualify; add a more specific rule to settle it.</li>
+<li>To switch a rule off without losing it, use <strong>Disable rule</strong> on its row (it then reads <strong>Enable rule</strong> and shows Disabled). To remove it, select the delete button and confirm at "Delete?". To change it, use the edit button and select <strong>Save Changes</strong>.</li>
+</ol>
+<p>To undo a rule: disable it. Cases then fall through to the next pass.</p>
+<h2 id="ch10-synoptic"><a class="anchor" href="#ch10-synoptic" aria-label="Link to this section">#</a> Part B: Synoptic templates (protocols)</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span></nav>
+
+<p>A <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> template is a set of <strong>sections</strong>, each holding <strong>questions</strong> (the editor calls them fields). Each question has a type, answer options, optional <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> and ICD codes, and optional rules about when it shows. A template is saved as a draft, submitted for review, approved and then published.</p>
+<h3 id="ch10-syn-rules"><a class="anchor" href="#ch10-syn-rules" aria-label="Link to this section">#</a> B1. Who may do what, and the review rules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Review Queue"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Review Queue</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Capability</th>
+<th>Default holders</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Draft, import, build, save, submit</td>
+<td><code>config:protocol:draft</code></td>
+<td>Template Author, Admin</td>
+</tr>
+<tr>
+<td>Approve, or return for changes</td>
+<td><code>config:protocol:approve</code></td>
+<td>Template Approver, Lab Director, Admin</td>
+</tr>
+<tr>
+<td>Publish</td>
+<td><code>config:protocol:publish</code></td>
+<td>Template Approver, Lab Director, Admin</td>
+</tr>
+<tr>
+<td>Archive, restore</td>
+<td><code>config:protocol:retire</code></td>
+<td>Template Approver, Lab Director, Admin</td>
+</tr>
+</tbody>
+</table>
+<p>Rules enforced when someone approves or publishes (from <code>templatePublishingRules.ts</code>):</p>
+<ul>
+<li><strong>Independent review.</strong> Anyone who authored or edited the template (every saver is recorded) cannot approve or publish it, unless the site setting <strong>Allow Template Self-Approval</strong> is on. It is off by default.</li>
+<li><strong>Approvals needed.</strong> The site setting for required reviewers (1 to 3, default 1) says how many different people must approve before the template can be published. Set both in <a href="06-tier5-reporting-synoptic-scheduler.html#screen-template_governance">Template Review</a>.</li>
+<li><strong>Coding coverage.</strong> A diagnostic template needs at least <strong>80%</strong> field-level SNOMED coverage to publish. A procedural template such as a <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> checklist is exempt.</li>
+<li>If the check fails, the screen names the reason: the person is not an approver, is the author, the approvals are too few, or coverage is below 80%.</li>
+</ul>
+<p>On a one-person system nobody can approve a template they wrote. Turn on self-approval in Template Review for a test system, or plan a second person before you start.</p>
+<h3 id="ch10-syn-create"><a class="anchor" href="#ch10-syn-create" aria-label="Link to this section">#</a> B2. Create a synoptic template from scratch</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Template editor"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Template editor</span></nav>
+
+<p>Permission: <code>config:protocol:draft</code>. Without it the editor opens read-only with the message "Read only: you can view this template, but drafting and submitting it needs the Template Author <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>."</p>
+<ol>
+<li>Open the Configuration tab <strong>Synoptic Library</strong>. Choose <strong>Active Protocols</strong>, <strong>Review Queue</strong> or <strong>All Protocols</strong>; each has the <strong>Build / Customise</strong> button.</li>
+<li>Select <strong>Build / Customise</strong>. The window is titled "Build / Customise" with the line "Start blank or base it on an existing template".</li>
+<li>Select <strong>Start from Scratch</strong> ("Blank template — define your own sections, fields, and coding"). The editor opens with the breadcrumb "Protocols › New Template".</li>
+<li>Under <strong>Template Metadata</strong>, fill in:
+   - <strong>Template Name</strong> (required). It must be unique among protocols that are not archived; otherwise the editor says <code>A template named "&lt;name&gt;" already exists</code>.
+   - <strong>Anatomical Category</strong> (pick one of the pills, for example Breast, Colon, Lung, Prostate, Skin). The editor needs a category before the template counts as ready.
+   - <strong>Source / Governing Body</strong>: <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, ICCR, RCPA or Custom. It decides the names of the review actions (for example CAP: Accept and Release; RCPath: Ratify).
+   - <strong>Reporting standard</strong> (optional; for a cytology system such as a <a class="term" href="99-glossary.html#g-bethesda" title="The reporting system for cervical cytology results and specimen adequacy, used in the United States and widely elsewhere.">Bethesda</a> edition) and <strong>Staging edition</strong> (optional, for example <code>AJCC 8th</code>).
+   - <strong>Version</strong>. It starts at <code>1.0.0</code>. The up buttons bump MAJOR, MINOR or PATCH.</li>
+<li>In the first section, type a <strong>Section title</strong> in the box. Select <strong>+ Add Section</strong> for each further section.</li>
+<li>In a section, select <strong>+ Add Field</strong> to add a question. For each question:</li>
+<li>Type the <strong>Field label</strong> (for example <code>Tumor site</code>).</li>
+<li>Choose the <strong>Field Type</strong>: Dropdown, Radio, Checkbox, Numeric, Free Text or Long Text. (Part grid and <a class="term" href="99-glossary.html#g-mohs" title="Mohs micrographic surgery, where skin cancer is removed in thin layers and each layer is checked under the microscope before the next is taken.">Mohs</a> stage map questions are built into some PathScribe protocols and cannot be picked as a new type.)</li>
+<li>Tick <strong>Required</strong> if it must always be answered. A required question shows a Required badge.</li>
+<li>For Dropdown, Radio or Checkbox, select <strong>+ Add Answer Option</strong> for each answer and type its label. Select the ⌥ button on an option to add its <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> and ICD codes.</li>
+<li>Optionally add <strong>Field-level Coding</strong> (a SNOMED CT code and an ICD code for the question itself), a <strong>Hint / Helper Text</strong>, and, for Numeric, a <strong>Unit</strong> (for example <code>cm</code>).</li>
+<li>Use the up and down arrows to reorder sections and questions. Use <strong>Collapse</strong> and <strong>Expand</strong> to tidy a long form. Use the delete buttons to remove a question or section.</li>
+<li>To show a question or section only in some cases, open its condition and choose <strong>Show it</strong>: "when the answer is" or "unless the answer is". Pick the trigger question (only Dropdown, Radio and Checkbox questions can be triggers), then the answer. <strong>+ Or also when…</strong> adds an alternative. A question that carries the badge <strong>IF</strong> has a condition.</li>
+<li>Select <strong>👁 Preview</strong> to try the form as a pathologist would, with conditions live. Select <strong>Reset</strong> to clear your trial answers.</li>
+<li>Check the <strong>Readiness</strong> panel on the right. It ticks Template name, Category set, At least 1 section and At least 1 field. The <strong>Coding Coverage</strong> panel shows the SNOMED CT and ICD percentages; a diagnostic template needs SNOMED at 80% or more to publish.</li>
+<li>Select <strong>💾 Save Draft</strong>. The page shows "● Unsaved changes" until you do. The address changes to the saved template, so a page refresh does not create a second copy.</li>
+<li>When it is ready for review, select <strong>📤 Submit for Review</strong>, then <strong>Submit for Review →</strong> in the window ("This will move … to the Review Queue and notify admins and clinical leads. You won't be able to edit it until it's returned for changes.").</li>
+</ol>
+<p>If you leave the page with unsaved changes the window "Unsaved Changes" offers <strong>Save Draft &amp; Leave</strong>, <strong>Discard Changes</strong> and <strong>Keep Editing</strong>.</p>
+<p>To undo: before submitting, archive the draft (see <a href="#ch10-syn-archive">B8</a>). After submitting, a reviewer must return it (<a href="#ch10-syn-review">B6</a>).</p>
+<h3 id="ch10-syn-copy"><a class="anchor" href="#ch10-syn-copy" aria-label="Link to this section">#</a> B3. Copy a synoptic template (Duplicate or Build / Customise)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; All Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>All Protocols</span></nav>
+
+<p>Use a copy to start a variant of a <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> (for example a local version of a <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> checklist). The copy is a new protocol and the original is not changed.</p>
+<p>Route 1, from the list:</p>
+<ol>
+<li>Open <strong>Synoptic Library</strong> &gt; <strong>All Protocols</strong> (or <strong>Active Protocols</strong>).</li>
+<li>Find the protocol with <strong>Search protocols…</strong> or the status filter.</li>
+<li>Open the row (on Active Protocols, click it to expand) and select <strong>Duplicate</strong>.</li>
+<li>The editor opens on a copy, named <code>&lt;name&gt; (Copy)</code>. The version is bumped by one PATCH. The copy keeps whether the original is diagnostic, its type and its group.</li>
+</ol>
+<p>Route 2, from the Build window:</p>
+<ol>
+<li>Select <strong>Build / Customise</strong>.</li>
+<li>Under "or base it on", search for the template by name, source or category (<strong>Search by name, source, or category…</strong>). Each result shows its version and field count.</li>
+<li>Select the template, then <strong>Customise This Template →</strong>. The editor opens on a copy.</li>
+</ol>
+<p>Then continue as in <a href="#ch10-syn-create">B2</a>, steps 4 to 12. Give the copy its own <strong>Template Name</strong> first, because two protocols that are not archived cannot share a name.</p>
+<h3 id="ch10-syn-edit"><a class="anchor" href="#ch10-syn-edit" aria-label="Link to this section">#</a> B4. Edit an existing synoptic template</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Template editor"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Template editor</span></nav>
+
+<ol>
+<li>Open <strong>Synoptic Library</strong> &gt; <strong>All Protocols</strong> and find the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>.</li>
+<li>A Draft or Needs Changes protocol shows <strong>Open Editor</strong>. An In Review or Approved protocol shows <strong>Open Reviewer</strong> (the editor is locked until it is returned). A Published protocol shows <strong>View Protocol</strong> only; to change it, make a New Version (<a href="#ch10-syn-newversion">B5</a>).</li>
+<li>Select <strong>Open Editor</strong>. Change sections, questions, options, codes and conditions as in <a href="#ch10-syn-create">B2</a> steps 5 to 10.</li>
+<li>If a reviewer returned it, a <strong>Changes Requested</strong> banner shows the reviewer's note. Fix what it asks for.</li>
+<li>Select <strong>💾 Save Draft</strong>, then <strong>📤 Submit for Review</strong>.</li>
+</ol>
+<p>Things the editor can set on a question beyond the basics (all stored in the template and in the <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> file):</p>
+<ul>
+<li><strong>Narrative phrase</strong> on an answer, and <strong>Narrative sentence</strong> and <strong>Clinical tier</strong> on a question. Write the sentence with a <code>{value}</code> <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a>, for example <code>The specimen is {value}.</code>. The editor warns "This sentence has no {value}" if you leave it out. Tier 1 carries the diagnostic category.</li>
+<li><strong>Reports as</strong> (Nothing specific, pT, pN, pM, FIGO stage, Block identifier). What the question reports in the structured result sent to the <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> and registries.</li>
+<li><strong>Count rules</strong> on a Numeric question: whole number, "Can't exceed" another count, "Can't be below the sum of" other counts, or a total from a grid. A value that breaks a count rule stops the save and the sign-out.</li>
+<li><strong>Filled from in-house molecular test</strong> on a choice question, with what a positive and a negative result mean.</li>
+<li><strong>Deprecated codes</strong> and <strong>Terminology warnings</strong> buttons appear at the top when the codes in use have alerts. Review them before submitting.</li>
+</ul>
+<h3 id="ch10-syn-newversion"><a class="anchor" href="#ch10-syn-newversion" aria-label="Link to this section">#</a> B5. Publish a new version of a published template</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Active Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Active Protocols</span></nav>
+
+<ol>
+<li>Open <strong>Synoptic Library</strong> &gt; <strong>Active Protocols</strong>. Click the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>'s row to expand it.</li>
+<li>Select <strong>New Version</strong>. The editor opens on a copy with the same name, the MINOR number bumped (for example 1.0.0 becomes 1.1.0), and a link to the published protocol it replaces. The breadcrumb reads "New version — <name> v<version>".</li>
+<li>Make the changes. Use a MAJOR bump for a change that alters what is reported, if your lab policy says so; the bump buttons are in <strong>Template Metadata</strong>.</li>
+<li><strong>Save Draft</strong> and <strong>Submit for Review</strong>, then review and publish as in <a href="#ch10-syn-review">B6</a>.</li>
+<li>When the new version is published, the old one is archived. Reports already written with the old one keep their content.</li>
+</ol>
+<h3 id="ch10-syn-review"><a class="anchor" href="#ch10-syn-review" aria-label="Link to this section">#</a> B6. Review, approve and publish</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Review Queue"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Review Queue</span></nav>
+
+<p>This is done by a different person from the author (see <a href="#ch10-syn-rules">B1</a>).</p>
+<ol>
+<li>Open <strong>Synoptic Library</strong> &gt; <strong>Review Queue</strong>. A banner states "Templates require ≥80% SNOMED coverage and clinical sign-off before publishing." Count tiles show In Review, Needs Changes and Approved.</li>
+<li>Open the card ("Open Reviewer"). Read the questions, the options and the coding coverage.</li>
+<li>To send it back, select <strong>Needs Changes</strong> and type the reason (required). The author sees it in the <strong>Changes Requested</strong> banner and the card shows "Open Editor to Address Changes".</li>
+<li>To approve, select <strong>Approve</strong> (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>: Accept; RCPath: Ratify) and optionally add notes. If the site needs more than one approval, the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> stays In Review until enough different people have approved.</li>
+<li>When it shows Approved, the card reads "Open Reviewer to Publish". Select <strong>Publish</strong> (CAP: Release). If a rule fails, the message names it; coverage under 80% must be fixed in the editor first.</li>
+<li>After publishing, the protocol appears under <strong>Active Protocols</strong>, available to all pathologists at once.</li>
+</ol>
+<p>To undo a publish: archive it (<a href="#ch10-syn-archive">B8</a>) and restore a previous version.</p>
+<h3 id="ch10-syn-export"><a class="anchor" href="#ch10-syn-export" aria-label="Link to this section">#</a> B7. Export a synoptic template to a file</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Active Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Active Protocols</span></nav>
+
+<ol>
+<li>Open <strong>Active Protocols</strong> or <strong>All Protocols</strong>, and open the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>'s row.</li>
+<li>Select <strong>Export <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a></strong>. The browser downloads a file named from the protocol and version, for example <code>cap-colon-resection-v1.0.0.json</code>.</li>
+<li>The export is recorded in the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>. The button has no separate permission; anyone who can open the screen can export.</li>
+</ol>
+<p>The file is the starting point for the JSON procedures in <a href="#ch10-json">Part C</a>.</p>
+<h3 id="ch10-syn-archive"><a class="anchor" href="#ch10-syn-archive" aria-label="Link to this section">#</a> B8. Archive and restore a synoptic template</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; All Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>All Protocols</span></nav>
+
+<p>Permission: <code>config:protocol:retire</code>.</p>
+<ol>
+<li>Open the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>'s row and select <strong>Archive</strong>.</li>
+<li>Read the window "Archive protocol?". For a published protocol it says it will no longer be offered for new reports and that reports already written with it keep their content.</li>
+<li>Confirm. The protocol disappears from the <strong>All</strong> filter; choose the <strong>Archived</strong> filter to see it.</li>
+<li>To bring it back, open <strong>All Protocols</strong>, choose <strong>Archived</strong>, and select <strong>Restore as draft</strong>. It returns as a draft and must go through review again before it can be used.</li>
+</ol>
+<h2 id="ch10-json"><a class="anchor" href="#ch10-json" aria-label="Link to this section">#</a> Part C: Building a synoptic template from a JSON file</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Upload Protocol"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Upload Protocol</span></nav>
+
+<p>A PathScribe <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> template can be written as a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> file and imported as a <strong>draft</strong>. The import checks only the file's <strong>format</strong>. It does not check the clinical content against the <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> or RCPath published <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>, because PathScribe does not hold those bodies' licensed files; every result says "Unverified against CAP or RCPath: only the file's format was checked, not its content against the published protocol." The imported draft still goes through review.</p>
+<p><strong>What can be imported.</strong> Only a PathScribe JSON protocol. A <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP electronic Cancer Checklists, the structured form of the CAP cancer protocols, distributed as SDC XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, the XML form standard used to distribute CAP electronic cancer checklists.">SDC</a>) <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a> form or an Excel workbook (.xlsx) is read and reported, but "can be checked here but not imported yet". Report templates have no import file.</p>
+<p><strong>Limits.</strong> JSON, XML or XLSX; at most 10 MB; not empty.</p>
+<h3 id="ch10-json-roundtrip"><a class="anchor" href="#ch10-json-roundtrip" aria-label="Link to this section">#</a> C1. The easiest way: export, edit, import</h3>
+<ol>
+<li>Export an existing <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> as in <a href="#ch10-syn-export">B7</a>.</li>
+<li>Open the <code>.json</code> file in a text editor that checks <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> (any code editor; a word processor will damage the quotation marks). Edit the values.</li>
+<li>Change the <code>name</code> inside <code>template</code> to a name that no non-archived protocol uses. An import is refused if the name exists.</li>
+<li>Save the file and import it (<a href="#ch10-json-import">C4</a>).</li>
+</ol>
+<p>PathScribe gives the imported draft a new id and ignores the <code>id</code>, <code>supersedesId</code> and <code>copiedFromId</code> in the file, so an import can never overwrite an existing protocol.</p>
+<h3 id="ch10-json-structure"><a class="anchor" href="#ch10-json-structure" aria-label="Link to this section">#</a> C2. The file layout</h3>
+<p>Two layouts are accepted.</p>
+<ol>
+<li><strong>The export wrapper</strong> (what <strong>Export <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a></strong> writes). <code>format</code> must be exactly <code>pathscribe-synoptic-protocol</code>. <code>formatVersion</code> is a number; the current version is <code>1</code>, and a file with a higher number is refused ("exported by a newer version of PathScribe"). The template is inside <code>template</code>. The <code>protocol</code> <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> (id, name, source, version, category, status, isDiagnostic, supersedesId) describes the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> as it was when exported and is not used on import.</li>
+<li><strong>A bare template</strong>: just the object that would sit in <code>template</code>, with <code>sections</code> at the top.</li>
+</ol>
+<p>The template object:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td>Replaced on import.</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>text</td>
+<td><strong>Yes</strong> (checked)</td>
+<td>Shown in the library. Must be unique among non-archived protocols.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td><a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, ICCR, RCPA or Custom. On import the Governing Body you choose in the window decides this (CAP, RCPath and ICCR are kept; RCPA and Other become Custom).</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>text such as <code>1.0.0</code></td>
+<td>Yes in the model</td>
+<td>Major.minor.patch.</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td>The anatomical category, for example <code>COLON</code>.</td>
+</tr>
+<tr>
+<td><code>sections</code></td>
+<td>list</td>
+<td><strong>Yes</strong> (checked, at least one)</td>
+<td>The sections.</td>
+</tr>
+<tr>
+<td><code>ajccEdition</code></td>
+<td>text</td>
+<td>No</td>
+<td>Staging edition, for example <code>AJCC 8th</code>.</td>
+</tr>
+<tr>
+<td><code>standard</code></td>
+<td>text</td>
+<td>No</td>
+<td>Reporting system, for example a <a class="term" href="99-glossary.html#g-bethesda" title="The reporting system for cervical cytology results and specimen adequacy, used in the United States and widely elsewhere.">Bethesda</a> edition.</td>
+</tr>
+</tbody>
+</table>
+<p>A section:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td>Unique inside the template. Conditions point at ids, so give every section and field one.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>text</td>
+<td><strong>Yes</strong> (checked)</td>
+<td>The section heading.</td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>list</td>
+<td>Yes</td>
+<td>The questions. A section with none gives a warning.</td>
+</tr>
+<tr>
+<td><code>collapsed</code></td>
+<td>true or false</td>
+<td>Yes in the model</td>
+<td>Whether it starts collapsed. Use <code>false</code>.</td>
+</tr>
+<tr>
+<td><code>visibleWhen</code></td>
+<td>condition</td>
+<td>No</td>
+<td>Show the section only when a condition holds.</td>
+</tr>
+</tbody>
+</table>
+<p>A question (field):</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Required</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td>Unique inside the template.</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>text</td>
+<td><strong>Yes</strong> (checked)</td>
+<td>The question as the pathologist sees it.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>text</td>
+<td><strong>Yes</strong> (checked)</td>
+<td>One of <code>dropdown</code>, <code>radio</code>, <code>checkboxes</code>, <code>numeric</code>, <code>text</code>, <code>longtext</code>, <code>partGrid</code>, <code>spatialStageCanvas</code>. Anything else is refused.</td>
+</tr>
+<tr>
+<td><code>required</code></td>
+<td>true or false</td>
+<td>Yes in the model</td>
+<td>Always answered.</td>
+</tr>
+<tr>
+<td><code>snomed</code>, <code>icd</code></td>
+<td>text</td>
+<td>Yes in the model</td>
+<td>Codes for the question itself; use <code>""</code> when none.</td>
+</tr>
+<tr>
+<td><code>options</code></td>
+<td>list</td>
+<td>Yes in the model</td>
+<td>The answers of a <code>dropdown</code>, <code>radio</code> or <code>checkboxes</code> question; <code>[]</code> for the others.</td>
+</tr>
+<tr>
+<td><code>hint</code></td>
+<td>text</td>
+<td>No</td>
+<td>Helper text.</td>
+</tr>
+<tr>
+<td><code>unit</code></td>
+<td>text</td>
+<td>No</td>
+<td>For a <code>numeric</code> question.</td>
+</tr>
+<tr>
+<td><code>wholeNumber</code></td>
+<td>true or false</td>
+<td>No</td>
+<td>A count: a whole number, 0 or more.</td>
+</tr>
+<tr>
+<td><code>notMoreThan</code></td>
+<td>field id</td>
+<td>No</td>
+<td>A numeric question this one cannot exceed.</td>
+</tr>
+<tr>
+<td><code>visibleWhen</code></td>
+<td>condition</td>
+<td>No</td>
+<td>Show only when a condition holds.</td>
+</tr>
+<tr>
+<td><code>requiredIf</code></td>
+<td>condition</td>
+<td>No</td>
+<td>Required only when a condition holds.</td>
+</tr>
+<tr>
+<td><code>narrativeSentenceTemplate</code></td>
+<td>text with <code>{value}</code></td>
+<td>No</td>
+<td>The narrative sentence.</td>
+</tr>
+<tr>
+<td><code>clinicalTier</code></td>
+<td>text</td>
+<td>No</td>
+<td><code>tier_1_diagnostic_category</code> or <code>tier_2_descriptive</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>An option: <code>id</code>, <code>label</code>, <code>snomed</code>, <code>icd</code> (each text, <code>""</code> when none) and optionally <code>narrativePhrase</code>.</p>
+<p>A condition: <code>{ "fieldId": "&lt;id of the triggering question&gt;", "answerId": "&lt;id of the option&gt;" }</code>. For several answers use <code>"answerIds": ["a","b"]</code>, and <code>"answerId": ""</code> with <code>"notAnswerIds": [...]</code> for "unless". <code>or</code> holds a list of further conditions.</p>
+<p>Only the properties marked "checked" are verified on import. A missing <code>id</code>, <code>collapsed</code>, <code>options</code> or <code>required</code> is <strong>not</strong> reported by the import check, and a file like that may import and then behave badly in the editor. Always include them. Whether a question without an <code>id</code> can be edited cleanly is not verified.</p>
+<h3 id="ch10-json-minimal"><a class="anchor" href="#ch10-json-minimal" aria-label="Link to this section">#</a> C3. A minimal file</h3>
+<p>This is the smallest file that passes the check: one section, one question.</p>
+<pre><code class="language-json">{
+  &quot;id&quot;: &quot;tmpl-example-min&quot;,
+  &quot;name&quot;: &quot;Example: minimal checklist&quot;,
+  &quot;source&quot;: &quot;Custom&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;category&quot;: &quot;OTHER&quot;,
+  &quot;sections&quot;: [
+    {
+      &quot;id&quot;: &quot;s1&quot;,
+      &quot;title&quot;: &quot;Specimen&quot;,
+      &quot;collapsed&quot;: false,
+      &quot;fields&quot;: [
+        {
+          &quot;id&quot;: &quot;f1&quot;,
+          &quot;label&quot;: &quot;Specimen adequacy&quot;,
+          &quot;type&quot;: &quot;radio&quot;,
+          &quot;required&quot;: true,
+          &quot;snomed&quot;: &quot;&quot;,
+          &quot;icd&quot;: &quot;&quot;,
+          &quot;options&quot;: [
+            { &quot;id&quot;: &quot;o1&quot;, &quot;label&quot;: &quot;Satisfactory&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; },
+            { &quot;id&quot;: &quot;o2&quot;, &quot;label&quot;: &quot;Unsatisfactory&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; }
+          ]
+        }
+      ]
+    }
+  ]
+}
+</code></pre>
+<h3 id="ch10-json-full"><a class="anchor" href="#ch10-json-full" aria-label="Link to this section">#</a> C4. A fuller file</h3>
+<p>This example shows the export wrapper, two sections, every common question type, answer-level codes, a count rule, a visibility condition and narrative text. <strong>The <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> and ICD codes are placeholders for illustration. Replace them with codes your clinical lead has checked; PathScribe does not validate them on import.</strong></p>
+<pre><code class="language-json">{
+  &quot;format&quot;: &quot;pathscribe-synoptic-protocol&quot;,
+  &quot;formatVersion&quot;: 1,
+  &quot;exportedAt&quot;: &quot;2026-10-26T12:00:00.000Z&quot;,
+  &quot;<a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>&quot;: {
+    &quot;id&quot;: &quot;tmpl-example-full&quot;,
+    &quot;name&quot;: &quot;Example: colon resection (illustration only)&quot;,
+    &quot;source&quot;: &quot;Custom&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;category&quot;: &quot;COLON&quot;,
+    &quot;status&quot;: &quot;draft&quot;
+  },
+  &quot;template&quot;: {
+    &quot;id&quot;: &quot;tmpl-example-full&quot;,
+    &quot;name&quot;: &quot;Example: colon resection (illustration only)&quot;,
+    &quot;source&quot;: &quot;Custom&quot;,
+    &quot;version&quot;: &quot;1.0.0&quot;,
+    &quot;category&quot;: &quot;COLON&quot;,
+    &quot;ajccEdition&quot;: &quot;AJCC 8th&quot;,
+    &quot;sections&quot;: [
+      {
+        &quot;id&quot;: &quot;s-specimen&quot;,
+        &quot;title&quot;: &quot;Specimen&quot;,
+        &quot;collapsed&quot;: false,
+        &quot;fields&quot;: [
+          {
+            &quot;id&quot;: &quot;f-procedure&quot;,
+            &quot;label&quot;: &quot;Procedure&quot;,
+            &quot;type&quot;: &quot;dropdown&quot;,
+            &quot;required&quot;: true,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;hint&quot;: &quot;As stated on the requisition.&quot;,
+            &quot;options&quot;: [
+              { &quot;id&quot;: &quot;o-right&quot;, &quot;label&quot;: &quot;Right hemicolectomy&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; },
+              { &quot;id&quot;: &quot;o-left&quot;, &quot;label&quot;: &quot;Left hemicolectomy&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; },
+              { &quot;id&quot;: &quot;o-other&quot;, &quot;label&quot;: &quot;Other&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; }
+            ]
+          },
+          {
+            &quot;id&quot;: &quot;f-other-text&quot;,
+            &quot;label&quot;: &quot;Other procedure (specify)&quot;,
+            &quot;type&quot;: &quot;text&quot;,
+            &quot;required&quot;: false,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: [],
+            &quot;visibleWhen&quot;: { &quot;fieldId&quot;: &quot;f-procedure&quot;, &quot;answerId&quot;: &quot;o-other&quot; }
+          },
+          {
+            &quot;id&quot;: &quot;f-length&quot;,
+            &quot;label&quot;: &quot;Specimen length&quot;,
+            &quot;type&quot;: &quot;numeric&quot;,
+            &quot;unit&quot;: &quot;cm&quot;,
+            &quot;required&quot;: false,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: []
+          }
+        ]
+      },
+      {
+        &quot;id&quot;: &quot;s-tumour&quot;,
+        &quot;title&quot;: &quot;Tumour&quot;,
+        &quot;collapsed&quot;: false,
+        &quot;fields&quot;: [
+          {
+            &quot;id&quot;: &quot;f-histology&quot;,
+            &quot;label&quot;: &quot;Histologic type&quot;,
+            &quot;type&quot;: &quot;dropdown&quot;,
+            &quot;required&quot;: true,
+            &quot;snomed&quot;: &quot;363346000&quot;,
+            &quot;icd&quot;: &quot;C18.9&quot;,
+            &quot;clinicalTier&quot;: &quot;tier_1_diagnostic_category&quot;,
+            &quot;narrativeSentenceTemplate&quot;: &quot;The tumour is {value}.&quot;,
+            &quot;options&quot;: [
+              { &quot;id&quot;: &quot;o-adeno&quot;, &quot;label&quot;: &quot;Adenocarcinoma&quot;, &quot;snomed&quot;: &quot;413448000&quot;, &quot;icd&quot;: &quot;C18.9&quot;, &quot;narrativePhrase&quot;: &quot;an adenocarcinoma&quot; },
+              { &quot;id&quot;: &quot;o-muc&quot;, &quot;label&quot;: &quot;Mucinous adenocarcinoma&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot;, &quot;narrativePhrase&quot;: &quot;a mucinous adenocarcinoma&quot; },
+              { &quot;id&quot;: &quot;o-na&quot;, &quot;label&quot;: &quot;Not specified&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; }
+            ]
+          },
+          {
+            &quot;id&quot;: &quot;f-nodes-examined&quot;,
+            &quot;label&quot;: &quot;Lymph nodes examined&quot;,
+            &quot;type&quot;: &quot;numeric&quot;,
+            &quot;wholeNumber&quot;: true,
+            &quot;required&quot;: true,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: []
+          },
+          {
+            &quot;id&quot;: &quot;f-nodes-positive&quot;,
+            &quot;label&quot;: &quot;Lymph nodes positive&quot;,
+            &quot;type&quot;: &quot;numeric&quot;,
+            &quot;wholeNumber&quot;: true,
+            &quot;notMoreThan&quot;: &quot;f-nodes-examined&quot;,
+            &quot;required&quot;: true,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: []
+          },
+          {
+            &quot;id&quot;: &quot;f-margins&quot;,
+            &quot;label&quot;: &quot;Margins involved&quot;,
+            &quot;type&quot;: &quot;checkboxes&quot;,
+            &quot;required&quot;: false,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: [
+              { &quot;id&quot;: &quot;o-prox&quot;, &quot;label&quot;: &quot;Proximal&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; },
+              { &quot;id&quot;: &quot;o-dist&quot;, &quot;label&quot;: &quot;Distal&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; },
+              { &quot;id&quot;: &quot;o-rad&quot;, &quot;label&quot;: &quot;Radial (circumferential)&quot;, &quot;snomed&quot;: &quot;&quot;, &quot;icd&quot;: &quot;&quot; }
+            ]
+          },
+          {
+            &quot;id&quot;: &quot;f-comment&quot;,
+            &quot;label&quot;: &quot;Comment&quot;,
+            &quot;type&quot;: &quot;longtext&quot;,
+            &quot;required&quot;: false,
+            &quot;snomed&quot;: &quot;&quot;,
+            &quot;icd&quot;: &quot;&quot;,
+            &quot;options&quot;: []
+          }
+        ]
+      }
+    ]
+  }
+}
+</code></pre>
+<p>Check that the example behaves as intended: the question "Other procedure (specify)" shows only when "Other" is chosen; "Lymph nodes positive" cannot exceed "Lymph nodes examined" and both must be whole numbers; the narrative sentence puts the chosen phrase where <code>{value}</code> is.</p>
+<h3 id="ch10-json-import"><a class="anchor" href="#ch10-json-import" aria-label="Link to this section">#</a> C5. Import a JSON file</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Upload Protocol"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Upload Protocol</span></nav>
+
+<p>Permission: <code>config:protocol:draft</code>.</p>
+<ol>
+<li>Open <strong>Synoptic Library</strong> &gt; <strong>Active Protocols</strong>, <strong>Review Queue</strong> or <strong>All Protocols</strong>, and select <strong>Upload Protocol</strong>.</li>
+<li>In the window "Upload Protocol", choose the <strong>Governing Body</strong>: <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, ICCR, RCPA or Other. It becomes the draft's source (RCPA and Other are stored as Custom).</li>
+<li>Drop the file on the drop zone, or click it to browse. A line "Checking the file…" shows, then the result.</li>
+<li>Read the result. "Format checked: no problems found" and "PathScribe <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> with N sections and M questions. It can be imported as a draft." means you can go on. "Format checked: problems found" lists each problem (see <a href="#ch10-json-errors">C6</a>); fix the file, then choose it again.</li>
+<li>Select <strong>Import as draft →</strong>. The window says <code>"&lt;name&gt;" was saved as a draft. Open it in Protocols to edit it, then submit it for review.</code></li>
+<li>Open <strong>All Protocols</strong>, find the draft (filter <strong>Draft</strong>), select <strong>Open Editor</strong>, check it with <strong>👁 Preview</strong>, make any changes, <strong>Save Draft</strong>, then <strong>Submit for Review</strong>.</li>
+</ol>
+<p>Importing never publishes anything. An imported protocol must go through review and approval like any other.</p>
+<h3 id="ch10-json-errors"><a class="anchor" href="#ch10-json-errors" aria-label="Link to this section">#</a> C6. Errors and warnings from the check</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Upload Protocol"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Upload Protocol</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Message in the window</th>
+<th>Cause</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The file is empty.</td>
+<td>Zero bytes.</td>
+<td>Choose the right file.</td>
+</tr>
+<tr>
+<td>The file is larger than 10 MB.</td>
+<td>Over the size limit.</td>
+<td>A <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> export is well under 1 MB; a larger file is probably the wrong file.</td>
+</tr>
+<tr>
+<td>This file type is not supported. Use <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a> or XLSX.</td>
+<td>Another extension.</td>
+<td>Save as <code>.json</code>.</td>
+</tr>
+<tr>
+<td>The file is not valid JSON.</td>
+<td>A missing comma or quote, a trailing comma, or smart quotes from a word processor.</td>
+<td>Paste it into a JSON checker or open it in a code editor, fix the marked line.</td>
+</tr>
+<tr>
+<td>This JSON is not a PathScribe protocol (a protocol has a list of sections).</td>
+<td>There is no <code>sections</code> list, or the file is a list instead of an object.</td>
+<td>Use the layouts in <a href="#ch10-json-structure">C2</a>.</td>
+</tr>
+<tr>
+<td>This file was exported by a newer version of PathScribe (format N).</td>
+<td><code>formatVersion</code> is above 1.</td>
+<td>Export again from this PathScribe, or lower the number only if you know the layout is unchanged.</td>
+</tr>
+<tr>
+<td>The protocol has no name.</td>
+<td><code>name</code> is blank.</td>
+<td>Add a <code>name</code>.</td>
+</tr>
+<tr>
+<td>The protocol has no sections.</td>
+<td><code>sections</code> is empty.</td>
+<td>Add at least one section.</td>
+</tr>
+<tr>
+<td>Section N has no title.</td>
+<td>A section's <code>title</code> is blank.</td>
+<td>Add the title.</td>
+</tr>
+<tr>
+<td>Section N has no questions. (a warning)</td>
+<td><code>fields</code> is empty.</td>
+<td>Add questions or remove the section; the file can still import.</td>
+</tr>
+<tr>
+<td>Section N, question M has no label.</td>
+<td>A question's <code>label</code> is blank.</td>
+<td>Add the label.</td>
+</tr>
+<tr>
+<td>Section N, question M has an unknown question type.</td>
+<td><code>type</code> is not one of the eight allowed values (lower <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, exact).</td>
+<td>Use <code>dropdown</code>, <code>radio</code>, <code>checkboxes</code>, <code>numeric</code>, <code>text</code>, <code>longtext</code>, <code>partGrid</code> or <code>spatialStageCanvas</code>.</td>
+</tr>
+<tr>
+<td>The file is not well-formed XML. / No questions were found in the file.</td>
+<td>XML file problems.</td>
+<td>An XML form can be checked but not imported.</td>
+</tr>
+<tr>
+<td>The file is not an Excel workbook. / The sheets were not read…</td>
+<td>XLSX file problems.</td>
+<td>A workbook can be checked but not imported.</td>
+</tr>
+<tr>
+<td>A protocol with this name already exists. Rename it in the file, or archive the existing one, and choose the file again.</td>
+<td>Name clash with a non-archived protocol.</td>
+<td>Change <code>name</code>.</td>
+</tr>
+<tr>
+<td>The draft could not be saved. Drafting protocols needs the Template Author <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>.</td>
+<td>Missing <code>config:protocol:draft</code>.</td>
+<td>Ask an administrator to grant the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> (Staff, Roles).</td>
+</tr>
+</tbody>
+</table>
+<p>Section and question numbers count from 1 in the order they appear in the file.</p>
+<h3 id="ch10-json-notchecked"><a class="anchor" href="#ch10-json-notchecked" aria-label="Link to this section">#</a> C7. What the import does not check</h3>
+<p>Be aware of these gaps when you write a file by hand. They are not reported by the import and are caught, if at all, only later in the editor or at sign-out.</p>
+<ul>
+<li>Whether <code>id</code> values exist and are unique.</li>
+<li>Whether a <code>visibleWhen</code> or <code>requiredIf</code> condition points at a question and an answer that exist.</li>
+<li>Whether a dropdown, radio or checkbox question has any options.</li>
+<li>Whether <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> and ICD codes are real, current, or match the label.</li>
+<li>Whether the content matches the <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> or RCPath <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> it claims to follow.</li>
+<li>Whether <code>version</code>, <code>category</code> and <code>source</code> use the expected values.</li>
+</ul>
+<p>After every import, open the draft in the editor and use <strong>👁 Preview</strong> and the <strong>Readiness</strong> and <strong>Coding Coverage</strong> panels before you submit it.</p>
+<h2 id="ch10-scheduling"><a class="anchor" href="#ch10-scheduling" aria-label="Link to this section">#</a> Part D: Scheduling reports and report delivery</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span></nav>
+
+<p>"Scheduling reports" means three different things in PathScribe. Choose the one you need.</p>
+<table>
+<thead>
+<tr>
+<th>You want to</th>
+<th>Use</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decide <strong>where</strong> each released patient report goes (result message, print, fax, file drop)</td>
+<td>Delivery Configuration Rules (<a href="#ch10-delivery-rules">D1</a>)</td>
+<td>Built</td>
+</tr>
+<tr>
+<td>Decide <strong>when</strong> feeds go out (report delivery, billing, registries and so on)</td>
+<td>Delivery Schedules (<a href="#ch10-delivery-schedule">D3</a>)</td>
+<td>Partial</td>
+</tr>
+<tr>
+<td>Run a <strong>saved search report</strong> every day, week or month for named recipients</td>
+<td>Saved-report schedules (<a href="#ch10-saved-schedule">D4</a>)</td>
+<td>Demonstration: nothing is delivered</td>
+</tr>
+</tbody>
+</table>
+<p>Billing and <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> schedules are covered with the Registry feed in <a href="#ch10-delivery-schedule">D3</a> and in <a href="11-procedures-labels-billing.html#ch11">Chapter 11</a>.</p>
+<h3 id="ch10-delivery-rules"><a class="anchor" href="#ch10-delivery-rules" aria-label="Link to this section">#</a> D1. Choose where released reports go (Delivery Configuration Rules)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Configuration Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Configuration Rules</span></nav>
+
+<p>Permission to change: <code>config:delivery-rules:manage</code> (Admin and Lab Director). Reference: <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_rules">Delivery Configuration Rules</a>.</p>
+<ol>
+<li>Open the Configuration tab <strong>System</strong>, group <strong>Administration &amp; Compliance</strong>, then <strong>Delivery Configuration Rules</strong>.</li>
+<li>Select <strong>Add Rule</strong>.</li>
+<li>Choose the cases the rule covers. Every criterion is optional: <strong>Provider</strong>, <strong>Ordering Facility</strong>, <strong>Patient Location (Point of Care)</strong> and <strong>Report Type</strong> (Preliminary, Final, Corrected, Addendum). The more criteria that match, the stronger the rule. A rule with none set matches every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> but only as the lowest priority, and the window warns you.</li>
+<li>For each channel, choose Off, Primary, Secondary or Fallback. The channels are Electronic (result message to the interface engine), Print, E-fax and File drop. Primary and secondary go at once. A fallback goes only when a primary print, fax or file drop has nowhere to go or still fails after its retries.</li>
+<li>If E-fax is on, type the <strong>Fax number</strong> (7 to 15 digits, optional leading <code>+</code>), or leave it blank to fax the ordering physician, or the ordering <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> if there is no physician number.</li>
+<li>If File drop is on, type the <strong>File-drop target</strong>, the name of the target as set up on the interface server. The folder or <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> address and sign-in details are kept on the server, not in PathScribe.</li>
+<li>Optionally type a <strong>Note</strong>. Save the rule.</li>
+<li>Test it. In <strong>Test Delivery Resolution</strong>, choose a Provider, Ordering Facility, Patient Location and Report Type, then select <strong>Resolve</strong>. The result shows the matched rule, the action (Electronic Only, Print Only, Dual Delivery, Suppress) and the channel plan.</li>
+<li>To set automatic retries, type the minutes to wait before each try in <strong>Automatic retries: wait before each (minutes)</strong>, for example <code>1, 5, 15</code>. Each wait is from 1 to 1,440 minutes and you may list up to 10. Select <strong>Save retries</strong>. After the last try the delivery goes to the delivery exceptions, Admin and Lab Director are sent a message, and the rule's fallback channels are used. Leave it blank for no retries.</li>
+</ol>
+<p>The window refuses: a fallback with no primary ("A fallback needs a primary channel to fall back from"), a fax number that is not 7 to 15 digits, and a file drop with no target. When no rule matches, the report goes <strong>Electronic Only</strong>.</p>
+<p>To undo: edit the rule or delete it. Reports already sent are not recalled.</p>
+<h3 id="ch10-print-routing"><a class="anchor" href="#ch10-print-routing" aria-label="Link to this section">#</a> D2. Choose the printer for the print channel</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Print Destination Routing Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Print Destination Routing Rules</span></nav>
+
+<p>A delivery rule with the Print channel creates a print job. The printer comes from <a href="06-tier5-reporting-synoptic-scheduler.html#screen-print_routing_rules">Print Destination Routing Rules</a>, otherwise the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own default destination. Set these rules before turning Print on in a delivery rule. The Add rule window and the Test Print Destination Resolution panel work like those in <a href="#ch10-delivery-rules">D1</a>.</p>
+<h3 id="ch10-delivery-schedule"><a class="anchor" href="#ch10-delivery-schedule" aria-label="Link to this section">#</a> D3. Set when feeds go out (Delivery Schedules)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Schedules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Schedules</span></nav>
+
+<p>Permission to change: <code>config:delivery-schedules:manage</code> (Admin and Lab Director). The schedule is stored and evaluated, and the <a class="term" href="99-glossary.html#g-outbound-queue" title="The list of messages and charges PathScribe has built and not yet sent, held, sent or failed.">outbound queue</a> shows each item's scheduled time and reporting-deadline <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>, but the production server must apply the same rules before handing an item on. A browser or development build does not hold a send until its time. Reference: <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Delivery Schedules</a>.</p>
+<ol>
+<li>Open the Configuration tab <strong>System</strong>, group <strong>Administration &amp; Compliance</strong>, then <strong>Delivery Schedules</strong>.</li>
+<li>In <strong>Schedules for</strong>, choose "Whole <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a>" or one performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>.</li>
+<li>Find the feed's card. The feeds are Report delivery, Billing delivery, Results feed, Admissions feed (<a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>), Accession feed, <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> sync and one card for each Registry. A card reads "No schedule set: sent immediately", "Follows the enterprise schedule" or "Set for this facility".</li>
+<li>Select <strong>Edit</strong> (for a facility, <strong>Set for this facility</strong> first).</li>
+<li>Under <strong>How it goes out</strong>, choose one:
+   - <strong>Send immediately.</strong>
+   - <strong>Only during set hours.</strong> Add rows of <strong>Days</strong>, <strong>From</strong> and <strong>Until</strong> (24-hour). Each must end after it starts on the same day.
+   - <strong>In a batch at set times.</strong> Choose <strong>How often</strong> (Every day, Weekly or Monthly). For weekly, tick the <strong>Batch days</strong>. For monthly, type the <strong>Days of the month</strong> (1 to 28). Type the <strong>Batch times</strong>, for example <code>06:00, 22:00</code>. Optionally type a <strong>Cutoff time</strong>: items signed out after it on a run day wait for the next run.
+   - <strong>Hold until final sign-out.</strong>
+   - <strong>At sign-out after a review hold.</strong> Type the <strong>Review hold</strong> in minutes (1 to 10,080). Match it to your quality review and amendment window.</li>
+<li>Optionally type <strong>Days with no sending</strong> as dates, for example <code>2026-12-25, 2027-01-01</code>. This applies to set hours and batch schedules.</li>
+<li>Choose the <strong>Time zone</strong> as an IANA name, for example <code>America/New_York</code>. All times are read in this zone.</li>
+<li>Optionally type a <strong>Reporting deadline</strong> in days from sign-out (1 to 3,650). The queue flags cases within 3 days of it or past it. Registries often need this.</li>
+<li>Decide whether <strong>An amendment puts the item back in the queue</strong>. It is on by default for registries.</li>
+<li>Select <strong>Save schedule</strong>. It is refused if a required value is missing or invalid, or if you lack the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>.</li>
+<li>Test it with <strong>Try a schedule</strong>: choose the <strong>Feed</strong>, optionally a performing facility, the <strong>Registry</strong> for the Registry feed, and the <strong>Date and time</strong>; say whether the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is finally signed out and when. Select <strong>Check</strong>. It answers "It goes out" or "It waits", with the reason and the next opportunity.</li>
+</ol>
+<p>For a facility to go back to the enterprise schedule, select <strong>Follow the enterprise</strong> on its card.</p>
+<p>Registry destinations, required fields, go-live approval and transport belong to each <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>'s own setup, not to this schedule. A registry with no schedule holds each item 240 minutes after sign-out, and an amendment re-queues it.</p>
+<h3 id="ch10-saved-schedule"><a class="anchor" href="#ch10-saved-schedule" aria-label="Link to this section">#</a> D4. Schedule a saved report (Search &gt; Report &gt; Schedules)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Search &gt; Report &gt; Schedules"><span>Home</span> <span aria-hidden="true">›</span> <span>Search</span> <span aria-hidden="true">›</span> <span>Report</span> <span aria-hidden="true">›</span> <span>Schedules</span></nav>
+
+<p>Permission: <code>search:report-schedule:manage</code>. This is a user feature: the person who owns the saved report schedules it. An administrator sets it up for a person by granting that <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> and teaching these steps.</p>
+<p><strong>Nothing is delivered yet.</strong> A schedule is stored, and <strong>Run now (Simulated)</strong> builds the report and records its counts, but nothing is emailed or filed. Do not rely on a schedule to reach anyone.</p>
+<ol>
+<li>Open <strong>Search</strong>, run a search and select <strong>Report</strong>. Group the cases, choose the columns, then save the report with a name. A schedule runs a saved report; with none saved the panel says "Save a report first".</li>
+<li>Select <strong>Schedules</strong>.</li>
+<li>Under <strong>New schedule</strong>, choose the saved report from "Choose a saved report…".</li>
+<li>Choose how often: daily, weekly or monthly. For weekly, set the <strong>Day of the week</strong>. For monthly, set the <strong>Day of the month</strong> (1 to 28). Set the time of day.</li>
+<li>Optionally tick "Cover the most recent days each run, instead of the saved dates", then set <strong>Days to cover</strong> (1 to 366). Leave it unticked to use the dates saved with the report.</li>
+<li>Tick the people under "Recipients": the label shows how many you chose out of the most allowed (20). PathScribe compares each person's access with the report ("Checking what each recipient can see…"). If someone cannot see every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, you are asked to narrow the report for them or skip them; PathScribe does not choose for you.</li>
+<li>Select the create button. Each schedule is listed with its pattern, "Covers the last … days", the number of recipients and the next run. A person may hold up to 25 schedules.</li>
+<li>Use <strong>Run now (Simulated)</strong> to test, <strong>Pause</strong> (then <strong>Resume</strong>) to stop temporarily, and <strong>Delete</strong> to remove.</li>
+</ol>
+<p>A schedule shows "Not run yet" before its first run and "Last run failed: …" with the reason when a run fails. "The schedule could not be saved." means the form was refused for a reason not named; check each box and try again.</p>
+<h2 id="ch10-gaps"><a class="anchor" href="#ch10-gaps" aria-label="Link to this section">#</a> What is not covered, and what to check</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span></nav>
+
+<ul>
+<li><strong>No import for report templates or parts.</strong> Only <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> templates have a file format.</li>
+<li><strong>No review step for report templates.</strong> They go Draft, Published, Archived, with no second approver (unlike synoptic templates).</li>
+<li><strong>Not verified here:</strong> how editing a published report template in place affects reports that are open; whether a part archived after a template uses it still prints; how a question with no <code>id</code> behaves in the editor; the exact shape of the production server's response for any save.</li>
+<li><strong>Scheduled report delivery.</strong> Saved-report schedules do not deliver. Delivery Schedules are partly applied by the browser build.</li>
+<li><strong>Content is never verified against <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> or RCPath.</strong> A reviewer must compare the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> to the <a class="term" href="99-glossary.html#g-governing-body" title="The authority whose rules a jurisdiction follows, such as CAP or a national college, which sets minimum retention periods and requirements.">governing body</a>'s current published version.</li>
+<li><strong>Translations.</strong> This chapter is written in English. The French, German, Dutch, Korean and Spanish editions do not yet contain it.</li>
+</ul></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

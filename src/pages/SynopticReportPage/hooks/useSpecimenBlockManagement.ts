@@ -27,20 +27,36 @@
 // defined inline in the same scope.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { DirtySectionId } from '@/services';
 import { useState, useEffect, useMemo, useCallback, useRef, type MutableRefObject } from 'react';
-import { isTriagePending } from '@/pages/WorklistPage/PendingGrossingTriageTile';
+import { checkTriageReleaseGate } from '@/services/grossing/triageReleaseGate';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import type { CaseWriteDeps } from '@/services/cases/caseWrite';
+import {
+  saveScreenCaseChange, cancelBlockChange, orderRestainChange, appendBlockChange, setBlockLisStatusChange,
+  releasePendingBlocksChange, removePendingBlockChange, createMatrixBlockChange,
+  updateMatrixBlockParticipantsChange, dissolveMatrixBlockChange, type CaseChange,
+} from '@/services/material/blockCaseChanges';
 import type { Case } from '@/types/case/Case';
 import type { Specimen, HistologyBlock, BlockStatus, StainOrder } from '@/types/case/Specimen';
 import type { MatrixBlock } from '@/types/case/MatrixBlock';
 import type { Decant } from '@/types/case/Material';
+import { deleteBlockInProcessLive, type BlockSaveOutcome } from '@/services/material/deleteBlockInProcess';
+import { invalidateBlockAfterSignOutLive, flagBlockOnAmendedReportLive } from '@/services/material/deleteBlockAfterSignOut';
+import { caseBlockDeletionRefusal } from '@/services/material/blockDeletion';
+import { newMaterialComments } from '@/services/material/materialComments';
+import { useCaseMaterialStore } from './useCaseMaterialStore';
+import { nextDecantLabel, decantRefusalKey } from '@/services/material/materialTree';
+import type { DispatchOutcome } from '@/services/material/caseMaterialStore';
 import { UNSTAINED_LABEL } from '@/types/case/Specimen';
 import type { SigningUser, SetConcurrencyConflict } from './sharedHookTypes';
 import { handleConcurrencyConflict } from './sharedHookTypes';
 import { useCassetteScanVerification } from './useCassetteScanVerification';
-import { printSettingsService, specimenDeficiencyService, auditService as mockAuditService } from '@/services/index';
+import { caseLabelStyle } from '@/services/labeling/liveCaseLabelStyle';
+import { nextBlockLabel } from '@/utils/specimenLabeling';
+import { printSettingsService, specimenDeficiencyService, auditService } from '@/services/index';
 import type { PrintSettingsConfig, CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import { DEFAULT_CASSETTE_LABEL_LAYOUT } from '@/services/printSettings/IPrintSettingsService';
 import { dispatchCassetteLabel, dispatchMatrixCassetteLabel } from '@/utils/labels/dispatchCassetteLabel';
@@ -60,7 +76,7 @@ interface UseSpecimenBlockManagementParams {
   caseData: Case | null;
   setCaseData: React.Dispatch<React.SetStateAction<Case | null>>;
   signingUser: SigningUser;
-  markDirty: (section: string) => void;
+  markDirty: (section: DirtySectionId) => void;
   knownVersionRef: MutableRefObject<number>;
   setConcurrencyConflict: SetConcurrencyConflict;
   sendMaterialOrderToLis: (order: {
@@ -119,6 +135,55 @@ export function useSpecimenBlockManagement({
   const caseDataRef = useRef(caseData);
   caseDataRef.current = caseData;
   const { t } = useTranslation();
+
+  // PS-71 (Batch 458): the block/stain/Biopsy Array saves below used to
+  // catch a version conflict and save again WITHOUT a version ("force-write
+  // on retry because the LIS already acknowledged the physical order"),
+  // silently overwriting whatever the other person had just saved. Now the
+  // first save carries knownVersionRef; on a conflict the same change
+  // (services/material/blockCaseChanges.ts) is re-applied to the newest
+  // case and saved with that case's version, so the LIS-acknowledged order
+  // is still recorded AND the other person's edits survive. The screen
+  // then adopts what was saved and knownVersionRef follows the saved
+  // version. If it still can't be saved, the optimistic change is undone
+  // (when `revert` is given) and the user is told: never a silent loss and
+  // never a pretended save.
+  //   'saved'    saved on the screen's version
+  //   'merged'   saved on top of someone else's newer version
+  //   'notSaved' could not be saved (kept conflicting, or no longer applies)
+  //   'error'    any other failure (logged; callers keep their old flow)
+  const caseWriteDeps = useMemo<CaseWriteDeps>(() => ({
+    getCase: (id: string) => caseRouter.getCase(id),
+    updateCase: (id: string, updates: Partial<Case>, expectedVersion: number) => caseRouter.updateCase(id, updates, expectedVersion),
+  }), []);
+  const persistBlockChange = useCallback(async (
+    caseId: string,
+    firstUpdates: Partial<Case>,
+    change: CaseChange,
+    revert: Partial<Case> | null,
+    logLabel: string,
+  ): Promise<'saved' | 'merged' | 'notSaved' | 'error'> => {
+    try {
+      const r = await saveScreenCaseChange(caseId, firstUpdates, change, knownVersionRef.current, caseWriteDeps);
+      if (r.ok) {
+        // PS-71 (Batch 458): adopt the new version only when this page's copy
+        // is the saved case. After a merge, someone else changed the case and
+        // this page holds only their specimens and blocks, so its other parts
+        // are older than the saved case: keeping the old version makes the
+        // page's next save of those parts open the Edit Conflict dialog
+        // instead of overwriting their work.
+        if (!r.retried) { knownVersionRef.current = r.version; return 'saved'; }
+        setCaseData(prev => prev ? ({ ...prev, ...r.updates } as typeof prev) : prev);
+        return 'merged';
+      }
+      if (revert) setCaseData(prev => prev ? ({ ...prev, ...revert } as typeof prev) : prev);
+      showToast(t('useSpecimenBlockManagement.toast.blockChangeNotSavedConflict'), 'warning');
+      return 'notSaved';
+    } catch (e) {
+      console.error(logLabel, e);
+      return 'error';
+    }
+  }, [caseWriteDeps, knownVersionRef, setCaseData, showToast, t]);
 
   // Real feature, per direct follow-up: Step 4 of the label-printing
   // build plan — on-demand trigger wiring + scan verification. Real,
@@ -240,7 +305,9 @@ export function useSpecimenBlockManagement({
 
   const printCassetteForBlock = useCallback((specimenLabel: string, blockLabel: string) => {
     if (!caseData) return;
-    const cassetteId = cassetteIdentifier(caseData.accession.fullAccession, specimenLabel, blockLabel);
+    // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id;
+    const cassetteId = cassetteIdentifier(fullAccession, specimenLabel, blockLabel);
     // Real, per direct follow-up flagging a real, confirmed gap: this
     // block's own real tissueDescription (editable via
     // BlockStainEditorModal.tsx) never actually reached the printed
@@ -251,7 +318,7 @@ export function useSpecimenBlockManagement({
       .find(s => s.label === specimenLabel)?.blocks
       ?.find(b => b.label === blockLabel);
     dispatchCassetteLabel({
-      fullAccession: caseData.accession.fullAccession,
+      fullAccession,
       specimenLabel,
       blockLabel,
       cassetteId,
@@ -261,9 +328,9 @@ export function useSpecimenBlockManagement({
     // call above.
     attemptPrintedLabel('cassette', async (printer, gtin, cassetteLabelLayout) => {
       const result = await printCassetteLabel({
-        fullAccession: caseData.accession.fullAccession, specimenLabel, blockLabel, cassetteId,
+        fullAccession, specimenLabel, blockLabel, cassetteId,
         patientName: `${caseData.patient.givenNames} ${caseData.patient.familyNames}`.trim(),
-        tissueDescription: block?.tissueDescription,
+        tissueDescription: block?.tissueDescription, blockType: block?.blockType,
       }, printer, gtin, cassetteLabelLayout);
       // Real, deliberate cast — see attemptPrintedLabel's own doc
       // comment on why this project's own tsconfig.json requires it.
@@ -282,7 +349,7 @@ export function useSpecimenBlockManagement({
     if (!caseData) return;
     const matrixBlock = (caseData.matrixBlocks ?? []).find(m => m.id === matrixBlockId);
     if (!matrixBlock) return;
-    const fullAccession = caseData.accession.fullAccession;
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
     const cassetteId = matrixBlockIdentifier(fullAccession, matrixBlock.label);
     const specimenLabels = matrixBlock.participants.map(p =>
       (caseData.specimens ?? []).find(s => s.id === p.specimenId)?.label ?? '?');
@@ -379,17 +446,18 @@ export function useSpecimenBlockManagement({
   // applies equally here).
   const printSlideForStain = useCallback((specimenLabel: string, blockLabel: string, level: string, stainName: string) => {
     if (!caseData) return;
-    const slideId = slideIdentifier(caseData.accession.fullAccession, specimenLabel, blockLabel, level);
+    const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
+    const slideId = slideIdentifier(fullAccession, specimenLabel, blockLabel, level);
     dispatchSlideLabel({
-      fullAccession: caseData.accession.fullAccession,
-      specimenLabel, blockLabel, level, stainName, slideId,
+      fullAccession,
+      specimenLabel, blockLabel, level, stainName, slideId, slideDesignation: caseData.labelStyle?.slide,
     }).catch(console.error);
     // Real, purely additive — see attemptPrintedLabel's own doc
     // comment. Never affects the dispatchSlideLabel engrave-stub call
     // above.
     attemptPrintedLabel('slide', async (printer, gtin, _cassetteLabelLayout) => {
       const result = await printSlideLabel({
-        fullAccession: caseData.accession.fullAccession, specimenLabel, blockLabel, level, stainName, slideId,
+        fullAccession, specimenLabel, blockLabel, level, stainName, slideId, slideDesignation: caseData.labelStyle?.slide,
       }, printer, gtin);
       return result.ok ? { ok: true } : { ok: false, message: (result as { ok: false; message: string }).message };
     }).catch(console.error);
@@ -454,7 +522,7 @@ export function useSpecimenBlockManagement({
       await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Block status');
+      markDirty('blockStatus');
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to advance block status:', e);
@@ -492,7 +560,7 @@ export function useSpecimenBlockManagement({
       await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Triage confirmation');
+      markDirty('triageConfirmation');
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to confirm triage:', e);
@@ -521,7 +589,7 @@ export function useSpecimenBlockManagement({
       await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Triage override');
+      markDirty('triageOverride');
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to override triage:', e);
@@ -553,7 +621,7 @@ export function useSpecimenBlockManagement({
       await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Triage checklist');
+      markDirty('triageChecklist');
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to update triage checklist item:', e);
@@ -631,7 +699,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!block.externalId && !!block.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== block.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Block ${sp?.label ?? ''}${block.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,
@@ -651,7 +719,7 @@ export function useSpecimenBlockManagement({
       await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Block edit');
+      markDirty('blockEdit');
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to update block:', e);
@@ -699,49 +767,85 @@ export function useSpecimenBlockManagement({
       return;
     }
 
-    const TERMINAL_STAIN_STATUSES = new Set(['Coverslipped', 'Ready for Review', 'QC Failed', 'Cancelled']);
-    const nowIso = new Date().toISOString();
-    const patchedSpecimens = specimens.map((s: Specimen) =>
-      s.id !== specimenId ? s : {
-        ...s,
-        blocks: (s.blocks ?? []).map((b: HistologyBlock) =>
-          b.id === blockId
-            ? {
-                ...b,
-                status: 'Cancelled' as const,
-                sharedCassetteId: undefined,
-                positionInBlock: undefined,
-                cancelReason: reason.trim(),
-                cancelledBy: signingUser?.id ?? 'unknown',
-                cancelledAt: nowIso,
-                stains: b.stains.map(stain =>
-                  TERMINAL_STAIN_STATUSES.has(stain.status) ? stain : { ...stain, status: 'Cancelled' as const }
-                ),
-              }
-            : b
-        ),
-      }
-    );
-    setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-          showToast(t('useSpecimenBlockManagement.toast.unsavedChangesCancellation'), 'warning');
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save block cancellation after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
+    // PS-71 (Batch 458): the change lives in blockCaseChanges.cancelBlockChange
+    // and is re-applied to the newest case on a conflict (was: re-saved
+    // without a version, overwriting the other person's change).
+    const change = cancelBlockChange({ specimenId, blockId, reason, cancelledBy: signingUser?.id ?? 'unknown', cancelledAt: new Date().toISOString() });
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData(prev => prev ? ({ ...prev, ...firstUpdates } as typeof prev) : prev);
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens }, '[Grossing] Failed to save block cancellation:');
+    if (saved === 'notSaved') return;
+    if (saved === 'merged') showToast(t('useSpecimenBlockManagement.toast.unsavedChangesCancellation'), 'warning');
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.blockCancelled', { label: `${sp.label}${block.label}` }));
-  }, [caseData, signingUser, sendMaterialOrderToLis, markDirty, showToast, knownVersionRef, setCaseData, t]);
+  }, [caseData, signingUser, sendMaterialOrderToLis, markDirty, showToast, setCaseData, persistBlockChange, t]);
+
+  // Batch 588 (Pete, Oct 16 2026): deleting a block that is still in process. A soft
+  // delete (the block stays, marked Deleted) that needs material:block:delete-in-process,
+  // checked in services/material/deleteBlockInProcess.ts, which also raises the billing
+  // deficiency and audits. The save goes through this page's own version tracking.
+  // Batch 610 (#11): once the case is signed out the same control invalidates the block instead
+  // (tier 2, material:block:delete-signed-out); on an amended report a pathologist or Quality
+  // Manager can also flag a block Invalidated or Superseded (tier 3, no deletion).
+  const blockDeleteTier: 'in_process' | 'signed_out' = caseData && caseBlockDeletionRefusal(caseData) ? 'signed_out' : 'in_process';
+  const canDeleteBlocks = !!caseData;
+  const canFlagBlocks = !!caseData && !!caseData.lastRevisionType && caseData.lastRevisionType !== 'original';
+  const handleDeleteBlock = useCallback(async (specimenId: string, blockId: string, reasonCode: string, note: string) => {
+    if (!caseData?.id) return;
+    const specimens = caseData.specimens ?? [];
+    const sp = specimens.find((s: Specimen) => s.id === specimenId);
+    const block = sp?.blocks?.find(b => b.id === blockId);
+    if (!sp || !block) return;
+    const saveThis = async (change: CaseChange): Promise<BlockSaveOutcome> => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block deletion:');
+    };
+    const input = { caseId: caseData.id, specimenId, blockId, reasonCode, note, actor: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'unknown' } };
+    if (blockDeleteTier === 'signed_out') {
+      const r = await invalidateBlockAfterSignOutLive(input, saveThis);
+      if (!r.ok) { showToast(t(`blockDeletion.errors.${r.error}`), 'warning'); return; }
+      markDirty('blocks');
+      showToast(t('blockDeletion.toast.invalidated', { label: `${sp.label}${block.label}` }));
+      if (!r.billingFlagRaised) showToast(t('blockDeletion.toast.billingFlagFailedInvalidated'), 'warning');
+      return;
+    }
+    const result = await deleteBlockInProcessLive(
+      input,
+      async change => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block deletion:');
+      },
+    );
+    if (!result.ok) { showToast(t(`blockDeletion.errors.${result.error}`), 'warning'); return; }
+    markDirty('blocks');
+    showToast(t('blockDeletion.toast.deleted', { label: `${sp.label}${block.label}` }));
+    if (!result.billingFlagRaised) showToast(t('blockDeletion.toast.billingFlagFailed'), 'warning');
+  }, [caseData, blockDeleteTier, signingUser, markDirty, showToast, setCaseData, persistBlockChange, t]);
+
+  const handleFlagBlock = useCallback(async (specimenId: string, blockId: string, kind: 'invalidated' | 'superseded', reasonCode: string, note: string) => {
+    if (!caseData?.id) return;
+    const specimens = caseData.specimens ?? [];
+    const sp = specimens.find((s: Specimen) => s.id === specimenId);
+    const block = sp?.blocks?.find(b => b.id === blockId);
+    if (!sp || !block) return;
+    const r = await flagBlockOnAmendedReportLive(
+      { caseId: caseData.id, specimenId, blockId, kind, reasonCode, note, actor: { userId: signingUser?.id ?? 'unknown', userName: signingUser?.name ?? 'unknown' } },
+      async change => {
+        const first = change(caseData);
+        if (!first) return 'notSaved';
+        setCaseData(prev => prev ? ({ ...prev, ...first, updatedAt: new Date().toISOString() } as typeof prev) : prev);
+        return persistBlockChange(caseData.id, first, change, { specimens }, '[Grossing] Failed to save block flag:');
+      },
+    );
+    if (!r.ok) { showToast(t(`blockDeletion.errors.${r.error}`), 'warning'); return; }
+    markDirty('blocks');
+    showToast(t(`blockDeletion.toast.flagged.${kind}`, { label: `${sp.label}${block.label}` }));
+  }, [caseData, signingUser, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
   // Real feature, per direct confirmation: "Create Spare Slide —
   // Generates a new slide ID, links to block, no stain assigned
@@ -789,7 +893,7 @@ export function useSpecimenBlockManagement({
       console.error('[Grossing] Failed to create spare slide:', e);
       return;
     }
-    markDirty('Blocks');
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.spareSlideAdded', { label: `${sp.label}${block.label}` }));
   }, [caseData, markDirty, showToast, knownVersionRef, setCaseData, setConcurrencyConflict, t]);
 
@@ -835,77 +939,28 @@ export function useSpecimenBlockManagement({
       return;
     }
 
-    const nowIso = new Date().toISOString();
-    const orderedBy = signingUser?.id ?? 'unknown';
-    const patchedSpecimens = specimens.map((s: Specimen) => {
-      if (s.id !== specimenId) return s;
-      let stains = s.blocks?.find(b => b.id === blockId)?.stains ?? [];
-
-      if (isConvertingSpare) {
-        // Convert the existing spare in place — same slide id, real
-        // tissue that was already cut, now actually being stained.
-        stains = stains.map(stain =>
-          stain.id === params.targetSlideId
-            ? {
-                ...stain,
-                stainName: params.stainName.trim(),
-                // Real feature, per direct confirmation: the
-                // physical slide is already cut and placed — this
-                // moves it straight to 'Staining', not back to
-                // 'Pending Cut' (which would incorrectly say the
-                // cutting hasn't happened yet).
-                status: 'Staining' as const,
-                restainReason: params.reason.trim(),
-                restainOrderedBy: orderedBy,
-                restainOrderedAt: nowIso,
-              }
-            : stain
-        );
-      } else {
-        // The target already has real stain on it — never overwritten.
-        // A genuinely new slide, linked back to it, gets ordered instead.
-        const newRestain: StainOrder = {
-          id: `stain-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          stainName: params.stainName.trim(),
-          status: 'Pending Cut',
-          restainReason: params.reason.trim(),
-          restainOrderedBy: orderedBy,
-          restainOrderedAt: nowIso,
-          restainOfSlideId: params.targetSlideId,
-        };
-        stains = [...stains, newRestain];
-      }
-
-      return {
-        ...s,
-        blocks: (s.blocks ?? []).map((b: HistologyBlock) => b.id === blockId ? { ...b, stains } : b),
-      };
+    // PS-71 (Batch 458): blockCaseChanges.orderRestainChange, re-applied
+    // to the newest case on a conflict (was: re-saved without a version).
+    // The target slide's own current stain still decides convert-in-place
+    // vs a new linked slide, in whichever case the change is applied to.
+    const change = orderRestainChange({
+      specimenId, blockId, targetSlideId: params.targetSlideId, stainName: params.stainName, reason: params.reason,
+      orderedBy: signingUser?.id ?? 'unknown', orderedAt: new Date().toISOString(),
+      newSlideId: `stain-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, unstainedLabel: UNSTAINED_LABEL,
     });
-
-    setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-          showToast(t('useSpecimenBlockManagement.toast.unsavedChangesRestain'), 'warning');
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save restain order after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData(prev => prev ? ({ ...prev, ...firstUpdates } as typeof prev) : prev);
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens }, '[Grossing] Failed to save restain order:');
+    if (saved === 'notSaved') return;
+    if (saved === 'merged') showToast(t('useSpecimenBlockManagement.toast.unsavedChangesRestain'), 'warning');
+    markDirty('blocks');
     showToast(
       isConvertingSpare
         ? t('useSpecimenBlockManagement.toast.restainOrderedSpare')
         : t('useSpecimenBlockManagement.toast.restainOrderedNewSlide', { stainName: params.stainName.trim() })
     );
-  }, [caseData, signingUser, sendMaterialOrderToLis, markDirty, showToast, knownVersionRef, setCaseData, t]);
+  }, [caseData, signingUser, sendMaterialOrderToLis, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
   // Real replacement for Add Orders' old "Blocks/Recut" tab — appends
   // an actual HistologyBlock to specimen.blocks (what the Material tree
@@ -930,8 +985,8 @@ export function useSpecimenBlockManagement({
     }
 
     const existingBlocks = sp.blocks ?? [];
-    const nextNumber = existingBlocks.length + 1;
-    const blockLabel = String(nextNumber);
+    // Batch 715: the next unused block label, in the case's letters/numbers style (was always a number).
+    const blockLabel = nextBlockLabel(existingBlocks.map(b => b.label), await caseLabelStyle(caseData));
     const newBlockId = `blk-${specimenId}-${Date.now().toString(36)}`;
     const fullAccession = caseData.accession?.fullAccession;
 
@@ -980,30 +1035,17 @@ export function useSpecimenBlockManagement({
       s.id === specimenId ? { ...s, blocks: [...existingBlocks, newBlock] } : s
     );
     setCaseData({ ...caseData, specimens: optimisticSpecimens, updatedAt: new Date().toISOString() });
-    let phase1HadConflict = false;
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: optimisticSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        // Same "force through, don't discard" reasoning as every other
-        // real write in this file — real, deliberate, established
-        // pattern (see the cancel/restain/biopsy-array equivalents),
-        // not something to silently drop for this one flow.
-        phase1HadConflict = true;
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: optimisticSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save optimistic block add after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
-    showToast(t('useSpecimenBlockManagement.toast.blockRequestedAwaitingLis', { label: `${sp.label}${nextNumber}` }));
-    if (phase1HadConflict) {
+    // PS-71 (Batch 458): on a conflict the new block is appended to the
+    // newest case and saved with its version (was: re-saved without a
+    // version, overwriting the other person's change). If it can't be
+    // saved, the optimistic block is taken back out and the LIS is never
+    // asked for it.
+    const addChange = appendBlockChange(specimenId, newBlock);
+    const phase1 = await persistBlockChange(caseData.id, { specimens: optimisticSpecimens }, addChange, { specimens }, '[Grossing] Failed to save optimistic block add:');
+    if (phase1 === 'notSaved') return;
+    markDirty('blocks');
+    showToast(t('useSpecimenBlockManagement.toast.blockRequestedAwaitingLis', { label: `${sp.label}${blockLabel}` }));
+    if (phase1 === 'merged') {
       showToast(t('useSpecimenBlockManagement.toast.unsavedChangesNewBlock'), 'warning');
     }
 
@@ -1015,49 +1057,31 @@ export function useSpecimenBlockManagement({
     // unrelated edits while this request was in flight; only this
     // one block's own lisRequestStatus should change here, nothing
     // else about the current state gets clobbered.
-    const applyFinalStatus = (specimensToPatch: Specimen[]) => specimensToPatch.map((s: Specimen) =>
-      s.id !== specimenId ? s : {
-        ...s,
-        blocks: (s.blocks ?? []).map(b => b.id === newBlockId ? { ...b, lisRequestStatus: finalStatus } : b),
-      }
-    );
-    setCaseData(prev => prev ? ({ ...prev, specimens: applyFinalStatus(prev.specimens ?? []), updatedAt: new Date().toISOString() } as typeof prev) : prev);
+    const statusChange = setBlockLisStatusChange(specimenId, newBlockId, finalStatus);
+    setCaseData(prev => {
+      if (!prev) return prev;
+      const patched = statusChange(prev);
+      return patched ? ({ ...prev, ...patched, updatedAt: new Date().toISOString() } as typeof prev) : prev;
+    });
     // Real fix: persist from caseDataRef.current (the genuinely
     // latest specimens at this exact moment), not the Phase-1-era
     // optimisticSpecimens closure — see this hook's own top-level
     // comment on caseDataRef for the real data-loss bug this avoids.
-    const freshSpecimensForPersist = applyFinalStatus(caseDataRef.current?.specimens ?? optimisticSpecimens);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: freshSpecimensForPersist }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        // Same reasoning as the block/recut order itself below — the
-        // real LIS request has already resolved by this point, so
-        // there's no safe "discard and reload" option; force the
-        // confirmed/rejected status through rather than losing it.
-        // Re-derives from caseDataRef.current again at retry time —
-        // the version conflict itself proves something else changed
-        // since the read above, so re-reading once more is the only
-        // way this retry doesn't reintroduce the exact bug it exists
-        // to avoid.
-        try {
-          const freshAtRetry = applyFinalStatus(caseDataRef.current?.specimens ?? optimisticSpecimens);
-          await caseRouter.updateCase(caseData.id, { specimens: freshAtRetry });
-          knownVersionRef.current = e.actualVersion + 1;
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to persist LIS confirmation status after conflict retry:', retryErr);
-        }
-      } else {
-        console.error('[Grossing] Failed to persist LIS confirmation status:', e);
-      }
+    // PS-71 (Batch 458): on a conflict the LIS answer is re-applied to the
+    // newest saved case and saved with its version (was: re-saved without
+    // a version). The LIS has already answered, so if it still can't be
+    // saved the screen keeps showing the answer and the user is told.
+    const phase1Case = { ...caseData, specimens: optimisticSpecimens } as Case;
+    const phase2First = (caseDataRef.current && statusChange(caseDataRef.current)) || statusChange(phase1Case);
+    if (phase2First) {
+      await persistBlockChange(caseData.id, phase2First, statusChange, null, '[Grossing] Failed to persist LIS confirmation status:');
     }
 
     if (!result.ok) {
-      showToast(t('useSpecimenBlockManagement.toast.lisRejectedBlockRecut', { label: `${sp.label}${nextNumber}` }), 'warning');
+      showToast(t('useSpecimenBlockManagement.toast.lisRejectedBlockRecut', { label: `${sp.label}${blockLabel}` }), 'warning');
       return;
     }
-    showToast(t('useSpecimenBlockManagement.toast.blockConfirmedByLis', { label: `${sp.label}${nextNumber}` }));
+    showToast(t('useSpecimenBlockManagement.toast.blockConfirmedByLis', { label: `${sp.label}${blockLabel}` }));
 
     // Real feature, per direct research: "Single-Click / Triggered
     // Printing: When a Pathologist Assistant grosses Specimen A and
@@ -1069,9 +1093,10 @@ export function useSpecimenBlockManagement({
     // failure here must never block or roll back a block that's
     // already been successfully created and saved above.
     if (printSettings?.defaultPrintBehavior === 'on_demand') {
-      const newCassetteId = cassetteIdentifier(caseData.accession.fullAccession, sp.label, newBlock.label);
+      const fullAccession = caseData.accession.fullAccession ?? caseData.id; // as printCassetteForBlock
+      const newCassetteId = cassetteIdentifier(fullAccession, sp.label, newBlock.label);
       dispatchCassetteLabel({
-        fullAccession: caseData.accession.fullAccession,
+        fullAccession,
         specimenLabel: sp.label,
         blockLabel: newBlock.label,
         cassetteId: newCassetteId,
@@ -1093,7 +1118,7 @@ export function useSpecimenBlockManagement({
       flatIndex += (s.blocks ?? []).length;
     }
     setFocusedBlockIndex(flatIndex);
-  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, knownVersionRef, setCaseData, printSettings, hasUnverifiedPendingCassette, pendingVerification, registerPendingVerification, t]);
+  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, setCaseData, printSettings, hasUnverifiedPendingCassette, pendingVerification, registerPendingVerification, persistBlockChange, t]);
 
   // Real feature, per direct follow-up describing the real grossing-
   // station workflow: "Execution Release... Upon confirmation... PA
@@ -1116,15 +1141,10 @@ export function useSpecimenBlockManagement({
     const specimens = caseData.specimens ?? [];
     const sp = specimens.find((s: Specimen) => s.id === specimenId);
     if (!sp) return;
-    // Real, per the Protocol-Driven Workflow Infrastructure story's
-    // Part 2c explicit guardrail (per direct instruction): a specimen
-    // with a real, still-open SpecimenTriage record — not every
-    // checklist item confirmed, and no override reason recorded —
-    // never releases. Real, hard stop server-side, not just a
-    // disabled button (GrossingReleasePanel.tsx's own disabled state
-    // is the primary UX; this is the real, enforced backstop that
-    // can't be bypassed by calling this function directly).
-    if (isTriagePending(sp.triage)) {
+    // Triage gate (Part 2c): the rule is services/grossing/triageReleaseGate.
+    // It runs in the browser (GrossingReleasePanel greys the button as the
+    // primary UX); the API server must repeat it (KNOWN_GAPS.md).
+    if (!checkTriageReleaseGate(specimens, specimenId).allowed) {
       showToast(t('useSpecimenBlockManagement.toast.cannotReleaseTriageIncomplete'), 'warning');
       return;
     }
@@ -1132,35 +1152,22 @@ export function useSpecimenBlockManagement({
     const blocksToRelease = (sp.blocks ?? []).filter(b => blockIdSet.has(b.id) && b.status === 'Pending');
     if (blocksToRelease.length === 0) return;
 
-    const updatedSpecimens = specimens.map((s: Specimen) =>
-      s.id !== specimenId ? s : {
-        ...s,
-        blocks: (s.blocks ?? []).map((b: HistologyBlock) => blockIdSet.has(b.id) && b.status === 'Pending' ? { ...b, status: 'Grossed' as const } : b),
-      }
-    );
-    setCaseData({ ...caseData, specimens: updatedSpecimens, updatedAt: new Date().toISOString() });
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to persist block release after conflict retry:', retryErr);
-        }
-      } else {
-        console.error('[Grossing] Failed to persist block release:', e);
-      }
-    }
-    markDirty('Blocks');
+    // PS-71 (Batch 458): blockCaseChanges.releasePendingBlocksChange,
+    // re-applied to the newest case on a conflict (was: re-saved without
+    // a version). Nothing is printed unless the release was saved.
+    const change = releasePendingBlocksChange(specimenId, blockIds);
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens }, '[Grossing] Failed to persist block release:');
+    if (saved === 'notSaved') return;
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.releasingCassettesForPrinting', { count: blocksToRelease.length }));
 
     for (const b of blocksToRelease) {
       printCassetteForBlock(sp.label, b.label);
     }
-  }, [caseData, markDirty, showToast, knownVersionRef, setCaseData, printCassetteForBlock, t]);
+  }, [caseData, markDirty, showToast, setCaseData, printCassetteForBlock, persistBlockChange, t]);
 
   // Real, deliberate sibling to handleReleaseGrossingBlocks — a real
   // 'Pending' placeholder the PA decides isn't actually needed (the
@@ -1176,28 +1183,18 @@ export function useSpecimenBlockManagement({
     const block = sp?.blocks?.find(b => b.id === blockId);
     if (!sp || !block || block.status !== 'Pending') return;
 
-    const updatedSpecimens = specimens.map((s: Specimen) =>
-      s.id !== specimenId ? s : { ...s, blocks: (s.blocks ?? []).filter(b => b.id !== blockId) }
-    );
-    setCaseData({ ...caseData, specimens: updatedSpecimens, updatedAt: new Date().toISOString() });
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to persist placeholder removal after conflict retry:', retryErr);
-        }
-      } else {
-        console.error('[Grossing] Failed to persist placeholder removal:', e);
-      }
-    }
-    markDirty('Blocks');
+    // PS-71 (Batch 458): blockCaseChanges.removePendingBlockChange,
+    // re-applied to the newest case on a conflict (was: re-saved without
+    // a version). A placeholder someone else released meanwhile is kept.
+    const change = removePendingBlockChange(specimenId, blockId);
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens }, '[Grossing] Failed to persist placeholder removal:');
+    if (saved === 'notSaved') return;
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.removedUnreleasedBlock', { label: `${sp.label}${block.label}` }));
-  }, [caseData, markDirty, showToast, knownVersionRef, setCaseData, t]);
+  }, [caseData, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
   // Real feature, per direct follow-up: "Decant has no creation flow
   // at all — the ID scheme is ready for something that doesn't exist
@@ -1209,66 +1206,71 @@ export function useSpecimenBlockManagement({
   // persist, done) rather than copying handleAddBlock's own two-phase
   // LIS-confirmation flow wholesale for a real workflow this material
   // type doesn't have.
-  const handleAddDecant = useCallback(async (specimenId: string, decantType: Decant['decantType']) => {
-    if (!caseData) return;
-    const specimens = caseData.specimens ?? [];
+  //
+  // Batch 452 (Pete, Oct 4 2026): decant changes go through the case's
+  // material store (useCaseMaterialStore → services/material/): shown at
+  // once, published as MATERIAL_DECANTED so the billing panel recalculates,
+  // saved atomically on the case's current version, and rolled back (with
+  // the billing panel) if the save fails. The old path forced a second save
+  // without a version after a conflict, overwriting the other person's edit.
+  const materialStore = useCaseMaterialStore(caseData, setCaseData as never, knownVersionRef);
+
+  const reportDecantOutcome = useCallback((result: DispatchOutcome, actionName: string) => {
+    if (result.ok === true) return true;
+    const outcome = result as Extract<DispatchOutcome, { ok: false }>;
+    if (outcome.error === 'conflict' && caseData?.id) {
+      handleConcurrencyConflict(new ConcurrencyConflictError(caseData.id, knownVersionRef.current, outcome.currentVersion ?? knownVersionRef.current), setConcurrencyConflict, { actionName });
+    } else if (outcome.error !== 'superseded') {
+      showToast(t(`useSpecimenBlockManagement.toast.decantNotSaved.${decantRefusalKey(outcome.error)}`), 'error');
+    }
+    return false;
+  }, [caseData?.id, knownVersionRef, setConcurrencyConflict, showToast, t]);
+
+  const handleAddDecant = useCallback(async (specimenId: string, decantType: Decant['decantType'], parentDecantId?: string) => {
+    if (!caseData || !materialStore) return;
+    const specimens = materialStore.getState().specimens as Specimen[];
     const sp = specimens.find((s: Specimen) => s.id === specimenId);
     if (!sp) return;
 
-    const existingDecants = sp.decants ?? [];
-    const nextNumber = existingDecants.length + 1;
-    const decantLabel = `D${nextNumber}`;
+    const decantLabel = nextDecantLabel(sp.decants);
     const newDecantId = `dcnt-${specimenId}-${Date.now().toString(36)}`;
     const fullAccession = caseData.accession?.fullAccession;
 
     // Real feature, per direct follow-up: "Additional Requirements for
     // Batch Management: cell blocks... Dedicated Hopper Assignment."
-    // Real, first production call to evaluateCassetteRouting.ts's own
-    // engine — resolves which real, logical color this decant's own
-    // cassette should use (Green/Mesh for a cell block, per the
-    // seeded routing rule) at the moment it's created, not left
-    // unresolved until some later, separate step.
+    // evaluateCassetteRouting.ts resolves the cassette colour (Green/Mesh
+    // for a cell block) when the decant is created.
     const cassetteColorId = await resolveDecantCassetteColor(decantType, { priority: caseData.order?.priority });
 
     const newDecant: Decant = {
       id: newDecantId,
       label: decantLabel,
       decantType,
+      ...(parentDecantId ? { parentDecantId } : {}),
       stains: [],
       createdAt: new Date().toISOString(),
       createdBy: signingUser?.name,
-      // Real feature, per direct follow-up on unique material
-      // identification — see Decant.displayId's own doc comment for
-      // the full reasoning; identical shape to HistologyBlock's own
-      // displayId set in handleAddBlock immediately above.
+      // See Decant.displayId's doc comment; same shape as HistologyBlock.displayId.
       displayId: fullAccession ? decantIdentifier(fullAccession, sp.label, decantLabel) : undefined,
       cassetteColorId,
     };
 
-    const updatedSpecimens = specimens.map((s: Specimen) =>
-      s.id === specimenId ? { ...s, decants: [...existingDecants, newDecant] } : s
-    );
-    setCaseData({ ...caseData, specimens: updatedSpecimens, updatedAt: new Date().toISOString() });
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        // Same real "force through, don't discard" posture as
-        // handleAddBlock's own identical situation immediately above.
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-          knownVersionRef.current = e.actualVersion + 1;
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save decant add after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Decants');
+    const outcome = await materialStore.dispatch({ kind: 'add', specimenId, decant: newDecant });
+    if (!reportDecantOutcome(outcome, 'add decant')) return;
+    markDirty('decants');
     showToast(t('useSpecimenBlockManagement.toast.decantAdded', { label: `${sp.label}${decantLabel}` }));
-  }, [caseData, markDirty, showToast, knownVersionRef, setCaseData, signingUser, t]);
+  }, [caseData, materialStore, markDirty, showToast, signingUser, t, reportDecantOutcome]);
+
+  // Batch 452: removing a decant (none could be removed before). Needs
+  // case:decant:delete, checked in the save (caseMaterialService.ts); a
+  // decant others were split from can't be removed until they are.
+  const handleDeleteDecant = useCallback(async (decantId: string) => {
+    if (!materialStore) return;
+    const outcome = await materialStore.dispatch({ kind: 'delete', decantId });
+    if (!reportDecantOutcome(outcome, 'delete decant')) return;
+    markDirty('decants');
+    showToast(t('useSpecimenBlockManagement.toast.decantRemoved'));
+  }, [materialStore, markDirty, showToast, t, reportDecantOutcome]);
 
   // Real feature, per direct follow-up: "decant-level linking UI. In
   // the same UI we add specimens, blocks stains, protocols?" Real,
@@ -1297,7 +1299,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!decant.externalId && !!decant.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== decant.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Decant ${sp?.label ?? ''}${decant.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,
@@ -1309,20 +1311,11 @@ export function useSpecimenBlockManagement({
       }
     }
 
-    const patchedSpecimens = currentSpecimens.map((sp: Specimen) => ({
-      ...sp,
-      decants: (sp.decants ?? []).map((d: Decant) => d.id === decantId ? { ...d, ...changes } : d),
-    }));
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: patchedSpecimens }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-      setCaseData(prev => prev ? ({ ...prev, specimens: patchedSpecimens } as typeof prev) : prev);
-      markDirty('Decant edit');
-    } catch (e) {
-      if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
-      console.error('[Grossing] Failed to update decant:', e);
-    }
-  }, [caseData, markDirty, knownVersionRef, setCaseData, setConcurrencyConflict, signingUser]);
+    // Batch 452: through the material store (optimistic, evented, rolled back on failure).
+    if (!materialStore) return;
+    const outcome = await materialStore.dispatch({ kind: 'update', decantId, patch: changes });
+    if (reportDecantOutcome(outcome, 'update decant')) markDirty('decantEdit');
+  }, [caseData, markDirty, signingUser, materialStore, reportDecantOutcome]);
 
   // Real feature, per direct confirmation: "I wanted to be able to
   // assign each core to a specific section of a single block... so
@@ -1390,32 +1383,18 @@ export function useSpecimenBlockManagement({
       return;
     }
 
-    const updatedSpecimens = specimens.map((s: Specimen) =>
-      specimenIds.includes(s.id) ? { ...s, matrixBlockIds: [...(s.matrixBlockIds ?? []), matrixBlockId] } : s
-    );
-    const updatedMatrixBlocks = [...(caseData.matrixBlocks ?? []), newMatrixBlock];
-    const updated = { ...caseData, specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks, updatedAt: new Date().toISOString() };
-    setCaseData(updated);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        // Same reasoning as handleAddBlock's own conflict handling —
-        // the LIS orders were already sent and acknowledged above,
-        // before this write; there's no safe "discard" option.
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks });
-          knownVersionRef.current = e.actualVersion + 1;
-          showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArray'), 'warning');
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save Biopsy Array after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
+    // PS-71 (Batch 458): blockCaseChanges.createMatrixBlockChange, re-applied
+    // to the newest case on a conflict (was: re-saved without a version,
+    // overwriting the other person's change even though the LIS orders
+    // had already been acknowledged).
+    const change = createMatrixBlockChange(specimenIds, newMatrixBlock);
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens, matrixBlocks: caseData.matrixBlocks }, '[Grossing] Failed to save Biopsy Array:');
+    if (saved === 'notSaved') return;
+    if (saved === 'merged') showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArray'), 'warning');
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.biopsyArrayCreated', { label: cassetteLabel, count: targetSpecimens.length }));
 
     // Real feature, per direct follow-up: "primary label printing for
@@ -1443,7 +1422,7 @@ export function useSpecimenBlockManagement({
       // a confusing concatenation of every participant's own label.
       registerPendingVerification({ cassetteId: matrixCassetteId, blockLabel: label, specimenLabel: '' });
     }
-  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, knownVersionRef, setCaseData, signingUser, printSettings, registerPendingVerification, t]);
+  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, setCaseData, signingUser, printSettings, registerPendingVerification, persistBlockChange, t]);
 
   // Real feature, per direct confirmation: completes the Biopsy Array
   // feature with the edit capability flagged as the one real gap
@@ -1501,7 +1480,6 @@ export function useSpecimenBlockManagement({
 
     const currentlyLinkedIds = matrixBlock.participants.map(p => p.specimenId);
     const toAdd = specimenIds.filter(id => !currentlyLinkedIds.includes(id));
-    const toRemove = currentlyLinkedIds.filter(id => !specimenIds.includes(id));
 
     if (toAdd.length > 0) {
       showToast(t('useSpecimenBlockManagement.toast.sendingBiopsyArrayUpdateToLis'));
@@ -1515,85 +1493,26 @@ export function useSpecimenBlockManagement({
       }
     }
 
-    const fullAccession = caseData.accession?.fullAccession;
     // Real, honest posture matching the prior toRemove path: "nothing
     // about the physical tissue changed, it's just no longer tracked
-    // as part of this shared cassette." A removed specimen needs a
-    // real, new, ordinary HistologyBlock of its own to represent that
-    // same, real tissue going forward — same shape handleAddBlock
-    // already creates, inheriting the matrix block's own current
-    // status rather than starting back at 'Grossed'.
-    const removedSpecimenNewBlocks = new Map<string, HistologyBlock>();
-    toRemove.forEach(id => {
-      const sp = specimens.find(s => s.id === id);
-      if (!sp) return;
-      const existingBlocks = sp.blocks ?? [];
-      const blockLabel = String(existingBlocks.length + 1);
-      removedSpecimenNewBlocks.set(id, {
-        id: `blk-${id}-${Date.now().toString(36)}`,
-        label: blockLabel,
-        status: matrixBlock.status,
-        stains: [{
-          id: `stain-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, stainName: 'H&E', status: 'Pending Cut',
-          displayId: fullAccession ? slideIdentifier(fullAccession, sp.label, blockLabel, 'L1') : undefined,
-        }],
-        displayId: fullAccession ? cassetteIdentifier(fullAccession, sp.label, blockLabel) : undefined,
-      });
-    });
-
-    const updatedSpecimens = specimens.map((s: Specimen) => {
-      if (toRemove.includes(s.id)) {
-        const newBlock = removedSpecimenNewBlocks.get(s.id);
-        return {
-          ...s,
-          matrixBlockIds: (s.matrixBlockIds ?? []).filter(id => id !== matrixBlockId),
-          blocks: newBlock ? [...(s.blocks ?? []), newBlock] : s.blocks,
-        };
-      }
-      if (toAdd.includes(s.id)) {
-        return { ...s, matrixBlockIds: [...(s.matrixBlockIds ?? []), matrixBlockId] };
-      }
-      return s;
-    });
-
-    // Real, explicit renumbering — participants[] is rebuilt fresh
-    // from the new, full specimenIds order, preserving each real
-    // participant's own tissueType where one was already recorded.
-    const updatedParticipants = specimenIds.map((id, i) => ({
-      specimenId: id,
-      positionInBlock: i + 1,
-      tissueType: matrixBlock.participants.find(p => p.specimenId === id)?.tissueType,
-    }));
-    const updatedMatrixBlocks = matrixBlocks.map(m => m.id === matrixBlockId ? { ...m, participants: updatedParticipants } : m);
-
-    const updated = { ...caseData, specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks, updatedAt: new Date().toISOString() };
-    setCaseData(updated);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks });
-          knownVersionRef.current = e.actualVersion + 1;
-          showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArrayUpdate'), 'warning');
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save Biopsy Array update after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
+    // as part of this shared cassette." A removed specimen gets a real,
+    // new, ordinary HistologyBlock of its own (inheriting the matrix
+    // block's status); added specimens get linked; participants[] is
+    // renumbered from the full specimenIds order, keeping tissueType.
+    // PS-71 (Batch 458): all of that is blockCaseChanges.
+    // updateMatrixBlockParticipantsChange, re-applied to the newest case on
+    // a conflict (was: re-saved without a version).
+    const change = updateMatrixBlockParticipantsChange({ matrixBlockId, specimenIds, fullAccession: caseData.accession?.fullAccession, labelStyle: await caseLabelStyle(caseData) });
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens, matrixBlocks }, '[Grossing] Failed to save Biopsy Array update:');
+    if (saved === 'notSaved') return;
+    if (saved === 'merged') showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArrayUpdate'), 'warning');
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.biopsyArrayUpdated', { label: matrixBlock.label, count: specimenIds.length }));
-  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, knownVersionRef, setCaseData, t]);
+  }, [caseData, sendMaterialOrderToLis, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
-  // Real feature: a direct, explicit "undo the whole array" action —
-  // clearer than editing a selection down to zero. Every specimen
-  // currently carrying this cassetteId gets unlinked; each block
-  // record itself is kept as an ordinary, standalone block, same
-  // "nothing physical changed, just the tracking" posture as removing
-  // one specimen in handleUpdateBiopsyArray above.
   // Real feature: a direct, explicit "undo the whole array" action —
   // clearer than editing a selection down to zero. Real, architectural
   // fix, per direct follow-up: every real participant gets a real,
@@ -1610,57 +1529,20 @@ export function useSpecimenBlockManagement({
     const matrixBlock = matrixBlocks.find(m => m.id === matrixBlockId);
     if (!matrixBlock) return;
 
-    const fullAccession = caseData.accession?.fullAccession;
-    const participantIds = new Set(matrixBlock.participants.map(p => p.specimenId));
-    const newBlocksBySpecimenId = new Map<string, HistologyBlock>();
-    matrixBlock.participants.forEach(participant => {
-      const sp = specimens.find(s => s.id === participant.specimenId);
-      if (!sp) return;
-      const existingBlocks = sp.blocks ?? [];
-      const blockLabel = String(existingBlocks.length + 1);
-      newBlocksBySpecimenId.set(sp.id, {
-        id: `blk-${sp.id}-${Date.now().toString(36)}`,
-        label: blockLabel,
-        status: matrixBlock.status,
-        stains: [{
-          id: `stain-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, stainName: 'H&E', status: 'Pending Cut',
-          displayId: fullAccession ? slideIdentifier(fullAccession, sp.label, blockLabel, 'L1') : undefined,
-        }],
-        displayId: fullAccession ? cassetteIdentifier(fullAccession, sp.label, blockLabel) : undefined,
-      });
-    });
-
-    const updatedSpecimens = specimens.map((s: Specimen) => {
-      if (!participantIds.has(s.id)) return s;
-      const newBlock = newBlocksBySpecimenId.get(s.id);
-      return {
-        ...s,
-        matrixBlockIds: (s.matrixBlockIds ?? []).filter(id => id !== matrixBlockId),
-        blocks: newBlock ? [...(s.blocks ?? []), newBlock] : s.blocks,
-      };
-    });
-    const updatedMatrixBlocks = matrixBlocks.filter(m => m.id !== matrixBlockId);
-    const updated = { ...caseData, specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks, updatedAt: new Date().toISOString() };
-    setCaseData(updated);
-    try {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks }, knownVersionRef.current);
-      knownVersionRef.current = knownVersionRef.current + 1;
-    } catch (e) {
-      if (e instanceof ConcurrencyConflictError) {
-        try {
-          await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens, matrixBlocks: updatedMatrixBlocks });
-          knownVersionRef.current = e.actualVersion + 1;
-          showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArrayDissolve'), 'warning');
-        } catch (retryErr) {
-          console.error('[Grossing] Failed to save Biopsy Array dissolve after conflict retry:', retryErr);
-        }
-      } else {
-        console.error(e);
-      }
-    }
-    markDirty('Blocks');
+    // PS-71 (Batch 458): blockCaseChanges.dissolveMatrixBlockChange (each
+    // participant gets an ordinary block back, the matrix block is
+    // removed), re-applied to the newest case on a conflict (was: re-saved
+    // without a version).
+    const change = dissolveMatrixBlockChange({ matrixBlockId, fullAccession: caseData.accession?.fullAccession, labelStyle: await caseLabelStyle(caseData) });
+    const firstUpdates = change(caseData);
+    if (!firstUpdates) return;
+    setCaseData({ ...caseData, ...firstUpdates, updatedAt: new Date().toISOString() });
+    const saved = await persistBlockChange(caseData.id, firstUpdates, change, { specimens, matrixBlocks }, '[Grossing] Failed to save Biopsy Array dissolve:');
+    if (saved === 'notSaved') return;
+    if (saved === 'merged') showToast(t('useSpecimenBlockManagement.toast.unsavedChangesBiopsyArrayDissolve'), 'warning');
+    markDirty('blocks');
     showToast(t('useSpecimenBlockManagement.toast.biopsyArrayDissolved', { label: matrixBlock.label }));
-  }, [caseData, markDirty, showToast, knownVersionRef, setCaseData, t]);
+  }, [caseData, markDirty, showToast, setCaseData, persistBlockChange, t]);
 
   // Real, architectural fix, per direct follow-up: "the matrix block
   // itself is the tracked asset." The direct write-path for a real
@@ -1689,7 +1571,7 @@ export function useSpecimenBlockManagement({
         const wasComplete = !!matrixBlock.externalId && !!matrixBlock.externalIdSource;
         const isNowComplete = !!mergedExternalId && !!mergedExternalIdSource;
         if (isNowComplete && (!wasComplete || mergedExternalId !== matrixBlock.externalId)) {
-          mockAuditService.logEvent({
+          auditService.logEvent({
             type: 'system',
             event: 'Foreign ID Bound',
             detail: `Matrix Block ${matrixBlock.label} bound to foreign id "${mergedExternalId}" (source: ${mergedExternalIdSource}).`,
@@ -1701,12 +1583,27 @@ export function useSpecimenBlockManagement({
       }
     }
 
+    // Batch 611 (#10): a comment added to a matrix block is audited. The entry
+    // names the block only; the comment text can name a patient, so it is not copied.
+    const commentedBlock = changes.comments ? currentMatrixBlocks.find(m => m.id === matrixBlockId) : undefined;
+    const addedComments = commentedBlock ? newMaterialComments(commentedBlock.comments, changes.comments) : [];
+
     const patchedMatrixBlocks = currentMatrixBlocks.map(m => m.id === matrixBlockId ? { ...m, ...changes } : m);
     try {
       await caseRouter.updateCase(caseData.id, { matrixBlocks: patchedMatrixBlocks }, knownVersionRef.current);
       knownVersionRef.current = knownVersionRef.current + 1;
       setCaseData(prev => prev ? ({ ...prev, matrixBlocks: patchedMatrixBlocks } as typeof prev) : prev);
-      markDirty('Matrix block edit');
+      markDirty('matrixBlockEdit');
+      for (const c of addedComments) {
+        auditService.logEvent({
+          type: 'system',
+          event: 'Matrix Block Comment Added',
+          detail: `Matrix Block ${commentedBlock?.label ?? ''}: a comment was added.`,
+          user: c.authorId || (signingUser?.id ?? 'unknown'),
+          caseId: caseData.id,
+          confidence: null,
+        }).catch(err => console.error('[Grossing] Failed to log Matrix Block Comment Added audit entry:', err));
+      }
     } catch (e) {
       if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
       console.error('[Grossing] Failed to update matrix block:', e);
@@ -1788,6 +1685,11 @@ export function useSpecimenBlockManagement({
     handleConfirmTriageChecklistItem,
     handleUpdateBlock,
     handleCancelBlock,
+    handleDeleteBlock,
+    canDeleteBlocks,
+    blockDeleteTier,
+    handleFlagBlock,
+    canFlagBlocks,
     handleCreateSpareSlide,
     handleOrderRestain,
     handleAddBlock,
@@ -1795,6 +1697,8 @@ export function useSpecimenBlockManagement({
     handleRemovePendingBlock,
     handleAddDecant,
     handleUpdateDecant,
+    handleDeleteDecant,
+    materialStore,
     // Real feature, per direct research on scan-verification guardrails
     // — real, inspectable state, so a future UI indicator (e.g. a real
     // "unscanned cassette" badge) can be built against this directly.

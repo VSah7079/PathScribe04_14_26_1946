@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/intraop/
 
 Intraoperative Pre-Check queue — bench-side capture (frozen section, quick gross) before formal LIS accession arrives.
@@ -30,6 +32,44 @@ Every write in `mockIntraoperativeService.ts` announces itself (`announceIntraop
 
 Events carry ids only (session, specimen, location, facility), never patient data.
 
+## Batch 399: the verbal report, critical results and "Surgeon unavailable" (Pete)
+
+- **Why:** a frozen result may go to the surgeon or an authorized member of the surgical team; the read-back is mandatory; the record must say who received it and when. For a critical result, direct communication with the operating surgeon is expected, and the pathologist records why not.
+- `verbalReport.ts`: the rules every report meets (who, role, read-back; a "Surgeon unavailable" reason when a critical result goes to anyone else; "Other" needs a note of at least three real words), the stored record (`buildVerbalReportLog`; the time is the system clock), the audit line, recipient suggestions (the session's surgeon, then the physician directory) and "Operating surgeon" filling in the session's surgeon.
+- `recordVerbalReport(sessionId, input)` now takes the structured input, refuses an incomplete one (`VERBAL_REPORT_INCOMPLETE`) and writes an audit entry. The merge carries who actually received it, their role, the read-back, the critical decision and any reason into the case's critical result record; before, the session's surgeon was recorded as the recipient.
+- `matchIntraopCriticalResults.ts`: which dictionary entries a session's frozen results match, by preliminary category or a term in the diagnosis. Negation- and uncertainty-aware (Pete's edge cases): clauses split at punctuation and "but/though/however/except"; a negation up to four words before the term, or after it in the same clause, clears it; "cannot be ruled out", "cannot exclude", "suspicious", "possible" always keep it. When in doubt it flags; the pathologist decides.
+- `mockIntraopCriticalResultService.ts` (+ `intraopCriticalResultSeeds.ts`): the dictionary (Configuration → System → Intraoperative critical results). Changes need `config:intraop-critical-results:manage`.
+
+## Batch 400: dictating the verbal report (Pete)
+
+- `parseVerbalReportDictation.ts`: from one dictated sentence, proposes who received the report, their role, the read-back and a "Surgeon unavailable" reason if one is mentioned. AI first (the organisation's model, `defaultVerbalReportDictation.ts`), keyword rules when there's no model or it fails.
+- The session's patient name, MRN and date of birth are replaced with [PATIENT] before the text is sent to the model (the read-back protocol means they may be said aloud).
+- The read-back is proposed only when the words say it explicitly and not negated, whichever engine; the model can't add one. A reason is only highlighted, never chosen. Nothing already entered is overwritten (`applyDictationProposal`). The time is never taken from speech.
+- The log records which fields came from dictation and the engine (`VerbalReportLog.dictation`), and the audit line says they were checked by the pathologist.
+- Pete: logging a verbal report needs no permission of its own; everyone who can use the Intraop page (often on a phone) can log one.
+
+
+## Batch 536 (PS-558)
+
+`defaultVerbalReportDictation.ts` passes its feature and facility to `callAi`, for the jurisdiction's AI vendor policy.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 610 (part A) — specimen urgency
+
+`IntraopSpecimen.urgency` (`STAT` or `ROUTINE`, default STAT) and `setSpecimenUrgency(sessionId, specimenId, urgency)`, so the board can use the STAT or routine frozen section target.
+
+Batch 616 (part D, PS-510): server version of IntraoperativeService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.
+
+## Batch 617 (part B): server version (PS-514)
+
+The intraoperative critical result service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`carryIntraopFindingsToCase.ts`**: at merge, the frozen-section diagnosis (text, category, time) and photo links of each specimen are copied onto `Case.intraoperativeFindings` (`types/intraop/CaseIntraoperativeFinding.ts`), labelled `intraoperative`, never into `Case.diagnostic`. Repeating a merge replaces that session's findings. Audit: "Intraop findings carried to case". The verbal report still goes to the critical-result record. No screen shows the carried findings yet. Test: `carryIntraopFindingsToCase.test.ts`.
+
+## Batch 669 (finding ops-14)
+`orBoardDemo.ts` names the OR Suite demo (capability `config:or-board-demo:run`, written out at each check; id prefix `demo-orboard-`). `seedOrBoardDemoData`, `advanceDemoSpecimen` and the new `removeOrBoardDemoData` check the capability in `mockIntraoperativeService.ts`; Stop demo on the OR Suite board now calls `removeOrBoardDemoData`, which deletes exactly the `demo-orboard-` sessions (and tells the boards). `httpIntraoperativeService.ts`: all three are demo-only (`NOT_SUPPORTED` against the API server).

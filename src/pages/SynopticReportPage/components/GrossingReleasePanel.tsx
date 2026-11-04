@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next';
 import CassetteColorControl from '../modals/CassetteColorControl';
 import type { HistologyBlock, SpecimenTriage } from '@/types/case/Specimen';
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
-import { isTriagePending } from '@/pages/WorklistPage/PendingGrossingTriageTile';
+import { isTriagePending } from '@/services/grossing/triageReleaseGate';
 
 interface GrossingReleasePanelProps {
   specimenLabel: string;

@@ -16,7 +16,12 @@ export type TATType =
   | 'GROSSING'
   | 'SIGN_OUT'
   | 'CONSULTATION_RESPONSE'   // How fast I respond to colleagues' requests
-  | 'CONSULTATION_AWAITING';  // How long I wait for colleagues' responses
+  | 'CONSULTATION_AWAITING'   // How long I wait for colleagues' responses
+  // Batch 610 (#60, #88): an admin override of the autopsy report targets.
+  // Without one, the jurisdiction's own figure (resolveAutopsyTatSlaMatrix.ts)
+  // applies. Hours, counted from body arrival, less any ancillary hold.
+  | 'AUTOPSY_PAD'             // Preliminary anatomic diagnosis
+  | 'AUTOPSY_FAD';            // Final anatomic diagnosis
 
 export type TATUrgency = 'ROUTINE' | 'STAT';
 
@@ -55,4 +60,8 @@ export interface TATEntry {
   active:         boolean;
   notes:          string;
   createdAt:      string;
+  /** Batch 610 (#91): frozen-section entries only. How many minutes before
+   *  the target the OR board starts warning. Null/absent = the built-in
+   *  5 minutes (DEFAULT_INTRAOP_WARNING_MINUTES_BEFORE_TARGET). */
+  warningMinutes?: number | null;
 }

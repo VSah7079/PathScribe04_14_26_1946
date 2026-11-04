@@ -131,3 +131,32 @@ describe('buildRequisitionStickerSheetHtml — real, per direct correction + sup
     expect(html).toContain('Not Recorded');
   });
 });
+
+// PS-243 (Batch 450): the single-sticker requisition label, missing MRN and
+// missing facility — the placeholder must sit in that field's own row.
+describe('buildRequisitionLabelHtml — PS-243 missing identifying fields', () => {
+  const rowValue = (html: string, field: string) => {
+    const m = html.match(new RegExp(`<span class="ps-label-field">${field}</span><span class="ps-label-value">([^<]*)</span>`));
+    return m ? m[1] : undefined;
+  };
+
+  it('a missing MRN shows "Not Recorded" in the MRN row; the other fields keep their values', () => {
+    const html = buildRequisitionLabelHtml({ ...requisitionData, mrn: '' }, preset);
+    expect(rowValue(html, 'MRN')).toBe('Not Recorded');
+    expect(rowValue(html, 'Facility')).toBe('Metro General Hospital');
+    expect(rowValue(html, 'Provider')).toBe('Dr. Sarah Chen');
+  });
+
+  it('a missing submitting facility shows "Not Recorded" in the Facility row; the MRN keeps its value', () => {
+    const html = buildRequisitionLabelHtml({ ...requisitionData, submittingFacility: '' }, preset);
+    expect(rowValue(html, 'Facility')).toBe('Not Recorded');
+    expect(rowValue(html, 'MRN')).toBe('AUTO-0031');
+  });
+
+  it('missing MRN and facility together show the placeholder in both rows', () => {
+    const html = buildRequisitionLabelHtml({ ...requisitionData, mrn: '', submittingFacility: '' }, preset);
+    expect(rowValue(html, 'MRN')).toBe('Not Recorded');
+    expect(rowValue(html, 'Facility')).toBe('Not Recorded');
+    expect((html.match(/Not Recorded/g) ?? []).length).toBe(2);
+  });
+});

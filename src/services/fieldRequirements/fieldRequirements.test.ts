@@ -3,9 +3,14 @@ import { FIELD_REQUIREMENT_PAGES, missingRequiredFields, overrideProblem, resolv
 import { createFieldRequirementService } from './fieldRequirementService';
 
 describe('field requirement rules (PS-359)', () => {
+  it('Sex is a locked required Accession field and a blank counts as missing (Batch 661, Pete)', () => {
+    const r = resolveFieldRequirements('accession');
+    expect(r.find(f => f.id === 'sex')).toMatchObject({ required: true });
+    expect(missingRequiredFields(r, { givenNames: 'A', familyNames: 'B', dateOfBirth: '1970-01-01', sex: '', client: 'c', requestingProvider: 'p', specimenDescription: ['x'] }).map(f => f.id)).toEqual(['sex']);
+  });
   it('Accession defaults reproduce what the page required before: names, date of birth, client, requesting provider, a described specimen', () => {
     const required = resolveFieldRequirements('accession').filter(f => f.required).map(f => f.id);
-    expect(required).toEqual(['givenNames', 'familyNames', 'dateOfBirth', 'client', 'requestingProvider', 'specimenDescription']);
+    expect(required).toEqual(['givenNames', 'familyNames', 'dateOfBirth', 'sex', 'client', 'requestingProvider', 'specimenDescription']);
     expect(resolveFieldRequirements('accession').filter(f => f.locked).map(f => f.id)).toEqual(required);
     for (const f of FIELD_REQUIREMENT_PAGES.accession) if (f.default === 'locked') expect(f.lockReason, f.id).toBeTruthy();
   });
@@ -20,7 +25,7 @@ describe('field requirement rules (PS-359)', () => {
   });
   it('missing fields: blanks count as missing; a per-specimen field needs every specimen', () => {
     const r = resolveFieldRequirements('accession', { collectedAt: true });
-    const values = { givenNames: 'Ann', familyNames: ' ', dateOfBirth: '1970-01-01', client: 'c1', requestingProvider: 'Dr X',
+    const values = { givenNames: 'Ann', familyNames: ' ', dateOfBirth: '1970-01-01', sex: 'F', client: 'c1', requestingProvider: 'Dr X',
       specimenDescription: ['Skin', 'Colon'], collectedAt: ['2026-09-01T10:00', ''] };
     expect(missingRequiredFields(r, values).map(f => f.id)).toEqual(['familyNames', 'collectedAt']);
     expect(missingRequiredFields(r, { ...values, familyNames: 'Lee', collectedAt: ['a', 'b'], specimenDescription: [] }).map(f => f.id)).toEqual(['specimenDescription']);

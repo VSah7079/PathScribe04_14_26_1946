@@ -48,12 +48,49 @@ The admin screen is `components/Config/System/AssistLisPollingSection.tsx` (Conf
 - **The schedule and the inbound endpoints.** Nothing in this app runs on a timer or listens for messages yet.
   - **Schedule:** in production a server-side job calls `runAssistPollNow('scheduled')` every `intervalMinutes`.
   - **Inbound endpoint:** it calls `ingestLisMessageNow` for each HL7 v2 or JSON message.
-  - **Where they go:** beside `api/webhooks/engine/`, which isn't in this working copy.
+  - **Where they go:** beside `api/webhooks/engine/` (at the repo root: the interface-engine webhook handlers, such as `block-exception.ts` and `material-location.ts`). Neither an Assist schedule nor an Assist inbound endpoint exists there yet.
 
   Until then only **Poll now** and **Test an inbound message** run the pipeline.
 - **One LIS per deployment.** The settings are deployment-wide, like Voice. A deployment that polls more than one LIS would need a settings row per LIS connection.
 - **No draft marker in the editor.** `aiDraftSource` (on `SynopticReportInstance`) records which milestone produced a draft, but the report editor doesn't show it yet.
 - **Diagnosis text.** The LIS diagnosis is written to `diagnostic.primaryDiagnosis`, the case's existing diagnosis field.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `api/webhooks/engine/` is in the working copy (repo root); the Assist schedule and endpoint are still not built.*
+
+## Batch 426 — "keep or update?" and order numbers
+
+- `mergeSuggestionsIntoInstance` no longer touches a field the pathologist typed or confirmed. If the new suggestion differs, it goes into the workup's `reevaluations`, and the synoptic panel asks "keep or update?" (`resolveReevaluation`). **Fixes a real gap:** before, the new suggestion replaced the confirmed one's record (back to "unverified"), so a later run could overwrite a confirmed field.
+- `lisTextPatch` keeps the LIS's placer and filler order numbers on the case's order, for the synoptic result to echo.
+
+## Batch 427
+
+- `applyTemplateProposals` doesn't add a workup of a protocol for a part that a combined workup of that protocol already covers.
+- The AI's assignment input lists a combined workup under every part it covers.
+- `generateSuggestions` is told the parts the workup covers (`scope.specimenIds`). The demo service ignores it.
+
+## Batch 428: Configuration permissions
+
+- `mockAssistPollingService`: `saveSettings` need `config:assist-polling:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The LIS text is merged into the newest case. The AI draft is saved only if the case is unchanged, otherwise it is redrafted on the next run.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 511 (PS-478): full strict type-checking
+
+`runAssistPollCycle` types its list of report instances. No behaviour change.
+
+## Batch 605
+
+`simulatedAssistSchedule.ts` runs the Assist LIS poll on its configured interval in the browser (demo only) and records last and next run; `hooks/useSimulatedAssistSchedule.ts` mounts it in the app shell.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`assistPollingService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

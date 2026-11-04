@@ -152,4 +152,21 @@ describe.skipIf(!EMULATOR_RUNNING)('applyEngineCaseUpdate — real Firestore emu
     // touch updatedAt, since nothing real was actually applied.
     expect(doc.data()!.version).toBe(0);
   });
+
+  // Batch 545 (F10): the event's messageId is claimed in the same transaction.
+  it('claims the messageId only with the change: a not-found leaves no claim, and a redelivery after the case exists applies once', async () => {
+    const id = caseId('claim');
+    const messageId = `msg-${runId}-claim`;
+    const claim = { messageId, eventType: 'block-exception' };
+    const touch = (specimens: any[]) => ({ field: 'specimens' as const, specimens });
+
+    expect((await applyEngineCaseUpdate(id, touch, claim)).outcome).toBe('case-not-found');
+    expect((await db.collection('processed_messages').doc(messageId).get()).exists).toBe(false);
+
+    await db.collection('cases').doc(id).set({ __testRunId: runId, version: 0, specimens: [] });
+    expect((await applyEngineCaseUpdate(id, touch, claim)).outcome).toBe('applied');
+    expect((await applyEngineCaseUpdate(id, touch, claim)).outcome).toBe('already-processed');
+    expect((await db.collection('cases').doc(id).get()).data()!.version).toBe(1);
+    await db.collection('processed_messages').doc(messageId).delete();
+  });
 });

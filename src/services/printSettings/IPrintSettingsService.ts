@@ -58,7 +58,7 @@ export const DEFAULT_CASSETTE_LABEL_LAYOUT: CassetteLabelLayoutConfig = {
   fontHeightMm: 1.4,
 };
 
-/** Real, per PS-284 (Microtomy Workstation) — "a slide-label
+/** Real, per PS-284 (Microtome Workstation) — "a slide-label
  *  equivalent may be worth the same treatment" as
  *  CassetteLabelLayoutConfig above. A slide's own printable face is a
  *  genuinely different real shape from a cassette's angled face (the
@@ -87,12 +87,21 @@ export const DEFAULT_SLIDE_LABEL_LAYOUT: SlideLabelLayoutConfig = {
   fontHeightMm: 1.2,
 };
 
+/** Batch 758: the Microtome's print modes. `on_demand`: one label at a time, each scanned back before the next
+ *  prints. `block`: scanning a block prints all its labels at once, scanned back in any order. `batch`: the tech
+ *  ticks the slides and prints them together. */
+export const MICROTOME_PRINT_BEHAVIORS = ['on_demand', 'block', 'batch'] as const;
+export type MicrotomePrintBehavior = typeof MICROTOME_PRINT_BEHAVIORS[number];
+
 export interface PrintSettingsConfig {
   /** "On-Demand" (per-block/container, as each cassette is logged) vs
    *  "Batch" (explicit, per-case bulk action) — real, per direct
    *  research: default to on-demand to respect patient-safety
    *  guardrails, while still supporting labs that insist on batching. */
   defaultPrintBehavior: 'on_demand' | 'batch';
+  /** Batch 758 (Pete, Nov 1, 2026: separate Grossing and Microtome print modes): how the Microtome prints slide
+   *  labels. Unset (settings saved before Batch 758) follows `defaultPrintBehavior` (microtomePrintMode.ts). */
+  microtomePrintBehavior?: MicrotomePrintBehavior;
   /** Whether operators can override the default behavior per action,
    *  or the system-wide default is enforced without exception. */
   enforceOnDemandGuardrails: boolean;
@@ -103,6 +112,8 @@ export interface PrintSettingsConfig {
    *  ScannerProvider.tsx's own PATHSCRIBE_SCAN event) — this flag
    *  gates a new listener, not new scanning infrastructure. */
   requireScanVerificationBeforeNextBlock: boolean;
+  /** Batch 720 (Pete): print the requisition and container labels as soon as a case is saved at Accession. On unless switched off; the Print Labels button remains for a reprint. */
+  printLabelsOnAccession?: boolean;
   /** Which real LabelSizePreset id (types/labels/LabelSizePreset.ts)
    *  is active for container labels — requisition labels stay on the
    *  full-page preset regardless, per how buildContainerLabelData.ts's
@@ -199,12 +210,17 @@ export interface PrintSettingsConfig {
    *  honest, separate follow-up in that file's own header rather than
    *  silently left unmentioned. */
   slideLabelLayout: SlideLabelLayoutConfig;
+  /** PS-282 (Batch 437): ask for a reason whenever a report that was
+   *  printed before is printed again; the reason goes in the audit entry.
+   *  Optional so settings saved before Batch 437 read as off. */
+  requireReprintReason?: boolean;
 }
 
 export const DEFAULT_PRINT_SETTINGS_CONFIG: PrintSettingsConfig = {
   defaultPrintBehavior: 'on_demand',
   enforceOnDemandGuardrails: false,
   requireScanVerificationBeforeNextBlock: false,
+  printLabelsOnAccession: true,
   containerLabelPresetId: 'clsi_standard_specimen',
   requisitionLabelPresetId: 'requisition_pouch',
   containerBarcodeSymbology: 'code128',
@@ -220,6 +236,7 @@ export const DEFAULT_PRINT_SETTINGS_CONFIG: PrintSettingsConfig = {
   gs1Gtin: '',
   cassetteLabelLayout: DEFAULT_CASSETTE_LABEL_LAYOUT,
   slideLabelLayout: DEFAULT_SLIDE_LABEL_LAYOUT,
+  requireReprintReason: false,
 };
 
 export interface IPrintSettingsService {

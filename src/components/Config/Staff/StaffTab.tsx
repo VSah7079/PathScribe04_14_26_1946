@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router';
+import { STAFF_SECTIONS } from '@/constants/configSearchIndex';
 import { useTranslation } from 'react-i18next';
 import { VOICE_PROFILES, type VoiceProfileId } from '../../../constants/voiceProfiles';
 import { SPELLING_LOCALE_ORDER, SPELLING_LOCALES } from '@/services/spellcheck/spellingLocales';
@@ -6,11 +8,15 @@ import '../../../pathscribe.css';
 import RoleDictionary, { Role, DEFAULT_ROLES } from './RoleDictionary';
 import FppeAssignmentsSection from '../System/FppeAssignmentsSection';
 import CytotechCompetencyAssignmentsSection from '../System/CytotechCompetencyAssignmentsSection';
-import { userService, subspecialtyService, roleService, auditService, authorizationService, facilityService, Subspecialty } from '../../../services';
+import { userService, subspecialtyService, roleService, auditService, authorizationService, facilityService, Subspecialty, fieldRequirementService, resolveFieldRequirements, isFieldRequired, type ResolvedFieldRequirement } from '../../../services';
+import { checkStaffForm, signatureLinkOnOpen, signaturePreviewUrl } from '@/services/staff/staffFormChecks';
+import { formatList } from '@/utils/formatList';
 import { saveStaffMember } from '@/services/staff/staffAdministration';
 import { useCapabilities } from '@/hooks/useCapabilities';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { LinkedSignInAccounts } from './LinkedSignInAccounts';
+import { staffIdFromAddress } from '@/services/staffPasswords/passwordResetRequestRules';
+import { StaffSignInPassword } from './StaffSignInPassword';
 import { useAuth } from '../../../contexts/AuthContext';
 import type { ProviderCredential } from '@/types/staff/ProviderCredential';
 import { JURISDICTION_LABELS, type Jurisdiction } from '@/types/systemConfig';
@@ -25,6 +31,11 @@ import {
 const JURISDICTION_CODES = Object.keys(JURISDICTION_LABELS) as Jurisdiction[];
 import { ServiceResult } from '../../../services/types';
 import { Dropdown } from '@/components/Common/Dropdown';
+import ConfigSectionGate from '../ConfigSectionGate';
+import { useConfigNavigationGuard } from '../configDirtyGuardContext';
+import { pressable, switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
 // i18n note (batch 117): role names (Role.name / StaffUser.roles),
 // subspecialty names (Subspecialty.name), and VOICE_PROFILES' own
@@ -59,6 +70,7 @@ export interface StaffUser {
   voiceProfile?: string | null;
   /** PS-342 (Batch 338): kept in sync by hand with IUserService.ts's StaffUser. */
   spellingLocale?: string | null;
+  qcReviewerRoles?: string[];
   canViewPediatric?: boolean;
   canViewOrchestration?: boolean;
   /** Real, per direct design brief on the RFP-APLIS-2026-GLOBAL
@@ -86,11 +98,11 @@ function fullName(u: StaffUser) {
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
 
-const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => {
+const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => {
   const { t } = useTranslation();
   return (
     <div className="ps-st-toggle-wrap">
-      <div onClick={() => onChange(!value)} className={`ps-st-toggle-track ${value ? 'ps-st-toggle-track--on' : 'ps-st-toggle-track--off'}`}>
+      <div {...switchable(value, () => onChange(!value), label ?? t('a11y.fields.active'))} className={`ps-st-toggle-track ${value ? 'ps-st-toggle-track--on' : 'ps-st-toggle-track--off'}`}>
         <div className={`ps-st-toggle-thumb ${value ? 'ps-st-toggle-thumb--on' : 'ps-st-toggle-thumb--off'}`} />
       </div>
       <span className={value ? 'ps-st-toggle-label--on' : 'ps-st-toggle-label--off'}>
@@ -100,34 +112,31 @@ const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 };
 
-// ─── Signature Upload ─────────────────────────────────────────────────────────
+// ─── Signature link ───────────────────────────────────────────────────────────
 
-const SignatureUpload = ({ url, onChange }: { url?: string; onChange: (url: string) => void }) => {
+// Batch 544 (Pete, Oct 13, 2026): PathScribe stores links to images, never the
+// images themselves, so the signature is a link to the image in the hospital's
+// own system. The preview loads only a valid https:// link (staffFormChecks),
+// and only once the field is left, so typing doesn't fetch each partial host.
+const SignatureLink = ({ url, error, onChange }: { url: string; error?: string; onChange: (url: string) => void }) => {
   const { t } = useTranslation();
-  const ref = useRef<HTMLInputElement>(null);
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => onChange(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+  const [shown, setShown] = useState(url);
+  const preview = shown === url ? signaturePreviewUrl(url) : undefined;
   return (
     <div className="ps-st-sig-wrap">
-      {url ? (
+      <input type="url" inputMode="url" aria-label={t('staffTab.signatureLink.label')}
+        className={`ps-conf-input ${error ? 'ps-conf-input--error' : ''}`}
+        value={url} onChange={e => onChange(e.target.value)} onBlur={() => setShown(url)} placeholder={t('staffTab.signatureLink.placeholder')} />
+      <div className="ps-st-sig-hint">{t('staffTab.signatureLink.hint')}</div>
+      {error && <span className="ps-st-error">{error}</span>}
+      {preview && (
         <div className="ps-st-sig-preview">
           <div className="ps-st-sig-img-wrap">
-            <img src={url} alt={t('staffTab.signatureUpload.alt')} className="ps-st-sig-img" />
+            <img src={preview} alt={t('staffTab.signatureLink.alt')} className="ps-st-sig-img" referrerPolicy="no-referrer" />
           </div>
-          <button onClick={() => onChange('')} className="ps-st-sig-remove">{t('common.remove')}</button>
-        </div>
-      ) : (
-        <div className="ps-st-sig-dropzone" onClick={() => ref.current?.click()}>
-          &#128444;&nbsp; {t('staffTab.signatureUpload.uploadPrompt')}
-          <div className="ps-st-sig-hint">{t('staffTab.signatureUpload.formatHint')}</div>
+          <button type="button" onClick={() => { onChange(''); setShown(''); }} className="ps-st-sig-remove">{t('common.remove')}</button>
         </div>
       )}
-      <input ref={ref} type="file" accept="image/*" className="ps-st-file-input-hidden" onChange={handleFile} />
     </div>
   );
 };
@@ -138,7 +147,7 @@ type Draft = {
   firstName: string; middleName: string; lastName: string; credentials: string;
   email: string; roles: string[]; npi: string; gmcNumber: string; license: string;
   phone: string; signatureUrl: string; active: boolean;
-  voiceProfile: string; spellingLocale: string; canViewPediatric: boolean; canViewOrchestration: boolean;
+  voiceProfile: string; spellingLocale: string; qcPools: string; canViewPediatric: boolean; canViewOrchestration: boolean;
   /** Real, per direct design brief on the RFP-APLIS-2026-GLOBAL
    *  Intraoperative/Frozen Section Dashboard's own Quick Auth flow —
    *  only meaningful for a real 'Or Staff' user; see
@@ -165,7 +174,7 @@ type Draft = {
 const emptyDraft: Draft = {
   firstName: '', middleName: '', lastName: '', credentials: '', email: '',
   roles: [], npi: '', gmcNumber: '', license: '', phone: '',
-  signatureUrl: '', active: true, voiceProfile: '', spellingLocale: '', canViewPediatric: false,
+  signatureUrl: '', active: true, voiceProfile: '', spellingLocale: '', qcPools: '', canViewPediatric: false,
   canViewOrchestration: false, subspecialtyIds: [], quickAuthPin: '',
   providerCredentials: [], facilityIds: [],
 };
@@ -182,7 +191,7 @@ interface StaffModalProps {
 }
 
 const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialties, facilities, onSave, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // PS-356: roles, facilities, access flags and credentials need
   // config:staff-access:assign; without it they show read-only. The save
   // service checks again.
@@ -195,8 +204,8 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
       lastName: user.lastName, credentials: user.credentials || '',
       email: user.email, roles: [...user.roles], npi: user.npi,
       gmcNumber: user.gmcNumber || '', license: user.license, phone: user.phone,
-      signatureUrl: user.signatureUrl || '',
-      active: user.status === 'Active', voiceProfile: user.voiceProfile || '', spellingLocale: user.spellingLocale || '',
+      signatureUrl: signatureLinkOnOpen(user.signatureUrl).value,
+      active: user.status === 'Active', voiceProfile: user.voiceProfile || '', spellingLocale: user.spellingLocale || '', qcPools: (user.qcReviewerRoles ?? []).join(', '),
       canViewPediatric: user.canViewPediatric ?? false,
       canViewOrchestration: (user as any).canViewOrchestration ?? false,
       subspecialtyIds: subspecialties.filter(s => s.userIds.includes(user.id)).map(s => s.id),
@@ -205,7 +214,17 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
       facilityIds: [...(user.facilityIds ?? [])],
     } : emptyDraft
   );
-  const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
+  // Batch 528 (PS-359): which fields are required comes from the organisation's
+  // Field Requirements (page "staff"); the check is services/staff/staffFormChecks.ts.
+  const [requirements, setRequirements] = useState<ResolvedFieldRequirement[]>(() => resolveFieldRequirements('staff'));
+  useEffect(() => { void fieldRequirementService.forSession('staff').then(setRequirements); }, []);
+  const req = (id: string) => isFieldRequired(requirements, id);
+  const star = (id: string) => req(id) ? <span className="ps-st-required">*</span> : null;
+  const [missingLabel, setMissingLabel] = useState('');
+  // Batch 544: a signature saved as an image, before signatures became links, says so on opening.
+  const [errors, setErrors] = useState<Partial<Record<string, string>>>(
+    () => (user && signatureLinkOnOpen(user.signatureUrl).needsLink ? { signature: t('staffTab.validation.signatureNeedsLink') } : {}),
+  );
   const [credentialErrors, setCredentialErrors] = useState<Record<number, ProviderCredentialError[]>>({});
   const setCredential = (i: number, patch: Partial<ProviderCredential>) => {
     setDraft(prev => ({ ...prev, providerCredentials: prev.providerCredentials.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
@@ -220,11 +239,14 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
   };
 
   const validate = () => {
+    const check = checkStaffForm(draft, requirements);
     const e: typeof errors = {};
-    if (!draft.firstName.trim()) e.firstName = t('common.required');
-    if (!draft.lastName.trim())  e.lastName  = t('common.required');
-    if (draft.roles.length === 0) e.roles = t('staffTab.validation.atLeastOneRole');
-    if (draft.email.trim() && !/\S+@\S+\.\S+/.test(draft.email)) e.email = t('staffTab.validation.invalidEmail');
+    for (const [id, problem] of Object.entries(check.problems)) {
+      e[id] = problem === 'atLeastOneRole' ? t('staffTab.validation.atLeastOneRole')
+        : problem === 'invalidEmail' ? t('staffTab.validation.invalidEmail')
+        : problem === 'invalidLink' ? t('staffTab.validation.invalidLink') : t('common.required');
+    }
+    setMissingLabel(check.missing.length ? formatList(check.missing.map(f => t(`fieldRequirements.fields.staff.${f.id}`)), i18n.language) : '');
     return e;
   };
 
@@ -249,18 +271,18 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
           {/* Row 1: First | Middle | Last */}
           <div className="ps-conf-form-row--3">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.firstNameLabel')} <span className="ps-st-required">*</span></label>
-              <input className={`ps-conf-input ${errors.firstName ? 'ps-conf-input--error' : ''}`}
+              <label className="ps-conf-label">{t('staffTab.modal.firstNameLabel')} {star('firstName')}</label>
+              <input aria-label={t('staffTab.modal.firstNameLabel')} className={`ps-conf-input ${errors.firstName ? 'ps-conf-input--error' : ''}`}
                 value={draft.firstName} onChange={e => set('firstName', e.target.value)} placeholder={t('staffTab.modal.firstNamePlaceholder')} />
               {errors.firstName && <span className="ps-st-error" data-phi="name">{errors.firstName}</span>}
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.middleNameLabel')}</label>
-              <input className="ps-conf-input" value={draft.middleName} onChange={e => set('middleName', e.target.value)} placeholder={t('staffTab.modal.middleNamePlaceholder')} />
+              <label className="ps-conf-label">{t('staffTab.modal.middleNameLabel')} {star('middleName')}</label>
+              <input aria-label={t('staffTab.modal.middleNameLabel')} className="ps-conf-input" value={draft.middleName} onChange={e => set('middleName', e.target.value)} placeholder={t('staffTab.modal.middleNamePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.lastNameLabel')} <span className="ps-st-required">*</span></label>
-              <input className={`ps-conf-input ${errors.lastName ? 'ps-conf-input--error' : ''}`}
+              <label className="ps-conf-label">{t('staffTab.modal.lastNameLabel')} {star('lastName')}</label>
+              <input aria-label={t('staffTab.modal.lastNameLabel')} className={`ps-conf-input ${errors.lastName ? 'ps-conf-input--error' : ''}`}
                 value={draft.lastName} onChange={e => set('lastName', e.target.value)} placeholder={t('staffTab.modal.lastNamePlaceholder')} />
               {errors.lastName && <span className="ps-st-error" data-phi="name">{errors.lastName}</span>}
             </div>
@@ -269,13 +291,13 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
           {/* Row 2: Email | Role */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.emailLabel')}</label>
-              <input className={`ps-conf-input ${errors.email ? 'ps-conf-input--error' : ''}`}
+              <label className="ps-conf-label">{t('staffTab.modal.emailLabel')} {star('email')}</label>
+              <input aria-label={t('staffTab.modal.emailLabel')} className={`ps-conf-input ${errors.email ? 'ps-conf-input--error' : ''}`}
                 value={draft.email} onChange={e => set('email', e.target.value)} placeholder={t('staffTab.modal.emailPlaceholder')} />
               {errors.email && <span className="ps-st-error">{errors.email}</span>}
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.roleLabel')} <span className="ps-st-required">*</span></label>
+              <label className="ps-conf-label">{t('staffTab.modal.roleLabel')} {star('roles')}</label>
               {draft.roles.length > 0 && (
                 <div className="ps-st-role-chips">
                   {draft.roles.map(rName => {
@@ -286,7 +308,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
                         style={{ '--ps-hue': color } as React.CSSProperties}>
                         {rName}
                         {canAssign && <span className="ps-st-role-chip-x"
-                          onClick={() => set('roles', draft.roles.filter(x => x !== rName))}>×</span>}
+                          {...pressable(() => set('roles', draft.roles.filter(x => x !== rName)))}>×</span>}
                       </span>
                     );
                   })}
@@ -308,15 +330,15 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
 
           {/* Row 3: Phone */}
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">{t('staffTab.modal.phoneLabel')}</label>
-            <input className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder={t('staffTab.modal.phonePlaceholder')} />
+            <label className="ps-conf-label">{t('staffTab.modal.phoneLabel')} {star('phone')}</label>
+            <input aria-label={t('staffTab.modal.phoneLabel')} className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder={t('staffTab.modal.phonePlaceholder')} />
           </div>
 
           {/* Real fix, per direct confirmation: replaces the old
               free-text Department field — redundant with the real
               Subspecialties dictionary, which is a better fit here. */}
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">{t('staffTab.modal.subspecialtiesLabel')}</label>
+            <label className="ps-conf-label">{t('staffTab.modal.subspecialtiesLabel')} {star('subspecialties')}</label>
             {draft.subspecialtyIds.length > 0 && (
               <div className="ps-st-role-chips">
                 {draft.subspecialtyIds.map(id => {
@@ -326,7 +348,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
                     <span key={id} className="ps-st-role-chip ps-st-role-chip--subspecialty">
                       {sub.name}
                       <span className="ps-st-role-chip-x ps-st-role-chip-x--subspecialty"
-                        onClick={() => set('subspecialtyIds', draft.subspecialtyIds.filter(x => x !== id))}>×</span>
+                        {...pressable(() => set('subspecialtyIds', draft.subspecialtyIds.filter(x => x !== id)))}>×</span>
                     </span>
                   );
                 })}
@@ -342,31 +364,31 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
 
           {/* Row 4: Credentials */}
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">{t('staffTab.modal.credentialsLabel')} <span className="ps-st-label-note">{t('staffTab.modal.credentialsNote')}</span></label>
-            <input className="ps-conf-input" value={draft.credentials} onChange={e => set('credentials', e.target.value)} placeholder={t('staffTab.modal.credentialsPlaceholder')} />
+            <label className="ps-conf-label">{t('staffTab.modal.credentialsLabel')} {star('credentials')} <span className="ps-st-label-note">{t('staffTab.modal.credentialsNote')}</span></label>
+            <input aria-label={t('staffTab.modal.credentialsLabel')} className="ps-conf-input" value={draft.credentials} onChange={e => set('credentials', e.target.value)} placeholder={t('staffTab.modal.credentialsPlaceholder')} />
           </div>
 
           {/* Row 5: NPI | GMC */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.npiLabel')} <span className="ps-st-label-note">{t('staffTab.modal.npiNote')}</span></label>
-              <input className="ps-conf-input" value={draft.npi} onChange={e => set('npi', e.target.value)} placeholder={t('staffTab.modal.npiPlaceholder')} />
+              <label className="ps-conf-label">{t('staffTab.modal.npiLabel')} {star('npi')} <span className="ps-st-label-note">{t('staffTab.modal.npiNote')}</span></label>
+              <input aria-label={t('staffTab.modal.npiLabel')} className="ps-conf-input" value={draft.npi} onChange={e => set('npi', e.target.value)} placeholder={t('staffTab.modal.npiPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.gmcLabel')} <span className="ps-st-label-note">{t('staffTab.modal.gmcNote')}</span></label>
-              <input className="ps-conf-input" value={draft.gmcNumber} onChange={e => set('gmcNumber', e.target.value)} placeholder={t('staffTab.modal.gmcPlaceholder')} />
+              <label className="ps-conf-label">{t('staffTab.modal.gmcLabel')} {star('gmcNumber')} <span className="ps-st-label-note">{t('staffTab.modal.gmcNote')}</span></label>
+              <input aria-label={t('staffTab.modal.gmcLabel')} className="ps-conf-input" value={draft.gmcNumber} onChange={e => set('gmcNumber', e.target.value)} placeholder={t('staffTab.modal.gmcPlaceholder')} />
             </div>
           </div>
 
           {/* Row 6: License | Voice Profile */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.licenseLabel')}</label>
-              <input className="ps-conf-input" value={draft.license} onChange={e => set('license', e.target.value)} placeholder={t('staffTab.modal.licensePlaceholder')} />
+              <label className="ps-conf-label">{t('staffTab.modal.licenseLabel')} {star('license')}</label>
+              <input aria-label={t('staffTab.modal.licenseLabel')} className="ps-conf-input" value={draft.license} onChange={e => set('license', e.target.value)} placeholder={t('staffTab.modal.licensePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('staffTab.modal.voiceProfileLabel')}</label>
-              <select value={draft.voiceProfile} onChange={e => set('voiceProfile', e.target.value)} className="ps-conf-select">
+              <select aria-label={t('staffTab.modal.voiceProfileLabel')} value={draft.voiceProfile} onChange={e => set('voiceProfile', e.target.value)} className="ps-conf-select">
                 <option value="">{t('staffTab.modal.voiceProfileDefault')}</option>
                 {VOICE_PROFILES.map(profile => (
                   <option key={profile.id} value={profile.id}>{profile.label}</option>
@@ -389,17 +411,26 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
             </div>
           </div>
 
+          {/* Batch 608 (#50, #79): cytology QC reviewer pools. */}
+          <div className="ps-conf-form-row">
+            <div className="ps-conf-form-field">
+              <label className="ps-conf-label" htmlFor="staff-qc-pools">{t('staffTab.modal.qcPoolsLabel')}</label>
+              <input id="staff-qc-pools" value={draft.qcPools} onChange={e => set('qcPools', e.target.value)} className="ps-conf-input" />
+              <span className="ps-conf-hint">{t('staffTab.modal.qcPoolsHint')}</span>
+            </div>
+          </div>
+
           {/* PS-356: facility assignment. Narrows where this person's
               capabilities apply; empty means every facility. */}
           <div className="ps-conf-form-field">
-            <label className="ps-conf-label">{t('staffTab.access.facilitiesLabel')}</label>
+            <label className="ps-conf-label">{t('staffTab.access.facilitiesLabel')} {star('facilities')}</label>
             <div className="ps-st-role-chips">
               {draft.facilityIds.length === 0 && <span className="ps-st-role-chip ps-st-role-chip--subspecialty">{t('staffTab.access.allFacilities')}</span>}
               {draft.facilityIds.map(id => (
                 <span key={id} className="ps-st-role-chip ps-st-role-chip--subspecialty">
                   {facilities.find(f => f.id === id)?.name ?? id}
                   {canAssign && <span className="ps-st-role-chip-x ps-st-role-chip-x--subspecialty"
-                    onClick={() => set('facilityIds', draft.facilityIds.filter(x => x !== id))}>×</span>}
+                    {...pressable(() => set('facilityIds', draft.facilityIds.filter(x => x !== id)))}>×</span>}
                 </span>
               ))}
             </div>
@@ -520,6 +551,7 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
           </fieldset>
 
           {/* Batch 345: linked single-sign-on accounts (edit only). */}
+          {mode === 'edit' && user?.id && <StaffSignInPassword staffId={user.id} />}
           {mode === 'edit' && user?.id && <LinkedSignInAccounts staffId={user.id} />}
 
           {/* Row 8: Status | Signature */}
@@ -529,14 +561,15 @@ const StaffModal: React.FC<StaffModalProps> = ({ mode, user, roles, subspecialti
               <Toggle value={draft.active} onChange={v => set('active', v)} />
             </div>
             <div className="ps-conf-form-field">
-              <label className="ps-conf-label">{t('staffTab.modal.signatureLabel')}</label>
-              <SignatureUpload url={draft.signatureUrl} onChange={url => set('signatureUrl', url)} />
+              <label className="ps-conf-label">{t('staffTab.modal.signatureLabel')} {star('signature')}</label>
+              <SignatureLink url={draft.signatureUrl} error={errors.signature} onChange={url => { set('signatureUrl', url); setErrors(prev => ({ ...prev, signature: '' })); }} />
             </div>
           </div>
 
         </div>
 
         <div className="ps-conf-modal-footer">
+          {missingLabel && <span className="ps-st-error ps-st-save-error" role="alert">{t('fieldRequirements.stillRequired', { fields: missingLabel })}</span>}
           {saveError && <span className="ps-st-error ps-st-save-error" role="alert">{t(saveError)}</span>}
           <button className="ps-conf-btn-secondary" onClick={onClose}>{t('common.cancel')}</button>
           <CapabilityButton capability="config:staff:edit" className="ps-conf-btn-primary" onClick={() => { void handleSave(); }}>
@@ -571,6 +604,15 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
     subspecialtyService.getAll().then(res => { if (res.ok) setSubspecialties(res.data); });
   }, []);
 
+  // Batch 711: ?staff=<id> (the link in a password reset request message) opens that person's record.
+  const staffLocation = useLocation();
+  const openedFromAddress = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const wanted = staffIdFromAddress(staffLocation.search);
+    const found = wanted && openedFromAddress.current !== wanted ? users.find(u => u.id === wanted) : undefined;
+    if (found) { openedFromAddress.current = found.id; setModal({ mode: 'edit', user: found }); }
+  }, [users, staffLocation.search]);
+
   const userSubsMap: Record<string, string[]> = {};
   subspecialties.forEach(sub => {
     sub.userIds.forEach(uid => {
@@ -579,7 +621,7 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
     });
   });
 
-  if (loading) return <div className="ps-st-loading">{t('staffTab.list.loading')}</div>;
+  if (loading) return <LoadingState label={t('staffTab.list.loading')} />;
 
   const filtered = users.filter(u => {
     // Real, per direct guidance: widened from name/email only to every
@@ -610,15 +652,16 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       status: (draft.active ? 'Active' : 'Inactive') as 'Active' | 'Inactive',
       voiceProfile: draft.voiceProfile === '' ? undefined : (draft.voiceProfile as VoiceProfileId),
       spellingLocale: draft.spellingLocale === '' ? null : draft.spellingLocale,
+      qcReviewerRoles: draft.qcPools.trim() === '' ? undefined : draft.qcPools.split(',').map(r => r.trim().toUpperCase()).filter(Boolean),
       quickAuthPin: draft.quickAuthPin === '' ? undefined : draft.quickAuthPin,
       providerCredentials: normalizeProviderCredentials(draft.providerCredentials),
       facilityIds: draft.facilityIds,
     };
-    const deps = { userService, authorization: authorizationService, auditService, actorName: adminUser?.name ?? 'Unknown User' };
+    const deps = { userService, roleService, authorization: authorizationService, auditService, actorName: adminUser?.name ?? 'Unknown User' };
     const res = modal?.mode === 'edit' && modal.user
       ? await saveStaffMember({ mode: 'edit', before: modal.user as any, draft: payload as any }, deps)
       : await saveStaffMember({ mode: 'add', draft: payload as any }, deps);
-    if (res.ok === false) return res.reason === 'notPermitted' ? 'staffTab.access.notPermitted' : 'staffTab.access.saveFailed';
+    if (res.ok === false) return res.reason === 'notPermitted' ? 'staffTab.access.notPermitted' : res.reason === 'separationOfDuties' ? 'staffTab.access.separationOfDuties' : 'staffTab.access.saveFailed';
     const saved = res.user as unknown as StaffUser;
     setUsers(prev => (prev.some(u => u.id === saved.id) ? prev.map(u => (u.id === saved.id ? saved : u)) : [...prev, saved]));
     const savedUserId: string | undefined = saved.id;
@@ -764,9 +807,9 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
       </div>
 
       <div data-capture-hide="true" className="ps-st-filter-bar">
-        <input type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('staffTab.list.searchPlaceholder')} value={search}
           onChange={e => setSearch(e.target.value)} className="ps-st-search" />
-        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+        <select aria-label={t('a11y.filters.role')} data-dirty-ignore data-config-nav value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
           title={t('staffTab.list.roleFilterTitle')} className="ps-st-role-filter">
           <option value="All">{t('staffTab.list.allRoles')}</option>
           {roles.filter(r => r.name !== 'Physician').map(r => (
@@ -836,8 +879,22 @@ const StaffMembers: React.FC<{ roles: Role[] }> = ({ roles }) => {
 type StaffSubTab = 'members' | 'roles' | 'credentialing';
 
 const StaffTab: React.FC = () => {
+  // PS-128 (Batch 437): moving to another section asks first when something is unsaved.
+  const guardNav = useConfigNavigationGuard();
   const { t } = useTranslation();
-  const [subTab, setSubTab] = useState<StaffSubTab>('members');
+  // Batch 431: ?section= opens a sub-tab (Configuration search, links).
+  const location = useLocation();
+  const sectionFromAddress = (): StaffSubTab | null => {
+    const section = new URLSearchParams(location.search).get('section');
+    return STAFF_SECTIONS.some(s => s.id === section) ? section as StaffSubTab : null;
+  };
+  const [subTab, setSubTab] = useState<StaffSubTab>(() => sectionFromAddress() ?? 'members');
+  useRegisterConfigHelpSection(subTab); // Batch 646: the Help button opens this sub-tab's section of the Administrator Guide
+  React.useEffect(() => {
+    const section = sectionFromAddress();
+    if (section) setSubTab(section);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the address only
+  }, [location.search]);
   const [roles,  setRoles]  = React.useState<Role[]>(DEFAULT_ROLES);
 
   // Real fix, per direct guidance (Staff member Organized under Role):
@@ -867,18 +924,19 @@ const StaffTab: React.FC = () => {
     <div>
       <div className="ps-st-tab-bar">
         <button className={`ps-st-tab ${subTab === 'members' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('members')}>{t('staffTab.tabs.members')}</button>
+          onClick={() => guardNav(() => setSubTab('members'))}>{t('staffTab.tabs.members')}</button>
         <button className={`ps-st-tab ${subTab === 'roles' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('roles')}>{t('staffTab.tabs.roles')}</button>
+          onClick={() => guardNav(() => setSubTab('roles'))}>{t('staffTab.tabs.roles')}</button>
         <button className={`ps-st-tab ${subTab === 'credentialing' ? 'ps-st-tab--active' : 'ps-st-tab--inactive'}`}
-          onClick={() => setSubTab('credentialing')}>{t('staffTab.tabs.credentialing')}</button>
+          onClick={() => guardNav(() => setSubTab('credentialing'))}>{t('staffTab.tabs.credentialing')}</button>
       </div>
       {subTab === 'members' && <StaffMembers roles={roles} />}
       {subTab === 'roles'   && <RoleDictionary onRolesChange={setRoles} />}
       {subTab === 'credentialing' && (
         <>
-          <FppeAssignmentsSection />
-          <CytotechCompetencyAssignmentsSection />
+          {/* Batch 429: view only without their capabilities. */}
+          <ConfigSectionGate section="staff:fppe"><FppeAssignmentsSection /></ConfigSectionGate>
+          <ConfigSectionGate section="staff:cytotech-competency"><CytotechCompetencyAssignmentsSection /></ConfigSectionGate>
         </>
       )}
     </div>

@@ -2,6 +2,8 @@
 import type { IDepartmentService, Department } from './IDepartmentService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { linkFieldProblem } from '../links/externalLink';
 
 // ─── Seed data ──────────────────────────────────────────────────────────────
 // One department per existing Grossing Route (protocolShared.tsx's three
@@ -20,6 +22,16 @@ const SEED_DEPARTMENTS: Department[] = [
     id: 'cat-fluid-cytology',
     name: 'Fluid / Cytology',
     description: 'Fluid, wash, or cytological specimens processed for cell block/smear rather than sectioning. Pleural fluid, peritoneal lavage, BAL, urine cytology, CSF, ascites, pericardial fluid, thyroid FNA, bronchial wash.',
+    defaultGrossingTemplateId: 'grossing_fluid_cytology',
+    status: 'Active',
+  },
+  // Batch 716 (Pete, Oct 28 2026, "set demo data for Cytology Part 2"): GYN cytology gets its own department, and
+  // with it its own accession series (GYN26-0001, see mockCaseMaskService.ts), so a Pap and a thyroid FNA visibly
+  // draw from different series in the training video. Non-GYN cytology/FNA stays on 'Fluid / Cytology' (series NG).
+  {
+    id: 'cat-gyn-cytology',
+    name: 'GYN Cytology',
+    description: 'Cervical and vaginal cytology: conventional and liquid-based Pap tests, Pap with HPV co-test, and HPV-only (including self-collected) swabs. Always routed to the Cytology worklist.',
     defaultGrossingTemplateId: 'grossing_fluid_cytology',
     status: 'Active',
   },
@@ -59,7 +71,7 @@ const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err   = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 const delay = () => new Promise(r => setTimeout(r, 80));
 
-export const mockDepartmentService: IDepartmentService = {
+const departmentServiceUnchecked: IDepartmentService = {
   async getAll() {
     await delay();
     return ok([...DEPARTMENTS]);
@@ -73,6 +85,8 @@ export const mockDepartmentService: IDepartmentService = {
 
   async add(department) {
     await delay();
+    // Batch 549: a link field that isn't an https link is refused here as well as in the editor (links only, Pete, Oct 13, 2026).
+    if (linkFieldProblem(department.headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
     const newC: Department = { ...department, id: 'dept-' + Date.now() };
     DEPARTMENTS = [...DEPARTMENTS, newC];
     persist(DEPARTMENTS);
@@ -81,6 +95,7 @@ export const mockDepartmentService: IDepartmentService = {
 
   async update(id, changes) {
     await delay();
+    if (linkFieldProblem(changes.headerLogoUrl)) return err('invalidLink: headerLogoUrl must be an https link');
     const idx = DEPARTMENTS.findIndex(c => c.id === id);
     if (idx === -1) return err(`Department ${id} not found`);
     DEPARTMENTS = DEPARTMENTS.map(c => c.id === id ? { ...c, ...changes } : c);
@@ -88,11 +103,11 @@ export const mockDepartmentService: IDepartmentService = {
   },
 
   async verify(id) {
-    return mockDepartmentService.update(id, { status: 'Active' });
+    return departmentServiceUnchecked.update(id, { status: 'Active' });
   },
 
   async deactivate(id) {
-    return mockDepartmentService.update(id, { status: 'Inactive' });
+    return departmentServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async findOrCreateByName(name, note) {
@@ -120,3 +135,8 @@ export const mockDepartmentService: IDepartmentService = {
     return ok({ ...newC });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockDepartmentService: IDepartmentService = guardConfigWrites(departmentServiceUnchecked, [
+  ['config:departments:manage', ['add', 'update', 'verify', 'deactivate']],
+]);

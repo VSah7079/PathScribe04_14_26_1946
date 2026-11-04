@@ -33,7 +33,9 @@
 
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
-import type { Jurisdiction } from '@/types/systemConfig';
+import { JURISDICTION_LABELS, type Jurisdiction } from '@/types/systemConfig';
+import type { QaScope } from '@/services/qualityAssurance/qaScope';
+import { scopeLabel } from '@/services/qualityAssurance/qaScopeRows';
 
 /** Real, verbatim from PS-108's own "Supported Nations & Regulatory Basis"
  *  table — one primary citation per real Jurisdiction enum value this app
@@ -53,6 +55,7 @@ export const REGULATORY_CLAUSE_BY_JURISDICTION: Record<Jurisdiction, string> = {
   NL: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
   DE: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
   FR: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
+  ES: 'ISO 15189 / ISO/TS 23824:2024 — internal audits, diagnostic accuracy review',
 };
 
 export interface QaEvidenceBinderRecordRow {
@@ -91,7 +94,8 @@ export function resolveQaEvidenceBinder(
   now: Date = new Date(),
 ): QaEvidenceBinderReport {
   const windowStart = new Date(now);
-  windowStart.setMonth(windowStart.getMonth() - windowMonths);
+  // Batch 504: UTC arithmetic, so the window is the same whatever device runs it.
+  windowStart.setUTCMonth(windowStart.getUTCMonth() - windowMonths);
   const windowStartMs = windowStart.getTime();
 
   const inWindow = records.filter(r => new Date(r.recordedAt).getTime() >= windowStartMs);
@@ -142,4 +146,33 @@ export function resolveQaEvidenceBinder(
     totalRecords: inWindow.length,
     entries,
   };
+}
+
+/**
+ * PS-121 (Batch 451, moved out of InspectionModeTab.tsx): the binder's CSV
+ * export rows, one per QA record across every activity type. Exported data,
+ * so column headers and cell values stay literal English whatever the UI
+ * language (the jurisdiction names come from the English JURISDICTION_LABELS
+ * for that reason). Case and specimen identifiers only, no patient name, MRN
+ * or DOB (the QA export convention, components/QualityAssurance/qaReportUtils.ts).
+ */
+export function qaEvidenceBinderCsvRows(report: QaEvidenceBinderReport): Record<string, string | number>[] {
+  return report.entries.flatMap(entry => entry.records.map(r => ({
+    'Activity Type': entry.activityTypeName,
+    'Regulatory Basis': entry.regulatoryBasis.map(b => `${JURISDICTION_LABELS[b.jurisdiction]}: ${b.clause}`).join(' | ') || 'No jurisdiction configured',
+    Case: r.caseId,
+    Specimen: r.specimenId ?? 'Case-level',
+    Outcome: r.outcome === 'concordant' ? 'Concordant' : 'Discordant',
+    Severity: r.severity ?? '—',
+    'Meets CAPA Threshold': r.meetsCapaThreshold ? 'Yes' : 'No',
+    Recorded: r.recordedAt,
+    Reviewer: r.recordedByName,
+  })));
+}
+
+/** PS-121: the binder export's file name, e.g. qa-inspection-evidence-binder-24mo-2026-09-20.csv. */
+/** Batch 544: names the facility or organisation when one is exported; enterprise-wide keeps the old name. */
+export function qaEvidenceBinderExportFilename(windowMonths: number, now: Date = new Date(), scope: QaScope = { level: 'enterprise' }): string {
+  const scoped = scope.level === 'enterprise' ? '' : `${scopeLabel(scope)}-`;
+  return `qa-inspection-evidence-binder-${windowMonths}mo-${scoped}${now.toISOString().slice(0, 10)}.csv`;
 }

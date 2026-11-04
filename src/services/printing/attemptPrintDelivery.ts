@@ -21,12 +21,16 @@
 // actually carry it.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockPrintQueueService } from './mockPrintQueueService';
+import { checkDirectDevicePrint, type DirectPrintDeps } from './directDevicePrinting';
+import { directDevicePrintingDeps } from './directDevicePrintingDeps';
+import { printQueueService } from './printQueueServiceInstance';
+import { recordSimulatedPrint, simulationAllowed } from './simulatedPrint';
 import { printPdfViaQzTray, isQzTrayConnected } from '@/utils/labels/qzTrayBridge';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 import { dispatchViaPrintProtocol } from './transport/dispatchViaPrintProtocol';
+import { AGENT_PRINT_NEEDS_SERVER, canSendNetworkPrintHere, NETWORK_PRINT_NEEDS_SITE_AGENT } from './transport/networkPrintRuntime';
 import type { PrintDeliveryMode, PrintJobReportType, PaperSize, PaperSourceTray, DuplexMode } from '@/types/printing/PrintJob';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import { isAgentPrintDestination, type PrintDestination } from '@/types/printRouting/PrintDestination';
 
 export interface PrintDeliveryPresentation {
   paperSource?: PaperSourceTray;
@@ -42,6 +46,8 @@ export interface AttemptPrintDeliveryInput {
   pdfBase64: string;
   /** Only meaningful for NATIVE_QZ_TRAY. */
   printerName?: string;
+  /** Batch 734: the performing facility, for the direct-printing check (NATIVE_QZ_TRAY prints from the browser). */
+  facilityId?: string;
   paperSize?: PaperSize;
   /** Only meaningful for DIRECT_NETWORK_PRINT — the already-decided
    *  real target (freshly resolved on first dispatch, or the job's
@@ -55,23 +61,33 @@ export interface AttemptPrintDeliveryInput {
 export interface AttemptPrintDeliveryResult {
   outcome: 'dispatched' | 'failed';
   jobId: string;
+  /** Batch 546 (F3): false when retrying can't help, so the release goes straight to the exception queue and its fallback. */
+  retriable?: boolean;
 }
 
-export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Promise<AttemptPrintDeliveryResult> {
+export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput, direct: DirectPrintDeps = directDevicePrintingDeps): Promise<AttemptPrintDeliveryResult> {
   const { jobId, caseId, reportType, priority, mode, pdfBase64 } = input;
 
   if (mode === 'NATIVE_QZ_TRAY') {
     if (!input.printerName) {
-      await mockPrintQueueService.markFailed(jobId, {
+      await printQueueService.markFailed(jobId, {
         errorCode: 'PRINT_REJECTED', errorMessage: 'No printer configured for Native QZ Tray delivery.', maxRetriesExceeded: true,
       });
       return { outcome: 'failed', jobId };
+    }
+    // Batch 734 (Pete, Decision 6): QZ Tray prints from the browser straight to the printer. In a server deployment
+    // that is blocked unless the facility allows it (audited); the job goes to the exception queue and its fallback.
+    if ((await checkDirectDevicePrint({ bridgeType: 'qz_tray', facilityId: input.facilityId, printerId: input.printerName }, `report ${reportType}`, direct)) === 'blocked') {
+      await printQueueService.markFailed(jobId, {
+        errorCode: 'PRINT_REJECTED', errorMessage: 'Direct printing from the browser is off for this facility. Use the interface engine or the browser print dialog.', maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
     }
     if (!isQzTrayConnected()) {
       // Real, per the source spec's own Use Case 2 — an unreachable
       // real printer/bridge holds the job for real, manual retry
       // rather than blocking or throwing.
-      await mockPrintQueueService.markFailed(jobId, {
+      await printQueueService.markFailed(jobId, {
         errorCode: 'PRINTER_OFFLINE', errorMessage: 'QZ Tray is not connected.', maxRetriesExceeded: false,
       });
       return { outcome: 'failed', jobId };
@@ -88,32 +104,72 @@ export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Pr
       // reliably narrow a discriminated union to its `ok: false`
       // branch. Same real, established workaround dispatchZplLabel.ts's
       // own identical situation already uses.
-      await mockPrintQueueService.markFailed(jobId, {
+      await printQueueService.markFailed(jobId, {
         errorCode: 'PRINTER_UNREACHABLE', errorMessage: (printRes as { ok: false; message: string }).message, maxRetriesExceeded: false,
       });
       return { outcome: 'failed', jobId };
     }
-    await mockPrintQueueService.markPrinted(jobId);
+    await printQueueService.markPrinted(jobId);
     return { outcome: 'dispatched', jobId };
   }
 
   if (mode === 'DIRECT_NETWORK_PRINT') {
     if (!input.destination) {
-      await mockPrintQueueService.markFailed(jobId, {
+      await printQueueService.markFailed(jobId, {
         errorCode: 'PRINT_REJECTED',
         errorMessage: 'No real PrintDestination available for this Direct Network Print job.',
         maxRetriesExceeded: true,
       });
       return { outcome: 'failed', jobId };
     }
-    const sendRes = await dispatchViaPrintProtocol(input.destination, Buffer.from(pdfBase64, 'base64'), input.presentation);
+    // Batch 553: a site agent's printer is reached only through the API
+    // server, which hands the job to the site's agent (SITE_AGENT_API.md §4).
+    // Nothing here can send it, so the job fails at once with that reason and
+    // goes to the exception queue and its fallback, as a browser attempt does.
+    // Batch 606: in the demo, network and site-agent print goes through a labelled Simulated transport
+    // ("Simulated: sent to printer"), with an audit entry and a failure switch (Configuration, System, Simulated print log).
+    if (simulationAllowed() && (isAgentPrintDestination(input.destination) || !canSendNetworkPrintHere())) {
+      const agent = isAgentPrintDestination(input.destination);
+      const rec = recordSimulatedPrint({
+        kind: 'report', transport: agent ? 'site agent' : 'network print',
+        destination: input.destination.displayName ?? (agent ? 'site agent printer' : (input.destination as { ipAddress: string }).ipAddress),
+      });
+      if (rec.outcome === 'delivered') {
+        await printQueueService.markPrinted(jobId, { simulated: true });
+        return { outcome: 'dispatched', jobId };
+      }
+      await printQueueService.markFailed(jobId, { errorCode: 'PRINTER_UNREACHABLE', errorMessage: 'Simulated failure (the failure switch is on).', maxRetriesExceeded: false });
+      return { outcome: 'failed', jobId };
+    }
+    if (isAgentPrintDestination(input.destination)) {
+      await printQueueService.markFailed(jobId, {
+        errorCode: 'NEEDS_SITE_AGENT', errorMessage: AGENT_PRINT_NEEDS_SERVER, maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
+    }
+    // Batch 546 (finding F3): the network transports need Node. From a
+    // browser the job fails with a plain reason instead of throwing, so it is
+    // FAILED (not stuck QUEUED). Retrying from here can't help, so it goes
+    // straight to the exception queue, the fallback channels and the alert.
+    if (!canSendNetworkPrintHere()) {
+      await printQueueService.markFailed(jobId, {
+        errorCode: 'NEEDS_SITE_AGENT', errorMessage: NETWORK_PRINT_NEEDS_SITE_AGENT, maxRetriesExceeded: true,
+      });
+      return { outcome: 'failed', jobId, retriable: false };
+    }
+    let sendRes: { ok: boolean; error?: string };
+    try {
+      sendRes = await dispatchViaPrintProtocol(input.destination, Buffer.from(pdfBase64, 'base64'), input.presentation);
+    } catch (e) {
+      sendRes = { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
     if (!sendRes.ok) {
-      await mockPrintQueueService.markFailed(jobId, {
+      await printQueueService.markFailed(jobId, {
         errorCode: 'PRINTER_UNREACHABLE', errorMessage: sendRes.error ?? 'Direct network print failed.', maxRetriesExceeded: false,
       });
       return { outcome: 'failed', jobId };
     }
-    await mockPrintQueueService.markPrinted(jobId);
+    await printQueueService.markPrinted(jobId);
     return { outcome: 'dispatched', jobId };
   }
 
@@ -124,11 +180,11 @@ export async function attemptPrintDelivery(input: AttemptPrintDeliveryInput): Pr
     caseId, reportType, priority, pdfBase64, paperSize: input.paperSize,
   });
   if (!dispatchRes.ok) {
-    await mockPrintQueueService.markFailed(jobId, {
+    await printQueueService.markFailed(jobId, {
       errorCode: 'PRINTER_UNREACHABLE', errorMessage: (dispatchRes as any).error ?? 'Interface Engine hand-off failed.', maxRetriesExceeded: false,
     });
     return { outcome: 'failed', jobId };
   }
-  await mockPrintQueueService.markPrinted(jobId);
+  await printQueueService.markPrinted(jobId);
   return { outcome: 'dispatched', jobId };
 }

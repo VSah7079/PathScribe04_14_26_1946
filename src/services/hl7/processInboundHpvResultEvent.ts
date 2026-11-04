@@ -20,9 +20,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
-import { mockMolecularOrderOutboundQueueService } from '../molecularOrders/mockMolecularOrderOutboundQueueService';
+import { updateCaseWithRetryOrThrow } from '../cases/caseWrite';
+import { molecularOrderOutboundQueueService } from '../molecularOrders/molecularOrderOutboundQueueServiceInstance';
+import { auditService } from '../auditlog/auditServiceInstance';
 import type { HpvResultEventPayload } from '@/types/events/HpvResultEventPayload';
+import { normalizeHpvGenotype } from '../cytology/hpvGenotype';
+import { hasReflexOrder } from '../molecularOrders/orderQueueView';
 
 export interface ProcessInboundHpvResultEventResult {
   messageId: string;
@@ -30,6 +33,9 @@ export interface ProcessInboundHpvResultEventResult {
   caseId?: string;
   specimenId?: string;
   reason?: string;
+  /** Batch 669 (mol-3), a positive standalone screen: 'queued' = the reflex genotyping order was added; 'already-queued' =
+   *  one was already on the queue for this specimen, so no second order was made. Absent when no reflex applies. */
+  reflex?: 'queued' | 'already-queued';
 }
 
 // Real, minimal in-memory idempotency ledger — same real reasoning and
@@ -70,43 +76,49 @@ export async function processInboundHpvResultEvent(payload: HpvResultEventPayloa
     return { messageId: payload.messageId, outcome: 'case-not-found', reason: `No case found for '${lookupId}'.` };
   }
 
-  const specimens = (caseData.specimens as any[]) ?? [];
-  const targetSpecimen = specimens.find(sp => sp.label === payload.specimenLetter);
-  if (!targetSpecimen) {
+  // PS-71 (Batch 458): the specimen change is rebuilt from the newest case
+  // on every try (updateCaseWithRetryOrThrow), so a concurrent edit to
+  // another specimen is kept. Replaces the old "force through" retry that
+  // re-saved the stale specimens array without a version. If every try
+  // conflicts, the ConcurrencyConflictError propagates and the messageId is
+  // NOT marked processed, so the sender's redelivery applies it.
+  let targetSpecimen: any;
+  const write = await updateCaseWithRetryOrThrow(caseData.id, current => {
+    const specimens = (current.specimens as any[]) ?? [];
+    targetSpecimen = specimens.find(sp => sp.label === payload.specimenLetter);
+    if (!targetSpecimen) return null;
+    const updatedSpecimens = specimens.map(sp =>
+      sp.label === payload.specimenLetter
+        ? {
+            ...sp,
+            cytologyScreening: {
+              ...sp.cytologyScreening,
+              hpvResult: payload.hrHpvResult,
+              // Batch 630: the platform's result; it replaces a manual entry still waiting for a second sign-off.
+              hpvResultSource: 'INTERFACE' as const,
+              hpvPendingOverride: undefined,
+              hpvAbnormalFlag: payload.abnormalFlag,
+              hpvReferenceRange: payload.referenceRange,
+              hpvGenotypeDetail: normalizeHpvGenotype(payload.genotypeDetail),
+              hpvOrderReason: payload.orderReason,
+            },
+          }
+        : sp
+    );
+    return { specimens: updatedSpecimens } as any;
+  }, caseRouter);
+  if (!write.ok) {
     return { messageId: payload.messageId, outcome: 'specimen-not-found', reason: `Case ${caseData.id} has no specimen '${payload.specimenLetter}'.` };
   }
 
-  const updatedSpecimens = specimens.map(sp =>
-    sp.label === payload.specimenLetter
-      ? {
-          ...sp,
-          cytologyScreening: {
-            ...sp.cytologyScreening,
-            hpvResult: payload.hrHpvResult,
-            hpvAbnormalFlag: payload.abnormalFlag,
-            hpvReferenceRange: payload.referenceRange,
-            hpvGenotypeDetail: payload.genotypeDetail,
-            hpvOrderReason: payload.orderReason,
-          },
-        }
-      : sp
-  );
-
-  try {
-    await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-  } catch (e) {
-    // Real, deliberate "force through" posture — same reasoning as
-    // processBlockExceptionEvent.ts's own: the real molecular result
-    // already exists at the sending system regardless of a local
-    // version conflict.
-    if (e instanceof ConcurrencyConflictError) {
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens } as any);
-    } else {
-      throw e;
-    }
-  }
-
   processedMessageIds.add(payload.messageId);
+
+  // Batch 629 (PS-174): every inbound message applied is audited by its key. The detail carries no patient data.
+  auditService.logEvent({
+    type: 'system', event: 'hrHPV Result Received',
+    detail: `hrHPV result ${payload.hrHpvResult} applied to specimen ${payload.specimenLetter} (message ${payload.messageId})`,
+    user: payload.siteId ?? payload.organisationId, caseId: caseData.id, confidence: null,
+  }).catch(() => {});
 
   // Real, per the Protocol-Driven Workflow Infrastructure story's Part
   // 2b reflex trigger — closes the documented gap in st-hpv-reflex's
@@ -118,19 +130,29 @@ export async function processInboundHpvResultEvent(payload: HpvResultEventPayloa
   // outbound dispatch in this app — a real queueing failure here must
   // never turn an otherwise-successful result ingestion into a failed
   // one.
+  let reflex: ProcessInboundHpvResultEventResult['reflex'];
   if (payload.hrHpvResult === 'Positive' && payload.assayStainTypeId === 'st-hpv-highrisk-screen') {
-    mockMolecularOrderOutboundQueueService.enqueue({
-      caseId: caseData.id,
-      eventType: 'order.molecular',
-      payload: {
-        accessionNumber: payload.accessionNumber, specimenLetter: payload.specimenLetter,
-        assayCode: 'st-hpv-genotyping', orderReason: 'hpv_reflex_genotyping',
-        priority: caseData.order?.priority ?? 'Routine', reflexFromMessageId: payload.messageId,
-      },
-    }).catch(console.error);
+    // Batch 669 (mol-3): idempotent per specimen. A different messageId for the same positive screen (a resend, or the demo
+    // button pressed again) used to fire another genotyping order each time; now one reflex order exists per specimen.
+    // A queue that can't be read must not lose the order, so a failed look-up reads as none queued.
+    const existing = await (async () => { try { return await molecularOrderOutboundQueueService.getByCaseId(caseData.id); } catch { return null; } })();
+    if (existing && existing.ok && hasReflexOrder(existing.data, payload.accessionNumber, payload.specimenLetter, 'st-hpv-genotyping')) {
+      reflex = 'already-queued';
+    } else {
+      reflex = 'queued';
+      molecularOrderOutboundQueueService.enqueue({
+        caseId: caseData.id,
+        eventType: 'order.molecular',
+        payload: {
+          accessionNumber: payload.accessionNumber, specimenLetter: payload.specimenLetter,
+          assayCode: 'st-hpv-genotyping', orderReason: 'hpv_reflex_genotyping',
+          priority: caseData.order?.priority ?? 'Routine', reflexFromMessageId: payload.messageId,
+        },
+      }).catch(console.error);
+    }
   }
 
-  return { messageId: payload.messageId, outcome: 'applied', caseId: caseData.id, specimenId: targetSpecimen.id };
+  return { messageId: payload.messageId, outcome: 'applied', caseId: caseData.id, specimenId: targetSpecimen.id, ...(reflex ? { reflex } : {}) };
 }
 
 /** Test-only reset — same real pattern as

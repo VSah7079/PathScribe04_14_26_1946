@@ -1,6 +1,6 @@
 {
   "id": "colorectal_further_investigations",
-  "name": "Generic Template \u2014 Colorectal Further Investigations",
+  "name": "Colorectal further investigations",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "COLORECTAL",
@@ -8,11 +8,11 @@
   "sections": [
     {
       "id": "mmr_ihc",
-      "title": "Marker Panel A",
+      "title": "Mismatch repair proteins (immunohistochemistry)",
       "fields": [
         {
           "id": "mlh1_nuclear_expression",
-          "label": "Field 1",
+          "label": "MLH1",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -21,31 +21,31 @@
           "options": [
             {
               "id": "mlh1_nuclear_expression_opt_1",
-              "label": "Option 1",
+              "label": "Retained (normal)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_nuclear_expression_opt_2",
-              "label": "Option 2",
+              "label": "Lost",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_nuclear_expression_opt_3",
-              "label": "Option 3",
+              "label": "Subclonal loss",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_nuclear_expression_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_nuclear_expression_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -54,7 +54,7 @@
         },
         {
           "id": "pms2_nuclear_expression",
-          "label": "Field 2",
+          "label": "PMS2",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -63,31 +63,31 @@
           "options": [
             {
               "id": "pms2_nuclear_expression_opt_1",
-              "label": "Option 1",
+              "label": "Retained (normal)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pms2_nuclear_expression_opt_2",
-              "label": "Option 2",
+              "label": "Lost",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pms2_nuclear_expression_opt_3",
-              "label": "Option 3",
+              "label": "Subclonal loss",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pms2_nuclear_expression_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "pms2_nuclear_expression_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -96,7 +96,7 @@
         },
         {
           "id": "msh2_nuclear_expression",
-          "label": "Field 3",
+          "label": "MSH2",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -105,31 +105,31 @@
           "options": [
             {
               "id": "msh2_nuclear_expression_opt_1",
-              "label": "Option 1",
+              "label": "Retained (normal)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh2_nuclear_expression_opt_2",
-              "label": "Option 2",
+              "label": "Lost",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh2_nuclear_expression_opt_3",
-              "label": "Option 3",
+              "label": "Subclonal loss",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh2_nuclear_expression_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh2_nuclear_expression_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -138,7 +138,7 @@
         },
         {
           "id": "msh6_nuclear_expression",
-          "label": "Field 4",
+          "label": "MSH6",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -147,31 +147,31 @@
           "options": [
             {
               "id": "msh6_nuclear_expression_opt_1",
-              "label": "Option 1",
+              "label": "Retained (normal)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh6_nuclear_expression_opt_2",
-              "label": "Option 2",
+              "label": "Lost",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh6_nuclear_expression_opt_3",
-              "label": "Option 3",
+              "label": "Subclonal loss",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh6_nuclear_expression_opt_4",
-              "label": "Option 4",
+              "label": "Cannot be assessed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msh6_nuclear_expression_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -182,11 +182,11 @@
     },
     {
       "id": "msi_testing",
-      "title": "Marker Panel B",
+      "title": "Microsatellite instability (MSI) testing",
       "fields": [
         {
           "id": "msi_status",
-          "label": "Field 1",
+          "label": "Microsatellite instability (MSI) status",
           "type": "dropdown",
           "required": true,
           "core": true,
@@ -195,46 +195,55 @@
           "options": [
             {
               "id": "msi_status_opt_1",
-              "label": "Option 1",
+              "label": "MSI-high (MSI-H)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_2",
-              "label": "Option 2",
+              "label": "MSI-low (MSI-L)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_3",
-              "label": "Option 3",
+              "label": "Microsatellite stable (MSS)",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_4",
-              "label": "Option 4",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "msi_status_opt_5",
-              "label": "Option 5",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-msi-pcr"
+            ],
+            "values": {
+              "POSITIVE": "msi_status_opt_1",
+              "NEGATIVE": "msi_status_opt_3"
+            }
+          }
         }
       ]
     },
     {
       "id": "mlh1_methylation",
-      "title": "Marker Panel C",
+      "title": "MLH1 promoter methylation",
       "fields": [
         {
           "id": "mlh1_methylation_status",
-          "label": "Field 1",
+          "label": "MLH1 promoter methylation",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -243,25 +252,25 @@
           "options": [
             {
               "id": "mlh1_methylation_status_opt_1",
-              "label": "Option 1",
+              "label": "Methylated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_methylation_status_opt_2",
-              "label": "Option 2",
+              "label": "Not methylated",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_methylation_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "mlh1_methylation_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -272,11 +281,11 @@
     },
     {
       "id": "molecular_testing",
-      "title": "Molecular Testing",
+      "title": "Molecular testing",
       "fields": [
         {
           "id": "braf_v600e_status",
-          "label": "Field 1",
+          "label": "BRAF V600E mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -285,34 +294,43 @@
           "options": [
             {
               "id": "braf_v600e_status_opt_1",
-              "label": "Option 1",
+              "label": "BRAF V600E detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_2",
-              "label": "Option 2",
+              "label": "BRAF V600E not detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "braf_v600e_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-braf-v600e-pcr"
+            ],
+            "values": {
+              "POSITIVE": "braf_v600e_status_opt_1",
+              "NEGATIVE": "braf_v600e_status_opt_2"
+            }
+          }
         },
         {
           "id": "kras_status",
-          "label": "Field 2",
+          "label": "KRAS mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -321,45 +339,61 @@
           "options": [
             {
               "id": "kras_status_opt_1",
-              "label": "Option 1",
+              "label": "Mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_2",
-              "label": "Option 2",
+              "label": "No mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "kras_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-kras-pcr"
+            ],
+            "values": {
+              "POSITIVE": "kras_status_opt_1",
+              "NEGATIVE": "kras_status_opt_2"
+            }
+          }
         },
         {
           "id": "kras_mutation_specify",
-          "label": "Field 3",
+          "label": "KRAS variant",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "kras_status",
+            "answerId": "",
+            "answerIds": [
+              "kras_status_opt_1"
+            ]
+          }
         },
         {
           "id": "nras_status",
-          "label": "Field 4",
+          "label": "NRAS mutation status",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -368,51 +402,67 @@
           "options": [
             {
               "id": "nras_status_opt_1",
-              "label": "Option 1",
+              "label": "Mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_2",
-              "label": "Option 2",
+              "label": "No mutation detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "nras_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
           ],
-          "note": ""
+          "note": "",
+          "molecularResult": {
+            "assayCodes": [
+              "st-nras-pcr"
+            ],
+            "values": {
+              "POSITIVE": "nras_status_opt_1",
+              "NEGATIVE": "nras_status_opt_2"
+            }
+          }
         },
         {
           "id": "nras_mutation_specify",
-          "label": "Field 5",
+          "label": "NRAS variant",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "nras_status",
+            "answerId": "",
+            "answerIds": [
+              "nras_status_opt_1"
+            ]
+          }
         }
       ]
     },
     {
       "id": "ntrk_testing",
-      "title": "Marker Panel D",
+      "title": "NTRK",
       "fields": [
         {
           "id": "ntrk_ihc_status",
-          "label": "Field 1",
+          "label": "Pan-TRK immunohistochemistry",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -421,25 +471,25 @@
           "options": [
             {
               "id": "ntrk_ihc_status_opt_1",
-              "label": "Option 1",
+              "label": "Positive",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ihc_status_opt_2",
-              "label": "Option 2",
+              "label": "Negative",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ihc_status_opt_3",
-              "label": "Option 3",
+              "label": "Equivocal",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ihc_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -448,7 +498,7 @@
         },
         {
           "id": "ntrk_ngs_status",
-          "label": "Field 2",
+          "label": "NTRK fusion by sequencing",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -457,25 +507,25 @@
           "options": [
             {
               "id": "ntrk_ngs_status_opt_1",
-              "label": "Option 1",
+              "label": "Fusion detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ngs_status_opt_2",
-              "label": "Option 2",
+              "label": "No fusion detected",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ngs_status_opt_3",
-              "label": "Option 3",
+              "label": "Test failed",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "ntrk_ngs_status_opt_4",
-              "label": "Option 4",
+              "label": "Not tested",
               "snomed": "",
               "icd": ""
             }
@@ -484,24 +534,31 @@
         },
         {
           "id": "ntrk_fusion_specify",
-          "label": "Field 3",
+          "label": "NTRK fusion: gene and partner",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": "Optional"
+          "note": "Optional",
+          "visibleWhen": {
+            "fieldId": "ntrk_ngs_status",
+            "answerId": "",
+            "answerIds": [
+              "ntrk_ngs_status_opt_1"
+            ]
+          }
         }
       ]
     },
     {
       "id": "advanced_sequencing",
-      "title": "Advanced Sequencing",
+      "title": "Wider sequencing",
       "fields": [
         {
           "id": "multigene_panel_performed",
-          "label": "Field 1",
+          "label": "Multigene panel done",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -510,13 +567,13 @@
           "options": [
             {
               "id": "multigene_panel_performed_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "multigene_panel_performed_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -525,29 +582,43 @@
         },
         {
           "id": "multigene_panel_method",
-          "label": "Field 2",
+          "label": "Multigene panel: method",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "multigene_panel_performed",
+            "answerId": "",
+            "answerIds": [
+              "multigene_panel_performed_opt_1"
+            ]
+          }
         },
         {
           "id": "multigene_panel_actionable_aberrations",
-          "label": "Field 3",
+          "label": "Multigene panel: findings that guide treatment",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "multigene_panel_performed",
+            "answerId": "",
+            "answerIds": [
+              "multigene_panel_performed_opt_1"
+            ]
+          }
         },
         {
           "id": "exome_sequencing_performed",
-          "label": "Field 4",
+          "label": "Exome sequencing done",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -556,13 +627,13 @@
           "options": [
             {
               "id": "exome_sequencing_performed_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "exome_sequencing_performed_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -571,29 +642,43 @@
         },
         {
           "id": "exome_sequencing_method",
-          "label": "Field 5",
+          "label": "Exome sequencing: method",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "exome_sequencing_performed",
+            "answerId": "",
+            "answerIds": [
+              "exome_sequencing_performed_opt_1"
+            ]
+          }
         },
         {
           "id": "exome_sequencing_actionable_aberrations",
-          "label": "Field 6",
+          "label": "Exome sequencing: findings that guide treatment",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "exome_sequencing_performed",
+            "answerId": "",
+            "answerIds": [
+              "exome_sequencing_performed_opt_1"
+            ]
+          }
         },
         {
           "id": "whole_genome_sequencing_performed",
-          "label": "Field 7",
+          "label": "Whole genome sequencing done",
           "type": "dropdown",
           "required": false,
           "core": true,
@@ -602,13 +687,13 @@
           "options": [
             {
               "id": "whole_genome_sequencing_performed_opt_1",
-              "label": "Option 1",
+              "label": "Yes",
               "snomed": "",
               "icd": ""
             },
             {
               "id": "whole_genome_sequencing_performed_opt_2",
-              "label": "Option 2",
+              "label": "No",
               "snomed": "",
               "icd": ""
             }
@@ -617,35 +702,49 @@
         },
         {
           "id": "whole_genome_sequencing_method",
-          "label": "Field 8",
+          "label": "Whole genome sequencing: method",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "whole_genome_sequencing_performed",
+            "answerId": "",
+            "answerIds": [
+              "whole_genome_sequencing_performed_opt_1"
+            ]
+          }
         },
         {
           "id": "whole_genome_sequencing_actionable_aberrations",
-          "label": "Field 9",
+          "label": "Whole genome sequencing: findings that guide treatment",
           "type": "text",
           "required": false,
           "core": true,
           "snomed": "",
           "icd": "",
           "options": [],
-          "note": ""
+          "note": "",
+          "visibleWhen": {
+            "fieldId": "whole_genome_sequencing_performed",
+            "answerId": "",
+            "answerIds": [
+              "whole_genome_sequencing_performed_opt_1"
+            ]
+          }
         }
       ]
     },
     {
       "id": "snomed_codes",
-      "title": "Reference Codes",
+      "title": "SNOMED CT codes",
       "fields": [
         {
           "id": "snomed_t_code",
-          "label": "Reference Code A",
+          "label": "SNOMED CT topography code",
           "type": "text",
           "required": false,
           "core": true,
@@ -656,7 +755,7 @@
         },
         {
           "id": "snomed_m_code",
-          "label": "Reference Code B",
+          "label": "SNOMED CT morphology code",
           "type": "text",
           "required": false,
           "core": true,
@@ -673,7 +772,7 @@
       "fields": [
         {
           "id": "comments",
-          "label": "Comment(s)",
+          "label": "Comments",
           "type": "text",
           "required": false,
           "core": true,

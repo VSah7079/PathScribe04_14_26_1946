@@ -47,6 +47,7 @@ real backend existing yet.
   Reachable only at its own direct route, `/dev/mock-interface-engine` — told
   to the person who asked for it, not discoverable by a real admin or
   clinical user browsing the app.
+  Since Batch 427 the route also needs Configuration access.
 - **Never silently masks the real PS-239 gap.** The moment a real backend
   exists, this mechanism does nothing on its own to hide that — it has to be
   explicitly enabled, and its own control panel says plainly what it is.
@@ -59,3 +60,17 @@ mechanism needs this file served alongside the app.
 
 3 tests (`mockInterfaceEngineSettings.test.ts`). Full suite clean: 302/305
 files, 2924/2933 tests, 0 failures.
+
+## Batch 435
+
+The developer tool now also answers the interface engine's receiving end (`VITE_INTERFACE_RECEIVER_ENDPOINT`, every outbound message from `dispatchInterfaceMessage`), with the same three modes. With **Answer for the slide scanner** on (the default), it plays the scanner after accepting a `WSI_SCAN_MANIFEST` (`simulateWsiScanner.ts`): each slide is reported as scanning, then scanned with image QC passed. The replies go through the real inbound processor, so the Slide scanning page can be shown end to end.
+
+It is still developer-only, with the same double gate (a development build, and switched on at `/dev/mock-interface-engine`). Test: `simulateWsiScanner.test.ts`.
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+`simulateMolecularInstrument.ts`: after the mock engine accepts a molecular worklist, it plays the instrument. A few seconds later it reports the call set on the page (`molecularInstrumentCall`: Positive, Negative, off) for each patient sample, with controls as expected and each order id echoed, through `processInboundMolecularRunResults`. Development builds only, like the WSI scanner simulation. The default is `off`, so nothing fills a report unless someone chooses a call.
+
+## Batch 605
+
+`inboundSimulator.ts` builds and runs sample inbound ADT messages and engine events (A01, A08, A40, A24, A47, A43, A45, A50, A34 and others) through the same processors the real inbound path will use. `simulatedEngineReceiver.ts` is the stand-in engine for outbound messages: `simulateEngineReceive` records each message (type, outcome; capped at 200 in `simulatedEngineReceived`), honours the accepted, rejected or timed-out mode, and `isEngineSimulated()` says when it answers (demo, no endpoint configured, mock disabled, setting not off). Everything it shows is labelled Simulated; audit entries hold types and outcomes only.

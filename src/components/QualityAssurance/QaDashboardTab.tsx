@@ -20,16 +20,24 @@
 // exported data, not on-screen UI. `r.name` (activity type/subspecialty/
 // reviewer names) is real data too.
 // ─────────────────────────────────────────────────────────────────────────────
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import { auditService } from '@/services';
 import { resolveQaActivityDashboardReport, type QaActivityDashboardReport, type QaDashboardGroupRow } from '@/services/quality/resolveQaActivityDashboardReport';
-import { exportQaReportRows, qaScopeContext } from './qaReportUtils';
+import { exportQaReportRows } from './qaReportUtils';
+import { QaScopeSwitcher } from './QaScopeSwitcher';
+import { useQaCaseScope } from '@/hooks/useQaCaseScope';
+import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
+import type { QaActivityType } from '@/types/quality/QaActivityType';
+import type { Subspecialty } from '@/services';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { qaActivityRecordService, qaActivityTypeService, subspecialtyService } from '@/services';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 const pct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -78,8 +86,17 @@ const GroupTable: React.FC<{ title: string; rows: QaDashboardGroupRow[]; leadCol
 
 export const QaDashboardTab: React.FC = () => {
   const { t } = useTranslation();
-  const [report, setReport] = useState<QaActivityDashboardReport>(EMPTY_REPORT);
+  const [data, setData] = useState<{ records: QaActivityRecord[]; types: QaActivityType[]; subspecialties: Subspecialty[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  // Batch 504: the monthly trend is bucketed in the facility's time zone.
+  const { config: systemConfig } = useSystemConfig();
+  const facilityTimezone = systemConfig.facilityTimezone;
+  // Batch 544: one facility, one organisation or all, by each record's case.
+  const qa = useQaCaseScope();
+  const report: QaActivityDashboardReport = useMemo(
+    () => (data ? resolveQaActivityDashboardReport(qa.filter(data.records, r => r), data.types, data.subspecialties, facilityTimezone) : EMPTY_REPORT),
+    [qa, data, facilityTimezone],
+  );
 
   useEffect(() => {
     const session = getSessionUser();
@@ -101,7 +118,7 @@ export const QaDashboardTab: React.FC = () => {
     ]).then(([recordsRes, typesRes, subspecialtiesRes]) => {
       if (cancelled) return;
       if (recordsRes.ok && typesRes.ok && subspecialtiesRes.ok) {
-        setReport(resolveQaActivityDashboardReport(recordsRes.data, typesRes.data, subspecialtiesRes.data));
+        setData({ records: recordsRes.data, types: typesRes.data, subspecialties: subspecialtiesRes.data });
       }
       setLoading(false);
     });
@@ -113,10 +130,10 @@ export const QaDashboardTab: React.FC = () => {
       'Activity Type': r.name, Total: r.total, Concordant: r.concordant, Discordant: r.discordant,
       'Concordance %': r.concordantPercent.toFixed(1), 'Mandatory Follow-Up': r.escalationRequiredCount,
     }));
-    void exportQaReportRows('qa:activity-dashboard:export', rows, `qa-dashboard-by-activity-type-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext());
+    void exportQaReportRows('qa:activity-dashboard:export', rows, qa.filename('qa-dashboard-by-activity-type'), qa.context, { scope: qa.scope });
   };
 
-  if (loading) return <div className="ps-conf-page">{t('qaDashboardTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('qaDashboardTab.loading')} />;
 
   return (
     <div className="ps-conf-page">
@@ -139,9 +156,9 @@ export const QaDashboardTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={report.monthlyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={28} />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               return (
                 <div className="ps-tat-trend__tooltip">
@@ -158,7 +175,8 @@ export const QaDashboardTab: React.FC = () => {
       </div>
 
       <div className="ps-qa-tab-toolbar">
-        <CapabilityButton capability="qa:activity-dashboard:export" context={qaScopeContext()} className="ps-conf-btn-secondary" onClick={handleExport}>{t('qaDashboardTab.exportButton')}</CapabilityButton>
+        <QaScopeSwitcher scope={qa.scope} onChange={qa.setScope} visibleClientIds={qa.facilityIds(data?.records ?? [], r => r)} />
+        <CapabilityButton capability="qa:activity-dashboard:export" context={qa.context} className="ps-conf-btn-secondary" onClick={handleExport}>{t('qaDashboardTab.exportButton')}</CapabilityButton>
       </div>
 
       <GroupTable title={t('qaDashboardTab.sections.byActivityType')} rows={report.byActivityType} leadColumnLabel={t('qaDashboardTab.leadColumns.activityType')} />

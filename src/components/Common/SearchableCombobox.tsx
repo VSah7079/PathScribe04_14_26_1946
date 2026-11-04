@@ -32,6 +32,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { pressable } from '@/utils/a11y/pressable';
 import '@/pathscribe.css';
 
 export interface ComboboxOption {
@@ -185,7 +186,7 @@ export const SearchableCombobox: React.FC<SearchableComboboxProps> = ({
                 aria-selected={opt.id === value}
                 className={`ps-dropdown-option ps-combobox-option${i === highlightedIndex ? ' ps-combobox-option--highlighted' : ''}${opt.id === value ? ' ps-combobox-option--selected' : ''}`}
                 onMouseEnter={() => setHighlightedIndex(i)}
-                onClick={() => commitSelection(opt)}
+                {...pressable(() => commitSelection(opt), { role: null })}
               >
                 <div>{opt.label}</div>
                 {opt.sublabel && <div className="ps-combobox-option-sublabel">{opt.sublabel}</div>}

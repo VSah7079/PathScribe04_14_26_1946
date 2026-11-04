@@ -209,8 +209,19 @@ export const LABEL_FIELD_CATALOG: Record<LabelType, LabelFieldDefinition[]> = {
  *  physical-unit math with everything else this app's own label
  *  system already uses — see buildRequisitionStickerSheetZpl.ts's own
  *  established mm-first convention). */
+/** Batch 606 (PS-26): show a field only when a condition on the label's own
+ *  values holds. `present`: the value is non-empty; `absent`: it is empty;
+ *  `equals`: it equals `value` (case-insensitive). Evaluated at print time and
+ *  in the designer preview. */
+export interface LabelFieldShowWhen {
+  fieldKey: string;
+  op: 'present' | 'absent' | 'equals';
+  value?: string;
+}
+
 export interface LabelLayoutField {
   id: string;
+  showWhen?: LabelFieldShowWhen;
   fieldKey: string;
   xMm: number;
   yMm: number;
@@ -236,7 +247,23 @@ export interface LabelLayout {
   updatedAt: string;
 }
 
+/** Batch 606 (PS-153): one saved version of a layout. A snapshot is taken
+ *  every time a layout is saved, so an earlier one can be restored. */
+export interface LabelLayoutVersion {
+  versionId: string;
+  labelType: LabelType;
+  facilityId?: string;
+  version: number;
+  savedAt: string;
+  savedBy: string;
+  layout: Omit<LabelLayout, 'id' | 'updatedAt'>;
+}
+
 export interface ILabelLayoutService {
+  /** Batch 606 (PS-153): saved versions of one layout, newest first. */
+  listVersions(labelType: LabelType, facilityId?: string): Promise<ServiceResult<LabelLayoutVersion[]>>;
+  /** Batch 606 (PS-153): makes an earlier version the current layout (saved as a new version). */
+  restoreVersion(versionId: string, restoredBy?: string): Promise<ServiceResult<LabelLayout>>;
   /** Real, per this file's own header — resolves the real, effective
    *  layout for a given facility: that facility's own real, explicit
    *  override if one exists (and is genuinely allowed for this label
@@ -247,7 +274,7 @@ export interface ILabelLayoutService {
   /** Real, honest refusal — per this file's own header — when
    *  attempting to save a real, facility-scoped override for a label
    *  type where LABEL_TYPE_ALLOWS_FACILITY_OVERRIDE is false. */
-  save(layout: Omit<LabelLayout, 'id' | 'updatedAt'> & { id?: ID }): Promise<ServiceResult<LabelLayout>>;
+  save(layout: Omit<LabelLayout, 'id' | 'updatedAt'> & { id?: ID }, savedBy?: string): Promise<ServiceResult<LabelLayout>>;
   reset(labelType: LabelType, facilityId?: string): Promise<ServiceResult<void>>;
 }
 

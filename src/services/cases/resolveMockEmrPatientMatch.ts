@@ -14,7 +14,7 @@ import { fromLegacyName, formatIdentificationName } from '@/utils/personName';
 export interface MockEmrPatientMatch {
   patientName: string | null;
   dob: string | null;
-  sex: 'M' | 'F' | 'U' | undefined;
+  sex: 'M' | 'F' | 'U' | 'I' | undefined;
 }
 
 export function resolveMockEmrPatientMatch(cases: Case[], patientId: string): MockEmrPatientMatch | null {

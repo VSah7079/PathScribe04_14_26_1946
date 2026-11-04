@@ -10,7 +10,7 @@
 // their Cases) is already real and done — see
 // services/patients/README.md's own account.
 //
-// Real, proactive search (reuses mockPatientIndexService.searchPatients()
+// Real, proactive search (reuses patientIndexService.searchPatients()
 // directly, same pattern PatientLinkSearch.tsx / OrderLookupModal.tsx
 // already use) lets a real user find a patient and act on them
 // immediately, instead of the three real, scattered entry points this
@@ -31,7 +31,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
-import { mockPatientIndexService } from '@/services/patients/mockPatientIndexService';
+
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { useAuth } from '@/contexts/AuthContext';
 import ConfirmModal from '../Common/ConfirmModal';
@@ -40,6 +40,7 @@ import { listOrganisations } from '@/services/organisation/organisationService';
 import { getSessionUser, canViewCrossTenantQaData } from '@/services/auth/caseAccessControl';
 import type { MasterPatientRecord, PatientLinkRelationshipType } from '@/services/patients/IPatientIndexService';
 import type { Case } from '@/types/case/Case';
+import { patientIndexService, auditService } from '@/services';
 
 type ActiveAction = 'merge' | 'link' | 'move' | null;
 
@@ -85,7 +86,7 @@ export const PatientManagementSection: React.FC = () => {
     let cancelled = false;
     setPrimaryLoading(true);
     const timer = setTimeout(() => {
-      Promise.all(searchableOrgIds.map(org => mockPatientIndexService.searchPatients(org, q).catch(() => [])))
+      Promise.all(searchableOrgIds.map(org => patientIndexService.searchPatients(org, q).catch(() => [])))
         .then(batches => { if (!cancelled) setPrimaryResults(batches.flat()); })
         .finally(() => { if (!cancelled) setPrimaryLoading(false); });
     }, 250);
@@ -95,13 +96,13 @@ export const PatientManagementSection: React.FC = () => {
   const loadSelectedPatientDetail = useCallback(async (patient: MasterPatientRecord) => {
     const [casesRes, sameIds, familyIds] = await Promise.all([
       caseRouter.getAll({}, { includeOrchestration: true }),
-      mockPatientIndexService.getLinkedPatientIds(patient.id, 'same_person'),
-      mockPatientIndexService.getLinkedPatientIds(patient.id, 'family_relation'),
+      patientIndexService.getLinkedPatientIds(patient.id, 'same_person'),
+      patientIndexService.getLinkedPatientIds(patient.id, 'family_relation'),
     ]);
     setSelectedCases(casesRes.ok ? (casesRes.data as Case[]).filter(c => c.patient?.id === patient.id) : []);
     const [sameRecords, familyRecords] = await Promise.all([
-      Promise.all(sameIds.filter(id => id !== patient.id).map(id => mockPatientIndexService.getById(id))),
-      Promise.all(familyIds.filter(id => id !== patient.id).map(id => mockPatientIndexService.getById(id))),
+      Promise.all(sameIds.filter(id => id !== patient.id).map(id => patientIndexService.getById(id))),
+      Promise.all(familyIds.filter(id => id !== patient.id).map(id => patientIndexService.getById(id))),
     ]);
     setSamePersonLinks(sameRecords.filter((r): r is MasterPatientRecord => !!r));
     setFamilyRelationLinks(familyRecords.filter((r): r is MasterPatientRecord => !!r));
@@ -116,7 +117,7 @@ export const PatientManagementSection: React.FC = () => {
 
   const refreshSelectedPatient = async () => {
     if (!selectedPatient) return;
-    const refreshed = await mockPatientIndexService.getById(selectedPatient.id);
+    const refreshed = await patientIndexService.getById(selectedPatient.id);
     if (refreshed) { setSelectedPatient(refreshed); await loadSelectedPatientDetail(refreshed); }
   };
 
@@ -139,6 +140,7 @@ export const PatientManagementSection: React.FC = () => {
         })
       : t('patientManagementSection.confirm.moveLabel', { caseId: moveCaseId, sourceFirstName: selectedPatient?.firstName, sourceLastName: selectedPatient?.lastName, targetFirstName: targetPatient?.firstName, targetLastName: targetPatient?.lastName });
 
+  const isCrossTenantTarget = !!(selectedPatient && targetPatient && selectedPatient.organisationId !== targetPatient.organisationId);
   const confirmActionMessage = activeAction === 'merge'
     ? t('patientManagementSection.confirm.mergeMessage')
     : activeAction === 'link'
@@ -149,21 +151,29 @@ export const PatientManagementSection: React.FC = () => {
     if (!selectedPatient || !targetPatient) return;
     setBusy(true);
     try {
+      if (selectedPatient.organisationId !== targetPatient.organisationId) {
+        // Batch 605: a target in another organisation. The audit entry holds ids only, no names.
+        void auditService.logEvent({
+          type: 'system', event: 'Cross-Organisation Patient Action',
+          detail: `${activeAction} from organisation ${selectedPatient.organisationId} (patient ${selectedPatient.id}) to organisation ${targetPatient.organisationId} (patient ${targetPatient.id}) confirmed by a cross-tenant administrator.`,
+          user: user?.id ?? 'unknown', caseId: null, confidence: null,
+        });
+      }
       if (activeAction === 'merge') {
-        const result = await mockPatientIndexService.mergeIntoExistingPatient(selectedPatient.id, targetPatient.id);
+        const result = await patientIndexService.mergeIntoExistingPatient(selectedPatient.id, targetPatient.id);
         setStatusMessage(t('patientManagementSection.status.mergedSuccess', {
           casesFragment: t('patientManagementSection.status.caseCount', { count: result.casesRepointed }),
           encountersFragment: t('patientManagementSection.status.encounterCount', { count: result.encountersRepointed }),
           targetFirstName: targetPatient.firstName, targetLastName: targetPatient.lastName,
         }));
       } else if (activeAction === 'link') {
-        await mockPatientIndexService.linkPatients(selectedPatient.id, targetPatient.id, linkRelationshipType, user?.id ?? 'unknown', 'Linked from Patient Management');
+        await patientIndexService.linkPatients(selectedPatient.id, targetPatient.id, linkRelationshipType, user?.id ?? 'unknown', 'Linked from Patient Management');
         setStatusMessage(t('patientManagementSection.status.linkedSuccess', {
           targetFirstName: targetPatient.firstName, targetLastName: targetPatient.lastName,
           relationship: linkRelationshipType === 'same_person' ? t('patientManagementSection.relationshipLabel.samePerson') : t('patientManagementSection.relationshipLabel.familyRelation'),
         }));
       } else if (activeAction === 'move') {
-        const result = await mockPatientIndexService.moveCaseToPatient(moveCaseId, selectedPatient.id, targetPatient.id, new Date().toISOString());
+        const result = await patientIndexService.moveCaseToPatient(moveCaseId, selectedPatient.id, targetPatient.id, new Date().toISOString());
         setStatusMessage(result.moved
           ? t('patientManagementSection.status.moveSuccess', { caseId: moveCaseId, targetFirstName: targetPatient.firstName, targetLastName: targetPatient.lastName, encounterOutcome: result.encounterOutcome ?? t('patientManagementSection.status.noneValue') })
           : t('patientManagementSection.status.moveFailed', { reason: result.reason }));
@@ -263,7 +273,7 @@ export const PatientManagementSection: React.FC = () => {
           {activeAction === 'move' && (
             <div className="ps-conf-table-wrap ps-conf-table-wrap--padded ps-conf-table-wrap--spaced">
               <label className="ps-label">{t('patientManagementSection.whichCaseLabel')}</label>
-              <select className="ps-conf-select" data-phi="accession" value={moveCaseId} onChange={e => setMoveCaseId(e.target.value)}>
+              <select aria-label={t('patientManagementSection.whichCaseLabel')} className="ps-conf-select" data-phi="accession" value={moveCaseId} onChange={e => setMoveCaseId(e.target.value)}>
                 <option value="">{t('patientManagementSection.selectPlaceholderOption')}</option>
                 {selectedCases.map(c => <option key={c.id} value={c.id}>{c.accession?.fullAccession ?? c.id}</option>)}
               </select>
@@ -273,7 +283,7 @@ export const PatientManagementSection: React.FC = () => {
           {activeAction === 'link' && (
             <div className="ps-conf-table-wrap ps-conf-table-wrap--padded ps-conf-table-wrap--spaced">
               <label className="ps-label">{t('patientManagementSection.relationshipLabel_field')}</label>
-              <select className="ps-conf-select" value={linkRelationshipType} onChange={e => setLinkRelationshipType(e.target.value as PatientLinkRelationshipType)}>
+              <select aria-label={t('patientManagementSection.relationshipLabel_field')} className="ps-conf-select" value={linkRelationshipType} onChange={e => setLinkRelationshipType(e.target.value as PatientLinkRelationshipType)}>
                 <option value="same_person">{t('patientManagementSection.relationshipOption.samePerson')}</option>
                 <option value="family_relation">{t('patientManagementSection.relationshipOption.familyRelation')}</option>
               </select>
@@ -284,6 +294,7 @@ export const PatientManagementSection: React.FC = () => {
             <div className="ps-patientmgmt-linksearch-wrap">
               <PatientLinkSearch
                 organisationId={selectedPatient.organisationId}
+                organisationIds={crossTenant ? searchableOrgIds : undefined}
                 confirmed={targetPatient}
                 onConfirm={setTargetPatient}
                 title={activeAction === 'merge' ? t('patientManagementSection.linkSearch.mergeTitle') : activeAction === 'link' ? t('patientManagementSection.linkSearch.linkTitle') : t('patientManagementSection.linkSearch.moveTitle')}
@@ -304,7 +315,7 @@ export const PatientManagementSection: React.FC = () => {
       <ConfirmModal
         show={confirmOpen}
         title={t('patientManagementSection.confirmModalTitle')}
-        message={<span data-phi="true">{confirmActionLabel} {confirmActionMessage}</span>}
+        message={<span data-phi="true">{confirmActionLabel} {confirmActionMessage}{isCrossTenantTarget && <strong className="ps-conf-hint--danger"> {t('patientManagementSection.crossTenantWarning')}</strong>}</span>}
         confirmLabel={busy ? t('patientManagementSection.workingButton') : t('common.confirm')}
         cancelLabel={t('common.cancel')}
         onConfirm={handleConfirmedAction}

@@ -25,7 +25,7 @@ const SEED_COUNTERSIGN_RECORDS: CountersignRecord[] = Array.from({ length: 12 },
     residentId: 'PATH-UK-002',
     residentName: 'Oliver Pemberton',
     attendingId: 'PATH-UK-001',
-    attendingName: 'Paul Carter',
+    attendingName: 'Imogen Hartley',
     releasedAt: releasedAt.toISOString(),
     countersignedAt: countersignedAt.toISOString(),
     releasedAnswersSnapshot: {},
@@ -79,16 +79,31 @@ export const mockCountersignService: ICountersignService = {
     return ok(record ?? null);
   },
 
+  // Batch 485: the per-specimen sibling of getForCase, for cytology,
+  // which getForCase's own single-record contract doesn't suit.
+  async getForSpecimen(caseId: string, specimenId: string) {
+    const record = load().find(r => r.caseId === caseId && r.specimenId === specimenId && (r.status === 'pending' || r.status === 'returned'));
+    return ok(record ?? null);
+  },
+
   async release(input) {
     const records = load();
-    // Only one pending release per case at a time — if one already
-    // exists (e.g. resident re-triggers sign-out before the attending
-    // has acted), replace rather than duplicate.
-    const filtered = records.filter(r => !(r.caseId === input.caseId && r.status === 'pending'));
+    // Only one pending release per case (and, for cytology, per specimen
+    // within that case) at a time — if one already exists (e.g. a
+    // resident re-triggers sign-out before the attending has acted),
+    // replace rather than duplicate. Batch 483 (PS-359 tracker follow-up
+    // — "Cytology: case-level countersign"): a cytology case can release
+    // more than one specimen's countersign independently; scoping this
+    // filter to the SAME specimenId (both undefined for surgical path
+    // and autopsy, which never set one, so their existing single-release-
+    // per-case behavior is unchanged) keeps a second specimen's release
+    // from destroying a first, still-pending specimen's record.
+    const filtered = records.filter(r => !(r.caseId === input.caseId && r.status === 'pending' && r.specimenId === input.specimenId));
     const newRecord: CountersignRecord = {
       id: `cs-${Date.now().toString(36)}`,
       caseId: input.caseId,
       subspecialtyId: input.subspecialtyId,
+      specimenId: input.specimenId,
       residentId: input.residentId,
       residentName: input.residentName,
       releasedAt: new Date().toISOString(),
@@ -112,7 +127,10 @@ export const mockCountersignService: ICountersignService = {
 
   async countersign(input) {
     const records = load();
-    const idx = records.findIndex(r => r.caseId === input.caseId && r.status === 'pending');
+    // Batch 485: scoped to the same specimenId as release() (Batch
+    // 483) — both undefined for surgical pathology/autopsy, so their
+    // existing single-record-per-case behavior is unchanged.
+    const idx = records.findIndex(r => r.caseId === input.caseId && r.status === 'pending' && r.specimenId === input.specimenId);
     if (idx === -1) return err(`No pending countersign record found for case ${input.caseId}`);
 
     const changedFieldCount = countChangedFields(records[idx].releasedAnswersSnapshot, input.currentAnswersByInstance);
@@ -131,7 +149,8 @@ export const mockCountersignService: ICountersignService = {
     await mockAuditService.logEvent({
       type: 'user',
       event: 'Case Countersigned',
-      detail: `Case ${input.caseId} countersigned by ${input.attendingName} — ${changedFieldCount} field(s) changed from the resident's release` +
+      detail: `Case ${input.caseId} countersigned by ${input.attendingName}` + (input.specimenId ? ` (specimen ${input.specimenId})` : '') +
+        ` — ${changedFieldCount} field(s) changed from the resident's release` +
         (input.attendingFeedback ? ' — feedback provided' : ''),
       user: input.attendingName,
       caseId: input.caseId,
@@ -152,7 +171,8 @@ export const mockCountersignService: ICountersignService = {
     }
 
     const records = load();
-    const idx = records.findIndex(r => r.caseId === input.caseId && r.status === 'pending');
+    // Batch 485: scoped to the same specimenId as countersign() above.
+    const idx = records.findIndex(r => r.caseId === input.caseId && r.status === 'pending' && r.specimenId === input.specimenId);
     if (idx === -1) return err(`No pending countersign record found for case ${input.caseId}`);
 
     const updated: CountersignRecord = {
@@ -169,7 +189,7 @@ export const mockCountersignService: ICountersignService = {
     await mockAuditService.logEvent({
       type: 'user',
       event: 'Case Returned for Revision',
-      detail: `Case ${input.caseId} returned to resident ${records[idx].residentName} by ${input.attendingName} — feedback: ${trimmedFeedback}`,
+      detail: `Case ${input.caseId} returned to resident ${records[idx].residentName} by ${input.attendingName}` + (input.specimenId ? ` (specimen ${input.specimenId})` : '') + ` — feedback: ${trimmedFeedback}`,
       user: input.attendingName,
       caseId: input.caseId,
       confidence: null,

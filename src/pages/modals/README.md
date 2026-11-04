@@ -11,8 +11,10 @@ scoped specifically to that page.
   patterns, not a per-item sign-off. Everything closed-but-unreviewed is
   in scope by default; the reviewer deselects anything genuinely out of
   scope before submitting one findings note for the whole batch. Used by
-  `DeficienciesPage.tsx`. No issues found — clean, no dead code, no
+  `QualityAssurancePage.tsx` (renamed from `DeficienciesPage.tsx`). No issues found — clean, no dead code, no
   inline styles.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the modal is used by `QualityAssurancePage.tsx`; `DeficienciesPage.tsx` was renamed (`QualityAssurancePage.tsx:3`, import at line 51).*
 
 ## Notes
 

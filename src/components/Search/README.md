@@ -1,9 +1,13 @@
+**Batch 759:** `CaseSearchBar.tsx`: a case opened from a typed (not scanned) search is flagged as a manual entry (audit trail and station log); a dictated search counts as typed.
+
 # components/Search/
 
 ## Files
 
-- **`CaseSearchBar.tsx`** (490 lines) — Global case search bar (NavBar),
-  routes to `/case/${id}/synoptic` on match — confirmed as one of the real
+- **`CaseSearchBar.tsx`** (~560 lines) — Global case search bar (NavBar),
+  opens a matched case through `useOpenCaseGuarded()` (`hooks/useOpenCase.ts`;
+  since Batch 446 case pages are addressed by support reference, not
+  `/case/${id}/synoptic` — corrected in the Batch 496 README audit) — confirmed as one of the real
   navigation call sites used when diagnosing the `PatientReportPage.tsx`
   deletion earlier this session. Wired to `caseRouter`, voice context,
   audit log, jurisdiction-aware identifier formats. No issues.
@@ -51,6 +55,15 @@
 **Batch 349 (PS-101):** the header search popup showed raw status codes (`pending-review`) in near-invisible grey. Every case status now has a translated label (`caseSearchBar.status.*`) on a readable pill. The flag chips' inline colour styles became a `--ps-hue` custom property read by `.ps-casebar-dropdown__flag-chip`. Found and not fixed: the popup reads `case.flags`, but cases store flags as `caseFlags`, so flag chips never appear.
 
 
+## Batch 613 (part A) — case search reporting
+
+- **`Report/`**: the report view of a search.
+  - `CaseReportPanel.tsx`: group-by, sortable group table (cases, share, median days to sign-out, total), a group's cases, list with chosen columns, save/load, CSV export (`search:case-report:export`).
+  - `ColumnPicker.tsx`: choose and order columns, including synoptic answers (at most 24).
+  - `ReportSchedulesPanel.tsx`: schedules for saved reports; last run shown labelled Simulated; changes need `search:report-schedule:manage`.
+  - `SynopticValueFilters.tsx`: the Synoptic answers filter rows on the Search sidebar.
+  - `useCaseReport.ts`: the report's state (latest request wins).
+
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `CaseSearchBar.tsx`: the search box, the not-found and LIS-fetch messages, the results header and the matched-value hint are tagged (they show the typed or found accession).
@@ -68,5 +81,27 @@
 
 `ReassignCasePatientPanel.tsx` takes `patientIndexService` from `@/services`, and is off the deployment baseline.
 
+## Batch 417
+
+The identifier search reads `patient.nationalIdentifiers[].value` as well as the MRN (and still the old `nhsNumber` / `chiNumber` / `ihiNumber` fields on records from before).
+
+## Batch 436 (PS-101)
+
+`CaseSearchBar.tsx` takes its result chips from `services/caseSearch/searchHitFlags.ts`, with the flag definitions from `flagService`. The Manchester demo orders (MFT26-8801/8803/8805) now name their ordering facility, so those cases resolve to a lab.
+
+## Batch 437 (PS-128)
+
+Opening a case from the header search goes through the unsaved-changes guard: with unsaved Configuration, Accession or report changes, the page asks first.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
+
+## Batch 506 (PS-477)
+
+Files here that imported a mock service directly now import it from `@/services` (see `services/deploymentReadiness/README.md`). No change in behaviour.
+
+Batch 756: `CaseSearchBar` keeps a hit's match score and matched value in the hit; it used to write them onto the case object itself (the one the case service holds), and the report page then offered them back as unsaved changes ("__match Score", "__matched Value").

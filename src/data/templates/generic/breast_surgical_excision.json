@@ -1,6 +1,6 @@
 {
   "id": "breast_surgical_excision",
-  "name": "Generic Template \u2014 Breast Surgical Excision",
+  "name": "Breast surgical excision",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "BREAST",
@@ -491,30 +491,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "dcis_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "dcis_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "dcis_grade_opt_1", "label": "Low", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_2", "label": "Intermediate", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_3", "label": "High", "snomed": "", "icd": "" },
+            { "id": "dcis_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": ""
         },
@@ -883,30 +863,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "histological_grade_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "histological_grade_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "histological_grade_opt_1", "label": "Grade 1 (well differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_2", "label": "Grade 2 (moderately differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_3", "label": "Grade 3 (poorly differentiated)", "snomed": "", "icd": "" },
+            { "id": "histological_grade_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": ""
         },
@@ -919,30 +879,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "tubule_formation_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "tubule_formation_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "tubule_formation_score_opt_1", "label": "Score 1 (>75% tubule/gland formation)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_2", "label": "Score 2 (10–75%)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_3", "label": "Score 3 (<10%)", "snomed": "", "icd": "" },
+            { "id": "tubule_formation_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -955,30 +895,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "nuclear_pleomorphism_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "nuclear_pleomorphism_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "nuclear_pleomorphism_score_opt_1", "label": "Score 1 (mild variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_2", "label": "Score 2 (moderate variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_3", "label": "Score 3 (marked variation)", "snomed": "", "icd": "" },
+            { "id": "nuclear_pleomorphism_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -991,30 +911,10 @@
           "snomed": "",
           "icd": "",
           "options": [
-            {
-              "id": "mitosis_score_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "mitosis_score_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "mitosis_score_opt_1", "label": "Score 1 (low)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_2", "label": "Score 2 (intermediate)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_3", "label": "Score 3 (high)", "snomed": "", "icd": "" },
+            { "id": "mitosis_score_opt_4", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1448,79 +1348,20 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pT",
           "options": [
-            {
-              "id": "t_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_11",
-              "label": "Option 11",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "t_stage_opt_12",
-              "label": "Option 12",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "t_stage_opt_1", "label": "pTis", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_2", "label": "pT1mi", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_3", "label": "pT1a", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_4", "label": "pT1b", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_5", "label": "pT1c", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_6", "label": "pT2", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_7", "label": "pT3", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_8", "label": "pT4a", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_9", "label": "pT4b", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_10", "label": "pT4c", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_11", "label": "pT4d", "snomed": "", "icd": "" },
+            { "id": "t_stage_opt_12", "label": "Cannot be assessed", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1532,67 +1373,18 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pN",
           "options": [
-            {
-              "id": "n_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_3",
-              "label": "Option 3",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_4",
-              "label": "Option 4",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_5",
-              "label": "Option 5",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_6",
-              "label": "Option 6",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_7",
-              "label": "Option 7",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_8",
-              "label": "Option 8",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_9",
-              "label": "Option 9",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "n_stage_opt_10",
-              "label": "Option 10",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "n_stage_opt_1", "label": "pN0", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_2", "label": "pN1mi", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_3", "label": "pN1a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_4", "label": "pN1b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_5", "label": "pN1c", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_6", "label": "pN2a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_7", "label": "pN2b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_8", "label": "pN3a", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_9", "label": "pN3b", "snomed": "", "icd": "" },
+            { "id": "n_stage_opt_10", "label": "pN3c", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         },
@@ -1604,19 +1396,10 @@
           "core": true,
           "snomed": "",
           "icd": "",
+          "reportingRole": "pM",
           "options": [
-            {
-              "id": "m_stage_opt_1",
-              "label": "Option 1",
-              "snomed": "",
-              "icd": ""
-            },
-            {
-              "id": "m_stage_opt_2",
-              "label": "Option 2",
-              "snomed": "",
-              "icd": ""
-            }
+            { "id": "m_stage_opt_1", "label": "pM1 (pathologically confirmed distant metastasis)", "snomed": "", "icd": "" },
+            { "id": "m_stage_opt_2", "label": "Not applicable (M status is determined clinically, not pathologically)", "snomed": "", "icd": "" }
           ],
           "note": "Optional"
         }
@@ -2181,6 +1964,202 @@
           "icd": "",
           "options": [],
           "note": ""
+        }
+      ]
+    },
+    {
+      "id": "psmap_breast_map",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_breast_side",
+          "label": "Specimen side (for the map)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_side_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_side_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            }
+          ],
+          "hint": "Which breast: sets which clock positions are inner and outer, and where medial and lateral lie."
+        },
+        {
+          "id": "psmap_breast_foci",
+          "label": "Tumour foci",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "One row per focus (invasive carcinoma, DCIS or calcifications), at its clock position as viewed facing the patient, and its distance from the nipple. Drives the breast map.",
+          "rows": {
+            "kind": "numbered",
+            "count": 6,
+            "label": "Focus"
+          },
+          "columns": [
+            {
+              "id": "type",
+              "label": "Type",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_ftype_invasive",
+                  "label": "Invasive carcinoma"
+                },
+                {
+                  "id": "psmap_ftype_dcis",
+                  "label": "DCIS"
+                },
+                {
+                  "id": "psmap_ftype_calcifications",
+                  "label": "Calcifications"
+                }
+              ]
+            },
+            {
+              "id": "clock",
+              "label": "Clock position",
+              "type": "dropdown",
+              "options": [
+                {
+                  "id": "psmap_clock_1",
+                  "label": "1 o'clock"
+                },
+                {
+                  "id": "psmap_clock_2",
+                  "label": "2 o'clock"
+                },
+                {
+                  "id": "psmap_clock_3",
+                  "label": "3 o'clock"
+                },
+                {
+                  "id": "psmap_clock_4",
+                  "label": "4 o'clock"
+                },
+                {
+                  "id": "psmap_clock_5",
+                  "label": "5 o'clock"
+                },
+                {
+                  "id": "psmap_clock_6",
+                  "label": "6 o'clock"
+                },
+                {
+                  "id": "psmap_clock_7",
+                  "label": "7 o'clock"
+                },
+                {
+                  "id": "psmap_clock_8",
+                  "label": "8 o'clock"
+                },
+                {
+                  "id": "psmap_clock_9",
+                  "label": "9 o'clock"
+                },
+                {
+                  "id": "psmap_clock_10",
+                  "label": "10 o'clock"
+                },
+                {
+                  "id": "psmap_clock_11",
+                  "label": "11 o'clock"
+                },
+                {
+                  "id": "psmap_clock_12",
+                  "label": "12 o'clock"
+                },
+                {
+                  "id": "psmap_clock_central",
+                  "label": "Central / subareolar"
+                }
+              ]
+            },
+            {
+              "id": "distance",
+              "label": "Distance from nipple",
+              "type": "numeric",
+              "unit": "cm"
+            },
+            {
+              "id": "size",
+              "label": "Size",
+              "type": "numeric",
+              "unit": "mm"
+            }
+          ]
+        },
+        {
+          "id": "psmap_breast_margins",
+          "label": "Margin distances",
+          "type": "partGrid",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [],
+          "hint": "Distance (mm) from each oriented margin to invasive carcinoma and to DCIS; 0 = at the inked margin. Leave blank when not applicable. Drives the margin diagram (close is below the site's threshold, 2 mm unless set otherwise).",
+          "rows": {
+            "kind": "fixed",
+            "heading": "Margin",
+            "rows": [
+              {
+                "id": "superior",
+                "label": "Superior"
+              },
+              {
+                "id": "inferior",
+                "label": "Inferior"
+              },
+              {
+                "id": "medial",
+                "label": "Medial"
+              },
+              {
+                "id": "lateral",
+                "label": "Lateral"
+              },
+              {
+                "id": "anterior",
+                "label": "Anterior (superficial)"
+              },
+              {
+                "id": "posterior",
+                "label": "Posterior (deep)"
+              }
+            ]
+          },
+          "columns": [
+            {
+              "id": "invasive",
+              "label": "Invasive carcinoma",
+              "type": "numeric",
+              "unit": "mm"
+            },
+            {
+              "id": "dcis",
+              "label": "DCIS",
+              "type": "numeric",
+              "unit": "mm"
+            }
+          ]
         }
       ]
     },

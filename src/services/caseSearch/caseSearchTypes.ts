@@ -21,9 +21,10 @@ import type { Case } from '@/types/case/Case';
 import type { CaseStatus } from '@/types/case/CaseStatus';
 import type { CasePriority } from '../cases/ICaseService';
 import type { ClinicalCode } from '../codes/ICodeService';
+import type { SynopticValueCriterion } from './synopticValueCriteria';
 
 /** Recorded patient sex codes (Patient.sex). */
-export type CaseSearchSex = 'M' | 'F' | 'U';
+export type CaseSearchSex = 'M' | 'F' | 'I' | 'U';
 
 // Batch 351 (section 3 of the Sep 27 gap analysis): new searchable case data.
 /** Which date the date range applies to. */
@@ -38,7 +39,7 @@ export type CaseSearchHoldType = 'case' | 'retention' | 'autopsyAncillary';
 export type CaseSearchResultFlag = 'Abnormal' | 'Critical' | 'Malignant';
 export type CaseSearchPendingWork = 'stains' | 'ihc' | 'molecular' | 'addOns';
 export type CaseSearchIntake = 'standard' | 'downtime' | 'outside' | 'referenceLab';
-export type CaseSearchAutopsyAuthority = 'medicolegal_forensic' | 'hospital_consented';
+export type CaseSearchAutopsyAuthority = 'statutory_judicial' | 'hospital_consented';
 /** Which autopsy reports are signed: none yet, the provisional (PAD), the final (FAD). */
 export type CaseSearchAutopsyReport = 'none' | 'pad' | 'fad';
 
@@ -119,6 +120,10 @@ export interface CaseSearchCriteria {
   autopsyJurisdictions?: string[];
   autopsyAuthorities?: CaseSearchAutopsyAuthority[];
   autopsyReports?: CaseSearchAutopsyReport[];
+
+  // ── Batch 613 ─────────────────────────────────────────────
+  /** What was answered in a synoptic report: a question of a protocol, an operator and a value. All must match. */
+  synopticValues?: SynopticValueCriterion[];
 }
 
 export type CaseSearchSortKey = 'accessionDate' | 'signedOutDate' | 'lastUpdated' | 'patientName' | 'accessionNumber';
@@ -193,7 +198,7 @@ export const CASE_SEARCH_STATUS_OPTIONS: readonly CaseStatus[] = [
   'pending-countersign', 'finalizing', 'finalized', 'pending-release', 'closed',
 ];
 export const CASE_SEARCH_PRIORITY_OPTIONS: readonly CasePriority[] = ['Routine', 'Rush', 'STAT'];
-export const CASE_SEARCH_SEX_OPTIONS: readonly CaseSearchSex[] = ['M', 'F', 'U'];
+export const CASE_SEARCH_SEX_OPTIONS: readonly CaseSearchSex[] = ['M', 'F', 'I', 'U'];
 export const CASE_SEARCH_DATE_BASES: readonly CaseSearchDateBasis[] = ['accessioned', 'signedOut', 'released'];
 export const CASE_SEARCH_CASE_TYPES: readonly CaseSearchCaseType[] = ['surgical', 'gynCytology', 'nonGynCytology', 'autopsy'];
 export const CASE_SEARCH_PATHOLOGIST_ROLES: readonly CaseSearchPathologistRole[] = ['any', 'assigned', 'signedOut', 'resident', 'countersigner', 'delegatedTo'];
@@ -202,7 +207,7 @@ export const CASE_SEARCH_HOLD_TYPES: readonly CaseSearchHoldType[] = ['case', 'r
 export const CASE_SEARCH_RESULT_FLAGS: readonly CaseSearchResultFlag[] = ['Abnormal', 'Critical', 'Malignant'];
 export const CASE_SEARCH_PENDING_WORK: readonly CaseSearchPendingWork[] = ['stains', 'ihc', 'molecular', 'addOns'];
 export const CASE_SEARCH_INTAKES: readonly CaseSearchIntake[] = ['standard', 'downtime', 'outside', 'referenceLab'];
-export const CASE_SEARCH_AUTOPSY_AUTHORITIES: readonly CaseSearchAutopsyAuthority[] = ['medicolegal_forensic', 'hospital_consented'];
+export const CASE_SEARCH_AUTOPSY_AUTHORITIES: readonly CaseSearchAutopsyAuthority[] = ['statutory_judicial', 'hospital_consented'];
 export const CASE_SEARCH_AUTOPSY_REPORTS: readonly CaseSearchAutopsyReport[] = ['none', 'pad', 'fad'];
 
 // ── The Search page's draft (and a saved search's contents) ─────────────────
@@ -256,6 +261,8 @@ export interface CaseSearchDraft {
   autopsyJurisdictions: string[];
   autopsyAuthorities: CaseSearchAutopsyAuthority[];
   autopsyReports: CaseSearchAutopsyReport[];
+  // Batch 613
+  synopticValues: SynopticValueCriterion[];
 }
 
 export function emptyCaseSearchDraft(dateFrom: string, dateTo: string): CaseSearchDraft {
@@ -269,6 +276,6 @@ export function emptyCaseSearchDraft(dateFrom: string, dateTo: string): CaseSear
     dateBasis: 'accessioned', caseTypes: [], pathologistRole: 'any', revisionTypes: [], holdTypes: [],
     resultFlags: [], pendingWork: [], pastTatTarget: false, subspecialtyIds: [], performingLabIds: [],
     locationIds: [], intakes: [], payer: '', cptCodes: [], autopsyJurisdictions: [], autopsyAuthorities: [],
-    autopsyReports: [],
+    autopsyReports: [], synopticValues: [],
   };
 }

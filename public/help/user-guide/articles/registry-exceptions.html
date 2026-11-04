@@ -1,0 +1,365 @@
+<h1 id="top">Registry Exceptions</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Registry Exceptions lists every cancer registry or screening programme submission that needs a person. A submission lands here when it was held and never sent, could not be delivered, was rejected by the registry, has had no answer for 72 hours, was answered twice with different results, or was changed by the registry after it had accepted it. For each one you see what went wrong in the registry's own words, can open the case, correct the patient's identifiers, and then re-validate and resend.</p>
+<p><strong>Intended users.</strong> Laboratory managers, laboratory directors, quality reviewers and administrators who are responsible for registry reporting. Everyone who can open the screen can read and open cases; resending and marking a revision reviewed need their own permissions (see "Who may do what").</p>
+<p><strong>Where it fits.</strong> Cancer and screening results are sent to registries automatically after sign-out. Most go without anyone touching them. This screen shows only the ones that did not. A live count appears as a badge on the warning triangle in the top bar for anyone who can open the screen. The same messages also appear, with less detail, in the <a href="/help/outbound-queue">Outbound Queue</a>. A screen to the side of the sign-out workflow, it lets you correct the data and send again without redoing the case.</p>
+<div class="admonition note">
+<p class="admonition-title">Only your own organisation's cases</p>
+<p>The list shows only the cases of the organisation you are signed in to. The count in the top bar follows the same rule.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration build</p>
+<p>In the demonstration build submissions are held in the browser and nothing reaches a real registry. Acknowledgements and rejections you see come from demonstration data or from the test sender, and resending produces a new demonstration entry.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/registry-exceptions-overview.png" alt="Registry Exceptions with the filter tabs, the table of submissions and an expanded row showing findings and the acknowledgement"><figcaption>Registry Exceptions with the filter tabs, the table of submissions and an expanded row showing findings and the acknowledgement</figcaption></figure>
+
+<p>At the top are the title, a description, and three header controls: a <strong>Transmission audit for</strong> choice, <strong>Download transmission audit</strong> and <strong>Refresh</strong>. Below are the filter tabs, then the table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Filter tabs.</strong> Each tab carries a count. <strong>All</strong> shows everything; the others show one kind of exception.</p>
+<table>
+<thead>
+<tr>
+<th>Tab (and the status shown in the row)</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rejected outright (<em>Rejected outright</em>)</td>
+<td>The registry refused it and a resubmission as it stands will not be accepted.</td>
+</tr>
+<tr>
+<td>Rejected, fixable (<em>Rejected, fixable</em>)</td>
+<td>The registry refused it because of data you can correct.</td>
+</tr>
+<tr>
+<td>Conflicting answers (<em>Conflicting answers</em>)</td>
+<td>The registry accepted it, then a different answer came back.</td>
+</tr>
+<tr>
+<td>Revised after acceptance (<em>Revised after acceptance</em>)</td>
+<td>The registry changed data it had already accepted. A deficiency is raised in Quality Assurance automatically. It stays on the list until someone marks it reviewed.</td>
+</tr>
+<tr>
+<td>Not delivered (<em>Not delivered</em>)</td>
+<td>The interface engine could not be reached and retries have stopped.</td>
+</tr>
+<tr>
+<td>No answer (<em>No answer in 72 h</em>)</td>
+<td>Sent, and the registry has not answered for 72 hours.</td>
+</tr>
+<tr>
+<td>Attestation required (<em>Held: attestation required</em>)</td>
+<td>Never sent because the registry is switched to its live system but the go-live approval is not current.</td>
+</tr>
+<tr>
+<td>Held (<em>Held, not sent</em>)</td>
+<td>Never sent. The patient identifier, codes or eligibility were not ready, or the registry's required data is missing.</td>
+</tr>
+</tbody>
+</table>
+<p>Rows are ordered by kind in the order above, then newest first. Only the latest version of each result is shown: an older version replaced by a newer one is finished with. Patients excluded by their consent or not eligible are never listed, since they are never sent.</p>
+<p><strong>Table columns</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case</td>
+<td>The accession number.</td>
+</tr>
+<tr>
+<td>Registry</td>
+<td>The registry or screening programme. When the submission has a version, a second line reads "Version N · new / correction / amendment". A <strong>TEST</strong> tag marks a send to the registry's test system.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>The kind, as above.</td>
+</tr>
+<tr>
+<td>What went wrong</td>
+<td>The first finding: a code (in a code box) and the registry's message, or PathScribe's own message for a hold. "and N more" shows when there are further findings. A no-answer row reads "Sent; the registry has not answered for 72 hours." A row with nothing to say reads "No details were given."</td>
+</tr>
+<tr>
+<td>When</td>
+<td>The time of the last acknowledgement, otherwise the last attempt, otherwise when it was queued.</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The buttons below.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Details row.</strong> <strong>Details</strong> opens the row to show every finding with its severity (<strong>Fatal</strong>, <strong>Rejected</strong>, <strong>Warning</strong>, <strong>Information</strong>), its tier number and location where given, and <strong>Acknowledgement as received</strong>: the registry's reply as it arrived (shown in a monospace box, tagged as patient data). If no reply has arrived it says "No acknowledgement has been received for this submission."</p>
+<h3 id="toolbar">Toolbar</h3>
+<p><strong>Header</strong></p>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Transmission audit for</td>
+<td>Choose <strong>Screening and cancer</strong>, <strong>Screening (cytology)</strong> or <strong>Cancer registry</strong>.</td>
+</tr>
+<tr>
+<td>Download transmission audit</td>
+<td>Downloads a file listing what was sent to the registries: when, the registry's status and its response code. It holds no patient names or MRNs. The screen then says "Transmission audit downloaded: N submissions." (or, with the PathScribe server, a notice says when the file is ready; see <a href="/help/my-exports">My Exports</a>).</td>
+</tr>
+<tr>
+<td>Refresh</td>
+<td>Reloads the list. It is greyed out while loading.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Row actions</strong></p>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Details / Hide details</td>
+<td>Opens or closes the findings and the acknowledgement.</td>
+</tr>
+<tr>
+<td>Open case</td>
+<td>Opens the case in the right place: the Cytology Workspace for a screening submission, the report for a cancer submission.</td>
+</tr>
+<tr>
+<td>Patient details</td>
+<td>Opens "Patient identifiers and registry opt-outs" for the case. Changes apply to the patient, not only this case, and are sent to the hospital's system as a demographic update. Resend a held submission afterwards.</td>
+</tr>
+<tr>
+<td>Capture as CAPA</td>
+<td>Raises the problem into Quality Assurance as a deficiency that can be escalated to a CAPA. A row with one open shows <strong>CAPA open</strong> instead.</td>
+</tr>
+<tr>
+<td>Mark reviewed</td>
+<td>Only on a <em>Revised after acceptance</em> row. Takes the row off the list. The deficiency raised with it stays open in Quality Assurance.</td>
+</tr>
+<tr>
+<td>Re-validate and resend</td>
+<td>Rebuilds the submission from today's data and sends it again. Not offered for conflicts, revisions after acceptance, a message still waiting for the CSMS eligibility answer, or an old submission with no header.</td>
+</tr>
+<tr>
+<td>Resend all N</td>
+<td>Appears only when the <strong>Attestation required</strong> tab is open: resends every row on the list, each checked on its own.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Count on each tab</td>
+<td>How many submissions are in that group.</td>
+</tr>
+<tr>
+<td>Badge on the top-bar triangle</td>
+<td>The number of submissions needing attention. It is checked when the window regains focus and about once a minute, and it appears only when above zero.</td>
+</tr>
+<tr>
+<td><strong>TEST</strong></td>
+<td>The submission went, or will go, to the registry's test system.</td>
+</tr>
+<tr>
+<td><strong>CAPA open</strong></td>
+<td>A deficiency for this submission is already open in Quality Assurance.</td>
+</tr>
+<tr>
+<td>Finding severity</td>
+<td>Fatal, Rejected, Warning or Information.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Patient details saved.</strong> After you change an identifier or an opt-out and select <strong>Save</strong> in "Patient identifiers and registry opt-outs", a message says "Patient details saved." Other outcomes are "Nothing changed.", "Saved in part: you do not have permission for some of these changes." and "Not saved: you do not have permission to change these patient details."</p>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None. All controls are ordinary buttons and tabs.</p>
+<h3 id="who-may-do-what">Who may do what</h3>
+<table>
+<thead>
+<tr>
+<th>To do this</th>
+<th>You need</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open the screen, read rows, open a case, Capture as CAPA</td>
+<td>The permission to open Registry Exceptions. By default: Administrator, Lab Director and QA Reviewer.</td>
+</tr>
+<tr>
+<td>Re-validate and resend, Resend all</td>
+<td>Resend a registry submission. By default: Administrator and Lab Director.</td>
+</tr>
+<tr>
+<td>Mark reviewed</td>
+<td>Mark a registry revision reviewed. By default: Administrator and Lab Director.</td>
+</tr>
+<tr>
+<td>Download transmission audit</td>
+<td>Export the registry transmission audit. By default the quality and administration roles; a laboratory can grant it to others.</td>
+</tr>
+<tr>
+<td>Patient details</td>
+<td>The permissions to record the patient's national identifier and registry opt-outs, which accessioning roles hold. Without them the window says "Not saved: you do not have permission to change these patient details."</td>
+</tr>
+</tbody>
+</table>
+<p>A button for an action you lack is shown greyed out. Hold the pointer over it to see the permission it needs.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Work a rejected submission</strong></p>
+<ol>
+<li>Open <strong>Quality &amp; Compliance</strong>, then <strong>Registry Exceptions</strong> (or select the warning triangle in the top bar). The list opens on <strong>All</strong>.</li>
+<li>Select <strong>Rejected, fixable</strong>. The table shows each case with the registry's first finding.</li>
+<li>Select <strong>Details</strong> on a row. Read each finding: the code, the message, and where in the submission it applies. Read <strong>Acknowledgement as received</strong> if the finding is not clear.</li>
+<li>Select <strong>Open case</strong>. Correct what the finding names (for example a missing code or provider number) in the report. If the problem is the patient's identifier or opt-out, close the case and select <strong>Patient details</strong> instead.</li>
+<li>Return to Registry Exceptions and select <strong>Re-validate and resend</strong> on the row. A message appears: "Sent as version N (correction)." or "Sent again as the same submission."</li>
+<li>Select <strong>Refresh</strong>. The row leaves the list once nothing else is wrong. If the registry rejects it again it returns with new findings.</li>
+</ol>
+<p><strong>Clear held submissions</strong></p>
+<ol>
+<li>Select <strong>Held</strong>. The finding says what is not ready.</li>
+<li>Fix it (patient identifiers through <strong>Patient details</strong>, codes in the case). Select <strong>Re-validate and resend</strong>.</li>
+<li>If the message is "Still held:" followed by the reason, the data is still not ready; correct that and try again.</li>
+</ol>
+<p><strong>Attestation required</strong></p>
+<ol>
+<li>Select <strong>Attestation required</strong>. A note says these are held because go-live is not approved for these registries.</li>
+<li>Normally the go-live approval resends them automatically. To send them now, select <strong>Resend all N</strong>. A message reports "N resent, M not resent".</li>
+</ol>
+<p><strong>Review a revision after acceptance</strong></p>
+<ol>
+<li>Select <strong>Revised after acceptance</strong>. The row lists the fields the registry changed (field name and new value).</li>
+<li>Check the changes against the case. Select <strong>Mark reviewed</strong>. The message says "Revision marked reviewed. Its CAPA deficiency stays open in Quality Assurance."</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To keep a record of a recurring problem, select <strong>Capture as CAPA</strong> on a row. The message reads "Raised for CAPA review in Quality Assurance" and the row shows <strong>CAPA open</strong>. Follow it in <a href="/help/quality">Quality</a>.</li>
+<li>To prepare for an inspection, choose a queue under <strong>Transmission audit for</strong> and select <strong>Download transmission audit</strong>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Rejected outright.</strong> Resending the same content is refused ("Nothing has changed since the registry rejected it. Fix the data first."). Correct the data; if the case should not be reported at all, deal with it in the <a href="/help/outbound-queue">Outbound Queue</a> with <strong>Mark not reportable</strong>.</li>
+<li><strong>Conflicting answers.</strong> There is no resend. Open the case and the Details, decide which answer is right, and use <strong>Capture as CAPA</strong> so the discrepancy is followed up.</li>
+<li><strong>Not delivered.</strong> The engine could not be reached. Once the interface is back, select <strong>Re-validate and resend</strong>: it is sent as the same submission, marked as a duplicate retry, so a registry that did get it can drop the copy.</li>
+<li><strong>No answer in 72 h.</strong> Check with the registry. A resend is allowed and uses the same rule.</li>
+<li><strong>Waiting for the CSMS eligibility answer.</strong> The row cannot be resent from here. Record the eligibility answer on the case; the answer releases it.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"You do not have permission to resend registry submissions." Ask your administrator for the resend permission.</li>
+<li>"This submission predates resending and cannot be resent from here." Ask support; the submission has no header.</li>
+<li>"Not sent:" followed by a reason. The patient has since opted out, or the registry or result no longer applies. Nothing is sent.</li>
+<li>"The interface engine could not be reached." Wait, then resend again.</li>
+<li>"The CAPA could not be raised" or "You do not have permission to do this." Try again; if it persists, tell your administrator.</li>
+<li>"Not all changes were saved: someone else changed this case at the same time." In Patient details, close and reopen the window and repeat the change.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Patient details change the patient, not only the case</p>
+<p>A national identifier or opt-out edited here applies to every case of the patient and is sent to the hospital's system as a demographic update. Check the patient and the new value before you save.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">A registry opt-out is honoured</p>
+<p>If a patient has opted out, the submission is not sent, even if you resend. Do not try to bypass this.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Selecting Re-validate and resend before correcting the data. A rejected submission with unchanged content is refused.</li>
+<li>Marking a revision reviewed without checking the changed fields. The row leaves the list and the deficiency stays open, but the check is yours.</li>
+<li>Forgetting that Patient details changes the patient's record for all cases.</li>
+<li>Using Resend all on the Attestation required tab without checking that go-live really is approved.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Use the tab counts to decide where to start; the order of the tabs puts the most serious first.</li>
+<li>Use <strong>Details</strong> before <strong>Open case</strong>: the code and location often tell you exactly which field to correct.</li>
+<li>Keep the screen open on the <strong>Held</strong> tab during a catch-up: after each fix, resend, then Refresh.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Check the top-bar badge at the start and end of each day.</li>
+<li>Capture a CAPA for any problem that repeats, not for every single row.</li>
+<li>Download the transmission audit before an inspection or an annual registry review.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">report</a>: cancer reports are sent to the registry when they are signed out.</li>
+<li><a href="/help/cytology">Cytology</a>: cervical screening results are sent to the screening programme.</li>
+<li><a href="/help/outbound-queue">Outbound Queue</a>: the wider list of outgoing messages, including these.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality">Quality</a>: where a captured CAPA or an automatic revision deficiency is followed up.</li>
+<li><a href="/help/audit-log">Audit Log</a>: holds the entry for each resend, refusal and review.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No registry submission needs attention."</td>
+<td>Nothing is wrong, or the rows belong to another organisation.</td>
+</tr>
+<tr>
+<td>"Nothing in this group."</td>
+<td>The chosen tab is empty. Select <strong>All</strong>.</td>
+</tr>
+<tr>
+<td>No Re-validate and resend button on a row</td>
+<td>The row is a conflict or a revision after acceptance, is waiting for the eligibility answer, or has no header.</td>
+</tr>
+<tr>
+<td>Re-validate and resend is greyed out</td>
+<td>You lack the resend permission, or another action on that row is running.</td>
+</tr>
+<tr>
+<td>The top-bar badge does not match the list</td>
+<td>The badge refreshes about once a minute or when you return to the window. Select Refresh.</td>
+</tr>
+<tr>
+<td>A row reappears after a resend</td>
+<td>The registry rejected it again or the hold reasons remain. Open Details.</td>
+</tr>
+<tr>
+<td>A patient is missing from the list</td>
+<td>Patients excluded by consent or not eligible are never listed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Select <strong>Refresh</strong>.</li>
+<li>Open <strong>Details</strong> and read every finding and the acknowledgement.</li>
+<li>Correct the case or the patient details, then resend.</li>
+<li>If it keeps failing, select <strong>Capture as CAPA</strong> and tell your administrator which finding repeats.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when the same submission is rejected repeatedly with a finding you cannot explain, when a submission has no header, when the registry says it never received a submission shown as sent, or when the count in the top bar never clears. Have the accession number, the registry name and the time of the last attempt ready.</p>

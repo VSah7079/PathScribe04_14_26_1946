@@ -1,0 +1,200 @@
+<h1 id="top">FPPE Tracking</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> FPPE Tracking (focused professional practice evaluation, shown as <strong>Credentialing Review</strong> among the Operations tiles) lists the supervision periods in which a provisional hire has their cases reviewed by a proctor. It shows who is being reviewed, how far each review has progressed, and which periods have finished and why.</p>
+<p><strong>Intended users.</strong> Quality staff and laboratory managers who manage credentialing.</p>
+<p><strong>Where it fits.</strong> Open it from the <strong>Operations</strong> pillar of <strong>Quality Assurance</strong>. Supervision periods are created in the laboratory's configuration; this screen only reports on them. See <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-fppe-overview.png" alt="The FPPE Tracking report with its three tiles and the active and completed tables"><figcaption>The FPPE Tracking report with its three tiles and the active and completed tables</figcaption></figure>
+
+<p>The screen says "Loading FPPE assignments…" while it opens.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active Assignments</td>
+<td>Supervision periods still running.</td>
+</tr>
+<tr>
+<td>Completed</td>
+<td>Periods that have finished.</td>
+</tr>
+<tr>
+<td>Threshold Reached — Needs Formal Graduation</td>
+<td>Active periods that have reached their case count or duration but have not yet been formally graduated. Red when above zero.</td>
+</tr>
+</tbody>
+</table>
+<p>The active table has these columns:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Provisional Hire</td>
+<td>The person being reviewed.</td>
+</tr>
+<tr>
+<td>Proctor</td>
+<td>The pathologist reviewing their cases.</td>
+</tr>
+<tr>
+<td>Scope</td>
+<td>The subspecialty the review covers, or "All subspecialties".</td>
+</tr>
+<tr>
+<td>Cases Reviewed</td>
+<td>How many cases the proctor has reviewed.</td>
+</tr>
+<tr>
+<td>Progress</td>
+<td>Percentage of the target reached. It turns red at 100 percent or more, which means the person is ready to be graduated.</td>
+</tr>
+<tr>
+<td>Started</td>
+<td>The start date.</td>
+</tr>
+</tbody>
+</table>
+<p>When nothing is running the table says "No active FPPE assignments." The completed table shows Provisional Hire, Proctor, Cases Reviewed, Completed and Reason, or "No completed FPPE assignments yet."</p>
+<p>The Reason tells why a period ended:</p>
+<table>
+<thead>
+<tr>
+<th>Reason</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case count reached</td>
+<td>The target number of cases was reviewed.</td>
+</tr>
+<tr>
+<td>Duration elapsed</td>
+<td>The set time ran out.</td>
+</tr>
+<tr>
+<td>Graduated early</td>
+<td>A manager ended the period before either limit.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope switcher</td>
+<td>Offers facilities only. Choose the facility whose assignments you want.</td>
+</tr>
+<tr>
+<td>Export</td>
+<td>Saves active and completed assignments as a spreadsheet file. Your role must allow it.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Red Progress figure</td>
+<td>The target is reached; formal graduation is due.</td>
+</tr>
+<tr>
+<td>Red Threshold Reached tile</td>
+<td>One or more people are waiting for formal graduation.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open the Credentialing Review tile.</li>
+<li>Read the three tiles. If <strong>Threshold Reached — Needs Formal Graduation</strong> is above zero, find the red rows in the active table.</li>
+<li>Graduate those people through your laboratory's configuration screen.</li>
+<li>Use <strong>Export</strong> to keep a record for credentialing committees.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>A supervisee sees their own progress on <a href="/help/my-contribution">My Contribution</a>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a person is missing, check the facility chosen in the scope switcher.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the table stays on its loading message, refresh the page.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Forgetting to graduate people whose Progress is 100 percent. Reaching the target does not end the period by itself.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Check the red tile once a week.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Export completed periods at each credentialing review.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/quality/turnaround-and-linkage">Countersign, Linkage and Drift</a>: the previous report.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality/qa-dashboards">QA Dashboards and Inspection</a>: the department-wide reports.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Progress shows a dash</td>
+<td>The period has no case-count target.</td>
+</tr>
+<tr>
+<td>Nobody listed</td>
+<td>No supervision periods exist for that facility.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Choose another facility.</li>
+<li>Refresh the page.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a person's case count does not match the cases reviewed. Have the person's name ready.</p>

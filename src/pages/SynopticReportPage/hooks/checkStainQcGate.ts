@@ -23,14 +23,14 @@
 // it's resolvable — no change needed there, only here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockBatchService } from '@/services/batches/mockBatchService';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { mockWorkstationGroupService } from '@/services/workstationGroups/mockWorkstationGroupService';
+import { slideLevelOf } from '@/services/material/slideLevels';
+
 import { resolveStainQcGate, resolveEffectiveQcEnforcementMode } from '@/services/batches/resolveStainQcGate';
 import type { StainQcGateStatus } from '@/services/batches/resolveStainQcGate';
 import type { QcEnforcementMode } from '@/services/workstationGroups/IWorkstationGroupService';
 import { slideIdentifier } from '@/types/labels/LabelData';
 import type { Case } from '@/types/case/Case';
+import { batchService, scanStationService, workstationGroupService } from '@/services';
 
 export interface StainQcGateBlockingItem {
   specimenId: string;
@@ -43,7 +43,7 @@ export interface StainQcGateBlockingItem {
 }
 
 export async function checkStainQcGate(caseData: Case): Promise<StainQcGateBlockingItem[]> {
-  const batchesRes = await mockBatchService.getAll();
+  const batchesRes = await batchService.getAll();
   if (!batchesRes.ok) return [];
   const stainingBatches = batchesRes.data.filter(b => b.processingNode === 'Staining');
   if (stainingBatches.length === 0) return [];
@@ -57,19 +57,22 @@ export async function checkStainQcGate(caseData: Case): Promise<StainQcGateBlock
   const modeByBatchId = new Map<string, QcEnforcementMode | undefined>();
   for (const batch of stainingBatches) {
     if (!batch.stationId) { modeByBatchId.set(batch.id, undefined); continue; }
-    const stationRes = await mockScanStationService.getById(batch.stationId);
+    const stationRes = await scanStationService.getById(batch.stationId);
     if (!stationRes.ok || !stationRes.data.workstationGroupId) { modeByBatchId.set(batch.id, undefined); continue; }
-    const groupRes = await mockWorkstationGroupService.getById(stationRes.data.workstationGroupId);
+    const groupRes = await workstationGroupService.getById(stationRes.data.workstationGroupId);
     modeByBatchId.set(batch.id, resolveEffectiveQcEnforcementMode(undefined, groupRes.ok ? groupRes.data.qcEnforcementMode : undefined));
   }
 
   const blocking: StainQcGateBlockingItem[] = [];
+  // Same fallback the batch queue uses when it builds slide display ids
+  // (computePendingBatchQueue.ts), so the lookup below can match them.
+  const fullAccession = caseData.accession.fullAccession ?? caseData.id;
 
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {
       (block.stains ?? []).forEach((stain, index) => {
-        const level = `L${index + 1}`;
-        const slideId = slideIdentifier(caseData.accession.fullAccession, specimen.label, block.label, level);
+        const level = slideLevelOf(stain, index);
+        const slideId = slideIdentifier(fullAccession, specimen.label, block.label, level);
         const batch = stainingBatches.find(b => (b.items ?? []).some(i => i.displayId === slideId));
         if (!batch) return;
 

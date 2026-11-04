@@ -21,17 +21,25 @@
 // via the already-existing, already-seeded "Cytology-Histology
 // Correlation" QaActivityType (qa-activity-cyto-histo,
 // services/quality/mockQaActivityTypeService.ts) once this candidate
-// surfaces it. This mirrors the same real "automate the disciplined,
-// mechanical part; never fake the analytical part" boundary already
-// drawn elsewhere in this module (Phase 55's own honest split for
-// prior cervical procedure history).
+// surfaces it.
 //
 // Real, deliberate trigger threshold: diagnosticRank >= 1 (ASC-US or
 // worse) — CAP's own real requirement is correlation for abnormal
-// cytology generally, not only HSIL+ (PPV_HSIL is one real metric
-// this data eventually supports, not the only real trigger for
-// collecting it).
+// cytology generally, not only HSIL+.
+//
+// Batch 452 (PS-156, Pete Oct 4 2026): the window is no longer "180 days
+// from sign-out" fixed in code. Each abnormal cytology specimen carries its
+// own window (cytologyHistologyCorrelationWindow.ts): by default 180 days
+// from COLLECTION, configurable per enterprise, jurisdiction and facility.
+// A later case matches when its specimens' collection OR receipt date falls
+// in the window, so a biopsy taken inside the window still matches even if
+// it reaches the lab a few days after it closes. The same function runs at
+// sign-out and again whenever later cases arrive
+// (sweepCytologyHistologyCorrelationCandidates.ts), so a biopsy accessioned
+// after sign-out is no longer missed.
 // ─────────────────────────────────────────────────────────────────────────────
+
+import { isInCorrelationWindow, type CorrelationWindow } from './cytologyHistologyCorrelationWindow';
 
 export interface CytologyHistologyCorrelationCandidate {
   cytologyCaseId: string;
@@ -43,33 +51,55 @@ export interface CytologyHistologyCorrelationCandidate {
   candidateCaseId: string;
 }
 
+export interface AbnormalCytologyForCorrelation {
+  reviewId: string;
+  caseId: string;
+  specimenId: string;
+  diagnosticRank: number | undefined;
+  window: Pick<CorrelationWindow, 'startsAt' | 'endsAt'> | null;
+}
+
+export interface OtherPatientCaseForCorrelation {
+  caseId: string;
+  hasNonCytologySpecimen: boolean;
+  /** Every collection and receipt date on the case's specimens. */
+  specimenDates: (string | undefined)[];
+}
+
 export function resolveCytologyHistologyCorrelationCandidates(
-  abnormalCytologyReviews: { id: string; caseId: string; specimenId: string; diagnosticRank: number | undefined; recordedAt: string }[],
-  otherPatientCases: { caseId: string; hasNonCytologySpecimen: boolean; earliestSpecimenReceivedAt: string | undefined }[],
-  windowDays = 180,
+  abnormalCytology: AbnormalCytologyForCorrelation[],
+  otherPatientCases: OtherPatientCaseForCorrelation[],
 ): CytologyHistologyCorrelationCandidate[] {
   const candidates: CytologyHistologyCorrelationCandidate[] = [];
-
-  for (const review of abnormalCytologyReviews) {
-    if (review.diagnosticRank === undefined || review.diagnosticRank < 1) continue;
-
-    const cytoDate = new Date(review.recordedAt);
-    const windowEnd = new Date(cytoDate);
-    windowEnd.setDate(windowEnd.getDate() + windowDays);
-
-    for (const otherCase of otherPatientCases) {
-      if (!otherCase.hasNonCytologySpecimen || !otherCase.earliestSpecimenReceivedAt) continue;
-      const otherDate = new Date(otherCase.earliestSpecimenReceivedAt);
-      if (otherDate >= cytoDate && otherDate <= windowEnd) {
-        candidates.push({
-          cytologyCaseId: review.caseId,
-          cytologySpecimenId: review.specimenId,
-          cytologyReviewId: review.id,
-          candidateCaseId: otherCase.caseId,
-        });
+  for (const cyto of abnormalCytology) {
+    if (cyto.diagnosticRank === undefined || cyto.diagnosticRank < 1 || !cyto.window) continue;
+    for (const other of otherPatientCases) {
+      if (other.caseId === cyto.caseId || !other.hasNonCytologySpecimen) continue;
+      if (isInCorrelationWindow(cyto.window, other.specimenDates)) {
+        candidates.push({ cytologyCaseId: cyto.caseId, cytologySpecimenId: cyto.specimenId, cytologyReviewId: cyto.reviewId, candidateCaseId: other.caseId });
       }
     }
   }
-
   return candidates;
+}
+
+/** The patient's other cases, in the shape above. A specimen with no
+ *  dictionary entry counts as non-cytology: surface a candidate rather than
+ *  hide one. */
+export function otherPatientCasesForCorrelation(
+  allCases: { id: string; patient?: { id?: string } | null; specimens?: unknown[] }[],
+  cytologyCaseId: string,
+  patientId: string,
+  dictById: ReadonlyMap<string, { type?: string }>,
+): OtherPatientCaseForCorrelation[] {
+  return allCases
+    .filter(c => c.id !== cytologyCaseId && c.patient?.id === patientId)
+    .map(c => {
+      const specimens = (c.specimens ?? []) as { specimenDictionaryEntryId?: string; collectedAt?: string; receivedAt?: string }[];
+      const hasNonCytologySpecimen = specimens.some(sp => {
+        const entry = sp.specimenDictionaryEntryId ? dictById.get(sp.specimenDictionaryEntryId) : undefined;
+        return !(entry && (entry.type === 'Cytology' || entry.type === 'FNA'));
+      });
+      return { caseId: c.id, hasNonCytologySpecimen, specimenDates: specimens.flatMap(sp => [sp.collectedAt, sp.receivedAt]) };
+    });
 }

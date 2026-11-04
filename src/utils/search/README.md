@@ -28,6 +28,12 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 - **`lookupFilter.ts`** (Batch 350): text filter and grouping for the protocol and flag pickers.
 - **`caseSearchUtils.test.ts`**: tests for the Batch 350 files.
 
+## Batch 613 (part A) — case search reporting
+
+- **`caseReportLabels.ts`**: translation keys and lookups for report values (group names, column headings, statuses, dates); shared by the screen and the CSV.
+- **`caseReportCsv.ts`**: the report's CSV (a row per group with a total, or a row per case with the chosen columns); every cell quoted, formula cells neutralised. File name `pathscribe-case-report-<facility date>.csv`.
+- `buildCaseSearchRequest.ts`, `describeCaseSearch.ts`: carry the synoptic answer filters (sent only when complete, counted, shown in the summary).
+
 ## Batch 351
 
 - **`buildCaseSearchRequest.ts`**
@@ -41,6 +47,20 @@ The Search page's decisions, kept out of `pages/SearchPage.tsx` (standing rule 2
 - **`describeCaseSearch.ts`:** summary parts for every new filter. The date wording follows the basis ("signed out 01/09/2026 — today"), and the role is named with the pathologists.
 - **`caseSearchCsv.ts`:** a sign-out date column.
 
+## Batch 473 — Case-type key migration
+
+`caseSearchLabels.ts`'s autopsy-authority label map key renamed in step with `AutopsyCaseAuthority`: `medicolegal_forensic` → `statutory_judicial` (the i18n key path it points at, `autopsyIntake.caseAuthority.statutory_judicial`, renamed to match in all 5 locales). No behavior change. See `services/autopsy/README.md`.
+
 ---
 *See [utils/README.md](../README.md) for how this folder fits utils/.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 543
+
+`caseSearchCsv.ts`: cells are written with `csvQuoted` (`utils/csv.ts`), which neutralizes formula cells (finding F8).
+
+## Batch 583
+
+- `caseReturnTarget.ts` (new): where a case report's Back and breadcrumb go, and what they say, from where the case was opened (`'search'` → Search; otherwise Worklist). Used by `HeaderBar.tsx` (PS-101).
+
+- Batch 662: the sex filter, results and CSV use the Sex at birth wording and include Indeterminate.

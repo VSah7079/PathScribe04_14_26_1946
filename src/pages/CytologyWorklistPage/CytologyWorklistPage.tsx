@@ -24,50 +24,56 @@
 // same real Case.order.assignedTo/CaseStatus.pool fields, and pool
 // claim/pass via the same real claimPoolCase/acceptPoolCase/passPoolCase
 // service functions WorklistPage.tsx's own PoolClaimModal calls.
+//
+// Batch 440 (Pete, Oct 2): the GYN QC / Rescreen tile is an unassigned,
+// shared queue (loadQcRescreenQueue): every QC-flagged GYN specimen the
+// viewer may open. One they did the primary screen on is shown with a
+// badge and an "Ask a colleague" message button; the save refuses their
+// own rescreen. A pathologist doing the QC (rare) uses the same tile. Positive GYN cases waiting for a
+// pathologist are on the main Worklist's Cytology Review tile, not here.
+// The page's text is translated (cytologyWorklist.*).
+//
+// Batch 441: the page renders and dispatches only. Loading, per-facility
+// routing and which tab lists what are services/cytology/cytologyWorklist.ts
+// and cytologyWorklistLive.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { acceptPoolCase, isPoolActionNotPermitted, releasePoolClaim, availableOrganSites, claimPoolCase, cytologyWorklistView, loadCytologyWorklist, passPoolCase, showScreeningHoursPanel, type CytologyDomain, type CytologyWorklistCase, type CytologyWorklistTab } from '@/services';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
-import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
 import { useAuth } from '@contexts/AuthContext';
-import { caseRouter } from '@/services/cases/CaseRouter';
-import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
-import { claimPoolCase, acceptPoolCase, passPoolCase } from '@/services/cases/mockCaseService';
-import { mockSpecimenDictionaryService } from '@/services/specimenDictionary/mockSpecimenDictionaryService';
-import { mockCytologyRoutingSettingsService } from '@/services/cytology/mockCytologyRoutingSettingsService';
-import { mockFacilityCytologyRoutingOverrideService } from '@/services/cytology/mockFacilityCytologyRoutingOverrideService';
-import { mockCytologyScreeningStrategyService } from '@/services/cytology/mockCytologyScreeningStrategyService';
-import { mockAiScreeningResultService } from '@/services/digitalPathology/mockAiScreeningResultService';
-import type { AiScreeningResult } from '@/types/digitalPathology/AiScreeningResult';
-import { mockFacilityCytologyScreeningStrategyOverrideService } from '@/services/cytology/mockFacilityCytologyScreeningStrategyOverrideService';
-import { mockCytologyReviewRecordService } from '@/services/cytology/mockCytologyReviewRecordService';
-import { resolveEffectiveCytologyRoutingSettings } from '@/services/cytology/resolveEffectiveCytologyRoutingSettings';
-import { resolveEffectiveCytologyScreeningStrategy } from '@/services/cytology/resolveEffectiveCytologyScreeningStrategy';
-import { resolveEffectiveCytologyScreeningStrategyForPatient } from '@/services/cytology/resolveEffectiveCytologyScreeningStrategyForPatient';
-import { resolveAgeFromDateOfBirth } from '@/services/cytology/resolveAgeFromDateOfBirth';
-import { resolveCaseCytologyWorklistMembership } from '@/services/cytology/resolveCaseCytologyWorklistMembership';
-import { resolveCaseCytologyTriagePendingMembership } from '@/services/cytology/resolveCaseCytologyTriagePendingMembership';
-import { resolveCaseCytologyScansCompletedMembership } from '@/services/cytology/resolveCaseCytologyScansCompletedMembership';
-import { mockCytologyInstrumentationService } from '@/services/cytology/mockCytologyInstrumentationService';
-import { mockWsiScanBatchService } from '@/services/digitalPathology/mockWsiScanBatchService';
-import { resolveCaseCytologyRecallNeededMembership } from '@/services/cytology/resolveCaseCytologyRecallNeededMembership';
-import { resolveCytologyQcPoolMembership } from '@/services/cytology/resolveCytologyQcPoolMembership';
-import { resolveCytologyRetrospectiveReviewPoolMembership } from '@/services/cytology/resolveCytologyRetrospectiveReviewPoolMembership';
-import { resolveCytologyPostSignOutPeerReviewPoolMembership } from '@/services/cytology/resolveCytologyPostSignOutPeerReviewPoolMembership';
-import { resolveCytologyHistologyCorrelationPoolMembership } from '@/services/cytology/resolveCytologyHistologyCorrelationPoolMembership';
-import { resolveCytologyDecantPendingMembership } from '@/services/cytology/resolveCytologyDecantPendingMembership';
-import { resolveSpecimenEntryMatchesCategory } from '@/services/specimenDictionary/resolveSpecimenEntryMatchesCategory';
-import { resolveCytologyRoseActiveMembership } from '@/services/cytology/resolveCytologyRoseActiveMembership';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import ManualHpvResultModal from './components/ManualHpvResultModal';
+import SelfCollectedRecallDetail from './components/SelfCollectedRecallDetail';
+import { isRecallJurisdiction, recallKindOfSpecimens, selfCollectedRecallOfSpecimens } from '@/services/cytology/selfCollectedRecall';
+import { DEFAULT_RECALL_WINDOWS, type RecallWindows } from '@/services/cytology/recallWindows';
+import type { RecallWordingConfig } from '@/services/cytology/recallWording';
+import { hpvSpecimenOf, useManualHpvResult } from './hooks/useManualHpvResult';
+import CsmsEligibilityActions from './components/CsmsEligibilityActions';
+import { hpvTriageRowStatus } from '@/services/cytology/hpvTriageRowStatus';
 import type { Case } from '@/types/case/Case';
-import type { NonGynCytologyRouting } from '@/services/cytology/ICytologyRoutingSettingsService';
-import { formatFullDisplayName } from '@/utils/personName';
+// Batch 760 (Cytology spec §2.1): rows name the case by accession, vial type and slides (the patient's name shown
+// here since Batch 744 is gone).
+import CytologyIdentityLine from '@/components/Cytology/CytologyIdentityLine';
+import { cytologyCaseIdentity } from '@/services/cytology/cytologyBenchIdentity';
 import { useSynopticFlags } from '@/pages/Synoptic/useSynopticFlags';
 import FlagManagerModal from '@/components/Flags/FlagManagerModal';
+import { openComposeTo } from '@/utils/openComposeTo';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { useScreeningHoursSignOff } from './hooks/useScreeningHoursSignOff';
+import { ScreeningHoursPanel } from './components/ScreeningHoursPanel';
+import { useCytologyWorkloadSummary } from './hooks/useCytologyWorkloadSummary';
+import { CytologyWorkloadCounter } from './components/CytologyWorkloadCounter';
+import { showCytologyWorkloadCounter } from '@/services/cytology/cytologyWorkloadSummary';
 
-type Tab = 'assigned' | 'pool' | 'qc' | 'hpv_triage' | 'recall_needed' | 'csms_qa' | 'retrospective_lookback' | 'post_signout_peer_review' | 'histology_correlation' | 'scans_completed' | 'cell_block_ancillary_pending' | 'rose_active';
-type CytologyDomain = 'gyn' | 'non_gyn';
+type Tab = CytologyWorklistTab;
 
 // Real, per direct guidance's own confirmed domain split: "Because GYN
 // and Non-GYN have completely different regulatory workflows, Bethesda
@@ -76,78 +82,46 @@ type CytologyDomain = 'gyn' | 'non_gyn';
 // compromises." Two real, separate primary tile sets, swapped by the
 // real domain switcher below — not a single, shared row relabeled.
 const GYN_TILES: { key: Tab; label: string; color: string }[] = [
-  { key: 'assigned',   label: 'My Worklist', color: '#009E73' },
-  { key: 'pool',       label: 'Pool',        color: '#F97316' },
-  { key: 'qc',         label: 'QC / Rescreen', color: '#EF4444' },
-  { key: 'hpv_triage', label: 'HPV Triage',  color: '#8B5CF6' },
+  { key: 'assigned',   label: 'assigned',   color: '#009E73' },
+  { key: 'pool',       label: 'pool',       color: '#F97316' },
+  { key: 'qc',         label: 'qc',         color: '#EF4444' },
+  { key: 'hpv_triage', label: 'hpvTriage',  color: '#8B5CF6' },
 ];
 const NON_GYN_TILES: { key: Tab; label: string; color: string }[] = [
-  { key: 'assigned', label: 'My Worklist',     color: '#009E73' },
-  { key: 'pool',     label: 'Unassigned Pool', color: '#F97316' },
-  { key: 'cell_block_ancillary_pending', label: 'Cell Block / Ancillary Pending', color: '#EAB308' },
-  { key: 'rose_active', label: 'ROSE / Bedside Evaluations', color: '#EC4899' },
+  { key: 'assigned', label: 'assigned',     color: '#009E73' },
+  { key: 'pool',     label: 'unassignedPool', color: '#F97316' },
+  { key: 'cell_block_ancillary_pending', label: 'cellBlockAncillaryPending', color: '#EAB308' },
+  { key: 'rose_active', label: 'roseActive', color: '#EC4899' },
 ];
 // Real, per direct guidance's own earlier resolution: these serve a
 // genuinely different, QA/compliance-aggregate purpose than the real,
 // day-to-day GYN/Non-GYN screening domains above — kept as their own,
 // separate secondary section, not folded into either domain's own
 // primary tile set.
+// Batch 440: `label` is the key under cytologyWorklist.tiles.
 const QA_COMPLIANCE_TILES: { key: Tab; label: string; color: string }[] = [
-  { key: 'recall_needed', label: 'Recall Needed',  color: '#DC2626' },
-  { key: 'csms_qa',       label: 'CSMS QA',        color: '#0EA5E9' },
-  { key: 'retrospective_lookback', label: '5-Year Lookback', color: '#A855F7' },
-  { key: 'post_signout_peer_review', label: 'Peer Review', color: '#14B8A6' },
-  { key: 'histology_correlation', label: 'Histology Correlation', color: '#F472B6' },
-  { key: 'scans_completed', label: 'Scans Completed', color: '#22C55E' },
+  { key: 'recall_needed', label: 'recallNeeded',  color: '#DC2626' },
+  { key: 'csms_qa',       label: 'csmsQa',        color: '#0EA5E9' },
+  { key: 'retrospective_lookback', label: 'retrospectiveLookback', color: '#A855F7' },
+  { key: 'post_signout_peer_review', label: 'postSignOutPeerReview', color: '#14B8A6' },
+  { key: 'histology_correlation', label: 'histologyCorrelation', color: '#F472B6' },
+  { key: 'follow_up_due', label: 'followUpDue', color: '#EF4444' },
+  { key: 'scans_completed', label: 'scansCompleted', color: '#22C55E' },
 ];
 
-interface CytologyWorklistCase {
-  caseData: Case;
-  specimenId: string | null;
-  /** Real, per direct guidance's own confirmed domain split ("GYN and
-   *  Non-GYN have completely different regulatory workflows...")
-   *  — resolved from the same real specimen-dictionary entry's own
-   *  isGynCytology flag CytologyScreeningPage.tsx already uses,
-   *  never a second, separate determination. */
-  isGynCytology: boolean;
-  /** Real, per direct guidance's own Specimen Auto-Categorization
-   *  spec — resolved from the same real specimen-dictionary entry
-   *  isGynCytology already uses, never a second, separate lookup.
-   *  Undefined for a real GYN case, or a real Non-GYN case whose own
-   *  dictionary entry has no organSite configured yet. */
-  organSite?: string;
-  isQcPending: boolean;
-  isRetrospectiveReviewPending: boolean;
-  isPostSignOutPeerReviewPending: boolean;
-  isHistologyCorrelationPending: boolean;
-  /** Real, per direct guidance's own Step 4 ask — true when any real
-   *  decant on this case's own cytology specimen still has a
-   *  genuinely unfinished stain order. See
-   *  resolveCytologyDecantPendingMembership.ts. */
-  isCellBlockAncillaryPending: boolean;
-  /** Real, per direct guidance's own Step 4 ask — true when this
-   *  case's own cytology specimen has a real ROSE evaluation
-   *  performed within the real, recent window. See
-   *  resolveCytologyRoseActiveMembership.ts. */
-  isRoseActive: boolean;
-  /** Real, per direct guidance's own real mechanism: true when this
-   *  case carries a real, active 'f36' (CSMS Eligibility Verification
-   *  Needed) flag — raised automatically at real UK CSMS registry
-   *  dispatch, since PathScribe has no real eligibility/suspension
-   *  data source of its own. Surfaced here so a human in the real
-   *  Cytology QA group can find and resolve it. */
-  isCsmsQaPending: boolean;
-  /** Real, per RFP-APLIS-2026-GLOBAL Story 10 (Cytology Assist FOV
-   *  Ingestion) — the real, most-recent completed AI screening
-   *  result for this case, if any real vendor has reported one.
-   *  Undefined for a case with no real AI order/result at all, never
-   *  a fabricated default. */
-  aiScreeningResult?: AiScreeningResult;
-}
+/** The empty-list text key (cytologyWorklist.empty.*) for each tab. */
+const EMPTY_KEY: Record<Tab, string> = {
+  assigned: 'assigned', pool: 'pool', qc: 'qc', hpv_triage: 'hpvTriage', recall_needed: 'recallNeeded',
+  csms_qa: 'csmsQa', retrospective_lookback: 'retrospectiveLookback', post_signout_peer_review: 'postSignOutPeerReview',
+  histology_correlation: 'histologyCorrelation', scans_completed: 'scansCompleted',
+  cell_block_ancillary_pending: 'cellBlockAncillaryPending', rose_active: 'roseActive',
+  follow_up_due: 'followUpDue',
+};
+
 
 const CytologyWorklistPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const { t } = useTranslation();
   // Real, per direct guidance's own explicit spec: "Home > Cytology
   // Workspace" breadcrumb navigation across Cytology sub-routes —
@@ -156,10 +130,22 @@ const CytologyWorklistPage: React.FC = () => {
   // not a new, separate breadcrumb system.
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('cytologyWorklist.breadcrumbLabel'), '/cytology-worklist'); }, [pushCrumb, t]);
+  // Batch 572 (F7, option C): today's screening hours and the end-of-day sign-off, for those who screen.
+  const capabilities = useCapabilities();
+  const systemConfig = useSystemConfig().config;
+  const facilityTimezone = systemConfig.facilityTimezone;
+  const screeningHours = useScreeningHoursSignOff(user, capabilities.has('cytology:screening-hours:sign-off'), facilityTimezone);
+  // Batch 574: reviews and slides over the last 24 hours, for the people whose screening counts toward the limit.
+  // No case open here: the lab's jurisdiction decides whether the limit applies.
+  const workloadSummary = useCytologyWorkloadSummary(user?.id, { jurisdiction: systemConfig.jurisdiction }, capabilities.has('cytology:screening-hours:sign-off'));
   const [rows, setRows]             = useState<CytologyWorklistCase[]>([]);
   const [triageRows, setTriageRows] = useState<Case[]>([]);
   const [scansCompletedRows, setScansCompletedRows] = useState<Case[]>([]);
   const [recallRows, setRecallRows] = useState<Case[]>([]);
+  const [recallJurisdictions, setRecallJurisdictions] = useState<Record<string, string>>({});
+  const [recallWindows, setRecallWindows] = useState<Record<'AU' | 'NZ', RecallWindows>>({ AU: DEFAULT_RECALL_WINDOWS, NZ: DEFAULT_RECALL_WINDOWS });
+  const [recallWording, setRecallWording] = useState<RecallWordingConfig>({});
+  const [qcRows, setQcRows]         = useState<CytologyWorklistCase[]>([]);
   const [loading, setLoading]       = useState(true);
   const [activeTab, setActiveTab]   = useState<Tab>('assigned');
   const [domain, setDomain] = useState<CytologyDomain>('gyn');
@@ -179,145 +165,20 @@ const CytologyWorklistPage: React.FC = () => {
   // openFlagManager takes the real, actual case to manage directly.
   const { flagCaseData, flagDefinitions, showFlagManager, setShowFlagManager, openFlagManager, onApplyFlags, onRemoveFlag } = useSynopticFlags('');
 
+  // Batch 441: fetched and decided by services/cytology/cytologyWorklistLive.ts.
   const load = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const [allCases, dictRes, enterpriseRes, enterpriseStrategyRes, aiScreeningRes] = await Promise.all([
-        caseRouter.listCasesForUser(user.id),
-        mockSpecimenDictionaryService.getAll(),
-        mockCytologyRoutingSettingsService.get(),
-        mockCytologyScreeningStrategyService.get(),
-        mockAiScreeningResultService.getAll(),
-      ]);
-      const dictionary = dictRes.ok ? dictRes.data : [];
-      const enterpriseDefault = enterpriseRes.ok ? enterpriseRes.data : { nonGynCytologyRouting: 'surgical_pathology_worklist' as NonGynCytologyRouting };
-      const enterpriseStrategyDefault = enterpriseStrategyRes.ok ? enterpriseStrategyRes.data : { screeningStrategy: 'co_testing' as const };
-      // Real, per RFP-APLIS-2026-GLOBAL Story 10 (Cytology Assist FOV
-      // Ingestion) — the real gap this closes: the existing
-      // AiScreeningResult system had no consumer anywhere in the
-      // technician's own live screening queue. Most-recent completed
-      // result per case, since a case could in principle carry more
-      // than one real AI screening order over its own lifecycle.
-      const aiResultByCaseId = new Map<string, AiScreeningResult>();
-      if (aiScreeningRes.ok) {
-        for (const r of aiScreeningRes.data) {
-          if (r.status !== 'completed') continue;
-          const existing = aiResultByCaseId.get(r.caseId);
-          if (!existing || (r.completedAt ?? '') > (existing.completedAt ?? '')) aiResultByCaseId.set(r.caseId, r);
-        }
-      }
-
-      // Real, per-case effective routing: resolve every distinct real
-      // facilityId present just once each, not once per case.
-      const facilityIds = Array.from(new Set(allCases.map(c => c.order?.facilityId).filter((id): id is string => !!id)));
-      const overrideEntries = await Promise.all(
-        facilityIds.map(async id => [id, await mockFacilityCytologyRoutingOverrideService.getForFacility(id)] as const)
-      );
-      const overridesByFacility = new Map(overrideEntries.map(([id, res]) => [id, res.ok ? res.data : null]));
-
-      // Real, per-case effective screening strategy — same real,
-      // per-facility resolution pattern as routing, above.
-      const strategyOverrideEntries = await Promise.all(
-        facilityIds.map(async id => [id, await mockFacilityCytologyScreeningStrategyOverrideService.getForFacility(id)] as const)
-      );
-      const strategyOverridesByFacility = new Map(strategyOverrideEntries.map(([id, res]) => [id, res.ok ? res.data : null]));
-
-      const dictById = new Map(dictionary.map(e => [e.id, e]));
-
-      const cytologyCases = allCases.filter(c => {
-        const facilityId = c.order?.facilityId;
-        const facilityOverride = facilityId ? overridesByFacility.get(facilityId) ?? null : null;
-        const effective = resolveEffectiveCytologyRoutingSettings(enterpriseDefault, facilityOverride);
-        const facilityStrategyOverride = facilityId ? strategyOverridesByFacility.get(facilityId) ?? null : null;
-        const facilityEffectiveStrategy = resolveEffectiveCytologyScreeningStrategy(enterpriseStrategyDefault, facilityStrategyOverride);
-        const patientAge = resolveAgeFromDateOfBirth(c.patient?.dateOfBirth);
-        const effectiveScreeningStrategy = resolveEffectiveCytologyScreeningStrategyForPatient(facilityEffectiveStrategy, patientAge);
-        return resolveCaseCytologyWorklistMembership(c.specimens as any, dictionary, effective.nonGynCytologyRouting, effectiveScreeningStrategy);
-      });
-
-      // Real, per direct guidance's own "HPV-First" triage — a real,
-      // separate set of cases: genuinely different from cytologyCases
-      // above, which only ever contains cases eligible for screening.
-      const triagePendingCases = allCases.filter(c => {
-        const facilityId = c.order?.facilityId;
-        const facilityOverride = facilityId ? overridesByFacility.get(facilityId) ?? null : null;
-        const effective = resolveEffectiveCytologyRoutingSettings(enterpriseDefault, facilityOverride);
-        const facilityStrategyOverride = facilityId ? strategyOverridesByFacility.get(facilityId) ?? null : null;
-        const facilityEffectiveStrategy = resolveEffectiveCytologyScreeningStrategy(enterpriseStrategyDefault, facilityStrategyOverride);
-        const patientAge = resolveAgeFromDateOfBirth(c.patient?.dateOfBirth);
-        const effectiveScreeningStrategy = resolveEffectiveCytologyScreeningStrategyForPatient(facilityEffectiveStrategy, patientAge);
-        return resolveCaseCytologyTriagePendingMembership(c.specimens as any, dictionary, effective.nonGynCytologyRouting, effectiveScreeningStrategy);
-      });
-      setTriageRows(triagePendingCases);
-
-      // Real, per direct follow-up on Cytology Assisted Instrumentation
-      // — a real, separate set of cases whose WSI scans are done and
-      // are ready to screen now, distinct from cytologyCases above
-      // (which doesn't distinguish scan status at all).
-      const [instrumentationRes, allBatchesRes] = await Promise.all([
-        mockCytologyInstrumentationService.get(),
-        mockWsiScanBatchService.getAll(),
-      ]);
-      const instrumentationModality = instrumentationRes.ok ? instrumentationRes.data.modality : 'wsi';
-      const allBatches = allBatchesRes.ok ? allBatchesRes.data : [];
-      const scansCompletedCases = allCases.filter(c =>
-        resolveCaseCytologyScansCompletedMembership(c.id, c.specimens as any, allBatches, instrumentationModality),
-      );
-      setScansCompletedRows(scansCompletedCases);
-
-      // Real, per direct guidance's own Australia/NZ NCSP information:
-      // a real, distinct set of cases — a positive result on a
-      // self-collected specimen, needing patient recall for a new,
-      // clinician-collected specimen, never eligible for cytology
-      // screening from the specimen already on hand.
-      const recallNeededCases = allCases.filter(c => {
-        const facilityId = c.order?.facilityId;
-        const facilityOverride = facilityId ? overridesByFacility.get(facilityId) ?? null : null;
-        const effective = resolveEffectiveCytologyRoutingSettings(enterpriseDefault, facilityOverride);
-        const facilityStrategyOverride = facilityId ? strategyOverridesByFacility.get(facilityId) ?? null : null;
-        const facilityEffectiveStrategy = resolveEffectiveCytologyScreeningStrategy(enterpriseStrategyDefault, facilityStrategyOverride);
-        const patientAge = resolveAgeFromDateOfBirth(c.patient?.dateOfBirth);
-        const effectiveScreeningStrategy = resolveEffectiveCytologyScreeningStrategyForPatient(facilityEffectiveStrategy, patientAge);
-        return resolveCaseCytologyRecallNeededMembership(c.specimens as any, dictionary, effective.nonGynCytologyRouting, effectiveScreeningStrategy);
-      });
-      setRecallRows(recallNeededCases);
-
-      // Real, per-case QC pool membership — needs each qualifying
-      // specimen's own real review history to resolve.
-      const withQcStatus = await Promise.all(cytologyCases.map(async c => {
-        let cytoDictEntry: any = undefined;
-        const cytoSpecimen = c.specimens?.find((sp: any) => {
-          const entry = sp.specimenDictionaryEntryId ? dictById.get(sp.specimenDictionaryEntryId) : undefined;
-          if (entry && (entry.type === 'Cytology' || entry.type === 'FNA')) { cytoDictEntry = entry; return true; }
-          return false;
-        }) as any;
-        const isGynCytology = resolveSpecimenEntryMatchesCategory(cytoDictEntry, ['GYN_CYTOLOGY']);
-        const organSite = cytoDictEntry?.organSite;
-        const specimenId = cytoSpecimen?.id ?? null;
-        let isQcPending = false;
-        let isRetrospectiveReviewPending = false;
-        if (specimenId && cytoSpecimen?.cytologyScreening?.qcFlag) {
-          const reviewsRes = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
-          const reviews = reviewsRes.ok ? reviewsRes.data : [];
-          isQcPending = resolveCytologyQcPoolMembership(cytoSpecimen.cytologyScreening.qcFlag, reviews);
-        }
-        if (cytoSpecimen?.cytologyScreening?.retrospectiveReviewFlag) {
-          isRetrospectiveReviewPending = resolveCytologyRetrospectiveReviewPoolMembership(cytoSpecimen.cytologyScreening.retrospectiveReviewFlag);
-        }
-        let isPostSignOutPeerReviewPending = false;
-        if (specimenId && cytoSpecimen?.cytologyScreening?.postSignOutPeerReviewFlag) {
-          const reviewsRes = await mockCytologyReviewRecordService.getBySpecimenId(specimenId);
-          const reviews = reviewsRes.ok ? reviewsRes.data : [];
-          isPostSignOutPeerReviewPending = resolveCytologyPostSignOutPeerReviewPoolMembership(cytoSpecimen.cytologyScreening.postSignOutPeerReviewFlag, reviews);
-        }
-        const isHistologyCorrelationPending = resolveCytologyHistologyCorrelationPoolMembership(cytoSpecimen?.cytologyScreening?.histologyCorrelationCandidates);
-        const isCellBlockAncillaryPending = resolveCytologyDecantPendingMembership(cytoSpecimen?.decants);
-        const isRoseActive = resolveCytologyRoseActiveMembership(cytoSpecimen?.roseEvaluations);
-        return { caseData: c, specimenId, isGynCytology, organSite, isQcPending, isRetrospectiveReviewPending, isPostSignOutPeerReviewPending, isHistologyCorrelationPending, isCellBlockAncillaryPending, isRoseActive, isCsmsQaPending: ((c as any).caseFlags ?? []).some((f: any) => f.flagDefinitionId === 'f36' && !f.deletedAt), aiScreeningResult: aiResultByCaseId.get(c.id) };
-      }));
-
-      setRows(withQcStatus);
+      const data = await loadCytologyWorklist(user.id);
+      setRows(data.rows);
+      setQcRows(data.qcRows);
+      setTriageRows(data.triageRows);
+      setScansCompletedRows(data.scansCompletedRows);
+      setRecallRows(data.recallRows);
+      setRecallJurisdictions(data.recallJurisdictionByCase ?? {});
+      if (data.recallWindows) setRecallWindows(data.recallWindows);
+      setRecallWording(data.recallWording ?? {});
     } finally {
       setLoading(false);
     }
@@ -325,20 +186,12 @@ const CytologyWorklistPage: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  const domainRows = rows
-    .filter(r => r.isGynCytology === (domain === 'gyn'))
-    .filter(r => domain === 'gyn' || !organSiteFilter || r.organSite === organSiteFilter);
-  const assigned = domainRows.filter(r => r.caseData.order?.assignedTo === user?.id && !r.isQcPending && !r.isCsmsQaPending && !r.isRetrospectiveReviewPending && !r.isPostSignOutPeerReviewPending && !r.isHistologyCorrelationPending);
-  const pool     = domainRows.filter(r => r.caseData.status === 'pool' && !r.isQcPending && !r.isCsmsQaPending && !r.isRetrospectiveReviewPending && !r.isPostSignOutPeerReviewPending && !r.isHistologyCorrelationPending);
-  const qc       = domainRows.filter(r => r.isQcPending);
-  const cellBlockAncillaryPending = domainRows.filter(r => r.isCellBlockAncillaryPending);
-  const roseActive = domainRows.filter(r => r.isRoseActive);
-  const csmsQa   = rows.filter(r => r.isCsmsQaPending);
-  const retrospectiveLookback = rows.filter(r => r.isRetrospectiveReviewPending);
-  const postSignOutPeerReview = rows.filter(r => r.isPostSignOutPeerReviewPending);
-  const histologyCorrelation = rows.filter(r => r.isHistologyCorrelationPending);
-  const visible  = activeTab === 'assigned' ? assigned : activeTab === 'pool' ? pool : activeTab === 'qc' ? qc : activeTab === 'csms_qa' ? csmsQa : activeTab === 'retrospective_lookback' ? retrospectiveLookback : activeTab === 'post_signout_peer_review' ? postSignOutPeerReview : activeTab === 'histology_correlation' ? histologyCorrelation : activeTab === 'cell_block_ancillary_pending' ? cellBlockAncillaryPending : activeTab === 'rose_active' ? roseActive : csmsQa;
-  const counts: Record<Tab, number> = { assigned: assigned.length, pool: pool.length, qc: qc.length, hpv_triage: triageRows.length, recall_needed: recallRows.length, csms_qa: csmsQa.length, retrospective_lookback: retrospectiveLookback.length, post_signout_peer_review: postSignOutPeerReview.length, histology_correlation: histologyCorrelation.length, scans_completed: scansCompletedRows.length, cell_block_ancillary_pending: cellBlockAncillaryPending.length, rose_active: roseActive.length };
+  // Batch 441: what each tab lists, and the counts (services/cytology/cytologyWorklist.ts).
+  const { lists, counts } = cytologyWorklistView(
+    { rows, qcRows, triageCount: triageRows.length, recallCount: recallRows.length, scansCompletedCount: scansCompletedRows.length },
+    domain, organSiteFilter, user?.id,
+  );
+  const visible = (lists as Record<string, typeof rows>)[activeTab] ?? lists.csms_qa;
 
   // Real, per direct correction: "for the molecular platform they
   // would be sending results through your engine which would
@@ -351,21 +204,7 @@ const CytologyWorklistPage: React.FC = () => {
   // The button exists because no real, external molecular platform is
   // actually connected in this environment — it simulates the
   // delivery, not the result itself.
-  const handleRecordHpvResult = async (c: Case, result: 'Positive' | 'Negative') => {
-    const cytoSpecimen = (c.specimens as any[])?.find(sp => sp.specimenDictionaryEntryId);
-    if (!cytoSpecimen) return;
-    await processInboundHpvResultEvent({
-      messageId: crypto.randomUUID(),
-      timestamp: new Date().toISOString(),
-      organisationId: (c as any).originEnterpriseId ?? 'unknown',
-      internalCaseId: c.id,
-      accessionNumber: c.accession?.fullAccession ?? c.id,
-      specimenLetter: cytoSpecimen.label,
-      hrHpvResult: result,
-      abnormalFlag: result === 'Positive' ? 'A' : 'N',
-    });
-    await load();
-  };
+  const manualHpv = useManualHpvResult(user, load);
 
   const handleClaim = async (caseId: string) => {
     if (!user?.id) return;
@@ -373,7 +212,9 @@ const CytologyWorklistPage: React.FC = () => {
     try {
       const claim = await claimPoolCase(caseId, user.id);
       if (claim.success) {
-        await acceptPoolCase(caseId, user.id, user.name);
+        // PS-71 (Batch 458): if someone else accepted it first, say so (the claim isn't theirs to keep).
+        try { await acceptPoolCase(caseId, user.id, user.name); }
+        catch (e) { toast.warning(isPoolActionNotPermitted(e) ? e.message : t('poolClaimModal.takenMessage')); }
         await load();
       }
     } finally {
@@ -387,7 +228,8 @@ const CytologyWorklistPage: React.FC = () => {
     try {
       const claim = await claimPoolCase(caseId, user.id);
       if (claim.success) {
-        await passPoolCase(caseId);
+        try { await passPoolCase(caseId); }
+        catch (e) { await releasePoolClaim(caseId); if (isPoolActionNotPermitted(e)) toast.warning(e.message); else throw e; }
         await load();
       }
     } finally {
@@ -398,9 +240,9 @@ const CytologyWorklistPage: React.FC = () => {
   return (
     <>
         <main className="ps-cytoworklist-main">
-          <h1 className="ps-cytoworklist-title">Cytology Worklist</h1>
+          <h1 className="ps-cytoworklist-title">{t('cytologyWorklist.title')}</h1>
           <p className="ps-cytoworklist-subtitle">
-            Your assigned GYN cytology cases, the shared pool, and cases flagged for mandatory QC.
+            {t('cytologyWorklist.subtitle')}
           </p>
 
           {/* Real, per direct guidance's own confirmed domain switcher —
@@ -420,7 +262,7 @@ const CytologyWorklistPage: React.FC = () => {
               Non-GYN cases right now, never a fixed, always-shown
               list that could include a site with zero real cases. */}
           {domain === 'non_gyn' && (() => {
-            const availableSites = Array.from(new Set(rows.filter(r => !r.isGynCytology && r.organSite).map(r => r.organSite as string)));
+            const availableSites = availableOrganSites(rows);
             if (availableSites.length === 0) return null;
             return (
               <div className="ps-cytoworklist-organsite-row">
@@ -438,16 +280,27 @@ const CytologyWorklistPage: React.FC = () => {
             );
           })()}
 
+          {showCytologyWorkloadCounter(workloadSummary) && <CytologyWorkloadCounter summary={workloadSummary} />}
+          {/* Batch 574: yesterday first, while it still needs signing off (a night shift's first part). */}
+          {screeningHours.yesterday && (
+            <ScreeningHoursPanel which="yesterday" day={screeningHours.yesterday} saving={screeningHours.saving}
+              onSignOff={(h, r, n) => screeningHours.signOff(screeningHours.yesterday!.date, h, r, n)} />
+          )}
+          {screeningHours.today && showScreeningHoursPanel(screeningHours.today) && (
+            <ScreeningHoursPanel day={screeningHours.today} saving={screeningHours.saving}
+              onSignOff={(h, r, n) => screeningHours.signOff(screeningHours.today!.date, h, r, n)} />
+          )}
+
           {/* Real, three-tile row — matches the existing WorklistPage.tsx's own real stat-tile pattern */}
           <div className="ps-cytoworklist-tiles">
             {(domain === 'gyn' ? GYN_TILES : NON_GYN_TILES).map(tile => {
               const active = activeTab === tile.key;
               return (
-                <button key={tile.key} onClick={() => setActiveTab(tile.key)}
+                <button key={tile.key} type="button" onClick={() => setActiveTab(tile.key)} aria-pressed={active}
                   className={`ps-cytoworklist-tile ${active ? 'ps-cytoworklist-tile--active' : 'ps-cytoworklist-tile--inactive'}`}
                   style={{ '--ps-hue': tile.color } as React.CSSProperties}>
                   <div className="ps-cytoworklist-tile-count">{counts[tile.key]}</div>
-                  <div className="ps-cytoworklist-tile-label">{tile.label}</div>
+                  <div className="ps-cytoworklist-tile-label">{t(`cytologyWorklist.tiles.${tile.label}`)}</div>
                 </button>
               );
             })}
@@ -469,30 +322,48 @@ const CytologyWorklistPage: React.FC = () => {
                     className={`ps-cytoworklist-qa-tile ${active ? 'ps-cytoworklist-qa-tile--active' : 'ps-cytoworklist-qa-tile--inactive'}`}
                     style={{ '--ps-hue': tile.color } as React.CSSProperties}>
                     <div className="ps-cytoworklist-qa-tile-count">{counts[tile.key]}</div>
-                    <div className="ps-cytoworklist-qa-tile-label">{tile.label}</div>
+                    <div className="ps-cytoworklist-qa-tile-label">{t(`cytologyWorklist.tiles.${tile.label}`)}</div>
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {loading && <div className="ps-cytoworklist-empty">Loading…</div>}
+          {loading && <LoadingState variant="inline" className="ps-cytoworklist-empty" label={t('cytologyWorklist.loading')} />}
 
           {!loading && activeTab === 'hpv_triage' && (
             triageRows.length === 0 ? (
-              <div className="ps-cytoworklist-empty">No cases currently awaiting a primary hrHPV result.</div>
+              <div className="ps-cytoworklist-empty">{t('cytologyWorklist.empty.hpvTriage')}</div>
             ) : (
               <div className="ps-cytoworklist-list">
                 {triageRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === triageRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
                     </div>
-                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">Awaiting hrHPV Result</span>
+                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t(`cytologyWorklist.badges.${hpvTriageRowStatus(c.specimens)}`)}</span>
                     <div className="ps-cytoworklist-row-actions">
-                      <button onClick={() => handleRecordHpvResult(c, 'Negative')} className="ps-cytoworklist-action-btn">Record Negative</button>
-                      <button onClick={() => handleRecordHpvResult(c, 'Positive')} className="ps-cytoworklist-action-btn--violet">Record Positive</button>
+                      {hpvSpecimenOf(c)?.cytologyScreening?.hpvPendingOverride ? (() => {
+                        const pending = hpvSpecimenOf(c)!.cytologyScreening!.hpvPendingOverride!;
+                        return (
+                          <div className="ps-manualhpv-pending">
+                            <span className="ps-cytoworklist-badge ps-cytoworklist-badge--violet">{t('cytologyWorklist.badges.hpvOverridePending')}</span>
+                            <span>{t('cytologyWorklist.manualHpv.pendingDetail', {
+                              result: t(`cytologyWorklist.manualHpv.result${pending.result}`), name: pending.enteredByName,
+                              source: t(`cytologyWorklist.manualHpv.sources.${pending.source}`),
+                              previous: t(`cytologyWorklist.manualHpv.result${pending.previousResult}`, { defaultValue: t('cytologyWorklist.manualHpv.resultNone') }),
+                            })}</span>
+                            <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => { void manualHpv.decide(c, 'approved'); }} className="ps-cytoworklist-action-btn--violet">{t('cytologyWorklist.actions.approveOverride')}</CapabilityButton>
+                            <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => { void manualHpv.decide(c, 'rejected'); }} className="ps-cytoworklist-action-btn">{t('cytologyWorklist.actions.rejectOverride')}</CapabilityButton>
+                          </div>
+                        );
+                      })() : (
+                        <>
+                          <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => manualHpv.choose(c, 'Negative')} className="ps-cytoworklist-action-btn">{t('cytologyWorklist.actions.recordHpvNegative')}</CapabilityButton>
+                          <CapabilityButton capability="cytology:hpv-result:record-manual" onClick={() => manualHpv.choose(c, 'Positive')} className="ps-cytoworklist-action-btn--violet">{t('cytologyWorklist.actions.recordHpvPositive')}</CapabilityButton>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -507,17 +378,18 @@ const CytologyWorklistPage: React.FC = () => {
               vanishing from every real cytology tile. */}
           {!loading && activeTab === 'recall_needed' && (
             recallRows.length === 0 ? (
-              <div className="ps-cytoworklist-empty">No cases currently need a recall for clinician-collected LBC.</div>
+              <div className="ps-cytoworklist-empty">{t('cytologyWorklist.empty.recallNeeded')}</div>
             ) : (
               <div className="ps-cytoworklist-list">
                 {recallRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ${i === recallRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
+                      {(() => { const j = recallJurisdictions[c.id] ?? systemConfig.jurisdiction; const recall = selfCollectedRecallOfSpecimens(c.specimens, j, isRecallJurisdiction(j) ? recallWindows[j] : DEFAULT_RECALL_WINDOWS); return recall ? <SelfCollectedRecallDetail recall={recall} wording={recallWording} /> : null; })()}
                     </div>
                     <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red-strong">
-                      Positive (Self-Collected) — Recall for Clinician-Collected LBC
+                      {t(recallKindOfSpecimens(c.specimens) === 'repeat_collection' ? 'cytologyWorklist.badges.repeatCollection' : 'cytologyWorklist.badges.recallNeeded')}
                     </span>
                   </div>
                 ))}
@@ -527,17 +399,17 @@ const CytologyWorklistPage: React.FC = () => {
 
           {!loading && activeTab === 'scans_completed' && (
             scansCompletedRows.length === 0 ? (
-              <div className="ps-cytoworklist-empty">No cases currently have a completed WSI scan awaiting screening.</div>
+              <div className="ps-cytoworklist-empty">{t('cytologyWorklist.empty.scansCompleted')}</div>
             ) : (
               <div className="ps-cytoworklist-list">
                 {scansCompletedRows.map((c, i) => (
                   <div key={c.id} className={`ps-cytoworklist-row ps-cytoworklist-row--clickable ${i === scansCompletedRows.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}
-                    onClick={() => navigate(`/cytology-worklist/${c.id}`)}>
+                    {...pressable(() => void openCasePage(c.id, 'cytology'))}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">{t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}</div>
+                      <div className="ps-cytoworklist-row-title" data-phi="accession">{cytologyCaseIdentity(c).accession}</div>
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={cytologyCaseIdentity(c)} />
                     </div>
-                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--green">Scan Complete — Ready to Screen</span>
+                    <span className="ps-cytoworklist-badge ps-cytoworklist-badge--green">{t('cytologyWorklist.badges.scanComplete')}</span>
                   </div>
                 ))}
               </div>
@@ -546,15 +418,7 @@ const CytologyWorklistPage: React.FC = () => {
 
           {!loading && activeTab !== 'hpv_triage' && activeTab !== 'recall_needed' && activeTab !== 'scans_completed' && visible.length === 0 && (
             <div className="ps-cytoworklist-empty">
-              {activeTab === 'assigned' && 'No cases currently assigned to you.'}
-              {activeTab === 'pool' && 'No cases in the pool right now.'}
-              {activeTab === 'qc' && 'No cases currently flagged for QC.'}
-              {activeTab === 'csms_qa' && 'No cases currently need CSMS eligibility verification.'}
-              {activeTab === 'retrospective_lookback' && 'No specimens currently need 5-year retrospective review.'}
-              {activeTab === 'post_signout_peer_review' && 'No cases currently need post-sign-out peer review.'}
-              {activeTab === 'histology_correlation' && 'No specimens currently have a candidate histology correlation pending.'}
-              {activeTab === 'cell_block_ancillary_pending' && 'No specimens currently have a pending cell block or ancillary test.'}
-              {activeTab === 'rose_active' && 'No specimens have a recent ROSE evaluation on record.'}
+              {t(`cytologyWorklist.empty.${EMPTY_KEY[activeTab]}`)}
             </div>
           )}
 
@@ -562,62 +426,88 @@ const CytologyWorklistPage: React.FC = () => {
             <div className="ps-cytoworklist-list">
               {visible.map((row, i) => {
                 const c = row.caseData;
-                const hasFinalDiagnosis = c.specimens?.some((sp: any) => sp.cytologyScreening?.finalDiagnosis);
+                const hasFinalDiagnosis = row.hasFinalDiagnosis;
+                // Batch 760 (Cytology spec §2.1): the row names the case by accession, vial type and slides, never the patient.
+                const identity = cytologyCaseIdentity(c);
+                const title = identity.accession;
                 return (
                   <div key={c.id}
-                    onClick={() => activeTab !== 'pool' && navigate(`/cytology-worklist/${c.id}`)}
+                    // Batch 565: a pool row isn't clickable. Batch 566: these rows hold buttons of their own (flags,
+                    // ask a colleague, claim), so the row is a mouse shortcut only and its title is the button that
+                    // opens the case (axe nested-interactive).
+                    {...clickableContainer(activeTab !== 'pool' ? () => void openCasePage(c.id, 'cytology') : undefined)}
                     className={`ps-cytoworklist-row ${activeTab !== 'pool' ? 'ps-cytoworklist-row--clickable' : 'ps-cytoworklist-row--static'} ${i === visible.length - 1 ? 'ps-cytoworklist-row--last' : ''}`}>
                     <div className="ps-cytoworklist-row-main">
-                      <div className="ps-cytoworklist-row-title" data-phi="name">{formatFullDisplayName(c.patient as any) || c.patient?.mrn || t('cytologyWorklist.unknownPatient')}</div>
-                      <div className="ps-cytoworklist-row-subtitle" data-phi="true">
-                        {t('cytologyWorklist.rowSubtitle', { caseId: c.id, mrn: c.patient?.mrn ?? '—' })}
-                      </div>
+                      {activeTab !== 'pool' ? (
+                        <button type="button" className="ps-cytoworklist-row-title ps-cytoworklist-row-open" data-phi="accession"
+                          onClick={e => { e.stopPropagation(); void openCasePage(c.id, 'cytology'); }}>
+                          {title}
+                        </button>
+                      ) : (
+                        <div className="ps-cytoworklist-row-title" data-phi="accession">{title}</div>
+                      )}
+                      <CytologyIdentityLine className="ps-cytoworklist-row-subtitle" identity={identity} />
                     </div>
                     {activeTab === 'qc' && (
                       <span className="ps-cytoworklist-badge ps-cytoworklist-badge--red">
-                        {(c.specimens as any[])?.find(sp => sp.id === row.specimenId)?.cytologyScreening?.qcFlag?.reason === 'targeted_high_risk' ? 'High-Risk QC' : 'Random QC'}
+                        {row.qcReason === 'targeted_high_risk' ? t('cytologyWorklist.badges.qcHighRisk') : t('cytologyWorklist.badges.qcRandom')}
                       </span>
+                    )}
+                    {activeTab === 'qc' && row.ownPrimaryScreen && (
+                      <>
+                        <span className="ps-cytoworklist-badge ps-cytoworklist-badge--amber">
+                          {t('cytologyWorklist.badges.ownPrimaryScreen')}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openComposeTo('', t('cytologyWorklist.askColleagueSubject', { caseId: c.id })); }}
+                          className="ps-cytoworklist-badge ps-cytoworklist-badge--gray-action"
+                          title={t('cytologyWorklist.actions.askColleagueTitle')}
+                        >
+                          {t('cytologyWorklist.actions.askColleague')}
+                        </button>
+                      </>
                     )}
                     {activeTab === 'csms_qa' && (
                       <>
                         <span className="ps-cytoworklist-badge ps-cytoworklist-badge--sky">
-                          CSMS Eligibility Verification Needed
+                          {t('cytologyWorklist.badges.csmsVerification')}
                         </span>
+                        <CsmsEligibilityActions caseId={c.id} user={user} onDone={load} />
                         <button
-                          onClick={() => openFlagManager(c)}
+                          onClick={e => { e.stopPropagation(); openFlagManager(c); }}
                           className="ps-cytoworklist-badge ps-cytoworklist-badge--gray-action"
                         >
-                          Manage Flags
+                          {t('cytologyWorklist.actions.manageFlags')}
                         </button>
                       </>
                     )}
                     {row.aiScreeningResult?.slideTriage && (
                       <span
                         className={`ps-cytoworklist-badge ${row.aiScreeningResult.slideTriage.reviewRecommended ? 'ps-cytoworklist-badge--amber' : 'ps-cytoworklist-badge--green'}`}
-                        title="AI slide-level triage, per RFP-APLIS-2026-GLOBAL Story 10">
-                        {row.aiScreeningResult.slideTriage.reviewRecommended ? '🤖 AI: Review' : '🤖 AI: No Further Review'}
+                        title={t('cytologyWorklist.badges.aiTriageTitle')}>
                         {row.aiScreeningResult.slideTriage.rankGroup != null && row.aiScreeningResult.slideTriage.totalRankGroups != null
-                          ? ` (${row.aiScreeningResult.slideTriage.rankGroup}/${row.aiScreeningResult.slideTriage.totalRankGroups})` : ''}
+                          ? t(row.aiScreeningResult.slideTriage.reviewRecommended ? 'cytologyWorklist.badges.aiReviewRanked' : 'cytologyWorklist.badges.aiNoReviewRanked', { rank: row.aiScreeningResult.slideTriage.rankGroup, total: row.aiScreeningResult.slideTriage.totalRankGroups })
+                          : t(row.aiScreeningResult.slideTriage.reviewRecommended ? 'cytologyWorklist.badges.aiReview' : 'cytologyWorklist.badges.aiNoReview')}
                       </span>
                     )}
                     {!row.aiScreeningResult?.slideTriage && (row.aiScreeningResult?.findings?.length ?? 0) > 0 && (
                       <span className="ps-cytoworklist-badge ps-cytoworklist-badge--cyan"
-                        title="AI-flagged fields of view, per RFP-APLIS-2026-GLOBAL Story 10">
-                        🤖 {row.aiScreeningResult!.findings.length} AI-Flagged FOV{row.aiScreeningResult!.findings.length === 1 ? '' : 's'}
+                        title={t('cytologyWorklist.badges.aiFovTitle')}>
+                        {t('cytologyWorklist.badges.aiFov', { count: row.aiScreeningResult!.findings.length })}
                       </span>
                     )}
                     <span className={`ps-cytoworklist-badge ${hasFinalDiagnosis ? 'ps-cytoworklist-badge--green' : 'ps-cytoworklist-badge--amber'}`}>
-                      {hasFinalDiagnosis ? 'Final Diagnosis Recorded' : 'Awaiting Review'}
+                      {hasFinalDiagnosis ? t('cytologyWorklist.badges.finalDiagnosis') : t('cytologyWorklist.badges.awaitingReview')}
                     </span>
                     {activeTab === 'pool' && (
                       <div className="ps-cytoworklist-row-actions">
-                        <button onClick={(e) => { e.stopPropagation(); handlePass(c.id); }} disabled={claimingId === c.id}
+                        <button onClick={(e) => { e.stopPropagation(); handlePass(c.id); }} disabled={claimingId === c.id || !capabilities.has('case:pool:pass', { caseId: c.id })}
                           className="ps-cytoworklist-action-btn">
-                          Pass
+                          {t('cytologyWorklist.actions.pass')}
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); handleClaim(c.id); }} disabled={claimingId === c.id}
+                        <button onClick={(e) => { e.stopPropagation(); handleClaim(c.id); }} disabled={claimingId === c.id || !capabilities.has('case:pool:claim', { caseId: c.id })}
                           className="ps-cytoworklist-action-btn--claim">
-                          {claimingId === c.id ? 'Claiming…' : 'Claim'}
+                          {claimingId === c.id ? t('cytologyWorklist.actions.claiming') : t('cytologyWorklist.actions.claim')}
                         </button>
                       </div>
                     )}
@@ -638,6 +528,8 @@ const CytologyWorklistPage: React.FC = () => {
           onClose={() => { setShowFlagManager(false); load(); }}
         />
       )}
+      <ManualHpvResultModal show={!!manualHpv.pick} result={manualHpv.pick?.result ?? 'Positive'} replacing={manualHpv.replacing}
+        onConfirm={source => { void manualHpv.confirm(source); }} onCancel={manualHpv.cancel} />
     </>
   );
 };

@@ -1,7 +1,15 @@
 // src/services/referral/mockReferralTrackingService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { nextManualTransitStatuses } from './referralTransitRules';
+
+// Batch 432: setting the status by hand needs referral:transit-status:update.
+let allowed = true;
+vi.mock('../authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed }) },
+}));
 
 beforeEach(() => {
+  allowed = true;
   const store: Record<string, string> = {};
   (globalThis as any).localStorage = {
     getItem: (k: string) => store[k] ?? null,
@@ -49,5 +57,23 @@ describe('mockReferralTrackingService — real transit status + inbound result t
     const { mockReferralTrackingService } = await import('./mockReferralTrackingService');
     const result = await mockReferralTrackingService.updateTransitStatus('does-not-exist', 'in_transit');
     expect(result.ok).toBe(false);
+  });
+
+  it('Batch 432: by hand, forward only, never "result received", and needs the permission', async () => {
+    const { mockReferralTrackingService: svc } = await import('./mockReferralTrackingService');
+    await svc.createOnDispatch('batch-005');
+    allowed = false;
+    expect(await svc.updateTransitStatus('batch-005', 'in_transit')).toMatchObject({ ok: false, error: 'NOT_PERMITTED' });
+    allowed = true;
+    expect(await svc.updateTransitStatus('batch-005', 'result_received')).toMatchObject({ ok: false, error: 'RESULT_ONLY_BY_RESULT' });
+    expect((await svc.updateTransitStatus('batch-005', 'delivered')).ok).toBe(true);
+    expect(await svc.updateTransitStatus('batch-005', 'in_transit')).toMatchObject({ ok: false, error: 'TRANSIT_BACKWARDS' });
+  });
+
+  it('Batch 432: the choices offered from each status', () => {
+    expect(nextManualTransitStatuses('dispatched')).toEqual(['in_transit', 'delivered']);
+    expect(nextManualTransitStatuses('in_transit')).toEqual(['delivered']);
+    expect(nextManualTransitStatuses('delivered')).toEqual([]);
+    expect(nextManualTransitStatuses('result_received')).toEqual([]);
   });
 });

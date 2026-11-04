@@ -1,0 +1,2315 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Niveau 5 : Comptes rendus, formulaires synoptiques et configuration du planificateur · Guide de l&#x27;administrateur PathScribe (édition interne ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="fr" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Guide de l&#x27;administrateur</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Rechercher des écrans, des champs, des codes d&#x27;erreur" aria-label="Rechercher dans le guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Langue"><option value="en">English</option><option value="fr" selected>Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Imprimer / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Chapitres du guide"><a href="index.html">Sommaire</a><a href="setup-sequence.html">Ordre de configuration</a><a href="01-system-overview.html">1. Vue d&#x27;ensemble et architecture du système</a><a href="02-tier1-primary-prerequisites.html">2. Niveau 1 : Prérequis du système principal (à configurer en premier)</a><a href="03-tier2-master-dictionaries.html">3. Niveau 2 : Répertoires de référence et données cliniques de base (à configurer en deuxième)</a><a href="04-tier3-workflow-engines.html">4. Niveau 3 : Moteurs de flux de travail et configuration opérationnelle (à configurer en troisième)</a><a href="05-tier4-ai-framework.html">5. Niveau 4 : Le cadre d&#x27;IA intégré de PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html" aria-current=page>6. Niveau 5 : Comptes rendus, formulaires synoptiques et configuration du planificateur</a><a href="07-tier6-interface-engine.html">7. Niveau 6 : moteur d&#x27;interface et intégrations de systèmes externes</a><a href="08-tier7-billing-registry.html">8. Niveau 7 : facturation, gestion du cycle de revenus et déclaration aux registres</a><a href="09-appendices.html">9. Annexes : Dépannage et vérification du journal d&#x27;audit</a><a href="99-glossary.html">99. Annexe : Glossaire des termes et abréviations</a></nav><main id="main"><aside class="pagetoc" aria-label="Sur cette page"><b>Sur cette page</b><ul><li class="l2"><a href="#ch6-report-templates">Éditeur de modèles de compte rendu et configuration de l&#x27;identité visuelle</a></li><li class="l3"><a href="#screen-tab-templates">Onglet Modèles de rapport</a></li><li class="l3"><a href="#screen-templates-parts">Bibliothèque de parties</a></li><li class="l3"><a href="#screen-templates-templates">Modèles de rapport</a></li><li class="l3"><a href="#screen-templates-routing">Règles de routage</a></li><li class="l3"><a href="#screen-fonts">Polices approuvées</a></li><li class="l3"><a href="#screen-document_style">Style du document</a></li><li class="l3"><a href="#screen-template_governance">Revue des modèles</a></li><li class="l2"><a href="#ch6-synoptic">Configuration du module de compte rendu synoptique du CAP</a></li><li class="l3"><a href="#screen-tab-protocols">Onglet Bibliothèque synoptique</a></li><li class="l3"><a href="#screen-protocols-review">File de révision</a></li><li class="l3"><a href="#screen-protocols-active">Protocoles actifs</a></li><li class="l3"><a href="#screen-protocols-all">Tous les protocoles</a></li><li class="l2"><a href="#ch6-scheduled-delivery">Moteur de comptes rendus planifiés et règles de diffusion automatique</a></li><li class="l3"><a href="#screen-delivery_rules">Règles de configuration de la diffusion</a></li><li class="l3"><a href="#screen-delivery_schedules">Horaires d&#x27;envoi</a></li><li class="l3"><a href="#screen-print_routing_rules">Règles de routage des destinations d&#x27;impression</a></li><li class="l3"><a href="#screen-my-exports">Mes exportations</a></li><li class="l2"><a href="#ch6-batch-jobs">Configuration de l&#x27;impression par lots et du planificateur de tâches nocturnes</a></li></ul></aside><article><h1 id="ch6"><a class="anchor" href="#ch6" aria-label="Link to this section">#</a> Niveau 5 : Comptes rendus, formulaires synoptiques et configuration du planificateur</h1>
+<p>Ce chapitre décrit l'aspect d'un compte rendu validé, les formulaires structurés (synoptiques) que remplissent les pathologistes, ainsi que la manière dont un compte rendu validé est envoyé, imprimé et planifié. Il documente 15 écrans répartis en quatre parties. Trois éléments du plan ne sont pas réalisés, et chacun est signalé à l'endroit où il apparaît : un canal de diffusion par portail patient, le chargement automatisé des versions de protocoles du <a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a>, et un planificateur de tâches nocturnes qu'un administrateur pourrait configurer. Les fonctions existantes les plus proches sont citées dans chaque section.</p>
+<p><strong>Ordre de configuration de ce niveau.</strong> Faites d'abord les niveaux 1 à 4 (en particulier les établissements, les médecins, les rôles et les agents de site). Parcourez ensuite ce niveau dans l'ordre suivant. L'encadré « Ordre de configuration » de chaque écran rappelle sa place dans la liste.</p>
+<ol>
+<li><a href="#screen-fonts">Polices approuvées</a> : choisissez les polices que proposent les éditeurs de comptes rendus.</li>
+<li><a href="#screen-document_style">Style du document</a> : définissez le style de texte par défaut des comptes rendus du laboratoire, le format de page et les marges.</li>
+<li><a href="#screen-template_governance">Revue des modèles</a> : décidez qui peut approuver et publier les modèles synoptiques.</li>
+<li><a href="#screen-templates-parts">Bibliothèque de parties</a> : construisez ou copiez les en-têtes, corps et pieds de page réutilisables.</li>
+<li><a href="#screen-templates-templates">Modèles de rapport</a> : assemblez les parties en modèles de compte rendu et publiez-les.</li>
+<li><a href="#screen-templates-routing">Règles de routage</a> : choisissez le modèle utilisé par un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> selon l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>, le médecin ou le <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a>.</li>
+<li><a href="#screen-protocols-review">File de révision</a> : faites passer les protocoles synoptiques par les étapes de brouillon, de relecture et d'approbation.</li>
+<li><a href="#screen-protocols-active">Protocoles actifs</a> : vérifiez et maintenez les protocoles synoptiques publiés.</li>
+<li><a href="#screen-print_routing_rules">Règles de routage des destinations d'impression</a> : décidez vers quelle imprimante part un compte rendu validé.</li>
+<li><a href="#screen-delivery_rules">Règles de configuration de la diffusion</a> : décidez comment chaque compte rendu validé est envoyé (message de résultat, impression, e-fax, dépôt de fichier).</li>
+<li><a href="#screen-delivery_schedules">Horaires d'envoi</a> : décidez quand les envois partent.</li>
+</ol>
+<p>Écrans qui ne font pas partie de la configuration et n'ont donc pas de numéro d'étape : les deux pages à onglets (<a href="#screen-tab-templates">onglet Modèles de rapport</a> et <a href="#screen-tab-protocols">onglet Bibliothèque synoptique</a>), <a href="#screen-protocols-all">Tous les protocoles</a> et <a href="#screen-my-exports">Mes exportations</a>.</p>
+<p><strong>Les canaux de diffusion en un coup d'œil.</strong> Chacun est décrit à nouveau, avec ses limites, dans la <a href="#ch6-scheduled-delivery">Partie 3</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Canal</th>
+<th>Statut</th>
+<th>Ce qui existe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File d'impression</td>
+<td>Réalisé</td>
+<td>Les règles de diffusion envoient un travail d'impression ; les règles de routage d'impression choisissent l'imprimante ; l'écran File d'impression gère les travaux.</td>
+</tr>
+<tr>
+<td>Message de résultat vers le moteur d'interfaces (électronique)</td>
+<td>Réalisé</td>
+<td>Le canal par défaut.</td>
+</tr>
+<tr>
+<td>E-fax</td>
+<td>Réalisé</td>
+<td>Envoyé au serveur d'interfaces, qui transmet le <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, la forme sous laquelle un compte rendu signé est conservé et imprimé.">PDF</a> à une passerelle de messagerie vers fax.</td>
+</tr>
+<tr>
+<td>Dépôt de fichier</td>
+<td>Réalisé</td>
+<td>Envoyé au serveur d'interfaces, qui écrit le fichier dans un dossier ou sur une cible <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a> configurés sur ce serveur.</td>
+</tr>
+<tr>
+<td>Messagerie sécurisée</td>
+<td>Démonstration</td>
+<td>Une personne envoie depuis une fenêtre un message lié à un dossier ; le courrier va dans la <a href="07-tier6-interface-engine.html#screen-simulated_mail">Boîte d’envoi simulée</a>. Ce n'est pas un canal des règles de diffusion.</td>
+</tr>
+<tr>
+<td>Portail patient ou prescripteur</td>
+<td>Non réalisé</td>
+<td>Aucun canal de portail n'existe.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Où se trouvent les outils de traitement par lots et de tâches nocturnes.</strong> L'impression par lots et le planificateur de tâches nocturnes ne forment pas un seul écran. La <a href="#ch6-batch-jobs">Partie 4</a> liste les écrans qui existent et indique où chacun est documenté.</p>
+<h2 id="ch6-report-templates"><a class="anchor" href="#ch6-report-templates" aria-label="Link to this section">#</a> Éditeur de modèles de compte rendu et configuration de l'identité visuelle</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span></nav>
+
+<p>Un compte rendu est construit à partir de trois types de <strong>parties</strong> (en-tête, corps, pied de page). Un <strong>modèle</strong> place des parties dans cinq emplacements (en-tête de la page 1, en-tête des pages 2 et suivantes, corps, pied de page des pages 2 et suivantes, pied de page de la page 1). Les <strong>règles de routage</strong> décident du modèle que reçoit un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>. Les polices par défaut du laboratoire, le format de page et les marges se trouvent en dessous de l'ensemble.</p>
+<p><strong>Comment un modèle est choisi pour un dossier.</strong> Le routeur essaie les étapes suivantes dans l'ordre et s'arrête à la première qui correspond : d'abord un contrôle pour les comptes rendus préliminaires ; puis une dérogation d'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> (Passe 0) ; puis, pour un établissement affilié sans règle propre, la dérogation de son <a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> parente (Passe 0a) ; puis une préférence de médecin (Passe 0b) ; puis une correspondance de <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a>, où les règles définies par l'administrateur sont vérifiées avant la table intégrée (Passe 1) ; puis le modèle de repli par <a class="term" href="99-glossary.html#g-subspecialty" title="Un domaine de la pathologie, tel que le sein ou le tube digestif, utilisé pour orienter les dossiers. Une sous-spécialité peut être basculée en mode partagé.">sous-spécialité</a> (Passe 2) ; puis le modèle de repli de référence (Passe 3). Pour un même type de règle, une règle propre à un <a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a> l'emporte sur une règle Globale pour le même établissement ou le même médecin.</p>
+<p><strong>Couches de style de texte.</strong> Le style de texte d'un compte rendu provient de trois couches ; la plus spécifique l'emporte : le style par défaut du laboratoire (Style du document) est remplacé par le panneau Style propre au modèle, lui-même remplacé par la mise en forme du libellé d'un composant dans l'inspecteur.</p>
+<p><strong>Identité visuelle.</strong> L'en-tête du compte rendu reprend son logo, le nom du directeur de laboratoire et le numéro d'accréditation du <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a>, à défaut de l'établissement, puis de l'entreprise. Ces champs se définissent dans d'autres écrans ; ce chapitre ne les répète pas :
+- Identité visuelle du service : <a href="03-tier2-master-dictionaries.html#screen-departments">Dictionnaire des services</a> (Nom du directeur de laboratoire, numéro d'accréditation, URL du logo d'en-tête).
+- Identité visuelle de l'établissement et options de compte rendu : <a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l'établissement</a> et <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a>.</p>
+<p>PathScribe ne conserve que l'adresse d'une image de logo hébergée, jamais l'image. Une partie d'en-tête dont l'option <strong>Afficher le logo de l'établissement</strong> est activée l'utilise.</p>
+<h3 id="screen-tab-templates"><a class="anchor" href="#screen-tab-templates" aria-label="Link to this section">#</a> Onglet Modèles de rapport</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Modèles de rapport</strong>
+<strong>2. Élément de maintenance :</strong> L'onglet lui-même, avec les sous-onglets <strong>Modèles de rapport</strong>, <strong>Bibliothèque de parties</strong> et <strong>Règles de routage</strong>.</p>
+<p><strong>3. Objectif métier et périmètre.</strong> L'onglet regroupe les trois écrans qui définissent la mise en page des comptes rendus : la liste des modèles, la <a class="term" href="99-glossary.html#g-part-library" title="Les parties réutilisables, comme un bloc de questions, à partir desquelles les modèles de compte rendu sont assemblés.">bibliothèque de parties</a> réutilisables et les règles de routage des modèles. La page à onglets n'a aucun champ propre. Les boutons des sous-onglets sont les seuls contrôles.</p>
+<p><strong>4. Prérequis et dépendances.</strong> L'onglet s'ouvre pour toute personne disposant de <code>screen:configuration:open</code>. Chaque sous-onglet est ensuite limité par sa propre <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> : une personne qui ne la possède pas voit la liste mais ne peut rien modifier.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-document_style">Style du document</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/tab-templates.webp" alt="Onglet Modèles de rapport avec les trois sous-onglets" loading="lazy"><figcaption>Onglet Modèles de rapport avec les trois sous-onglets</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-templates-report-templates-sub-tab"><td>Modèles de rapport (sous-onglet)</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#screen-templates-templates">liste des modèles</a>.</td>
+<td>Sélectionné</td>
+</tr>
+<tr id="f-tab-templates-part-library-sub-tab"><td>Bibliothèque de parties (sous-onglet)</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#screen-templates-parts">bibliothèque de parties</a>.</td>
+<td>Non sélectionné</td>
+</tr>
+<tr id="f-tab-templates-routing-rules-sub-tab"><td>Règles de routage (sous-onglet)</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre les <a href="#screen-templates-routing">règles de routage des modèles</a>.</td>
+<td>Non sélectionné</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir l'onglet : <code>screen:configuration:open</code>. Les actions de chaque sous-onglet utilisent leurs propres capacités, indiquées sur le sous-onglet.
+<strong>Limites connues.</strong> Aucune limite connue.</p>
+<h3 id="screen-templates-parts"><a class="anchor" href="#screen-templates-parts" aria-label="Link to this section">#</a> Bibliothèque de parties</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Bibliothèque de parties"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Bibliothèque de parties</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Modèles de rapport</strong> &gt; sous-onglet <strong>Bibliothèque de parties</strong>
+<strong>2. Élément de maintenance :</strong> Parties de compte rendu (en-tête, corps, pied de page)</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Une partie est un <a class="term" href="99-glossary.html#g-block" title="Un fragment de tissu inclus dans de la paraffine à l&#x27;intérieur d&#x27;une cassette, dans lequel les lames sont coupées.">bloc</a> réutilisable d'un compte rendu : un <strong>en-tête</strong> (identité visuelle de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>, <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a>, données démographiques du patient), une partie de <strong>corps</strong> (diagnostic, description macroscopique, microscopie, données synoptiques) ou un <strong>pied de page</strong> (numéros de page, mention de confidentialité, ligne d'identité du patient). Les parties se construisent une fois ici et se placent dans un nombre quelconque de modèles. Une partie peut être Globale (proposée à tous les laboratoires exécutants) ou appartenir à un seul <a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a>. La bibliothèque est livrée avec des parties intégrées, signalées par un badge <strong>Intégré</strong>. Les parties intégrées ne peuvent être ni modifiées ni archivées ; dupliquez-en une pour la changer.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les parties n'ont pas besoin d'autres parties, mais le style de texte du laboratoire et les laboratoires exécutants auxquels elles se rapportent doivent exister au préalable. Si vous sautez la configuration des établissements, la liste Laboratoire exécutant ne propose que Global.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 4</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-document_style">Style du document</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l&#x27;établissement</a></dd><dt>Cela débloque</dt><dd><a href="#screen-templates-templates">Modèles de rapport</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/templates-parts.webp" alt="Bibliothèque de parties avec en-têtes, corps et pieds de page regroupés" loading="lazy"><figcaption>Bibliothèque de parties avec en-têtes, corps et pieds de page regroupés</figcaption></figure>
+
+<p><strong>Ce que l'écran affiche.</strong> Les parties archivées sont masquées de la liste. Les parties sont regroupées sous En-têtes, Corps et Pieds de page. Chaque fiche indique le nom, un badge de statut (Brouillon, Publié ou Archivé), le badge Intégré le cas échéant, le laboratoire exécutant, ainsi que le type, la spécialité et la description. Une fiche propose <strong>Modifier</strong> (pas sur les parties intégrées), <strong>Dupliquer</strong> et <strong>Archiver</strong> avec une confirmation Oui/Non (pas sur les parties intégrées).</p>
+<p><strong>6. Référence des champs.</strong></p>
+<p>Contrôles de la liste :</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-search"><td>Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre la liste selon le nom de la partie.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-parts-type-filter"><td>Filtre de type</td>
+<td>Choix : Toutes, En-têtes, Corps, Pieds de page</td>
+<td>Facultatif</td>
+<td>Affiche un seul type de partie.</td>
+<td>Toutes</td>
+</tr>
+<tr id="f-templates-parts-lab-filter"><td>Filtre de laboratoire</td>
+<td>Choix : tous les laboratoires, Global, ou un laboratoire exécutant</td>
+<td>Facultatif</td>
+<td>Affiche les parties d'un seul laboratoire.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-templates-parts-new-part"><td>Nouvelle partie</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre le sélecteur de type de partie (en-tête, corps ou pied de page), puis l'éditeur de partie.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-part-builder"><a class="anchor" href="#ch6-part-builder" aria-label="Link to this section">#</a> Éditeur de partie</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Bibliothèque de parties &gt; Éditeur de partie"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Bibliothèque de parties</span> <span aria-hidden="true">›</span> <span>Éditeur de partie</span></nav>
+
+<figure class="shot"><img src="../img/templates-parts-builder.webp" alt="Éditeur de partie avec zone de travail, palette et inspecteur" loading="lazy"><figcaption>Éditeur de partie avec zone de travail, palette et inspecteur</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-part-type"><td>Type de partie</td>
+<td>Choix : Partie d'en-tête, Partie de corps, Partie de pied de page</td>
+<td>Obligatoire</td>
+<td>Choisi une seule fois, à la création de la partie. Détermine dans quel emplacement la partie peut être placée.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-parts-name"><td>Nom</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Affiché dans la bibliothèque et dans l'emplacement du modèle. Cliquez sur le nom pour le modifier.</td>
+<td><code>New Header Part</code>, <code>New Body Part</code> ou <code>New Footer Part</code></td>
+</tr>
+<tr id="f-templates-parts-specialty"><td>Spécialité</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Regroupe la partie. <code>General</code> signifie toutes les spécialités.</td>
+<td>Vide (affiché comme General)</td>
+</tr>
+<tr id="f-templates-parts-description"><td>Description</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Courte note affichée sur la fiche de la bibliothèque.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-parts-standard"><td>Norme</td>
+<td>Choix : Aucune, <a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a>, RCPath, Personnalisée</td>
+<td>Facultatif</td>
+<td>Une simple étiquette. Elle indique la source de la mise en page et ne charge ni ne vérifie aucun <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a>.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-parts-performing-lab"><td>Laboratoire exécutant</td>
+<td>Choix : Global (tous les laboratoires exécutants), ou un <a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a></td>
+<td>Facultatif</td>
+<td>Une partie propre à un laboratoire n'est proposée que pour les modèles de ce laboratoire.</td>
+<td>Global</td>
+</tr>
+<tr id="f-templates-parts-grid"><td>Grille</td>
+<td>Commutateur : Grille activée / Grille désactivée</td>
+<td>Facultatif</td>
+<td>Affiche ou masque la grille de mise en page sur la zone de travail. Affichage uniquement.</td>
+<td>Activée</td>
+</tr>
+<tr id="f-templates-parts-components-canvas"><td>Composants (zone de travail)</td>
+<td>Glisser depuis la palette</td>
+<td>Facultatif</td>
+<td>Le contenu de la partie. Voir les champs de l'inspecteur sous <a href="#screen-templates-templates">Modèles de rapport</a>. Le nombre de composants est affiché.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-parts-save-state"><td>État d'enregistrement</td>
+<td>Indicateur : Non enregistré, Enregistrement, Enregistré, Erreur</td>
+<td>Sans objet</td>
+<td>La partie s'enregistre au fil de vos modifications.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-parts-publish"><td>Publier</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Rend la partie disponible pour les modèles (seules les parties publiées peuvent être placées). Un contrôle du diagnostic final s'applique ; voir l'éditeur de modèle.</td>
+<td>Brouillon</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Créer, enregistrer, archiver, dupliquer : <code>config:report-template:manage</code>. Publier : <code>config:report-template:publish</code>. Les deux sont à risque élevé et sont auditées. Administrateur et Directeur de laboratoire détiennent les deux ; Auteur de modèles détient manage ; Approbateur de modèles détient publish.
+<strong>Limites connues.</strong> Le champ Norme est une étiquette. Il ne relie pas une partie à un protocole du CAP ou du RCPath.</p>
+<h3 id="screen-templates-templates"><a class="anchor" href="#screen-templates-templates" aria-label="Link to this section">#</a> Modèles de rapport</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Modèles de rapport"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Modèles de rapport</strong> &gt; sous-onglet <strong>Modèles de rapport</strong>
+<strong>2. Élément de maintenance :</strong> Modèles de compte rendu</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Un modèle de compte rendu définit la structure d'un compte rendu : quelles parties d'en-tête, de corps et de pied de page il utilise, dans quels emplacements, et (facultativement) les étapes de génération assistée par IA du laboratoire pour ce modèle. Un modèle est Brouillon, Publié ou Archivé. Seul un modèle publié peut être choisi par le routage. La liste affiche chaque modèle avec son statut, un badge <strong>IA</strong> lorsque la génération par IA est activée, un badge <strong>STANDARD</strong> sur la mise en page chirurgicale standard, le nombre d'emplacements actifs et l'heure de la dernière mise à jour.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les modèles sont construits à partir de parties publiées : la Bibliothèque de parties vient donc en premier. Si vous la sautez, le sélecteur de parties de l'éditeur affiche « No published parts found ». Le style de texte du laboratoire doit être défini pour que le panneau Style du modèle ait une valeur par défaut sur laquelle se rabattre.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 5</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-templates-parts">Bibliothèque de parties</a>, <a href="#screen-document_style">Style du document</a></dd><dt>Cela débloque</dt><dd><a href="#screen-templates-routing">Règles de routage</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/templates-templates.webp" alt="Liste des modèles de rapport avec filtre de statut, recherche, À partir du standard et Nouveau modèle" loading="lazy"><figcaption>Liste des modèles de rapport avec filtre de statut, recherche, À partir du standard et Nouveau modèle</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<p>Contrôles de la liste :</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-status-filter"><td>Filtre de statut</td>
+<td>Choix : Tous, Publié, Brouillon, Archivé, chacun avec un décompte</td>
+<td>Facultatif</td>
+<td>Affiche un seul statut.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-templates-templates-search"><td>Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre selon le nom.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-new-template-start-blank"><td>Nouveau modèle (Démarrer à vide)</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Crée un brouillon vide et ouvre l'éditeur.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-templates-from-standard-use-standard-template"><td>À partir du standard (Utiliser le modèle standard)</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Copie la mise en page standard d'anatomie pathologique chirurgicale comme nouveau brouillon nommé <code>My Surgical Pathology Report</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-templates-edit"><td>Modifier</td>
+<td>Bouton sur une ligne de brouillon</td>
+<td>Sans objet</td>
+<td>Ouvre l'éditeur.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-templates-duplicate"><td>Dupliquer</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Crée une copie nommée <code>Copy of &lt;name&gt;</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-templates-delete-archive"><td>Supprimer / Archiver</td>
+<td>Bouton avec confirmation Oui/Non</td>
+<td>Sans objet</td>
+<td>Un brouillon est supprimé ; un modèle publié est archivé.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-editor"><a class="anchor" href="#ch6-template-editor" aria-label="Link to this section">#</a> Éditeur de modèle</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Modèles de rapport &gt; Éditeur de modèle"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Éditeur de modèle</span></nav>
+
+<figure class="shot"><img src="../img/templates-templates-editor.webp" alt="Éditeur de modèle avec panneau Bibliothèque de parties, emplacements de page et aperçu" loading="lazy"><figcaption>Éditeur de modèle avec panneau Bibliothèque de parties, emplacements de page et aperçu</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-template-name"><td>Nom du modèle</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Cliquez pour modifier. Enregistré lorsque vous quittez la zone.</td>
+<td>Le nom donné à la création</td>
+</tr>
+<tr id="f-templates-templates-specialty-and-standard-line"><td>Ligne de spécialité et de norme</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td>Affiche la spécialité du modèle et sa norme (<a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a>, RCPath ou Personnalisée). Un modèle vierge commence avec <code>general</code> et <code>custom</code>.</td>
+<td><code>general</code>, <code>custom</code></td>
+</tr>
+<tr id="f-templates-templates-status"><td>Statut</td>
+<td>Brouillon, Publié ou Archivé</td>
+<td>Sans objet</td>
+<td><strong>Publier</strong> fait passer un brouillon à Publié. Publier est désactivé lorsque le modèle comporte plus d'un champ marqué Diagnostic final.</td>
+<td>Brouillon</td>
+</tr>
+<tr id="f-templates-templates-performing-lab-filter-part-library-panel"><td>Filtre de <a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a> (panneau Bibliothèque de parties)</td>
+<td>Choix : Tous les laboratoires (Global + chaque laboratoire), Global, ou un laboratoire</td>
+<td>Facultatif</td>
+<td>Restreint les parties proposées.</td>
+<td>Tous les laboratoires</td>
+</tr>
+<tr id="f-templates-templates-part-search"><td>Recherche de partie</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre les parties publiées.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-header"><td>Emplacement : En-tête de la page 1</td>
+<td>Une partie d'en-tête</td>
+<td>Facultatif</td>
+<td>En-tête de la première page.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-header"><td>Emplacement : En-tête des pages 2+</td>
+<td>Une partie d'en-tête, ou « identique à la Page 1 »</td>
+<td>Facultatif</td>
+<td>En-tête des pages suivantes.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-slot-body"><td>Emplacement : Corps</td>
+<td>Liste ordonnée de parties de corps</td>
+<td>Facultatif</td>
+<td>Glissez pour réordonner. Les parties de corps se poursuivent sur toutes les pages. Chacune peut être désactivée avec le commutateur de l'emplacement sans être retirée.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-footer"><td>Emplacement : Pied de page des pages 2+</td>
+<td>Une partie de pied de page</td>
+<td>Facultatif</td>
+<td>Pied de page des pages suivantes.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-footer"><td>Emplacement : Pied de page de la page 1</td>
+<td>Une partie de pied de page</td>
+<td>Facultatif</td>
+<td>Pied de page de la première page.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-style-font-family"><td>Style (Police de caractères)</td>
+<td>Choix parmi les polices approuvées</td>
+<td>Facultatif</td>
+<td>Style de texte par défaut au niveau du modèle pour l'en-tête, le corps ou le pied de page. Revient à la valeur par défaut du laboratoire lorsqu'il est vide.</td>
+<td>Valeur par défaut du laboratoire</td>
+</tr>
+<tr id="f-templates-templates-style-font-size-pt"><td>Style (Taille de police, pt)</td>
+<td>Nombre</td>
+<td>Facultatif</td>
+<td>Idem. Les tailles sont en points.</td>
+<td>Valeur par défaut du laboratoire</td>
+</tr>
+<tr id="f-templates-templates-style-bold-underline"><td>Style (Gras, Souligné)</td>
+<td>Commutateurs</td>
+<td>Facultatif</td>
+<td>Idem.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-style-text-transform"><td>Style (Transformation du texte)</td>
+<td>Choix : Tel que saisi, Première lettre en majuscule, MAJUSCULES</td>
+<td>Facultatif</td>
+<td>Idem.</td>
+<td>Tel que saisi</td>
+</tr>
+<tr id="f-templates-templates-preview"><td>Aperçu</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Affiche le modèle avec des données de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> fictives, le nombre de pages et le contexte fictif.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-templates-preview-margins-top-right-bottom-left-mm"><td>Marges de l'aperçu (Haut, Droite, Bas, Gauche, mm)</td>
+<td>Nombre</td>
+<td>Facultatif</td>
+<td>Pour cet aperçu uniquement. Le format de page et les marges réels du laboratoire se définissent dans Style du document.</td>
+<td>Le paramètre du laboratoire</td>
+</tr>
+<tr id="f-templates-templates-preview-page-size"><td>Format de page de l'aperçu</td>
+<td>Choix : A4, US Letter, US Legal, A3, B5</td>
+<td>Facultatif</td>
+<td>Pour cet aperçu uniquement.</td>
+<td>Le paramètre du laboratoire</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-inspector"><a class="anchor" href="#ch6-template-inspector" aria-label="Link to this section">#</a> Inspecteur : champs du composant sélectionné</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Modèles de rapport &gt; Éditeur de modèle &gt; Inspecteur"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Éditeur de modèle</span> <span aria-hidden="true">›</span> <span>Inspecteur</span></nav>
+
+<p>L'inspecteur affiche les propriétés de ce que vous sélectionnez sur la zone de travail. Le même inspecteur est utilisé dans l'éditeur de partie.</p>
+<figure class="shot"><img src="../img/templates-templates-inspector.webp" alt="Panneau Inspecteur pour un champ sélectionné" loading="lazy"><figcaption>Panneau Inspecteur pour un champ sélectionné</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-label"><td>Libellé</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Le libellé imprimé du champ.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-width"><td>Largeur</td>
+<td>Colonnes sur 12</td>
+<td>Facultatif</td>
+<td>Faites glisser la poignée sur la zone de travail pour un réglage plus fin.</td>
+<td>Fixée par le type de composant</td>
+</tr>
+<tr id="f-templates-templates-required"><td>Obligatoire</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Le champ doit être renseigné.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-hide-when-empty"><td>Masquer si vide</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Omet le champ du compte rendu imprimé lorsqu'il n'a pas de valeur.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-page-break-before-this-field"><td>Saut de page avant ce champ</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Commence une nouvelle page.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-final-diagnosis-field"><td>Champ du diagnostic final</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Marque le champ qui porte le diagnostic final. Un modèle ne peut en avoir qu'un.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-include-in-fhir-export"><td>Inclure dans l'export <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, une norme HL7 pour l&#x27;échange de données de santé par des interfaces web.">FHIR</a></td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Conservé avec le champ. Aucun écran d'export FHIR n'est réalisé ; voir le <a href="07-tier6-interface-engine.html#ch7">Chapitre 7</a>.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-show-when-visibility"><td>Afficher quand (visibilité)</td>
+<td>Liste de conditions avec ET/OU</td>
+<td>Facultatif</td>
+<td>Conditions portant sur d'autres champs : égal à, différent de, contient, est vide, n'est pas vide, supérieur à, inférieur à, etc.</td>
+<td>Toujours affiché</td>
+</tr>
+<tr id="f-templates-templates-label-position"><td>Position du libellé</td>
+<td>Choix : Au-dessus du champ, À côté du champ, Masqué</td>
+<td>Facultatif</td>
+<td>Mise en forme du libellé.</td>
+<td>Au-dessus</td>
+</tr>
+<tr id="f-templates-templates-label-font-size-pt-bold-underline-text-transform"><td>Taille de police du libellé (pt), Gras, Souligné, Transformation du texte</td>
+<td>Nombre et commutateurs</td>
+<td>Facultatif</td>
+<td>Mise en forme du libellé au niveau du composant. Prévaut sur les styles du modèle et du laboratoire.</td>
+<td>Hérité</td>
+</tr>
+<tr id="f-templates-templates-binding-key"><td>Clé de liaison</td>
+<td>Texte</td>
+<td>Obligatoire pour les champs liés</td>
+<td>Le champ de données du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> que lit un champ Texte, Liste déroulante, Nombre, Date, Image ou Paragraphe de données.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-text-field-placeholder-max-length-validation-pattern-regex"><td>Champ texte : Texte indicatif, Longueur maximale, Motif de validation (regex)</td>
+<td>Texte, nombre, texte</td>
+<td>Facultatif</td>
+<td>Limites de saisie d'un champ texte.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-dropdown-options"><td>Liste déroulante : Options</td>
+<td>Un <code>value|Label</code> par ligne</td>
+<td>Obligatoire</td>
+<td>Les choix.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-dropdown-allow-multiple-selection-allow-free-text-entry"><td>Liste déroulante : Autoriser la sélection multiple, Autoriser la saisie libre</td>
+<td>Commutateurs</td>
+<td>Facultatif</td>
+<td></td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-number-unit-unit-options-decimal-places-min-max"><td>Nombre : Unité, Options d'unité, Décimales, Min, Max</td>
+<td>Texte et nombres</td>
+<td>Facultatif</td>
+<td></td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-date-format-default-to-today-s-date"><td>Date : Format, Date du jour par défaut</td>
+<td>Choix : Date, Date et heure, Année seule ; commutateur</td>
+<td>Facultatif</td>
+<td></td>
+<td>Date, désactivé</td>
+</tr>
+<tr id="f-templates-templates-computed-expression-output-type-unit"><td>Calculé : Expression, Type de sortie, Unité</td>
+<td>Texte ; choix Texte, Nombre, Date</td>
+<td>Obligatoire</td>
+<td>Une valeur calculée à partir d'autres champs.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-static-label-text-variant-bold-italic"><td>Libellé statique : Texte, Variante, Gras, Italique</td>
+<td>Texte ; choix Titre 1, 2, 3, Corps, Légende</td>
+<td>Obligatoire</td>
+<td>Titre ou texte fixe.</td>
+<td>Corps</td>
+</tr>
+<tr id="f-templates-templates-rich-text-block-content-font-size-px-text-alignment"><td>Bloc de texte enrichi : Contenu, Taille de police (px), Alignement du texte</td>
+<td>Texte, nombre, choix Gauche, Centré, Droite</td>
+<td>Facultatif</td>
+<td>Texte rédigé fixe, identique dans chaque compte rendu.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-templates-templates-data-paragraph-binding-key-rich-text-formatting-allow-ai-to-write-this-paragraph"><td>Paragraphe de données : Clé de liaison, Mise en forme du texte enrichi, Autoriser l'IA à rédiger ce paragraphe</td>
+<td>Texte et commutateurs</td>
+<td>Facultatif</td>
+<td>Un emplacement rempli à partir des données du dossier.</td>
+<td>Rédaction par l'IA désactivée</td>
+</tr>
+<tr id="f-templates-templates-image-embed-binding-key-or-static-image-url-alt-text-caption-alignment-width-height-px"><td>Image intégrée : Clé de liaison ou URL d'image statique, Texte alternatif, Légende, Alignement, Largeur, Hauteur (px)</td>
+<td>Texte, nombres</td>
+<td>Facultatif</td>
+<td>Une adresse d'image hébergée, jamais un fichier téléversé.</td>
+<td>Taille automatique</td>
+</tr>
+<tr id="f-templates-templates-section-print-heading-collapsible-start-collapsed"><td>Section : Titre imprimé, Repliable, Démarrer replié</td>
+<td>Texte et commutateurs</td>
+<td>Facultatif</td>
+<td>Un groupe de champs.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-templates-templates-column-layout-number-of-columns-column-gap-px"><td>Disposition en colonnes : Nombre de colonnes, Espacement des colonnes (px)</td>
+<td>Nombres</td>
+<td>Facultatif</td>
+<td>Les colonnes sur lesquelles le contenu se répartit.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-repeat-group-iterate-over-item-alias-min-items-max-items"><td>Groupe répété : Itérer sur, Alias d'élément, Éléments min., Éléments max.</td>
+<td>Texte, nombres</td>
+<td>Facultatif</td>
+<td>Répète son contenu pour chaque élément d'une liste.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-if-block-show-children-when-else-branch"><td>Bloc Si : Afficher les enfants quand, Branche Sinon</td>
+<td>Liste de conditions</td>
+<td>Facultatif</td>
+<td>Affiche le contenu lorsque la condition est remplie.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-switch-block-switch-on-cases-case-label-when"><td>Bloc Switch : Switch sur, Cas (Libellé du cas, Quand)</td>
+<td>Champ et liste de conditions</td>
+<td>Facultatif</td>
+<td>Affiche le contenu du cas correspondant.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-page-break-break-behavior"><td>Saut de page : Comportement du saut</td>
+<td>Choix : Automatique, Toujours couper, Éviter de couper</td>
+<td>Facultatif</td>
+<td></td>
+<td>Automatique</td>
+</tr>
+<tr id="f-templates-templates-template-reference-referenced-template-id-name-context-overrides"><td>Référence de modèle : ID du modèle référencé, nom, Remplacements de contexte</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Insère le contenu d'un autre modèle.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-templates-header-show-institution-logo-show-patient-name-show-accession-number-page-scope-height-px-custom-html"><td>En-tête : Afficher le logo de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>, Afficher le nom du patient, Afficher le <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a>, Portée des pages, Hauteur (px), HTML personnalisé</td>
+<td>Commutateurs, choix Toutes les pages, Page 1 uniquement, Pages 2 et suivantes uniquement ; nombre ; texte</td>
+<td>Facultatif</td>
+<td>Commutateurs du contenu de l'en-tête.</td>
+<td>Désactivé, toutes les pages</td>
+</tr>
+<tr id="f-templates-templates-footer-show-page-numbers-page-number-format-page-scope-height-px-custom-html"><td>Pied de page : Afficher les numéros de page, Format du numéro de page, Portée des pages, Hauteur (px), HTML personnalisé</td>
+<td>Commutateur, texte, choix, nombre, texte</td>
+<td>Facultatif</td>
+<td>Commutateurs du contenu du pied de page.</td>
+<td>Désactivé, toutes les pages</td>
+</tr>
+<tr id="f-templates-templates-ai-generation-enable-ai-assisted-generation-system-instruction-temperature-max-tokens"><td>Génération par IA : Activer la génération assistée par IA, Instruction système, Température, Nombre maximal de jetons</td>
+<td>Commutateur, texte, nombre, nombre</td>
+<td>Facultatif</td>
+<td>Paramètres d'IA propres à chaque section utilisés par le mode Orchestration. Configurés dans le <a href="05-tier4-ai-framework.html#ch5">Chapitre 5</a>.</td>
+<td>Désactivé</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Créer, enregistrer, dupliquer, supprimer, archiver : <code>config:report-template:manage</code>. Publier : <code>config:report-template:publish</code>. Les deux sont à risque élevé et sont auditées. Mêmes détenteurs que pour la Bibliothèque de parties.
+<strong>Limites connues.</strong> Les contrôles du diagnostic final s'exécutent dans l'éditeur avant la publication. Le cycle de vie des modèles est ici Brouillon, Publié, Archivé ; il n'existe pas d'étape de relecture comme pour les modèles synoptiques (voir <a href="#screen-template_governance">Revue des modèles</a>).</p>
+<h3 id="screen-templates-routing"><a class="anchor" href="#screen-templates-routing" aria-label="Link to this section">#</a> Règles de routage</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Règles de routage"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Règles de routage</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Modèles de rapport</strong> &gt; sous-onglet <strong>Règles de routage</strong>
+<strong>2. Élément de maintenance :</strong> Règles de routage des modèles</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Les règles remplacent la chaîne par défaut (<a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a>, puis <a class="term" href="99-glossary.html#g-subspecialty" title="Un domaine de la pathologie, tel que le sein ou le tube digestif, utilisé pour orienter les dossiers. Une sous-spécialité peut être basculée en mode partagé.">sous-spécialité</a>, puis modèle de référence) pour des établissements, des médecins ou des protocoles synoptiques précis. Une <strong>Correspondance de protocole</strong> permet de relier un protocole <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a> nouveau ou modifié à un modèle sans publier une nouvelle version du logiciel. Ce n'est pas le même écran que les <a href="04-tier3-workflow-engines.html#screen-routing_rules">Règles de routage</a> sous Système, qui acheminent les dossiers vers les pathologistes.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les règles désignent des modèles publiés, des établissements, des médecins et des protocoles. Si vous sautez les modèles, la liste Modèle de rapport est vide. Une correspondance de protocole choisit parmi les protocoles de la Bibliothèque synoptique ; elle est donc plus utile une fois le travail de la <a href="#screen-protocols-review">File de révision</a> effectué ; une règle peut être ajoutée plus tard.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 6</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-templates-templates">Modèles de rapport</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l&#x27;établissement</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Médecins</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/templates-routing.webp" alt="Règles de routage des modèles avec les sections établissement, médecin et protocole et le panneau de test" loading="lazy"><figcaption>Règles de routage des modèles avec les sections <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>, médecin et protocole et le panneau de test</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-overrides"><td>Dérogations par établissement</td>
+<td>Liste de règles</td>
+<td>Facultatif</td>
+<td>Passe 0 et Passe 0a. Un établissement affilié sans règle propre utilise celle de son <a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a> parente.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-routing-physician-preferences"><td>Préférences des médecins</td>
+<td>Liste de règles</td>
+<td>Facultatif</td>
+<td>Passe 0b.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-routing-protocol-mappings"><td>Correspondances de protocole</td>
+<td>Liste de règles</td>
+<td>Facultatif</td>
+<td>Passe 1. Elles complètent la table de protocoles intégrée et ont priorité sur elle.</td>
+<td>Aucune (table intégrée uniquement)</td>
+</tr>
+<tr id="f-templates-routing-priority-panel"><td>Panneau des priorités</td>
+<td>Liste en lecture seule</td>
+<td>Sans objet</td>
+<td>Affiche chaque passe et indique si elle est définie par l'administrateur ou extensible par l'administrateur ; la passe qui a résolu le dernier test est mise en évidence.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-templates-routing-enable-disable-rule"><td>Activer / Désactiver la règle</td>
+<td>Commutateur sur chaque ligne</td>
+<td>Facultatif</td>
+<td>Une règle désactivée est ignorée.</td>
+<td>Activée</td>
+</tr>
+<tr id="f-templates-routing-delete"><td>Supprimer</td>
+<td>Bouton avec confirmation</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-rule-window"><a class="anchor" href="#ch6-routing-rule-window" aria-label="Link to this section">#</a> Ajouter ou modifier une règle</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Règles de routage &gt; Ajouter la règle"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Règles de routage</span> <span aria-hidden="true">›</span> <span>Ajouter la règle</span></nav>
+
+<figure class="shot"><img src="../img/templates-routing-rule.webp" alt="Fenêtre Ajouter une règle de routage d&#x27;établissement" loading="lazy"><figcaption>Fenêtre Ajouter une règle de routage d&#x27;<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a></figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-physician-or-protocol"><td>Établissement, Médecin ou Protocole</td>
+<td>Liste de choix</td>
+<td>Obligatoire</td>
+<td>L'entité à laquelle la règle s'applique. Le libellé suit la section que vous avez ouverte.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-routing-performing-lab"><td>Laboratoire exécutant</td>
+<td>Choix : Global (tous les laboratoires exécutants), ou un laboratoire</td>
+<td>Facultatif</td>
+<td>Une règle propre à un laboratoire est vérifiée avant une règle Globale pour les dossiers de ce laboratoire.</td>
+<td>Global</td>
+</tr>
+<tr id="f-templates-routing-report-template"><td>Modèle de rapport</td>
+<td>Liste de modèles</td>
+<td>Obligatoire</td>
+<td>Le modèle que l'entité utilise toujours.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-templates-routing-note"><td>Remarque</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Pourquoi la dérogation existe.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-test"><a class="anchor" href="#ch6-routing-test" aria-label="Link to this section">#</a> Tester le routage des modèles</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Modèles de rapport &gt; Règles de routage &gt; Tester"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Modèles de rapport</span> <span aria-hidden="true">›</span> <span>Règles de routage</span> <span aria-hidden="true">›</span> <span>Tester</span></nav>
+
+<figure class="shot"><img src="../img/templates-routing-test.webp" alt="Panneau Tester le routage des modèles" loading="lazy"><figcaption>Panneau Tester le routage des modèles</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-performing-facility"><td>Établissement exécutant</td>
+<td>Liste de choix</td>
+<td>Facultatif</td>
+<td>L'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-templates-routing-ordering-physician"><td>Médecin prescripteur</td>
+<td>Liste de choix</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tous</td>
+</tr>
+<tr id="f-templates-routing-subspecialty"><td>Sous-spécialité</td>
+<td>Liste de choix</td>
+<td>Facultatif</td>
+<td></td>
+<td>Toutes</td>
+</tr>
+<tr id="f-templates-routing-synoptic-template-id"><td>ID de modèle <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></td>
+<td>Liste de choix</td>
+<td>Facultatif</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-templates-routing-test-routing"><td>Tester le routage</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Affiche le modèle choisi et la passe qui l'a choisi. Un résultat ambigu liste les candidats.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Ajouter, modifier, supprimer : <code>config:template-routing:manage</code> (risque élevé, auditée). Administrateur et Directeur de laboratoire la détiennent ; Auteur de modèles et Approbateur de modèles ne la détiennent pas.
+<strong>Limites connues.</strong> Les tables de <a class="term" href="99-glossary.html#g-subspecialty" title="Un domaine de la pathologie, tel que le sein ou le tube digestif, utilisé pour orienter les dossiers. Une sous-spécialité peut être basculée en mode partagé.">sous-spécialité</a> et de modèle de référence (Passes 2 et 3) sont intégrées et ne peuvent pas être modifiées ici. Le contrôle des comptes rendus préliminaires est intégré.</p>
+<h3 id="screen-fonts"><a class="anchor" href="#screen-fonts" aria-label="Link to this section">#</a> Polices approuvées</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Polices approuvées"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Polices approuvées</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Polices approuvées</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Détermine les polices que les éditeurs de texte libre proposent aux pathologistes dans leur barre d'outils (l'éditeur de compte rendu, l'éditeur de texte narratif, les éditeurs de macros et les fenêtres de commentaires lisent la liste). Une police désactivée reste dans la liste mais est masquée aux utilisateurs. Le choix est fixé à 14 polices réparties en trois groupes. Vous ne pouvez pas ajouter ici un nom de police.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Aucun. Ce paramètre ne fait que filtrer une barre d'outils. Il ne modifie pas la police de compte rendu par défaut du laboratoire ; celle-ci se définit dans <a href="#screen-document_style">Style du document</a>, qui propose sa propre liste plus courte de sept polices et ne lit pas cette liste.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 1</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-fonts.webp" alt="Polices approuvées avec recherche et commutateurs par police" loading="lazy"><figcaption>Polices approuvées avec recherche et commutateurs par police</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-fonts-search-fonts"><td>Rechercher des polices</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Filtre les 14 polices selon leur nom.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-fonts-count-badge"><td>Badge de décompte</td>
+<td>Texte en lecture seule, « N sur 14 activées »</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-fonts-font-switch-one-per-font"><td>Commutateur de police (un par police)</td>
+<td>Commutateur Oui/Non, affiché Actif ou Inactif</td>
+<td>Facultatif</td>
+<td>Activé signifie que la police apparaît dans les barres d'outils des éditeurs. Le choix : Serif (Times New Roman, Georgia, Garamond, Palatino), Sans-Serif (Arial, Helvetica, Calibri, Verdana, Trebuchet MS, Tahoma, Roboto), Monospace (Courier New, Consolas, Lucida Console).</td>
+<td>Activé pour Arial, Times New Roman et Courier New ; désactivé pour les autres</td>
+</tr>
+<tr id="f-fonts-last-font-guard"><td>Protection de la dernière police</td>
+<td>Message « Au moins une police doit rester activée »</td>
+<td>Sans objet</td>
+<td>La dernière police activée ne peut pas être désactivée.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Modifier : <code>config:report-appearance:manage</code> (risque élevé, auditée). La section est grisée en lecture seule sans elle. Administrateur et Directeur de laboratoire la détiennent par défaut.
+<strong>Limites connues.</strong> Aucune limite connue.</p>
+<h3 id="screen-document_style"><a class="anchor" href="#screen-document_style" aria-label="Link to this section">#</a> Style du document</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Style du document"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Style du document</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Style du document</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Définit le style de texte par défaut du laboratoire pour l'en-tête, le corps et le pied de page de chaque compte rendu, ainsi que le format de page et les marges d'impression du laboratoire. Le panneau Style propre à un modèle remplace la valeur par défaut pour ce modèle, et la mise en forme du libellé d'un composant remplace les deux. Les tailles sont conservées en points, la taille qui s'imprime, et rien ne s'imprime en dessous de 8 pt. Un style enregistré avant l'existence des points est conservé en pixels (chaque pixel s'imprime à 0,75 pt) et continue de s'imprimer comme avant jusqu'à ce que vous le convertissiez.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Aucun. Faites-le avant de construire les modèles afin que chaque modèle parte de la bonne valeur par défaut.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 2</p><dl><dt>À configurer d&#x27;abord</dt><dd><span class="none">Aucun, c&#x27;est un point de départ.</span></dd><dt>Cela débloque</dt><dd><a href="#screen-templates-parts">Bibliothèque de parties</a>, <a href="#screen-templates-templates">Modèles de rapport</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-document_style.webp" alt="Style du document avec les styles d&#x27;en-tête, de corps et de pied de page et la mise en page" loading="lazy"><figcaption>Style du document avec les styles d&#x27;en-tête, de corps et de pied de page et la mise en page</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong> Les mêmes cinq champs de style apparaissent une fois chacun pour l'en-tête, le corps et le pied de page.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-document_style-font-family-header-body-footer"><td>Police de caractères (en-tête, corps, pied de page)</td>
+<td>Choix : Arial, Helvetica, Times New Roman, Georgia, Calibri, Verdana, Courier New</td>
+<td>Facultatif</td>
+<td>La police de compte rendu par défaut pour cette zone.</td>
+<td>Arial</td>
+</tr>
+<tr id="f-document_style-font-size-pt"><td>Taille de police (pt)</td>
+<td>Nombre de points, minimum 8</td>
+<td>Facultatif</td>
+<td>La taille imprimée. Affiché sous la forme « Taille de police (px, enregistrée avant les points) » avec une indication lorsque le style est encore en pixels.</td>
+<td>Corps 10, en-tête 11, pied de page 10</td>
+</tr>
+<tr id="f-document_style-bold"><td>Gras</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td></td>
+<td>En-tête activé ; corps et pied de page désactivés</td>
+</tr>
+<tr id="f-document_style-underline"><td>Souligné</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td></td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-document_style-text-transform"><td>Transformation du texte</td>
+<td>Choix : Tel que saisi, Première lettre en majuscule, MAJUSCULES</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tel que saisi</td>
+</tr>
+<tr id="f-document_style-preview"><td>Aperçu</td>
+<td>Texte d'exemple en lecture seule</td>
+<td>Sans objet</td>
+<td>Affiche le style choisi en direct.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-document_style-convert-to-points"><td>Convertir en points</td>
+<td>Bouton, affiché uniquement pour un style enregistré en pixels</td>
+<td>Sans objet</td>
+<td>Ouvre une confirmation qui liste chaque taille et la taille à laquelle elle s'imprimera. Les nombres restent les mêmes et signifient désormais des points, de sorte que le texte s'imprime plus grand. Consigné dans le <a class="term" href="99-glossary.html#g-audit-log" title="L&#x27;enregistrement de ce que les personnes, le système et l&#x27;IA ont fait, consultable dans l&#x27;écran Journaux système. Son texte de détail est en anglais et ne contient ni nom de patient ni valeur clinique.">journal d'audit</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-document_style-page-size"><td>Format de page</td>
+<td>Choix : A4 (210 x 297 mm), US Letter (216 x 279), US Legal (216 x 356), A3 (297 x 420), B5 (176 x 250)</td>
+<td>Facultatif</td>
+<td>Le format de papier du laboratoire. L'aperçu du modèle s'ouvre avec ce format.</td>
+<td>A4</td>
+</tr>
+<tr id="f-document_style-top-right-bottom-left-margin-mm"><td>Marge haute, droite, basse, gauche (mm)</td>
+<td>Nombre entier de 5 à 50</td>
+<td>Facultatif</td>
+<td>Marges d'impression.</td>
+<td>Haut 25, Droite 20, Bas 25, Gauche 20</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Modifier : <code>config:report-appearance:manage</code> (risque élevé, auditée), vérifiée dans le <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> aussi bien que sur l'écran. Administrateur et Directeur de laboratoire la détiennent.
+<strong>Limites connues.</strong> Le moteur de rendu de comptes rendus de développement (<code>functions/</code>) imprime toujours en A4 et ne lit pas encore le format de page du laboratoire ; le paramètre est envoyé dans les données de rendu afin que le serveur de production puisse l'utiliser. Le format de page et les marges sont une règle du laboratoire, déterminée par le papier de l'imprimante, et non un choix personnel.</p>
+<h3 id="screen-template_governance"><a class="anchor" href="#screen-template_governance" aria-label="Link to this section">#</a> Revue des modèles</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Revue des modèles"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Revue des modèles</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Revue des modèles</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Définit qui peut approuver et publier les <strong>modèles synoptiques</strong> (la Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a>) sur ce site. Elle ne régit pas les modèles de compte rendu, qui ont leur propre cycle de vie simple de brouillon, de publication et d'archivage. Deux paramètres s'appliquent, plus une règle fixe : un modèle synoptique diagnostique ne peut pas être publié en dessous de 80 % de couverture SNOMED au niveau des champs. Les modèles de procédure, tels que les listes de contrôle de <a class="term" href="99-glossary.html#g-grossing" title="L&#x27;examen et la découpe d&#x27;un prélèvement chirurgical par un pathologiste ou un assistant de pathologie, qui le décrit et choisit les fragments à traiter.">macroscopie</a>, en sont exemptés car ils ne sont jamais codés.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les rôles intégrés Auteur de modèles, Approbateur de modèles, Directeur de laboratoire et Administrateur font le travail ; les rôles du Personnel sont donc configurés en premier. Si vous sautez cette étape, personne ne peut approuver un modèle, car l'approbation exige les capacités d'approbateur.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 3</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></dd><dt>Cela débloque</dt><dd><a href="#screen-protocols-review">File de révision</a>, <a href="#screen-protocols-active">Protocoles actifs</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-template_governance.webp" alt="Revue des modèles avec auto-approbation et relecteurs requis" loading="lazy"><figcaption>Revue des modèles avec auto-approbation et relecteurs requis</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-template_governance-allow-template-self-approval"><td>Autoriser l'auto-approbation des modèles</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Désactivé (recommandé) : un auteur ne peut pas approuver ni publier un modèle qu'il a rédigé ou modifié. Toute personne ayant enregistré le modèle compte comme auteur. À n'activer que pour les cabinets individuels, les petits sites ou les tests.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-template_governance-required-reviewers"><td>Relecteurs requis</td>
+<td>Choix : 1, 2 ou 3 relecteurs indépendants</td>
+<td>Facultatif</td>
+<td>Les approbations dont un modèle a besoin avant de pouvoir être publié. Chacune doit provenir d'un Approbateur de modèles, Directeur de laboratoire ou Administrateur différent qui n'est pas l'un de ses auteurs (sauf si l'auto-approbation est activée).</td>
+<td>1</td>
+</tr>
+<tr id="f-template_governance-snomed-threshold"><td>Seuil SNOMED</td>
+<td>Texte en lecture seule, 80 %</td>
+<td>Sans objet</td>
+<td>Affiché dans le sous-titre. Non modifiable.</td>
+<td>80 %</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Modifier : <code>config:template-governance:manage</code> (risque élevé, auditée ; la modification est consignée avec les anciennes et les nouvelles valeurs). Administrateur la détient par défaut ; Directeur de laboratoire ne la détient pas : accordez-la dans Personnel &gt; Rôles si le Directeur de laboratoire doit la gérer. Sans elle, l'écran affiche un avis indiquant que vous pouvez consulter les paramètres mais pas les modifier.
+<strong>Limites connues.</strong> Aucune limite connue.</p>
+<h2 id="ch6-synoptic"><a class="anchor" href="#ch6-synoptic" aria-label="Link to this section">#</a> Configuration du module de compte rendu synoptique du CAP</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span></nav>
+
+<p>La Bibliothèque synoptique contient les listes de contrôle structurées (protocoles) que les pathologistes remplissent pour les comptes rendus de cancérologie et autres. Elle est distincte des modèles de compte rendu : un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> définit les questions et leur codage, un modèle de compte rendu définit l'aspect d'un compte rendu. L'écran Règles de routage relie les deux.</p>
+<p><strong>Ce que contient réellement la bibliothèque aujourd'hui (à lire en premier).</strong> Sur les données de démonstration, le <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> contient 36 protocoles : 32 Publiés, 3 En révision et 1 Brouillon. Selon la source, 23 sont <code>Custom</code> et 13 sont <code>PathScribe</code>. <strong>Aucun n'est une liste de contrôle <a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a> ou RCPath sous licence.</strong> Les noms CAP, RCPath et ICCR n'existent que comme étiquettes de source dans la fenêtre de téléversement et comme noms d'organismes de réglementation. Les 19 entrées nommées « Generic Template » (sein, poumon, prostate, côlon, rein, Wilms, mélanome et autres) sont des modèles provisoires à la version <code>0.1.0-generic</code>. Les autres sont deux formulaires synoptiques génériques de test, des formulaires PathScribe tels que <a class="term" href="99-glossary.html#g-mohs" title="La chirurgie micrographique de Mohs, où un cancer de la peau est retiré en fines couches dont chacune est examinée au microscope avant de prélever la suivante.">Mohs</a> et curage ganglionnaire cervical, des formulaires de pathologie hépatique médicale, de placenta et de transplantation rénale, l'examen macroscopique d'autopsie, les trois voies de référence de <a class="term" href="99-glossary.html#g-grossing" title="L&#x27;examen et la découpe d&#x27;un prélèvement chirurgical par un pathologiste ou un assistant de pathologie, qui le décrit et choisit les fragments à traiter.">macroscopie</a> et cinq systèmes de compte rendu de cytologie (thyroïde <a class="term" href="99-glossary.html#g-bethesda" title="Le système de compte rendu des résultats de cytologie cervicale et de l&#x27;adéquation des prélèvements, utilisé aux États-Unis et largement ailleurs.">Bethesda</a>, glandes salivaires Milan, voies urinaires Paris, voies pancréatobiliaires Papanicolaou, ponction ganglionnaire à l'aiguille fine). Un hôpital qui a besoin d'un protocole du CAP doit l'obtenir sous la licence propre du CAP et l'intégrer par les voies ci-dessous.</p>
+<p><strong>Comment une version de protocole entre et sort.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Statut</th>
+<th>Ce qui existe</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Importer un fichier de protocole PathScribe (<a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a>)</td>
+<td>Réalisé</td>
+<td><strong>Téléverser un protocole</strong> lit le fichier, le contrôle et l'enregistre comme brouillon. Il passe ensuite par la relecture comme tout autre brouillon.</td>
+</tr>
+<tr>
+<td>Contrôler une liste de contrôle électronique du CAP (eCC, <a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, la norme de formulaire XML utilisée pour distribuer les listes de contrôle de cancérologie électroniques du CAP.">SDC</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a>) ou un classeur Excel</td>
+<td>Partiel</td>
+<td>Le format du fichier est contrôlé et le nombre de sections et de questions est affiché. Il ne peut pas encore être importé, et son contenu n'est pas vérifié par rapport au CAP ou au RCPath.</td>
+</tr>
+<tr>
+<td>Construire un protocole dans l'éditeur</td>
+<td>Réalisé</td>
+<td><strong>Créer / Personnaliser</strong> part de zéro ou d'une copie d'un protocole existant.</td>
+</tr>
+<tr>
+<td>Charger une nouvelle version d'un protocole existant</td>
+<td>Réalisé</td>
+<td><strong>Nouvelle version</strong> ouvre l'éditeur avec le numéro de version suivant. Sa publication archive la version dont il provient.</td>
+</tr>
+<tr>
+<td>Synchronisation nocturne automatique des mises à jour du CAP, du RCPath ou de l'ICCR</td>
+<td>Non réalisé</td>
+<td>L'écran Organismes de réglementation comporte un commutateur Synchronisation automatique par organisme, et la fenêtre de téléversement ainsi que les textes de notification mentionnent une synchronisation nocturne, mais aucune tâche de synchronisation n'existe dans cette version et aucune ne figure dans la liste des tâches du serveur. Le contrat de notification (<code>TEMPLATE_NOTIFICATIONS_API.md</code>) décrit les messages qu'enverrait une future tâche de synchronisation. D'ici là, chargez les mises à jour à la main.</td>
+</tr>
+<tr>
+<td>Retirer un protocole</td>
+<td>Réalisé</td>
+<td><strong>Archiver</strong> le retire des nouveaux comptes rendus ; les comptes rendus déjà rédigés conservent leur contenu. <strong>Restaurer en brouillon</strong> le ramène pour relecture et nouvelle publication.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cycle de vie.</strong> Brouillon, En révision, Modifications requises, Approuvé, Publié, Archivé. Les noms d'action suivent la source : pour le CAP, l'étape d'approbation est <strong>Accepter</strong> et l'étape de publication <strong>Diffuser</strong> ; pour le RCPath, elles sont <strong>Ratifier</strong> et <strong>Publier</strong> ; pour Custom, PathScribe et ICCR, elles sont <strong>Approuver</strong> et <strong>Publier</strong>. La gouvernance (auto-approbation, nombre de relecteurs, règle SNOMED de 80 %) se définit dans <a href="#screen-template_governance">Revue des modèles</a>.</p>
+<h3 id="screen-tab-protocols"><a class="anchor" href="#screen-tab-protocols" aria-label="Link to this section">#</a> Onglet Bibliothèque synoptique</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Bibliothèque synoptique</strong>
+<strong>2. Élément de maintenance :</strong> L'onglet, avec trois sous-pages : <strong>Protocoles actifs</strong> (listes de contrôle validées et en cours d’utilisation), <strong>File de révision</strong> (en attente d’approbation) et <strong>Tous les protocoles</strong> (bibliothèque complète).</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Un point unique pour tout le cycle de vie des protocoles. L'onglet n'a aucun champ propre ; ses trois entrées de navigation ouvrent les sous-pages ci-dessous.</p>
+<p><strong>4. Prérequis et dépendances.</strong> S'ouvre pour toute personne disposant de <code>screen:configuration:open</code>. Les organismes de réglementation qui apparaissent dans la bibliothèque se définissent dans <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Organismes de réglementation</a>.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Organismes de réglementation</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/tab-protocols.webp" alt="Onglet Bibliothèque synoptique avec Actifs, File de révision et Tous les protocoles" loading="lazy"><figcaption>Onglet Bibliothèque synoptique avec Actifs, File de révision et Tous les protocoles</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-protocols-active-protocols"><td>Protocoles actifs</td>
+<td>Entrée de navigation, « Listes de contrôle validées et en cours d’utilisation »</td>
+<td>Sans objet</td>
+<td>Ouvre les <a href="#screen-protocols-active">Protocoles actifs</a>.</td>
+<td>Sélectionné</td>
+</tr>
+<tr id="f-tab-protocols-review-queue"><td>File de révision</td>
+<td>Entrée de navigation, « En attente d’approbation »</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#screen-protocols-review">File de révision</a>.</td>
+<td>Non sélectionné</td>
+</tr>
+<tr id="f-tab-protocols-all-protocols"><td>Tous les protocoles</td>
+<td>Entrée de navigation, « Bibliothèque complète »</td>
+<td>Sans objet</td>
+<td>Ouvre <a href="#screen-protocols-all">Tous les protocoles</a>.</td>
+<td>Non sélectionné</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Les actions utilisent les capacités de <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> indiquées sur chaque sous-page.
+<strong>Limites connues.</strong> Aucune limite connue.</p>
+<h3 id="screen-protocols-review"><a class="anchor" href="#screen-protocols-review" aria-label="Link to this section">#</a> File de révision</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; File de révision"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>File de révision</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Bibliothèque synoptique</strong> &gt; <strong>File de révision</strong>
+<strong>2. Élément de maintenance :</strong> Protocoles en attente avant publication</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Liste chaque <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> dans un état antérieur à la publication (En révision, Modifications requises, Approuvé), regroupé par catégorie anatomique, avec une tuile de décompte pour chaque état. Un bandeau rappelle la règle : les modèles exigent au moins 80 % de couverture SNOMED et une validation clinique avant publication. Cliquez sur une fiche pour ouvrir le réviseur (En révision, Approuvé) ou l'éditeur (Modifications requises). Les protocoles à l'état de brouillon n'apparaissent pas ici ; trouvez-les dans Tous les protocoles.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Nécessite les paramètres de revue et les rôles qui font le travail. Si vous les sautez, l'approbation est refusée parce que la personne n'a pas la <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a>, ou parce qu'un auteur unique tente d'approuver son propre travail.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 7</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-template_governance">Revue des modèles</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a>, <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Organismes de réglementation</a></dd><dt>Cela débloque</dt><dd><a href="#screen-protocols-active">Protocoles actifs</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/protocols-review.webp" alt="File de révision avec décomptes par état et fiches" loading="lazy"><figcaption>File de révision avec décomptes par état et fiches</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-search"><td>Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Correspond au nom du protocole, à la catégorie ou à la source.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-review-state-tiles"><td>Tuiles d'état</td>
+<td>Décomptes en lecture seule : En révision, Modifications requises, Approuvé</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-upload-protocol"><td>Téléverser un protocole</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#ch6-upload-window">fenêtre de téléversement</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-build-customise"><td>Créer / Personnaliser</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#ch6-build-window">fenêtre de création</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-card-name-version-source-badge-type-owner"><td>Fiche : nom, version, badge de source, type, propriétaire</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td>Données du protocole.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-card-lifecycle-badge"><td>Fiche : badge de cycle de vie</td>
+<td>Lecture seule : En révision, Modifications requises, Approuvé</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-card-review-note"><td>Fiche : note de relecture</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td>La dernière note du relecteur, affichée avec un marqueur de retour ou d'avertissement.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-review-card-action"><td>Action de la fiche</td>
+<td>Ouvre le réviseur (« Ouvrir le réviseur », ou « Ouvrir l'évaluateur pour publier » lorsque Approuvé) ou l'éditeur (« Ouvrir l'éditeur pour traiter les modifications »)</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-reviewer-actions"><a class="anchor" href="#ch6-reviewer-actions" aria-label="Link to this section">#</a> Actions du réviseur</h4>
+<p>La page du réviseur (ouverte depuis une fiche) fait passer un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> d'un état à un autre. Chaque passage demande une confirmation et, pour un retour, un motif.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-mark-in-review"><td>Passer en révision</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Place un brouillon dans la file de révision.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-approve-cap-accept-rcpath-ratify"><td>Approuver (<a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a> : Accepter ; RCPath : Ratifier)</td>
+<td>Bouton avec confirmation et notes finales facultatives</td>
+<td>Notes facultatives</td>
+<td>Nécessite <code>config:protocol:approve</code>. Une personne qui a rédigé ou modifié le modèle ne peut pas l'approuver sauf si l'auto-approbation est activée, et ne peut pas approuver deux fois.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-publish-cap-release"><td>Publier (CAP : Diffuser)</td>
+<td>Bouton avec confirmation</td>
+<td>Sans objet</td>
+<td>Nécessite <code>config:protocol:publish</code>, le nombre requis d'approbations indépendantes et au moins 80 % de couverture SNOMED au niveau des champs pour un modèle diagnostique. La publication le met à la disposition de tous les pathologistes en même temps.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-needs-changes"><td>Modifications requises</td>
+<td>Bouton avec motif obligatoire</td>
+<td>Motif obligatoire</td>
+<td>Renvoie le protocole à l'auteur. Nécessite <code>config:protocol:approve</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-review-reset-to-draft"><td>Réinitialiser en brouillon</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Remet un protocole à l'état de brouillon.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Rédiger, importer, créer, enregistrer, soumettre : <code>config:protocol:draft</code>. Approuver et renvoyer pour modifications : <code>config:protocol:approve</code>. Publier : <code>config:protocol:publish</code>. Retirer (archiver, restaurer) : <code>config:protocol:retire</code>. Toutes sont à risque élevé et auditées. Auteur de modèles détient draft ; Approbateur de modèles détient approve, publish et retire ; Administrateur détient les quatre ; Directeur de laboratoire détient toutes sauf draft. Soumettre, renvoyer, approuver et publier envoient chacun une notification (aux approbateurs, à l'auteur, etc.).
+<strong>Limites connues.</strong> Le réviseur et l'éditeur sont des pages complètes distinctes (<code>/template-review/:id</code>, <code>/template-editor/:id</code>). Leur référence champ par champ ne fait pas partie des 15 écrans de ce chapitre ; voir <a href="#ch6-protocol-editor">Champs de l'éditeur de modèle</a>.</p>
+<h3 id="screen-protocols-active"><a class="anchor" href="#screen-protocols-active" aria-label="Link to this section">#</a> Protocoles actifs</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; Protocoles actifs"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>Protocoles actifs</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Bibliothèque synoptique</strong> &gt; <strong>Protocoles actifs</strong>
+<strong>2. Élément de maintenance :</strong> Protocoles publiés</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Les listes de contrôle actuellement proposées dans le flux de compte rendu synoptique (état Publié), regroupées par catégorie et filtrées par Anatomopathologie chirurgicale, Cytologie non gynécologique, Cytologie <a class="term" href="99-glossary.html#g-gyn" title="Gynécologique, comme dans la cytologie GYN, le dépistage des prélèvements cervicaux.">GYN</a> ou Découpage. Cliquez sur une ligne pour la développer et afficher les statistiques, le suivi du cycle de vie et les actions.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les protocoles arrivent dans cette liste en étant publiés depuis la file de révision : traitez donc d'abord la file. Si vous la sautez, la liste est vide (« Aucun <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> trouvé »).</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 8</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-protocols-review">File de révision</a>, <a href="03-tier2-master-dictionaries.html#screen-governing_bodies">Organismes de réglementation</a></dd><dt>Cela débloque</dt><dd><a href="#screen-templates-routing">Règles de routage</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/protocols-active.webp" alt="Protocoles actifs regroupés par catégorie avec une ligne développée" loading="lazy"><figcaption>Protocoles actifs regroupés par catégorie avec une ligne développée</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-active-group-filter"><td>Filtre de groupe</td>
+<td>Choix : Tous, Anatomopathologie chirurgicale, Cytologie non gynécologique, Cytologie GYN, Découpage, chacun avec un décompte</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tous</td>
+</tr>
+<tr id="f-protocols-active-search"><td>Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Correspond au nom, à la catégorie ou à la source.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-active-upload-protocol"><td>Téléverser un protocole</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#ch6-upload-window">fenêtre de téléversement</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-build-customise"><td>Créer / Personnaliser</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la <a href="#ch6-build-window">fenêtre de création</a>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-row-name-version-source-badge-type-lifecycle-badge"><td>Ligne : nom, version, badge de source, type, badge de cycle de vie</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-sections"><td>Sections</td>
+<td>Nombre en lecture seule</td>
+<td>Sans objet</td>
+<td>Une estimation : le nombre de champs divisé par 7, arrondi, minimum 1. Ce n'est pas un décompte des sections réelles du protocole.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-fields"><td>Champs</td>
+<td>Nombre en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-last-modified"><td>Dernière modification</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-owner"><td>Propriétaire</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-snomed-ct-coverage-icd-10-11-coverage"><td>Couverture <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, une vaste terminologie clinique.">SNOMED CT</a>, couverture <a class="term" href="99-glossary.html#g-icd-10" title="La Classification internationale des maladies, dixième révision, un jeu de codes de diagnostic.">CIM-10</a>/11</td>
+<td>Barres en lecture seule, pourcentage</td>
+<td>Sans objet</td>
+<td>Couverture du codage au niveau des champs.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-view-protocol"><td>Voir le protocole</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre le réviseur en lecture seule.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-duplicate"><td>Dupliquer</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre l'éditeur avec une copie (un nouveau protocole).</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-export-json"><td>Exporter le <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a></td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Télécharge le protocole sous forme de fichier JSON PathScribe ; l'export est audité.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-new-version"><td>Nouvelle version</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre l'éditeur sur la version suivante. La publication de la nouvelle version archive celle-ci.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-active-archive"><td>Archiver</td>
+<td>Bouton avec confirmation</td>
+<td>Sans objet</td>
+<td>Le retire des nouveaux comptes rendus. Un protocole publié affiche un avertissement plus fort. Les comptes rendus déjà rédigés conservent leur contenu. Nécessite <code>config:protocol:retire</code>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Comme pour la <a href="#screen-protocols-review">File de révision</a>. Consulter et exporter ne nécessitent que l'accès à l'écran.
+<strong>Limites connues.</strong> Le chiffre des Sections est une estimation.</p>
+<h3 id="screen-protocols-all"><a class="anchor" href="#screen-protocols-all" aria-label="Link to this section">#</a> Tous les protocoles</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; Tous les protocoles"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>Tous les protocoles</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Bibliothèque synoptique</strong> &gt; <strong>Tous les protocoles</strong>
+<strong>2. Élément de maintenance :</strong> La bibliothèque complète</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Tous les protocoles dans tous les états, regroupés par catégorie. C'est le seul endroit où trouver les brouillons et les protocoles archivés et où restaurer un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> archivé.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Aucun, si ce n'est que la bibliothèque doit avoir du contenu.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="#screen-protocols-review">File de révision</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/protocols-all.webp" alt="Tous les protocoles avec les pastilles de filtre de statut" loading="lazy"><figcaption>Tous les protocoles avec les pastilles de filtre de statut</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-status-filter"><td>Filtre de statut</td>
+<td>Choix : Tous, Publié, Approuvé, En révision, Modifications requises, Brouillon, Archivé, chacun avec un décompte</td>
+<td>Facultatif</td>
+<td><strong>Tous</strong> masque les protocoles archivés ; ils ne s'affichent que sous <strong>Archivé</strong>.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-protocols-all-search"><td>Recherche</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Correspond au nom, à la catégorie ou à la source.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-upload-protocol-build-customise"><td>Téléverser un protocole, Créer / Personnaliser</td>
+<td>Boutons</td>
+<td>Sans objet</td>
+<td>Comme ci-dessus.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-row-name-version-source-type-lifecycle-badge-review-note"><td>Ligne : nom, version, source, type, badge de cycle de vie, note de relecture</td>
+<td>Lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-open-reviewer"><td>Ouvrir le réviseur</td>
+<td>Bouton, absent sur Publié ou Archivé</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-open-editor"><td>Ouvrir l'éditeur</td>
+<td>Bouton, absent sur Publié ou Archivé</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-duplicate-export-json-archive"><td>Dupliquer, Exporter le <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a>, Archiver</td>
+<td>Boutons</td>
+<td>Sans objet</td>
+<td>Comme sur Protocoles actifs (Dupliquer et Archiver ne sont pas proposés sur une ligne archivée).</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-restore-as-draft"><td>Restaurer en brouillon</td>
+<td>Bouton, lignes archivées uniquement</td>
+<td>Sans objet</td>
+<td>Ramène un protocole archivé comme brouillon ; il doit repasser par la relecture.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Comme pour la File de révision.
+<strong>Limites connues.</strong> Aucune limite connue.</p>
+<h4 id="ch6-upload-window"><a class="anchor" href="#ch6-upload-window" aria-label="Link to this section">#</a> Fenêtre de téléversement</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; Téléverser un protocole"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>Téléverser un <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a></span></nav>
+
+<figure class="shot"><img src="../img/protocols-upload.webp" alt="Fenêtre Téléverser un protocole avec organisme de réglementation et zone de dépôt de fichier" loading="lazy"><figcaption>Fenêtre Téléverser un protocole avec organisme de réglementation et zone de dépôt de fichier</figcaption></figure>
+
+<p>Sous-titre : « Téléversement manuel — solution de secours en cas d'échec de la synchronisation nocturne ». Un avertissement indique qu'un protocole importé est enregistré comme brouillon et doit être soumis à la relecture et approuvé avant de pouvoir être publié.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-governing-body"><td>Organisme régulateur</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a>, RCPath, ICCR, RCPA, Autre</td>
+<td>Obligatoire</td>
+<td>Consigné comme source du brouillon.</td>
+<td>CAP</td>
+</tr>
+<tr id="f-protocols-all-file"><td>Fichier</td>
+<td>Fichier <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un format de données en texte brut utilisé par l&#x27;API, par `config.json` et par les webhooks.">JSON</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un format texte utilisé par les formulaires CAP SDC et certains fichiers de registre.">XML</a> ou XLSX, jusqu'à 10 Mo, déposé ou parcouru</td>
+<td>Obligatoire</td>
+<td>Lu et contrôlé dès qu'il est choisi.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-protocols-all-format-check-result"><td>Résultat du contrôle de format</td>
+<td>Liste en lecture seule</td>
+<td>Sans objet</td>
+<td>Indique si le format est valide, liste les problèmes, et précise toujours que le contenu n'est pas vérifié par rapport au CAP ou au RCPath. Seul un protocole JSON PathScribe peut être importé. Un formulaire XML <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP electronic Cancer Checklists, la forme structurée des protocoles de cancérologie du CAP, distribuée au format SDC XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, la norme de formulaire XML utilisée pour distribuer les listes de contrôle de cancérologie électroniques du CAP.">SDC</a>) ou un classeur Excel est contrôlé mais « peut être contrôlé ici mais pas encore importé ».</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-import-as-draft"><td>Importer comme brouillon</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Enregistre le brouillon. Refusé si un protocole du même nom existe, ou sans <code>config:protocol:draft</code>.</td>
+<td>Désactivé tant que le fichier n'est pas importable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-build-window"><a class="anchor" href="#ch6-build-window" aria-label="Link to this section">#</a> Fenêtre Créer / Personnaliser</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; Créer / Personnaliser"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>Créer / Personnaliser</span></nav>
+
+<figure class="shot"><img src="../img/protocols-build.webp" alt="Fenêtre Créer / Personnaliser" loading="lazy"><figcaption>Fenêtre Créer / Personnaliser</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-start-from-scratch"><td>Commencer à zéro</td>
+<td>Choix</td>
+<td>Facultatif</td>
+<td>Ouvre l'éditeur sur un modèle vierge.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-existing-template-search"><td>Recherche de modèle existant</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Recherche par nom, source ou catégorie.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-existing-template"><td>Modèle existant</td>
+<td>Choix dans la bibliothèque, chacun indiquant la version et le nombre de champs</td>
+<td>Facultatif</td>
+<td>Le modèle à copier.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-protocols-all-customise-this-template"><td>Personnaliser ce modèle</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre l'éditeur sur une copie.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-protocol-editor"><a class="anchor" href="#ch6-protocol-editor" aria-label="Link to this section">#</a> Champs de l'éditeur de modèle</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Bibliothèque synoptique &gt; Éditeur de modèle"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Bibliothèque <a class="term" href="99-glossary.html#g-synoptic" title="Un compte rendu construit à partir d&#x27;un ensemble fixe de questions structurées, de sorte que chaque élément requis reçoive une réponse sous la même forme.">synoptique</a></span> <span aria-hidden="true">›</span> <span>Éditeur de modèle</span></nav>
+
+<figure class="shot"><img src="../img/protocols-editor.webp" alt="Éditeur de modèle synoptique avec métadonnées, sections et champs" loading="lazy"><figcaption>Éditeur de modèle synoptique avec métadonnées, sections et champs</figcaption></figure>
+
+<p>L'éditeur est une page complète. Son <a class="term" href="99-glossary.html#g-block" title="Un fragment de tissu inclus dans de la paraffine à l&#x27;intérieur d&#x27;une cassette, dans lequel les lames sont coupées.">bloc</a> <strong>Métadonnées du modèle</strong> figure ci-dessous ; les sections et les champs portent de nombreux autres paramètres (type de champ, options de réponse avec codage SNOMED et CIM, conditions, règles de décompte, rôles de compte rendu pT, pN, pM, stade FIGO et identifiant de bloc). La référence complète de cette page est une question ouverte pour le guide.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-template-name"><td>Nom du modèle</td>
+<td>Texte</td>
+<td>Obligatoire</td>
+<td>Doit être unique parmi les protocoles non archivés.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-anatomical-category"><td>Catégorie anatomique</td>
+<td>Choix parmi des pastilles de catégorie</td>
+<td>Facultatif</td>
+<td>Regroupe le <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a> dans les listes.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-source-governing-body"><td>Source / Organisme de référence</td>
+<td>Choix parmi des pastilles de source</td>
+<td>Obligatoire</td>
+<td>Détermine les noms d'action (Accepter, Ratifier, Approuver).</td>
+<td>Custom</td>
+</tr>
+<tr id="f-protocols-all-reporting-standard"><td>Système de classification</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Pour les systèmes de cytologie, par exemple l'édition de <a class="term" href="99-glossary.html#g-bethesda" title="Le système de compte rendu des résultats de cytologie cervicale et de l&#x27;adéquation des prélèvements, utilisé aux États-Unis et largement ailleurs.">Bethesda</a>.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-staging-edition"><td>Édition de la classification</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Par exemple <code>AJCC 8th</code>.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-protocols-all-version"><td>Version</td>
+<td>Numéros majeur, mineur et de correctif avec boutons d'incrémentation</td>
+<td>Obligatoire</td>
+<td>Incrémentée automatiquement par Nouvelle version.</td>
+<td><code>1.0.0</code></td>
+</tr>
+<tr id="f-protocols-all-save-draft"><td>Enregistrer le brouillon</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Nécessite <code>config:protocol:draft</code>.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-protocols-all-submit-for-review"><td>Soumettre à la révision</td>
+<td>Bouton avec confirmation</td>
+<td>Sans objet</td>
+<td>Place le modèle dans la File de révision et prévient les administrateurs et les responsables cliniques. Vous ne pouvez plus le modifier tant qu'il n'a pas été renvoyé.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch6-scheduled-delivery"><a class="anchor" href="#ch6-scheduled-delivery" aria-label="Link to this section">#</a> Moteur de comptes rendus planifiés et règles de diffusion automatique</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span></nav>
+
+<p>Trois paramètres déterminent ce qu'il advient d'un compte rendu après la signature : les <strong>Règles de configuration de la diffusion</strong> choisissent les canaux, les <strong>Règles de routage des destinations d'impression</strong> choisissent l'imprimante pour le canal d'impression, et les <strong>Horaires d'envoi</strong> choisissent le moment. Un quatrième écran, <strong>Mes exportations</strong>, liste les fichiers qu'une personne a demandés.</p>
+<p><strong>État des canaux, un par un.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Canal</th>
+<th>Statut</th>
+<th>Ce qui existe aujourd'hui</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fax</td>
+<td>Réalisé</td>
+<td>Une règle de diffusion peut définir un canal sur E-fax avec un numéro de fax (7 à 15 chiffres, <code>+</code> initial facultatif). PathScribe envoie le <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, la forme sous laquelle un compte rendu signé est conservé et imprimé.">PDF</a> signé et ses détails au serveur d'interfaces sous la forme d'un message <code>REPORT_DELIVERY</code> ; le serveur le transmet à une passerelle de messagerie vers fax. La passerelle est configurée sur le serveur, pas dans PathScribe. Si le serveur n'a pas de canal de fax, il répond 503 et la diffusion échoue avec ce motif. Contrat : <code>REPORT_DELIVERY_API.md</code> ; récepteur de développement : <code>functions/report_delivery.py</code>. Taille maximale du PDF 20 Mo.</td>
+</tr>
+<tr>
+<td>Portail</td>
+<td>Non réalisé</td>
+<td>Il n'y a pas de canal de portail dans les règles de diffusion. La fiche Établissement comporte un choix <strong>Mode de livraison</strong> (E-mail, Fax, Portail, <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, la famille de normes pour l&#x27;échange d&#x27;informations de santé entre systèmes.">HL7</a>) qui est conservé mais que rien ne lit lors de l'envoi d'un compte rendu.</td>
+</tr>
+<tr>
+<td>Messagerie sécurisée</td>
+<td>Démonstration</td>
+<td>Ce n'est pas un canal des règles de diffusion. Une personne lance depuis une fenêtre un message sécurisé lié à un <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> ; il est remis dans la <a href="07-tier6-interface-engine.html#screen-simulated_mail">Boîte d’envoi simulée</a> et rien ne quitte le bâtiment. Aucun canal de messagerie réel n'est connecté.</td>
+</tr>
+<tr>
+<td>File d'impression</td>
+<td>Réalisé</td>
+<td>Le canal Impression crée un travail d'impression. L'imprimante provient des règles de routage d'impression, à défaut de la destination par défaut de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>. Les travaux se gèrent dans l'écran File d'impression (voir la <a href="#ch6-batch-jobs">Partie 4</a>).</td>
+</tr>
+<tr>
+<td>Électronique (message de résultat)</td>
+<td>Réalisé</td>
+<td>Le message de résultat vers le moteur d'interfaces. C'est la valeur par défaut lorsqu'aucune règle ne correspond.</td>
+</tr>
+<tr>
+<td>Dépôt de fichier</td>
+<td>Réalisé</td>
+<td>Le serveur écrit le PDF dans un dossier ou sur une cible <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a>. La règle nomme la cible ; le serveur conserve son adresse et ses identifiants de connexion.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="screen-delivery_rules"><a class="anchor" href="#screen-delivery_rules" aria-label="Link to this section">#</a> Règles de configuration de la diffusion</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de configuration de la diffusion"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de configuration de la diffusion</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Règles de configuration de la diffusion</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Décide comment chaque compte rendu validé est envoyé : par le message de résultat, imprimé, télécopié, déposé sur une cible de fichier, ou retenu pour une récupération manuelle. Une règle porte sur le prescripteur, l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> demandeur, l'emplacement du patient (point de <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a>) et le type de compte rendu. La règle qui correspond au plus grand nombre de champs l'emporte. Lorsqu'aucune règle ne correspond, le compte rendu part en <strong>Électronique uniquement</strong>. L'écran contient aussi le paramètre de nouvelles tentatives automatiques du site et un panneau de test.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Les règles désignent des prescripteurs, des établissements et des emplacements, et un canal d'impression a besoin d'un endroit où imprimer. Si vous sautez les établissements et les médecins, les listes de critères sont vides. Si vous sautez le routage d'impression, un travail d'impression se rabat sur la destination par défaut de l'établissement.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 10</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l&#x27;établissement</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Médecins</a>, <a href="#screen-print_routing_rules">Règles de routage des destinations d&#x27;impression</a></dd><dt>Cela débloque</dt><dd><a href="#screen-delivery_schedules">Horaires d&#x27;envoi</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-delivery_rules.webp" alt="Règles de configuration de la diffusion avec le tableau des règles, le paramètre de nouvelles tentatives et le panneau de test" loading="lazy"><figcaption>Règles de configuration de la diffusion avec le tableau des règles, le paramètre de nouvelles tentatives et le panneau de test</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<p>Contrôles de l'écran :</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-rules-table-criteria-channels-note"><td>Tableau des règles : Critères, Canaux, Remarque</td>
+<td>Liste en lecture seule</td>
+<td>Sans objet</td>
+<td>Les critères se lisent Prescripteur, Établissement, Emplacement et Compte rendu, ou « Correspond à tous les dossiers (priorité la plus basse) ». Les canaux se lisent sous forme de listes Principal, Secondaire et Secours, ou « Rien n’est envoyé ».</td>
+<td>Vide : chaque <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> se résout en Électronique uniquement</td>
+</tr>
+<tr id="f-delivery_rules-add-rule"><td>Ajouter une règle</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Ouvre la fenêtre de règle.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-delivery_rules-edit-delete"><td>Modifier, Supprimer</td>
+<td>Boutons de ligne</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-delivery_rules-automatic-retries-wait-before-each-minutes"><td>Nouvelles tentatives automatiques : délai avant chacune (minutes)</td>
+<td>Minutes entières séparées par des virgules, chacune de 1 à 1,440, 10 au maximum</td>
+<td>Facultatif</td>
+<td>Une impression, une télécopie ou un dépôt de fichier qui échoue est retenté après chaque délai, dans l'ordre. Après la dernière tentative, l'envoi passe dans les exceptions de diffusion, un message est envoyé à Administrateur et Directeur de laboratoire, et les canaux de secours de la règle sont utilisés. Vide signifie aucune nouvelle tentative.</td>
+<td><code>1, 5, 15</code></td>
+</tr>
+<tr id="f-delivery_rules-save-retries"><td>Enregistrer les tentatives</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Nécessite <code>config:delivery-rules:manage</code>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-delivery-rule-window"><a class="anchor" href="#ch6-delivery-rule-window" aria-label="Link to this section">#</a> Ajouter ou modifier une règle de diffusion</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de configuration de la diffusion &gt; Ajouter une règle"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de configuration de la diffusion</span> <span aria-hidden="true">›</span> <span>Ajouter une règle</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_rules-edit.webp" alt="Fenêtre Ajouter une règle de diffusion avec critères et canaux" loading="lazy"><figcaption>Fenêtre Ajouter une règle de diffusion avec critères et canaux</figcaption></figure>
+
+<p>Chaque critère est facultatif. Une règle sans aucun critère correspond à tous les dossiers, mais seulement comme correspondance de priorité la plus basse. La fenêtre en avertit.</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider"><td>Prescripteur</td>
+<td>Liste de médecins</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout prescripteur</td>
+</tr>
+<tr id="f-delivery_rules-ordering-facility"><td>Établissement demandeur</td>
+<td>Liste d'établissements</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a></td>
+</tr>
+<tr id="f-delivery_rules-patient-location-point-of-care"><td>Emplacement du patient (point de <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a>)</td>
+<td>Liste d'emplacements</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout emplacement</td>
+</tr>
+<tr id="f-delivery_rules-report-type"><td>Type de rapport</td>
+<td>Choix : Préliminaire, Final, Corrigé, Addendum</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout type de rapport</td>
+</tr>
+<tr id="f-delivery_rules-channel-electronic-result-message-to-the-interface-engine"><td>Canal : Électronique (message de résultat vers le moteur d'interfaces)</td>
+<td>Choix : Désactivé, Principal, Secondaire, Secours</td>
+<td>Facultatif</td>
+<td>Les canaux principaux et secondaires partent aussitôt. Les canaux de secours partent lorsqu'une impression, une télécopie ou un dépôt de fichier principal n'a nulle part où aller ou échoue encore après ses nouvelles tentatives.</td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-delivery_rules-channel-print"><td>Canal : Impression</td>
+<td>Idem</td>
+<td>Facultatif</td>
+<td></td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-delivery_rules-channel-e-fax"><td>Canal : Télécopie électronique</td>
+<td>Idem</td>
+<td>Facultatif</td>
+<td></td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-delivery_rules-channel-file-drop"><td>Canal : Dépôt de fichier</td>
+<td>Idem</td>
+<td>Facultatif</td>
+<td></td>
+<td>Désactivé</td>
+</tr>
+<tr id="f-delivery_rules-fax-number"><td>Numéro de télécopie</td>
+<td>Texte, 7 à 15 chiffres avec <code>+</code> facultatif</td>
+<td>Facultatif</td>
+<td>Laissez vide pour télécopier au médecin prescripteur, ou, sans numéro de télécopie, à l'établissement demandeur.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_rules-file-drop-target"><td>Cible du dépôt de fichier</td>
+<td>Texte, le nom de la cible tel qu'il est défini sur le serveur d'interfaces</td>
+<td>Obligatoire lorsque Dépôt de fichier est activé</td>
+<td>Le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> ou le serveur <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, un moyen sécurisé de copier des fichiers vers un autre système.">SFTP</a> et ses identifiants de connexion sont conservés sur le serveur, pas dans PathScribe.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_rules-note"><td>Remarque</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Pourquoi la règle existe.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<p>Un canal de secours sans canal principal est refusé (« Un canal de secours nécessite un canal principal. »). Un numéro de télécopie qui n'a pas 7 à 15 chiffres, ou un dépôt de fichier sans cible, est refusé.</p>
+<h4 id="ch6-delivery-test"><a class="anchor" href="#ch6-delivery-test" aria-label="Link to this section">#</a> Tester la résolution de la diffusion</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de configuration de la diffusion &gt; Tester"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de configuration de la diffusion</span> <span aria-hidden="true">›</span> <span>Tester</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_rules-test.webp" alt="Panneau Tester la résolution de la diffusion" loading="lazy"><figcaption>Panneau Tester la résolution de la diffusion</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider-ordering-facility-patient-location-report-type"><td>Prescripteur, Établissement demandeur, Emplacement du patient, Type de rapport</td>
+<td>Sélecteurs, comme ci-dessus</td>
+<td>Facultatif</td>
+<td>Les détails du <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> à tester.</td>
+<td>Tous</td>
+</tr>
+<tr id="f-delivery_rules-resolve"><td>Résoudre</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Affiche la règle correspondante, l'action résolue (Électronique uniquement, Impression uniquement, Double envoi, Suppression) et le plan des canaux. En l'absence de correspondance, il indique que la valeur par défaut Électronique uniquement s'applique.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Ajouter, modifier, supprimer des règles et enregistrer les tentatives : <code>config:delivery-rules:manage</code> (risque élevé, auditée). Administrateur et Directeur de laboratoire la détiennent. Renvoyer une diffusion en échec passe par les écrans File d'impression ou Envois sortants et leurs propres capacités.
+<strong>Limites connues.</strong> Le fax et le dépôt de fichier exigent que ces canaux et ces cibles soient configurés sur le serveur d'interfaces. Portail est Non réalisé. La messagerie sécurisée n'est pas un canal ici.</p>
+<h3 id="screen-delivery_schedules"><a class="anchor" href="#screen-delivery_schedules" aria-label="Link to this section">#</a> Horaires d'envoi</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Horaires d&#x27;envoi"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Horaires d&#x27;envoi</span></nav>
+
+<p><strong>Statut :</strong> Partiel</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Horaires d'envoi</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Définit <strong>quand</strong> les envois partent, par flux, pour toute l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a>, avec une dérogation facultative pour un <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> exécutant. Chaque <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> a son horaire. PathScribe décide quand un élément peut quitter sa file ; le moteur d'interfaces décide comment il est envoyé. Flux : Envoi des rapports, Envoi de la facturation, Flux de résultats, Flux d'admissions (<a class="term" href="99-glossary.html#g-adt" title="Admission, sortie, transfert (Admit, Discharge, Transfer). La famille de messages HL7 qui transportent l&#x27;enregistrement et les mouvements des patients, comme A01 (admission), A08 (mise à jour du patient) et A40 (fusion de patients).">ADT</a>), Flux d'enregistrement, Synchronisation LIS, Registre. <strong>Partiel :</strong> l'horaire est conservé, résolu et évalué, et la <a class="term" href="99-glossary.html#g-outbound-queue" title="La liste des messages et des actes facturables que PathScribe a construits et qui sont en attente d&#x27;envoi, retenus, envoyés ou en échec.">file d'envoi</a> affiche pour chaque élément son heure prévue et l'<a class="term" href="99-glossary.html#g-flag" title="Un marqueur placé sur un dossier ou un prélèvement, par exemple pour demander une coloration supplémentaire ou pour suspendre un dossier.">indicateur</a> d'échéance de déclaration. Le contrat prévoit que le serveur de production doit appliquer les mêmes règles avant de transmettre un élément ; une version navigateur ou de développement ne retient pas un envoi jusqu'à son heure.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Une dérogation d'établissement choisit parmi les établissements, qui viennent donc en premier. Si vous sautez cette étape, seul l'horaire de l'entreprise peut être défini.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 11</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l&#x27;établissement</a>, <a href="#screen-delivery_rules">Règles de configuration de la diffusion</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-delivery_schedules.webp" alt="Horaires d&#x27;envoi par flux avec portée entreprise et établissement" loading="lazy"><figcaption>Horaires d&#x27;envoi par flux avec portée entreprise et établissement</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<p>Contrôles de l'écran :</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-schedules-for"><td>Horaires pour</td>
+<td>Choix : Toute l'entreprise, ou un établissement exécutant</td>
+<td>Facultatif</td>
+<td>La portée en cours de modification.</td>
+<td>Toute l'entreprise</td>
+</tr>
+<tr id="f-delivery_schedules-feed-card-summary-and-source"><td>Fiche de flux : résumé et source</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td>Le résumé se lit par exemple « Lot lun., mer. à 06:00 (America/New_York) ». La source se lit « Aucun horaire défini : envoi immédiat », « Suit l'horaire de l'entreprise » ou « Défini pour cet établissement ».</td>
+<td>Envoi immédiat</td>
+</tr>
+<tr id="f-delivery_schedules-registry-cards"><td>Fiches de registre</td>
+<td>Une fiche par registre</td>
+<td>Facultatif</td>
+<td>Chaque registre a son propre horaire et n'emprunte jamais celui d'un autre.</td>
+<td>Retenir 240 minutes après la signature ; une modification remet en file</td>
+</tr>
+<tr id="f-delivery_schedules-edit-set-for-this-facility-follow-the-enterprise"><td>Modifier, Définir pour cet établissement, Suivre l'entreprise</td>
+<td>Boutons</td>
+<td>Sans objet</td>
+<td>Créent ou suppriment une dérogation d'établissement. La supprimer fait suivre l'entreprise à l'établissement.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-editor"><a class="anchor" href="#ch6-schedule-editor" aria-label="Link to this section">#</a> Éditeur d'horaire</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Horaires d&#x27;envoi &gt; Modifier"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Horaires d&#x27;envoi</span> <span aria-hidden="true">›</span> <span>Modifier</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_schedules-edit.webp" alt="Éditeur d&#x27;horaire" loading="lazy"><figcaption>Éditeur d&#x27;horaire</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-how-it-goes-out"><td>Mode d'envoi</td>
+<td>Choix : Envoyer immédiatement, Uniquement pendant des plages horaires, En lot à des heures fixes, Retenir jusqu'à la signature finale, À la signature, après une période de revue</td>
+<td>Obligatoire</td>
+<td></td>
+<td>Envoyer immédiatement</td>
+</tr>
+<tr id="f-delivery_schedules-hours-when-items-may-go-out"><td>Plages où les éléments peuvent partir</td>
+<td>Lignes de Jours, De, À (24 heures) ; Ajouter une plage / Retirer</td>
+<td>Obligatoire pour des plages horaires</td>
+<td>Chacune doit se terminer après son début le même jour.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-frequency-how-often"><td>Fréquence (À quelle fréquence)</td>
+<td>Choix : Tous les jours, Chaque semaine, Chaque mois</td>
+<td>Obligatoire pour un lot</td>
+<td></td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-batch-days"><td>Jours du lot</td>
+<td>Jours de la semaine lun. à dim.</td>
+<td>Obligatoire pour l'hebdomadaire</td>
+<td></td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-days-of-the-month"><td>Jours du mois</td>
+<td>Nombres de 1 à 28, séparés par des virgules</td>
+<td>Obligatoire pour le mensuel</td>
+<td></td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-batch-times-24-hour"><td>Heures du lot (24 h)</td>
+<td>Heures telles que <code>06:00, 22:00</code></td>
+<td>Obligatoire pour un lot</td>
+<td></td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-cutoff-time-optional"><td>Heure limite (facultative)</td>
+<td>Heure, 24 heures</td>
+<td>Facultatif</td>
+<td>Les éléments signés après cette heure un jour d'exécution attendent l'exécution suivante. Vide utilise l'heure d'exécution.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_schedules-review-hold-minutes-after-sign-out"><td>Période de revue (minutes après la signature)</td>
+<td>Nombre entier, 1 à 10,080</td>
+<td>Obligatoire pour la période de revue</td>
+<td>Alignez-la sur la fenêtre de contrôle qualité et de modification.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-delivery_schedules-days-with-no-sending"><td>Jours sans envoi</td>
+<td>Dates <code>YYYY-MM-DD</code>, séparées par des virgules</td>
+<td>Facultatif</td>
+<td>Par exemple les jours fériés. S'applique aux plages horaires et au lot.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_schedules-time-zone"><td>Fuseau horaire</td>
+<td>Nom IANA, par exemple <code>America/New_York</code></td>
+<td>Obligatoire</td>
+<td>Les heures ci-dessus sont lues dans ce fuseau horaire.</td>
+<td>Aucun</td>
+</tr>
+<tr id="f-delivery_schedules-reporting-deadline-days-from-sign-out"><td>Délai de déclaration (jours après la signature)</td>
+<td>Nombre entier, 1 à 3,650</td>
+<td>Facultatif</td>
+<td>La file signale les dossiers proches de cette échéance (à moins de 3 jours) ou qui l'ont dépassée.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_schedules-an-amendment-puts-the-item-back-in-the-queue"><td>Une modification remet l'élément en file</td>
+<td>Commutateur Oui/Non</td>
+<td>Facultatif</td>
+<td>Un rapport corrigé est renvoyé selon cet horaire. Activé par défaut pour les registres.</td>
+<td>Désactivé, sauf pour les registres</td>
+</tr>
+<tr id="f-delivery_schedules-save-schedule"><td>Enregistrer l'horaire</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Refusé s'il est invalide ou sans autorisation.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-test"><a class="anchor" href="#ch6-schedule-test" aria-label="Link to this section">#</a> Essayer un horaire</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Horaires d&#x27;envoi &gt; Essayer un horaire"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Horaires d&#x27;envoi</span> <span aria-hidden="true">›</span> <span>Essayer un horaire</span></nav>
+
+<figure class="shot"><img src="../img/system-delivery_schedules-test.webp" alt="Panneau Essayer un horaire" loading="lazy"><figcaption>Panneau Essayer un horaire</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-feed"><td>Flux</td>
+<td>Choix de flux</td>
+<td>Obligatoire</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-delivery_schedules-performing-facility"><td>Établissement exécutant</td>
+<td>Choix, ou Aucun (horaire de l'<a class="term" href="99-glossary.html#g-enterprise" title="Le niveau supérieur de l&#x27;organisation d&#x27;un client dans PathScribe. Les paramètres définis ici s&#x27;appliquent à toutes les juridictions et à tous les établissements situés en dessous, sauf s&#x27;ils sont remplacés.">entreprise</a>)</td>
+<td>Facultatif</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-delivery_schedules-registry"><td>Registre</td>
+<td>Choix</td>
+<td>Obligatoire pour le flux Registre</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-delivery_schedules-date-and-time-in-the-schedule-s-time-zone"><td>Date et heure (dans le fuseau horaire de l'horaire)</td>
+<td>Date et heure</td>
+<td>Obligatoire</td>
+<td></td>
+<td>Maintenant</td>
+</tr>
+<tr id="f-delivery_schedules-the-case-is-finally-signed-out"><td>Le <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> est signé définitivement</td>
+<td>Oui/Non</td>
+<td>Facultatif</td>
+<td></td>
+<td>Non</td>
+</tr>
+<tr id="f-delivery_schedules-signed-out-at"><td>Signé le</td>
+<td>Date et heure</td>
+<td>Facultatif</td>
+<td></td>
+<td>Vide</td>
+</tr>
+<tr id="f-delivery_schedules-check"><td>Vérifier</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Répond « Il part. » ou « Il attend. », avec le motif et la prochaine occasion.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Modifier : <code>config:delivery-schedules:manage</code> (risque élevé, auditée uniquement par flux, <a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>, <a class="term" href="99-glossary.html#g-registry" title="Un organisme qui recueille les déclarations d&#x27;une maladie ou d&#x27;un résultat de dépistage pour un pays ou un programme, tel qu&#x27;un registre du cancer ou du dépistage cervical.">registre</a> et type ; aucune donnée patient). Administrateur et Directeur de laboratoire la détiennent.
+<strong>Limites connues.</strong> Les destinations de registre, les <a class="term" href="99-glossary.html#g-field-requirements" title="Les paramètres qui déterminent quels champs d&#x27;une page doivent être renseignés avant qu&#x27;une étape puisse être terminée.">champs obligatoires</a>, l'approbation de mise en <a class="term" href="99-glossary.html#g-department" title="La classe générale d&#x27;un prélèvement à son arrivée, telle que tissu chirurgical ou cytologie des liquides. Elle détermine le modèle de macroscopie, le masque de dossier et toute dérogation de conservation.">service</a> et le transport relèvent de la configuration propre au registre, pas de l'horaire. Voir <code>DELIVERY_SCHEDULES_API.md</code>.</p>
+<h3 id="screen-print_routing_rules"><a class="anchor" href="#screen-print_routing_rules" aria-label="Link to this section">#</a> Règles de routage des destinations d'impression</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de routage des destinations d&#x27;impression"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de routage des destinations d&#x27;impression</span></nav>
+
+<p><strong>Statut :</strong> Réalisé</p>
+<p><strong>1. Navigation :</strong> onglet de Configuration <strong>Système</strong> &gt; groupe <strong>Administration et conformité</strong>
+<strong>2. Élément de maintenance :</strong> Règles de routage des destinations d'impression</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Décide vers quelle imprimante réseau part le travail d'impression d'un compte rendu validé. La portée d'une règle est un niveau : <strong>Poste de travail / Utilisateur</strong>, <strong>Emplacement</strong>, <strong>Compte client (<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> prescripteur)</strong> ou <strong>Établissement (<a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a>)</strong>. Le niveau le plus spécifique qui comporte au moins une règle active correspondante l'emporte d'emblée sur les niveaux moins spécifiques. Au sein d'un niveau, une règle peut être restreinte par <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> ou type de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a> et par déclencheur d'événement. Lorsqu'aucune règle ne correspond, le travail va à la destination par défaut de l'établissement.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Une règle désigne une imprimante atteinte par un <a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a> ou par son adresse, et une portée tirée des postes de travail, des emplacements et des établissements. Si vous sautez les agents de site, seule une adresse d'imprimante peut être indiquée. Une règle d'établissement doit utiliser les imprimantes d'agent de site propres à cet établissement.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Niveau 5, étape 9</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Agents de site</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Configuration de l&#x27;établissement</a>, <a href="02-tier1-primary-prerequisites.html#screen-workstations">Postes de travail</a></dd><dt>Cela débloque</dt><dd><a href="#screen-delivery_rules">Règles de configuration de la diffusion</a></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/system-print_routing_rules.webp" alt="Règles de routage des destinations d&#x27;impression avec tableau et panneau de test" loading="lazy"><figcaption>Règles de routage des destinations d&#x27;impression avec tableau et panneau de test</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<p>Contrôles de l'écran :</p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-rules-table-scope-criteria-destination-note"><td>Tableau des règles : Portée, Critères, Destination, Remarque</td>
+<td>Liste en lecture seule</td>
+<td>Sans objet</td>
+<td>Les critères se lisent « Prélèvement : ... », « Déclencheur : ... », ou « Correspond à tous les travaux de ce niveau ».</td>
+<td>Vide : les travaux utilisent la destination par défaut de chaque établissement</td>
+</tr>
+<tr id="f-print_routing_rules-add-rule-edit-delete"><td>Ajouter une règle, Modifier, Supprimer</td>
+<td>Boutons</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-rule-window"><a class="anchor" href="#ch6-print-rule-window" aria-label="Link to this section">#</a> Ajouter ou modifier une règle de routage d'impression</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de routage des destinations d&#x27;impression &gt; Ajouter une règle"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de routage des destinations d&#x27;impression</span> <span aria-hidden="true">›</span> <span>Ajouter une règle</span></nav>
+
+<figure class="shot"><img src="../img/system-print_routing_rules-edit.webp" alt="Fenêtre Ajouter une règle de routage d&#x27;impression" loading="lazy"><figcaption>Fenêtre Ajouter une règle de routage d&#x27;impression</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-scope-tier"><td>Niveau de portée</td>
+<td>Choix : Poste de travail / Utilisateur, Emplacement, Compte client (<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a> prescripteur), Établissement (<a class="term" href="99-glossary.html#g-performing-lab" title="L&#x27;établissement qui réalise les analyses et émet le compte rendu, par opposition à un client qui se contente d&#x27;envoyer des prélèvements.">laboratoire exécutant</a>)</td>
+<td>Obligatoire</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-print_routing_rules-scope"><td>Portée</td>
+<td>Identifiant de <a class="term" href="99-glossary.html#g-workstation" title="Un ordinateur enregistré dans un établissement, avec sa discipline, sa zone et ses imprimantes associées.">poste de travail</a> ou d'utilisateur (texte, par exemple <code>ws-fgh-theatre2-01</code>), ou une liste d'emplacements ou d'établissements</td>
+<td>Obligatoire</td>
+<td>Un avertissement s'affiche lorsqu'elle est absente.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type"><td>Prélèvement / Type de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a></td>
+<td>Choix : Chirurgie de routine, Extemporané, Cytologie</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> ou type de dossier</td>
+</tr>
+<tr id="f-print_routing_rules-event-trigger"><td>Déclencheur d'événement</td>
+<td>Choix : Validation initiale, Validation modifiée (Correction/Addendum), Préliminaire</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tout déclencheur d'événement</td>
+</tr>
+<tr id="f-print_routing_rules-print-destination-printer"><td>Destination d'impression : Imprimante</td>
+<td>Choix : Imprimante de l'<a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a>, ou Adresse de l'imprimante (envoi direct)</td>
+<td>Obligatoire</td>
+<td>Une adresse directe ne fonctionne que depuis un serveur PathScribe situé dans le réseau de l'hôpital ; depuis le cloud, utilisez une imprimante d'agent de site.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-print_routing_rules-site-performing-lab"><td>Site (laboratoire exécutant)</td>
+<td>Liste de choix</td>
+<td>Obligatoire pour une imprimante d'agent de site</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-print_routing_rules-printer"><td>Imprimante</td>
+<td>Liste des imprimantes de comptes rendus de l'agent de site</td>
+<td>Obligatoire pour une imprimante d'agent de site</td>
+<td>Nécessite l'autorisation de voir les imprimantes de ce site.</td>
+<td>Aucune</td>
+</tr>
+<tr id="f-print_routing_rules-address"><td>Adresse</td>
+<td>Adresse IP ou nom d'hôte, sans <code>http://</code> ni chemin</td>
+<td>Obligatoire pour une adresse directe</td>
+<td></td>
+<td>Aucune</td>
+</tr>
+<tr id="f-print_routing_rules-protocol"><td>Protocole</td>
+<td>Choix : <a class="term" href="99-glossary.html#g-ipp" title="Internet Printing Protocol, un protocole d&#x27;impression réseau. Dans le texte français, IPP désigne aussi l&#x27;identifiant permanent du patient utilisé à la place du MRN.">IPP</a>, <a class="term" href="99-glossary.html#g-lpr" title="Line Printer Remote, un ancien protocole d&#x27;impression réseau (aussi écrit LPR/LPD). Il ne peut pas confirmer qu&#x27;une page a été imprimée.">LPR</a>/LPD, Raw (port 9100)</td>
+<td>Obligatoire pour une adresse directe</td>
+<td></td>
+<td>Aucun</td>
+</tr>
+<tr id="f-print_routing_rules-port"><td>Port</td>
+<td>Nombre entier de 1 à 65535</td>
+<td>Facultatif</td>
+<td></td>
+<td>La valeur par défaut du <a class="term" href="99-glossary.html#g-protocol" title="Un ensemble structuré de questions pour rendre compte d&#x27;un type de dossier, tel qu&#x27;un protocole de cancérologie du CAP, à partir duquel un compte rendu synoptique est construit.">protocole</a></td>
+</tr>
+<tr id="f-print_routing_rules-ipp-path"><td>Chemin IPP</td>
+<td>Texte</td>
+<td>Facultatif, IPP uniquement</td>
+<td></td>
+<td><code>/ipp/print</code></td>
+</tr>
+<tr id="f-print_routing_rules-lpr-queue"><td>File LPR</td>
+<td>Texte</td>
+<td>Facultatif, LPR/LPD uniquement</td>
+<td></td>
+<td><code>lp</code></td>
+</tr>
+<tr id="f-print_routing_rules-name"><td>Nom</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Un nom d'usage pour l'imprimante.</td>
+<td>Vide</td>
+</tr>
+<tr id="f-print_routing_rules-note"><td>Remarque</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td>Pourquoi la règle existe.</td>
+<td>Vide</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-test"><a class="anchor" href="#ch6-print-test" aria-label="Link to this section">#</a> Tester la résolution de la destination d'impression</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration &gt; Système &gt; Administration et conformité &gt; Règles de routage des destinations d&#x27;impression &gt; Tester"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Système</span> <span aria-hidden="true">›</span> <span>Administration et conformité</span> <span aria-hidden="true">›</span> <span>Règles de routage des destinations d&#x27;impression</span> <span aria-hidden="true">›</span> <span>Tester</span></nav>
+
+<figure class="shot"><img src="../img/system-print_routing_rules-test.webp" alt="Panneau Tester la résolution de la destination d&#x27;impression" loading="lazy"><figcaption>Panneau Tester la résolution de la destination d&#x27;impression</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-workstation-user-id"><td>ID de <a class="term" href="99-glossary.html#g-workstation" title="Un ordinateur enregistré dans un établissement, avec sa discipline, sa zone et ses imprimantes associées.">poste de travail</a> / d'utilisateur</td>
+<td>Texte</td>
+<td>Facultatif</td>
+<td></td>
+<td>Vide</td>
+</tr>
+<tr id="f-print_routing_rules-location-ordering-facility-performing-facility"><td>Emplacement, Établissement prescripteur, Établissement exécutant</td>
+<td>Sélecteurs</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tous</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type-event-trigger"><td>Prélèvement / Type de <a class="term" href="99-glossary.html#g-case" title="Un épisode patient au laboratoire, identifié par un numéro d&#x27;accession et composé d&#x27;un ou plusieurs prélèvements et d&#x27;un compte rendu.">dossier</a>, Déclencheur d'événement</td>
+<td>Choix</td>
+<td>Facultatif</td>
+<td></td>
+<td>Tous</td>
+</tr>
+<tr id="f-print_routing_rules-resolve"><td>Résoudre</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td>Affiche la règle correspondante et son niveau, ainsi que la destination résolue. En l'absence de correspondance, il indique que le travail se rabattrait sur la destination par défaut de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> Ouvrir : <code>screen:configuration:open</code>. Ajouter, modifier, supprimer : <code>config:print-routing:manage</code> (risque élevé, auditée). La désignation de l'imprimante d'agent d'un site est vérifiée à ce site, de même que la consultation de ses imprimantes. Administrateur et Directeur de laboratoire la détiennent.
+<strong>Limites connues.</strong> La destination par défaut de l'établissement et son mode d'impression (imprimante nommée <a class="term" href="99-glossary.html#g-qz-tray" title="Un petit programme installé sur un ordinateur qui permet à une page web d&#x27;imprimer sur une imprimante locale, telle qu&#x27;une imprimante d&#x27;étiquettes, sans boîte de dialogue d&#x27;impression.">QZ Tray</a>, transmission au moteur d'interfaces, ou impression réseau directe), ainsi que son format de papier, se définissent dans l'onglet Impression de la fiche de l'établissement dans le <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Dictionnaire des établissements</a>, et non ici. L'impression réseau directe exige un serveur PathScribe ou un <a class="term" href="99-glossary.html#g-site-agent" title="Un petit service Windows installé dans un laboratoire qui imprime les comptes rendus et les étiquettes et écrit des fichiers sur des partages du réseau hospitalier, sur instruction du serveur API.">agent de site</a> situé dans le réseau de l'hôpital ; un navigateur ne peut pas ouvrir de connexion vers une imprimante.</p>
+<h3 id="screen-my-exports"><a class="anchor" href="#screen-my-exports" aria-label="Link to this section">#</a> Mes exportations</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Mes exportations"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Mes exportations</span></nav>
+
+<p><strong>Statut :</strong> Démonstration</p>
+<p><strong>1. Navigation :</strong> Le bouton des exportations dans la barre supérieure, qui affiche le nombre d'exportations prêtes à télécharger. Le bouton n'apparaît que lorsqu'un serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a> est connecté ; dans la démonstration, ouvrez la page à l'adresse <code>/my-exports</code>.
+<strong>2. Élément de maintenance :</strong> Les fichiers d'exportation de la personne connectée</p>
+<p><strong>3. Objectif métier et périmètre.</strong> Les exportations volumineuses (rapports d'<a class="term" href="99-glossary.html#g-qa" title="Assurance qualité, la revue du travail pour repérer et corriger les problèmes.">AQ</a>, d'audit, d'élimination et de recherche) sont préparées comme des tâches en arrière-plan. La personne en fait la demande, est prévenue lorsque le fichier est prêt, et le télécharge ici. Les fichiers sont conservés 7 jours et seule la personne qui les a demandés peut les télécharger. Dans cette démonstration, les exportations se téléchargent immédiatement, de sorte que la liste est normalement vide. Un bandeau signale le serveur simulé : les exportations sont préparées dans le navigateur et ne sont conservées que jusqu'à la déconnexion. Le contrat d'API est <code>ASYNC_EXPORT_API.md</code> ; lorsque le serveur PathScribe est connecté, une exportation volumineuse y est préparée et apparaît ici lorsqu'elle est prête.</p>
+<p><strong>4. Prérequis et dépendances.</strong> Aucun pour l'ouvrir. Une exportation n'apparaît que si sa propre <a class="term" href="99-glossary.html#g-capability" title="Une autorisation, nommée sous la forme `domain:object:verb`, telle que `config:roles:manage`. Les rôles reçoivent des capacités, et chaque action protégée en vérifie une.">capacité</a> d'exportation a été accordée (par exemple <code>qa:deficiencies:export</code>) ; accordez-les donc dans les rôles du Personnel aux personnes qui en ont besoin.</p>
+<aside class="setup" aria-label="Ordre de configuration"><p class="setup-step"><b>Ordre de configuration</b> · Référence, ne fait pas partie de la configuration</p><dl><dt>À configurer d&#x27;abord</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rôles</a></dd><dt>Cela débloque</dt><dd><span class="none">Aucun.</span></dd></dl></aside>
+
+<p><strong>5. Écran.</strong></p>
+<figure class="shot"><img src="../img/screen-my-exports.webp" alt="Liste Mes exportations avec statut, lignes et téléchargement" loading="lazy"><figcaption>Liste Mes exportations avec statut, lignes et téléchargement</figcaption></figure>
+
+<p><strong>6. Référence des champs.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nom du champ</th>
+<th>Type de données / format</th>
+<th>Obligatoire/Facultatif</th>
+<th>Description et logique métier</th>
+<th>Valeur par défaut du système</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-my-exports-export"><td>Exportation</td>
+<td>Texte en lecture seule</td>
+<td>Sans objet</td>
+<td>Le titre de l'exportation.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-requested"><td>Demandée</td>
+<td>Date et heure en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-status"><td>Statut</td>
+<td>Lecture seule : En attente, En préparation, Prête, Échec, Annulée, Expirée</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-rows"><td>Lignes</td>
+<td>Nombre en lecture seule</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-deleted-after"><td>Supprimée après</td>
+<td>Date en lecture seule</td>
+<td>Sans objet</td>
+<td>Sept jours après la demande.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-actions-download-cancel"><td>Actions : Télécharger, Annuler</td>
+<td>Boutons</td>
+<td>Sans objet</td>
+<td>Télécharger lorsque Prête ; Annuler pendant En attente ou En préparation.</td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-refresh"><td>Actualiser</td>
+<td>Bouton</td>
+<td>Sans objet</td>
+<td></td>
+<td>Sans objet</td>
+</tr>
+<tr id="f-my-exports-make-exports-take-longer-to-try-the-waiting-experience"><td>Allonger les exportations (pour essayer l’attente)</td>
+<td>Commutateur Oui/Non, affiché uniquement sur le serveur simulé</td>
+<td>Facultatif</td>
+<td>Une commande de démonstration.</td>
+<td>Désactivé</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Autorisations.</strong> La page n'exige qu'une personne connectée, et liste les exportations de cette personne uniquement. Chaque exportation est demandée sous sa propre capacité <code>...:export</code>, à risque élevé et auditée sous la forme <code>DOCUMENT_EXPORTED</code> avec le nombre de lignes.
+<strong>Limites connues.</strong> Le côté serveur n'est pas connecté. Les exportations de configuration (dictionnaires, tables de correspondance, liste des médecins) sont petites, restent dans le navigateur et n'apparaissent pas ici. Les exécutions planifiées de rapports enregistrés (page Recherche, Rapport &gt; Planifications) sont Simulées et n'envoient rien ; elles ont leur propre contrat dans <code>SCHEDULED_REPORTS_API.md</code>.</p>
+<h2 id="ch6-batch-jobs"><a class="anchor" href="#ch6-batch-jobs" aria-label="Link to this section">#</a> Configuration de l'impression par lots et du planificateur de tâches nocturnes</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Accueil &gt; Configuration"><span>Accueil</span> <span aria-hidden="true">›</span> <span>Configuration</span></nav>
+
+<p><strong>État de cette partie :</strong> Partiel. Il n'existe aucun écran unique « impression par lots et planificateur de tâches nocturnes », et un administrateur ne peut ni créer ni modifier une tâche planifiée. Ce qui existe figure ci-dessous, avec le chapitre qui documente chaque écran.</p>
+<table>
+<thead>
+<tr>
+<th>Élément</th>
+<th>Statut</th>
+<th>Où il se configure</th>
+<th>Où il est documenté</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>File d'impression (suspendre, libérer, annuler, réessayer, rediriger, actions groupées)</td>
+<td>Réalisé</td>
+<td>Les travaux se gèrent dans Journaux système &gt; Interfaces &gt; File d'impression. Les imprimantes et le routage se définissent dans les <a href="#screen-print_routing_rules">Règles de routage des destinations d'impression</a> et dans l'onglet Impression de l'<a class="term" href="99-glossary.html#g-facility" title="Un laboratoire ou un site au sein d&#x27;une entreprise. Un établissement exécutant réalise les analyses ; un établissement client se contente d&#x27;envoyer des prélèvements.">établissement</a>.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>Regroupement des impressions par lots (« Lancer le lot maintenant »)</td>
+<td>Partiel</td>
+<td>Un bouton de l'écran File d'impression avec un début et une fin de plage (heures sur 24 heures, lues en <a class="term" href="99-glossary.html#g-utc" title="Temps universel coordonné, la norme de temps dans laquelle les entrées d&#x27;audit sont enregistrées et affichées.">UTC</a>) et un choix de regroupement (Compte client ou Voie de livraison). Il regroupe sous des identifiants de lot communs les travaux en file, non transmis par interface, signés dans la plage. Il ne s'exécute que lorsque quelqu'un appuie dessus. Une tâche récurrente nommée <code>print.batchAggregation</code> apparaît dans la liste des tâches du serveur sans intervalle fixe, mais aucun calendrier n'est défini dans cette version.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">Journaux système : interfaces</a></td>
+</tr>
+<tr>
+<td>Réimpression d'étiquettes par lot</td>
+<td>Réalisé</td>
+<td>Gestion des lots &gt; Réimpression d’étiquettes : trouvez des dossiers par date ou <a class="term" href="99-glossary.html#g-accession-number" title="L&#x27;identifiant permanent d&#x27;un dossier, construit à partir du masque de dossier de l&#x27;établissement. Il est traité comme un identifiant de patient à l&#x27;écran : il est affiché dans des balises de données patient afin que les captures d&#x27;écran puissent être masquées.">numéro d'accession</a>, choisissez des cassettes, des contenants de <a class="term" href="99-glossary.html#g-specimen" title="Un échantillon prélevé sur un patient, tel qu&#x27;une biopsie ou un organe réséqué. Un dossier contient un ou plusieurs prélèvements.">prélèvement</a> ou des demandes, choisissez une imprimante de cassettes, réimprimez une étiquette à la fois. Chaque étiquette est auditée ; les étiquettes en échec peuvent être réessayées. Nécessite <code>label:batch:reprint</code>.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-batch-management">Gestion des lots</a></td>
+</tr>
+<tr>
+<td>Exportations planifiées</td>
+<td>Démonstration</td>
+<td>Les rapports de recherche de dossiers enregistrés peuvent être planifiés (chaque jour, chaque semaine ou chaque mois) depuis la page Recherche, Rapport &gt; Planifications. Une exécution est simulée et n'envoie rien. Les exportations volumineuses s'exécutent comme des tâches en arrière-plan et sont listées dans <a href="#screen-my-exports">Mes exportations</a>.</td>
+<td><code>SCHEDULED_REPORTS_API.md</code>, <code>ASYNC_EXPORT_API.md</code></td>
+</tr>
+<tr>
+<td>Tâches du serveur (santé des files, messages en échec définitif, remise en file)</td>
+<td>Réalisé, lecture et remise en file uniquement</td>
+<td>Journaux système &gt; Tâches du serveur. Affiche les types de tâches (envoi d'interface, tentative de diffusion, envoi d'impression, libération d'un compte rendu retenu, envoi d'acte facturable, construction d'exportation, événement) et les tâches récurrentes avec la fréquence de chacune. Nécessite <code>jobs:server-job:view</code> ; la remise en file d'une tâche en échec définitif nécessite <code>jobs:server-job:requeue</code>.</td>
+<td><a href="09-appendices.html#screen-audit-log">Journaux système</a></td>
+</tr>
+<tr>
+<td>Planificateur de tâches nocturnes (créer, modifier, activer ou désactiver des tâches)</td>
+<td>Non réalisé</td>
+<td>Les tâches récurrentes sont fixées sur le serveur <a class="term" href="99-glossary.html#g-api" title="Interface de programmation d&#x27;application (Application programming interface). Le serveur API de PathScribe est le service ASP.NET Core que le navigateur appelle pour toutes les données de production.">API</a>. L'écran Tâches du serveur les liste et montre leur état de santé, mais n'a aucun contrôle pour changer une heure ou en désactiver une.</td>
+<td>Sans objet</td>
+</tr>
+<tr>
+<td>Synchronisation nocturne des protocoles (<a class="term" href="99-glossary.html#g-cap" title="Le College of American Pathologists. Il accrédite les laboratoires et publie les protocoles de cancérologie (listes de contrôle) que suivent les comptes rendus synoptiques de PathScribe.">CAP</a>, RCPath, ICCR)</td>
+<td>Non réalisé</td>
+<td>Voir <a href="#ch6-synoptic">Bibliothèque synoptique</a>.</td>
+<td>Sans objet</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Tâches récurrentes que le serveur liste aujourd'hui</strong> (minutes entre deux exécutions) : balayage des nouvelles tentatives de diffusion (0.5), balayage des libérations arrivées à échéance (0.25), expiration des liens de consultation (5), escalade des registres en souffrance (60), alertes quotidiennes de suivi (1440), expiration des accès de support (5), balayage de corrélation cytologie-histologie (1440), interrogation du <a class="term" href="99-glossary.html#g-lis" title="Système d&#x27;information de laboratoire, le logiciel qui gère les demandes, les prélèvements et les résultats d&#x27;un laboratoire.">SIL</a> (son propre horaire), regroupement des lots d'impression (son propre horaire), surveillance du <a class="term" href="99-glossary.html#g-sla" title="Accord de niveau de service (Service level agreement), un délai convenu dans lequel le travail est réalisé.">SLA</a> de <a class="term" href="99-glossary.html#g-rose" title="Évaluation rapide sur site (Rapid on-site evaluation), où l&#x27;adéquation d&#x27;un prélèvement est jugée au moment où il est effectué.">ROSE</a> en cytologie (5), purge du bus de messages (1440).</p>
+<p><strong>Ordre de configuration pour le travail par lots.</strong> Il n'y a rien à configurer pour les tâches du serveur. Pour l'impression, terminez les <a href="#screen-print_routing_rules">Règles de routage des destinations d'impression</a>, puis vérifiez la File d'impression. Pour la réimpression d'étiquettes, configurez d'abord l'imprimante de cassettes dans Profils d'imprimante. Accordez <code>label:batch:reprint</code> et les capacités <code>print:job:*</code> dans les rôles du Personnel aux personnes qui exécutent ces tâches.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

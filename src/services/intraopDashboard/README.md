@@ -1,3 +1,7 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/intraopDashboard/
 
 Real, per the RFP-APLIS-2026-GLOBAL Intraoperative/Frozen Section
@@ -210,10 +214,15 @@ correlation flagging between frozen section diagnosis and final
 permanent section histology, with automated discrepancy logging" —
 confirmed directly, this app's own existing Frozen-vs-Final
 correlation (`services/quality/`, `FROZEN_FINAL_ACTIVITY_TYPE_ID`) is
-real and structurally sound, but the actual trigger is genuinely
-manual: a pathologist opens `DiscordanceReconciliationModal.tsx`
-themselves during sign-out. Nothing here automates that trigger — a
-real, separate, later piece of work.
+real and structurally sound. The trigger is automatic at sign-out:
+when a case has a merged intraop specimen with a frozen category
+(not deferred) and the facility's concordance review settings allow
+it, `pages/SynopticReportPage/hooks/useSignOutWorkflow.ts` opens
+`DiscordanceReconciliationModal.tsx` and holds sign-out until it is
+resolved. The pathologist still records the frozen-vs-final call in
+that modal; nothing in this dashboard folder takes part.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the frozen-vs-final reconciliation is triggered automatically at sign-out, not opened by hand.*
 
 ## A real, pre-existing gap found and fixed along the way
 
@@ -230,6 +239,29 @@ field that stays structurally compatible would go uncaught. Not
 restructured here (a real, separate consolidation), but worth
 knowing about independent of this specific change.
 
+## Batch 428: Configuration permissions
+
+- `mockOrSuiteTerminalService`: `add`, `update`, `deactivate` need `config:or-suite-terminals:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 589 — OR PIN role (PS-262)
+
+`resolveStaffByQuickAuthPin` identifies the OR Staff role by its id (`or-staff`) and also accepts the role name the Staff screen stores (`staffHasRole`), so a PIN set on the Staff screen works.
+
+## Batch 603: wall display binding and masking
+
+The OR Suite board binds to a terminal only with a valid Display Token (Configuration → OR Suite Terminals → "Display token") and blanks within a minute of revocation or expiry. `maskForWallDisplay.ts` replaces the patient name with the surgical case ID and room and empties the MRN as rows are read, so neither reaches the page. The dismissal confirmation shows case ID, room and diagnosis. See `services/displayAccess/README.md`.
+
+## Batch 610 (part A) — configured frozen section clock
+
+`resolveActiveIntraopRequestsForLocations` takes an optional `clockFor(entry, urgency)` returning target and warning minutes; each request carries its `urgency`.
+
+Batch 616 (part D, PS-510): server versions of OrEventLogService, OrSuiteTerminalService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.
+
+## Batch 669 (finding ops-15)
+`dismissFromBoardWithAudit.ts` gained `dismissalNoticeKey(outcome)`: a dismissal whose event-log write fails (`dismissedLogFailed`) now shows `orSuiteDashboard.dismissLogFailed` on the board, as well as logging to the console. `dismissFromBoardWithAudit.test.ts` is new.

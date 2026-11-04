@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import type { mockIntraoperativeService as MockIntraoperativeServiceType } from './mockIntraoperativeService';
 
 // Real, deliberate deviation from the usual beforeEach-based localStorage
@@ -19,7 +19,12 @@ const store: Record<string, string> = {};
   removeItem: (k: string) => { delete store[k]; },
 };
 
+// Batch 669 (ops-14): the demo controls are checked against a capability in the service.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn() }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (...a: unknown[]) => enforce(...a) } }));
+
 let mockIntraoperativeService: typeof MockIntraoperativeServiceType;
+beforeEach(() => { enforce.mockReset(); enforce.mockResolvedValue({ allowed: true }); });
 beforeAll(async () => {
   ({ mockIntraoperativeService } = await import('./mockIntraoperativeService'));
 });
@@ -209,6 +214,34 @@ describe('seedOrBoardDemoData / advanceDemoSpecimen — real, per direct request
   });
 });
 
+describe('OR Suite demo: capability and Stop demo (ops-14)', () => {
+  beforeEach(() => { enforce.mockReset(); enforce.mockResolvedValue({ allowed: true }); });
+
+  it('Start demo, Stop demo and the demo advance each need config:or-board-demo:run', async () => {
+    enforce.mockResolvedValue({ allowed: false });
+    const seed = await mockIntraoperativeService.seedOrBoardDemoData('loc-demo', 'fac-demo', 'DEMO');
+    const advance = await mockIntraoperativeService.advanceDemoSpecimen('demo-orboard-0', 'demo-orboard-0-sp');
+    const remove = await mockIntraoperativeService.removeOrBoardDemoData();
+    expect([seed.ok, advance.ok, remove.ok]).toEqual([false, false, false]);
+    expect(enforce).toHaveBeenCalledWith('config:or-board-demo:run');
+    const all = await mockIntraoperativeService.getAll();
+    if (all.ok) expect(all.data.filter(e => e.id.startsWith('demo-orboard-'))).toHaveLength(0);
+  });
+
+  it('Stop demo removes exactly the demo sessions and leaves the real ones', async () => {
+    const before = await mockIntraoperativeService.getAll();
+    const realCount = before.ok ? before.data.filter(e => !e.id.startsWith('demo-orboard-')).length : -1;
+    await mockIntraoperativeService.seedOrBoardDemoData('loc-demo', 'fac-demo', 'DEMO');
+    const removed = await mockIntraoperativeService.removeOrBoardDemoData();
+    expect(removed.ok && removed.data).toBe(4);
+    const after = await mockIntraoperativeService.getAll();
+    expect(after.ok && after.data.some(e => e.id.startsWith('demo-orboard-'))).toBe(false);
+    expect(after.ok && after.data.length).toBe(realCount);
+    const again = await mockIntraoperativeService.removeOrBoardDemoData();
+    expect(again.ok && again.data).toBe(0);
+  });
+});
+
 describe('addDigitalAsset — real, per direct follow-up on the image/PDF architecture scoping\'s own item 3', () => {
   it('appends a real, already-resolved DigitalAsset to a specimen\'s own real list', async () => {
     await mockIntraoperativeService.setFrozenSectionDiagnosis('intraop-001', 'spec-001-a', 'placeholder to ensure session exists');
@@ -279,7 +312,7 @@ describe('merge() — real, per direct guidance\u2019s own follow-up: closes the
     const { mockCriticalResultNotificationService } = await import('../clinical/mockCriticalResultNotificationService');
 
     const mergeRes = await mockIntraoperativeService.merge('intraop-003', 'CASE-MERGE-TEST-2', {
-      matchType: 'manual', confidence: null, wasManualOverride: false, performedBy: 'clerk-1',
+      matchType: 'fuzzy', confidence: 'high', wasManualOverride: false, performedBy: 'clerk-1',
     });
     expect(mergeRes.ok).toBe(true);
 
@@ -296,8 +329,61 @@ describe('merge() — real, per direct guidance\u2019s own follow-up: closes the
     // the migration step's own .catch(() => {}) genuinely swallows
     // failures rather than propagating them into the merge's result.
     const res = await mockIntraoperativeService.merge('intraop-004', 'CASE-MERGE-TEST-3', {
-      matchType: 'manual', confidence: null, wasManualOverride: false, performedBy: 'clerk-1',
+      matchType: 'fuzzy', confidence: 'high', wasManualOverride: false, performedBy: 'clerk-1',
     });
     expect(res.ok).toBe(true);
+  });
+});
+
+// Batch 399 (Pete): the verbal report is a structured record.
+describe('recordVerbalReport — who, role, read-back, and why the surgeon was unavailable (Batch 399)', () => {
+  const full = (over: Record<string, unknown> = {}) => ({
+    receivedBy: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, critical: false,
+    suggestedCriticalIds: [], suggestedCriticalNames: [], note: 'Margins clear', reportedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' }, ...over,
+  }) as any;
+
+  it('refuses a report without the read-back, or a critical one to a resident without a reason', async () => {
+    const { VERBAL_REPORT_INCOMPLETE } = await import('./mockIntraoperativeService');
+    expect(await mockIntraoperativeService.recordVerbalReport('intraop-003', full({ readBackConfirmed: false }))).toEqual({ ok: false, error: VERBAL_REPORT_INCOMPLETE });
+    expect(await mockIntraoperativeService.recordVerbalReport('intraop-003', full({ critical: true }))).toEqual({ ok: false, error: VERBAL_REPORT_INCOMPLETE });
+  });
+
+  it('records it, and the merge carries who actually received it into the case record', async () => {
+    const res = await mockIntraoperativeService.recordVerbalReport('intraop-003', full({
+      critical: true, suggestedCriticalIds: ['icr-positive-margin'], suggestedCriticalNames: ['Positive or close margin'],
+      surgeonUnavailable: { reasonId: 'SU_SCRUBBED', reasonName: 'Surgeon scrubbed in a critical step' },
+    }));
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.verbalReportLog).toMatchObject({ receivedBy: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, critical: { flagged: true } });
+
+    const { mockCriticalResultNotificationService } = await import('../clinical/mockCriticalResultNotificationService');
+    await mockIntraoperativeService.merge('intraop-003', 'CASE-MERGE-TEST-399', { matchType: 'fuzzy', confidence: 'high', wasManualOverride: false, performedBy: 'clerk-1' });
+    const notif = await mockCriticalResultNotificationService.getByCaseId('CASE-MERGE-TEST-399');
+    if (!notif.ok) throw new Error('lookup failed');
+    expect(notif.data[0]).toMatchObject({
+      clinicianName: 'Dr. Patel', recipientRole: 'surgical_resident', readBackConfirmed: true, criticalResult: true,
+      surgeonUnavailable: { reasonId: 'SU_SCRUBBED' }, notifiedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' },
+    });
+  });
+});
+
+
+describe('Batch 659: manual case id and a diagnosis added later', () => {
+  it('a case id typed by hand must be a real case', async () => {
+    const res = await mockIntraoperativeService.merge('intraop-003', 'NO-SUCH-CASE-659', { matchType: 'manual', confidence: null, wasManualOverride: true, performedBy: 'clerk-1' });
+    expect(res.ok).toBe(false);
+  });
+  it('a frozen diagnosis can be added to a saved specimen later, and stops its clock', async () => {
+    const all = await mockIntraoperativeService.getAll();
+    if (!all.ok) throw new Error('load failed');
+    const entry = all.data.find(e => e.specimens.some(sp => !sp.frozenSectionDiagnosis));
+    const sp = entry?.specimens.find(x => !x.frozenSectionDiagnosis);
+    if (!entry || !sp) return;
+    const res = await mockIntraoperativeService.setFrozenSectionDiagnosis(entry.id, sp.id, ' Benign breast tissue ', 'benign');
+    expect(res.ok).toBe(true);
+    const saved = res.ok ? res.data.specimens.find(x => x.id === sp.id) : undefined;
+    expect(saved?.frozenSectionDiagnosis).toBe('Benign breast tissue');
+    expect(saved?.frozenDiagnosisRenderedAt).toBeTruthy();
+    expect((await mockIntraoperativeService.setFrozenSectionDiagnosis(entry.id, sp.id, '  ')).ok).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
 import { IFlagService, Flag } from './IFlagService';
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_FLAGS: Flag[] = [
 
@@ -18,6 +19,8 @@ const SEED_FLAGS: Flag[] = [
   { id: 'f12', tagClass: 'ADMINISTRATIVE', name: 'Heme Oncology Notified',       lisCode: 'HEME',  description: 'Haematology oncology team has been notified',       level: 'Case',     severity: 2, status: 'Active'   },
   { id: 'f13', tagClass: 'ADMINISTRATIVE', name: 'Sarcoma Protocol',             lisCode: 'SARC',  description: 'Sarcoma multidisciplinary protocol initiated',      level: 'Case',     severity: 3, status: 'Active'   },
   { id: 'f14', tagClass: 'ADMINISTRATIVE', name: 'Pending Clinical Correlation', lisCode: 'PCC',   description: 'Awaiting clinical correlation from referring MD',   level: 'Case',     severity: 3, status: 'Active'   },
+  // Batch 516 (PS-283): a flag that restricts printing (VIP / confidential).
+  { id: 'f37', tagClass: 'ADMINISTRATIVE', name: 'Confidential — Restricted Printing', lisCode: 'CONF', description: 'VIP or confidential consultation: only staff with the restricted-case print permission can print the report', level: 'Case', severity: 4, status: 'Active', restrictsPrinting: true },
   { id: 'f15', tagClass: 'ADMINISTRATIVE', name: 'Intraoperative Consult',       lisCode: 'INTRA', description: 'Frozen section or intraoperative consultation done', level: 'Case',    severity: 4, status: 'Active'   },
   { id: 'f10', tagClass: 'ADMINISTRATIVE', name: 'Legacy Urgent',                lisCode: 'URG',   description: 'Legacy urgent flag — replaced by STAT',            level: 'Case',     severity: 4, status: 'Inactive' },
 
@@ -123,6 +126,10 @@ if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
 }
 
 let MOCK_FLAGS: Flag[] = load();
+// Batch 516: seed flags added since a browser's copy was saved are appended,
+// without resetting the flags a lab has already edited.
+const missingSeeds = SEED_FLAGS.filter(seed => !MOCK_FLAGS.some(f => f.id === seed.id));
+if (missingSeeds.length) { MOCK_FLAGS = [...MOCK_FLAGS, ...missingSeeds]; persist(MOCK_FLAGS); }
 
 // Real, confirmed fix (Jira PS-57's own follow-up): caseFilterUtils.ts
 // needs the real flag catalog to resolve a FlagInstance's
@@ -141,7 +148,7 @@ const ok    = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
 const err   = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 const delay = ()                                  => new Promise(r => setTimeout(r, 80));
 
-export const mockFlagService: IFlagService = {
+export const flagServiceUnchecked: IFlagService = {
 
   async getAll() {
     await delay();
@@ -171,6 +178,11 @@ export const mockFlagService: IFlagService = {
     return ok({ ...MOCK_FLAGS[idx], ...changes });
   },
 
-  async deactivate(id) { return mockFlagService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockFlagService.update(id, { status: 'Active'   }); },
+  async deactivate(id) { return flagServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return flagServiceUnchecked.update(id, { status: 'Active'   }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockFlagService: IFlagService = guardConfigWrites(flagServiceUnchecked, [
+  ['config:case-flags:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

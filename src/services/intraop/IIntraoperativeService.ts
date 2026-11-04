@@ -13,6 +13,7 @@
 // points in their own workflow.
 // ─────────────────────────────────────────────────────────────────────────────
 import { ServiceResult } from '../types';
+import type { VerbalReportInput } from '@/types/intraop/IntraoperativeEntry';
 import type { IntraoperativeEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext, PreparationType } from '@/types/intraop/IntraoperativeEntry';
 import type { DigitalAsset } from '@/types/case/Material';
 
@@ -66,6 +67,10 @@ export interface IIntraoperativeService {
   addDigitalAsset(sessionId: string, specimenId: string, asset: DigitalAsset): Promise<ServiceResult<IntraoperativeEntry>>;
 
   setFrozenSectionDiagnosis(sessionId: string, specimenId: string, diagnosis: string, category?: FrozenCategory): Promise<ServiceResult<IntraoperativeEntry>>;
+  /** Batch 610 (#68): mark a specimen STAT or routine, which decides the
+   *  FROZEN_SECTION target its board clock counts against. Refused once the
+   *  frozen diagnosis has been rendered (the clock has stopped). */
+  setSpecimenUrgency(sessionId: string, specimenId: string, urgency: 'STAT' | 'ROUTINE'): Promise<ServiceResult<IntraoperativeEntry>>;
   /** Real, per the OR Suite Live Board's own dismissal workflow spec —
    *  the real, two-step-confirmed action that removes one specimen's
    *  own row from the active board once its frozen diagnosis has been
@@ -101,6 +106,12 @@ export interface IIntraoperativeService {
    *  loops back to the start on its own. */
   advanceDemoSpecimen(sessionId: string, specimenId: string): Promise<ServiceResult<{ entry: IntraoperativeEntry; advanced: boolean }>>;
 
+  /** Batch 669 (ops-14): the OR Suite Live Board's "Stop demo". Removes the demo sessions the Start demo control
+   *  created (and only those: their ids start with `demo-orboard-`) from the real intraoperative data, so nothing
+   *  invented stays on the board. Returns how many sessions were removed. Needs the same capability as Start demo
+   *  (`config:or-board-demo:run`), checked here as well as in the page. */
+  removeOrBoardDemoData(): Promise<ServiceResult<number>>;
+
   /** Real, new method, per direct guidance — resolves PS-82's real,
    *  confirmed gap: the itemized, countable record of what was
    *  actually produced at the bench (a specific frozen block, a
@@ -120,5 +131,11 @@ export interface IIntraoperativeService {
    *  merge, which is automatic). Before this, verbalReportLog only ever
    *  existed in hardcoded seed data with no real way to set it for a live
    *  case — this is that missing capture path. */
-  recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>>;
+  //
+  // Batch 399 (Pete): a structured record. Who received it, their role and
+  // the read-back are required; a critical result given to anyone but the
+  // operating surgeon needs a "Surgeon unavailable" reason
+  // (services/intraop/verbalReport.ts). Refused with VERBAL_REPORT_INCOMPLETE
+  // otherwise. Audited.
+  recordVerbalReport(sessionId: string, input: VerbalReportInput): Promise<ServiceResult<IntraoperativeEntry>>;
 }

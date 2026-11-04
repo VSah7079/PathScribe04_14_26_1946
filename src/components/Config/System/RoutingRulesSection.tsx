@@ -27,6 +27,7 @@ import { Subspecialty } from '../../../services/subspecialties/ISubspecialtyServ
 import RuleModal from './RuleModal';
 import { duplicateRoutingRule } from '@/services/duplication/duplicateEntities';
 import ConfirmModal from '../../Common/ConfirmModal';
+import { switchable } from '@/utils/a11y/pressable';
 
 // ─── Main Section ─────────────────────────────────────────────────────────────
 
@@ -51,7 +52,8 @@ const RoutingRulesSection: React.FC = () => {
     });
   }, []);
 
-  const persist = (next: RoutingRule[]) => { setRules(next); saveRoutingRules(next); };
+  // Batch 428: saved only when the person holds config:case-routing:manage.
+  const persist = async (next: RoutingRule[]) => { if (await saveRoutingRules(next)) setRules(next); };
 
   // Add vs update keys off the modal's mode. For a duplicate, the copy's
   // fields this form doesn't show (lab scope, mapped specimen types) carry
@@ -135,7 +137,7 @@ const RoutingRulesSection: React.FC = () => {
           {t('routingRulesSection.testRouting.label')}
         </div>
         <div className="ps-routingrules__test-row">
-          <input
+          <input aria-label={t('routingRulesSection.testRouting.label')}
             value={testInput}
             onChange={e => { setTestInput(e.target.value); setTestResult(null); }}
             onKeyDown={e => e.key === 'Enter' && handleTest()}
@@ -169,9 +171,9 @@ const RoutingRulesSection: React.FC = () => {
 
       {/* Filters */}
       <div className="ps-routingrules__filters">
-        <input type="text" placeholder={t('routingRulesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('routingRulesSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-routingrules__search-input" />
-        <select value={filter} onChange={e => setFilter(e.target.value as any)}
+        <select data-dirty-ignore data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
           aria-label={t('routingRulesSection.filterAriaLabel')}
           className="ps-conf-select">
           <option value="all">{t('routingRulesSection.filterOptions.all')}</option>
@@ -225,7 +227,7 @@ const RoutingRulesSection: React.FC = () => {
                   </td>
                   {/* Toggle */}
                   <td className="ps-routingrules__td-toggle">
-                    <div onClick={() => handleToggle(rule.id)}
+                    <div {...switchable(rule.active, () => handleToggle(rule.id), t('a11y.cellLabel', { column: t('a11y.fields.active'), row: poolName(rule.subspecialtyId) }))}
                       className={`ps-routingrules__toggle-track${rule.active ? ' ps-routingrules__toggle-track--on' : ' ps-routingrules__toggle-track--off'}`}>
                       <div className={`ps-routingrules__toggle-thumb${rule.active ? ' ps-routingrules__toggle-thumb--on' : ' ps-routingrules__toggle-thumb--off'}`} />
                     </div>

@@ -13,6 +13,7 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { CassetteRoutingRule, ICassetteRoutingRuleService } from './ICassetteRoutingRuleService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const SEED_RULES: CassetteRoutingRule[] = [
   {
@@ -145,7 +146,7 @@ function save(rules: CassetteRoutingRule[]): void {
   storageSet(STORAGE_KEY, rules);
 }
 
-export const mockCassetteRoutingRuleService: ICassetteRoutingRuleService = {
+const cassetteRoutingRuleServiceUnchecked: ICassetteRoutingRuleService = {
   async getAll(): Promise<ServiceResult<CassetteRoutingRule[]>> {
     return { ok: true, data: load() };
   },
@@ -176,10 +177,15 @@ export const mockCassetteRoutingRuleService: ICassetteRoutingRuleService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<CassetteRoutingRule>> {
-    return mockCassetteRoutingRuleService.update(id, { active: false });
+    return cassetteRoutingRuleServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<CassetteRoutingRule>> {
-    return mockCassetteRoutingRuleService.update(id, { active: true });
+    return cassetteRoutingRuleServiceUnchecked.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCassetteRoutingRuleService: ICassetteRoutingRuleService = guardConfigWrites(cassetteRoutingRuleServiceUnchecked, [
+  ['config:cassette-routing:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

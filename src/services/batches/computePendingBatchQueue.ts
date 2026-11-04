@@ -40,8 +40,11 @@
 // the case's own, required, real performing-enterprise identity.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockBatchService } from './mockBatchService';
+import { batchService } from './batchServiceInstance';
+import { facilityService } from '@/services/facilities/facilityServiceInstance';
+import { caseFacilityId } from '@/services/facilityOpsDashboard/caseFacility';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
 import type { BlockStatus } from '@/types/case/Specimen';
 
@@ -73,11 +76,13 @@ const PHYSICALLY_EXISTS: ReadonlySet<BlockStatus> = new Set(['Grossed', 'Embedde
  * returned before this fix.
  */
 export async function computePendingBatchQueue(facilityId: string | undefined): Promise<PendingBatchQueueItem[]> {
-  const [casesRes, batchesRes] = await Promise.all([
+  const [casesRes, batchesRes, facilitiesRes] = await Promise.all([
     caseRouter.getAll(undefined, { bypassAccessControl: true, includeOrchestration: true }),
-    mockBatchService.getAll(),
+    batchService.getAll(),
+    facilityId ? facilityService.getAll() : Promise.resolve(null),
   ]);
   if (!casesRes.ok || !batchesRes.ok) return [];
+  const facilities = facilitiesRes?.ok ? facilitiesRes.data : [];
 
   const batchedDisplayIds = new Set<string>();
   for (const batch of batchesRes.data) {
@@ -87,7 +92,7 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
 
   const queue: PendingBatchQueueItem[] = [];
   for (const c of casesRes.data) {
-    if (facilityId && c.originHospitalId !== facilityId) continue;
+    if (facilityId && caseFacilityId(c.originHospitalId, facilities) !== facilityId) continue; // Batch 747: a legacy tenant id resolved
     const fullAccession = c.accession?.fullAccession ?? c.id;
     for (const specimen of c.specimens ?? []) {
       for (const block of specimen.blocks ?? []) {
@@ -103,7 +108,7 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
         for (let i = 0; i < (block.stains ?? []).length; i++) {
           const stain = block.stains[i];
           if (stain.status === 'Pending Cut') continue; // real, not-yet-cut slide — nothing physical exists yet
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(stain, i);
           const slideDisplayId = slideIdentifier(fullAccession, specimen.label, block.label, level);
           if (!batchedDisplayIds.has(slideDisplayId)) {
             queue.push({
@@ -116,4 +121,28 @@ export async function computePendingBatchQueue(facilityId: string | undefined): 
     }
   }
   return queue;
+}
+
+/**
+ * Batch 407: the Pending Batch Load page's search, moved out of the page. A
+ * case-insensitive match on the item id (what a barcode encodes), the case
+ * accession or the specimen label; blank shows everything.
+ */
+export function filterPendingBatchQueue(queue: readonly PendingBatchQueueItem[], query: string): PendingBatchQueueItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [...queue];
+  return queue.filter(item =>
+    item.displayId.toLowerCase().includes(q)
+    || item.caseAccession.toLowerCase().includes(q)
+    || item.specimenLabel.toLowerCase().includes(q));
+}
+
+/** Batch 407: the items grouped by case accession, in the order the cases first appear. */
+export function groupPendingByCase(items: readonly PendingBatchQueueItem[]): [string, PendingBatchQueueItem[]][] {
+  const byCase = new Map<string, PendingBatchQueueItem[]>();
+  for (const item of items) {
+    if (!byCase.has(item.caseAccession)) byCase.set(item.caseAccession, []);
+    byCase.get(item.caseAccession)!.push(item);
+  }
+  return [...byCase.entries()];
 }

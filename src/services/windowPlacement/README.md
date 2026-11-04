@@ -1,0 +1,3 @@
+# services/windowPlacement
+
+Batch 750 (Pete, Oct 31, 2026, S10 item 5). **`windowPlacement.ts`** (pure): where a remembered window reopens. With the screens known (Chrome and Edge, once window placement is allowed), a saved position on a screen that is still there is kept, and one on a screen that has gone moves to the primary screen, centred; without them the saved coordinates are used. Also the plausibility check for a saved geometry and the windows whose position can be saved from the workstation menu (`WINDOW_POSITION_TARGETS`). Used by `hooks/useCompanionWindow.ts` and `pages/WindowPositionPage/`. Tested in `windowPlacement.test.ts`; real multi-monitor hardware not yet tried.

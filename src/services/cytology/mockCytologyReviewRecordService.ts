@@ -114,7 +114,7 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
     primaryInterpretationId: 'bscc-negative',
     requiresPathologistReview: false,
     recordedAt: '2026-09-04T09:00:00.000Z',
-    recordedBy: { userId: 'PATH-UK-001', userName: 'Dr. Priya Shah' },
+    recordedBy: { userId: 'PATH-FW-001', userName: 'Dr. Eleanor Hughes' },
   },
   {
     // Real demo, per direct guidance's own real NCSR mechanism — a
@@ -160,7 +160,7 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
     primaryInterpretationId: 'cyto-squam-ascus',
     requiresPathologistReview: true,
     recordedAt: '2026-09-05T10:00:00.000Z',
-    recordedBy: { userId: 'CT-QC-001', userName: 'Maria Santos, CT(ASCP)' },
+    recordedBy: { userId: 'CT-002', userName: 'Nadia Rahman, SCT(ASCP)' },
   },
   {
     // 10% Random Rescreening — real minor discrepancy: primary NILM,
@@ -172,7 +172,7 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
     primaryInterpretationId: 'cyto-squam-ascus',
     requiresPathologistReview: true,
     recordedAt: '2026-09-05T10:05:00.000Z',
-    recordedBy: { userId: 'CT-QC-001', userName: 'Maria Santos, CT(ASCP)' },
+    recordedBy: { userId: 'CT-002', userName: 'Nadia Rahman, SCT(ASCP)' },
   },
   {
     // Directed/High-Risk Rescreening — real major discrepancy, false
@@ -184,7 +184,7 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
     primaryInterpretationId: 'cyto-squam-hsil',
     requiresPathologistReview: true,
     recordedAt: '2026-09-05T10:10:00.000Z',
-    recordedBy: { userId: 'PATH-US-002', userName: 'Dr. Rachel Kim' },
+    recordedBy: { userId: 'PATH-SJ-001', userName: 'Dr. Sarah Johnson' },
   },
   {
     // CT vs. Pathologist Correlation — real exact agreement (S26-7001,
@@ -196,6 +196,55 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
     requiresPathologistReview: false,
     recordedAt: '2026-09-05T10:15:00.000Z',
     recordedBy: { userId: 'PATH-KR-001', userName: 'Dr. Min-jun Park' },
+  },
+  // ── Batch 455 demo baseline (services/cases/demoBaselineCases.ts) ──────────
+  // Primary screens by the two demo cytotechnologists, so each can QC-rescreen
+  // the other's work (S26-4650/4651 by Priya Desai, S26-4652 by Nadia Rahman),
+  // and the HSIL Paps behind the follow-up and correlation demos.
+  {
+    id: 'cyto-review-demo-4650-primary',
+    specimenId: 'S26-4650-SP-1', caseId: 'S26-4650-CYT-001', role: 'primary_screen',
+    adequacySelections: [{ categoryId: 'cyto-adeq-satisfactory' }],
+    primaryInterpretationId: 'cyto-gencat-nilm',
+    requiresPathologistReview: false,
+    recordedAt: new Date(Date.now() - 1 * 86_400_000).toISOString(),
+    recordedBy: { userId: 'CT-001', userName: 'Priya Desai, CT(ASCP)' },
+  },
+  {
+    id: 'cyto-review-demo-4651-primary',
+    specimenId: 'S26-4651-SP-1', caseId: 'S26-4651-CYT-001', role: 'primary_screen',
+    adequacySelections: [{ categoryId: 'cyto-adeq-satisfactory' }],
+    primaryInterpretationId: 'cyto-gencat-nilm',
+    requiresPathologistReview: false,
+    recordedAt: new Date(Date.now() - 1 * 86_400_000).toISOString(),
+    recordedBy: { userId: 'CT-001', userName: 'Priya Desai, CT(ASCP)' },
+  },
+  {
+    id: 'cyto-review-demo-4652-primary',
+    specimenId: 'S26-4652-SP-1', caseId: 'S26-4652-CYT-001', role: 'primary_screen',
+    adequacySelections: [{ categoryId: 'cyto-adeq-satisfactory' }],
+    primaryInterpretationId: 'cyto-gencat-nilm',
+    requiresPathologistReview: false,
+    recordedAt: new Date(Date.now() - 0 * 86_400_000).toISOString(),
+    recordedBy: { userId: 'CT-002', userName: 'Nadia Rahman, SCT(ASCP)' },
+  },
+  {
+    id: 'cyto-review-demo-4640-primary',
+    specimenId: 'S26-4640-SP-1', caseId: 'S26-4640-CYT-001', role: 'primary_screen',
+    adequacySelections: [{ categoryId: 'cyto-adeq-satisfactory' }],
+    primaryInterpretationId: 'cyto-squam-hsil',
+    requiresPathologistReview: true,
+    recordedAt: new Date(Date.now() - 208 * 86_400_000).toISOString(),
+    recordedBy: { userId: 'CT-001', userName: 'Priya Desai, CT(ASCP)' },
+  },
+  {
+    id: 'cyto-review-demo-4641-primary',
+    specimenId: 'S26-4641-SP-1', caseId: 'S26-4641-CYT-001', role: 'primary_screen',
+    adequacySelections: [{ categoryId: 'cyto-adeq-satisfactory' }],
+    primaryInterpretationId: 'cyto-squam-hsil',
+    requiresPathologistReview: true,
+    recordedAt: new Date(Date.now() - 98 * 86_400_000).toISOString(),
+    recordedBy: { userId: 'CT-001', userName: 'Priya Desai, CT(ASCP)' },
   },
 ];
 
@@ -209,7 +258,15 @@ const SEED_REVIEWS: CytologyReviewRecord[] = [
 // it's merely stale. Exactly the real failure mode direct follow-up
 // flagged: "Last time this happened it was because the seed data
 // version hadn't been bumped."
-const SEED_VERSION = '9'; // bumped: real, new QA-comparison follow-up reviews added (qc_random_selection x2, qc_targeted_high_risk, pathologist_review) — the three real QA report types had zero real data to compare before this.
+// Batch 456: three seeded reviews named someone other than the staff record
+// their id belongs to (PATH-UK-001 is Imogen Hartley at Manchester, not "Dr.
+// Priya Shah", who is the Fenwick requesting clinician; PATH-US-002 is Dr. J.
+// Mark Tuthill, not "Dr. Rachel Kim"), and CT-QC-001 is no one. Since only a
+// review's own author may edit it, those were attributed to the wrong person
+// or to no one. The Metro General rescreens are now Nadia Rahman's and Dr.
+// Sarah Johnson's (both can sign in); the Fenwick primary screen belongs to
+// Fenwick's own cytopathologist, PATH-FW-001 (not a sign-in).
+const SEED_VERSION = '12'; // 12 (Batch 755b): PATH-UK-001 renamed (fictional). 10 (Batch 455): demo baseline primary screens by CT-001 and CT-002. (9: real, new QA-comparison follow-up reviews added (qc_random_selection x2, qc_targeted_high_risk, pathologist_review) — the three real QA report types had zero real data to compare before this.)
 const SEED_VERSION_KEY = 'cytology_review_records_seed_version';
 if (storageGet<string | null>(SEED_VERSION_KEY, null) !== SEED_VERSION) {
   storageSet(STORAGE_KEY, SEED_REVIEWS);

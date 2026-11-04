@@ -1,0 +1,4 @@
+/* src/components/Config/System/BenchReasonsSection.css — Batch 736: Configuration → System → Bench Reasons. */
+.ps-bench-reason-wording { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ps-bench-reason-wording .ps-conf-input { flex: 1; min-width: 220px; }
+.ps-bench-reason-actions { display: flex; gap: 8px; flex-wrap: wrap; }

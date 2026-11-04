@@ -10,8 +10,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockLocationService } from '../locations/mockLocationService';
-import { mockDeliveryRuleService } from './mockDeliveryRuleService';
+import { locationService } from '../locations/locationServiceInstance';
+import { deliveryRuleService } from './deliveryRuleServiceInstance';
 import { resolveDeliveryAction, type DeliveryDecisionResult } from './resolveDeliveryAction';
 import type { ReportReleasedEventType } from '../reports/publishReportReleasedEvent';
 
@@ -25,11 +25,11 @@ export async function resolveRealDeliveryDecision(
   const order: any = (caseData as any).order;
   let pointOfCare: string | undefined;
   if (order?.locationId) {
-    const locationRes = await mockLocationService.getById(order.locationId).catch(() => null);
+    const locationRes = await locationService.getById(order.locationId).catch(() => null);
     pointOfCare = locationRes?.ok ? locationRes.data.pointOfCare : undefined;
   }
 
-  const rulesRes = await mockDeliveryRuleService.getActive();
+  const rulesRes = await deliveryRuleService.getActive();
   const rules = rulesRes.ok ? rulesRes.data : [];
 
   return resolveDeliveryAction({

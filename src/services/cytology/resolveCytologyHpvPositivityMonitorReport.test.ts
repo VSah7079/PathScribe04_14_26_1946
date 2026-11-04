@@ -40,9 +40,11 @@ describe('resolveCytologyHpvPositivityMonitorReport — real, per direct guidanc
     expect(rows[0].otherHrPositivityPercent).toBe(25);
   });
 
-  it('the real, honest testAssayName is always undefined, never a fabricated platform name', () => {
+  it('Batch 608: testAssayName is undefined when none was recorded, and rows split by assay when one was', () => {
     const [row] = resolveCytologyHpvPositivityMonitorReport([sp({})]);
     expect(row.testAssayName).toBeUndefined();
+    const rows = resolveCytologyHpvPositivityMonitorReport([sp({ assayName: 'Roche cobas' }), sp({ assayName: 'Hologic Aptima' }), sp({ assayName: 'Roche cobas' })]);
+    expect(rows.map(r => [r.testAssayName, r.totalHpvTested]).sort()).toEqual([['Hologic Aptima', 1], ['Roche cobas', 2]]);
   });
 
   it('the real, honest variance proxy is computed as deviation from the aggregate mean across real groups, not a fabricated external baseline', () => {

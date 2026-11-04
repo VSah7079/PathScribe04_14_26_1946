@@ -11,6 +11,7 @@
 // specific pedal model's button index or keycode.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { getWorkstationJson, setWorkstationJson } from '@/utils/workstationSettings';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import type { FootPedalAction, FootPedalBindings, FootPedalInputSource } from '@/types/footPedal/FootPedalConfig';
 
@@ -22,18 +23,11 @@ import type { FootPedalAction, FootPedalBindings, FootPedalInputSource } from '@
 const STORAGE_KEY = 'pathscribe_footpedal_bindings';
 
 function loadBindings(): FootPedalBindings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  return getWorkstationJson<FootPedalBindings>(STORAGE_KEY, {});
 }
 
 function saveBindings(bindings: FootPedalBindings): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(bindings));
-  } catch { /* persistence is an optimisation, not a requirement */ }
+  setWorkstationJson(STORAGE_KEY, bindings);
 }
 
 interface UseFootPedalOptions {

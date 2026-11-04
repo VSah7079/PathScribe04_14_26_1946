@@ -1,17 +1,18 @@
 // src/services/cases/fppeEndCondition.test.ts
 import { describe, it, expect } from 'vitest';
 import { computeFppeProgress } from './fppeEndCondition';
-import type { FppeAssignment } from '@/types/case/FppeAssignment';
+import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
+import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
 
 function daysAgoIso(days: number): string {
   return new Date(Date.now() - days * 86400000).toISOString();
 }
 
-function makeAssignment(over: Partial<FppeAssignment> = {}): FppeAssignment {
+function makeAssignment(over: Partial<QaSupervisionAssignment> = {}): QaSupervisionAssignment {
   return {
-    id: 'fppe-1',
-    provisionalUserId: 'user-1', provisionalUserName: 'Dr. New Hire',
-    proctorUserId: 'user-2', proctorUserName: 'Dr. Proctor',
+    id: 'fppe-1', activityTypeId: FPPE_ACTIVITY_TYPE_ID,
+    superviseeUserId: 'user-1', superviseeUserName: 'Dr. New Hire',
+    supervisorUserId: 'user-2', supervisorUserName: 'Dr. Proctor',
     facilityId: 'facility-1',
     startedAt: daysAgoIso(10),
     endCondition: { type: 'case_count', threshold: 20 },

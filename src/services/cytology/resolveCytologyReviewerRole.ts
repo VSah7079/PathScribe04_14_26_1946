@@ -35,7 +35,7 @@ import { resolveCytologyQcPoolMembership } from './resolveCytologyQcPoolMembersh
 import { resolveCytologyPostSignOutPeerReviewPoolMembership } from './resolveCytologyPostSignOutPeerReviewPoolMembership';
 
 export function resolveCytologyReviewerRole(
-  existingReviews: Pick<CytologyReviewRecord, 'role'>[],
+  existingReviews: Array<Pick<CytologyReviewRecord, 'role'> & { requiresPathologistReview?: boolean }>,
   isPathologist: boolean,
   qcFlag?: CytologyScreeningRecord['qcFlag'],
   // Real, per direct follow-up closing PS-214's own remaining gap: a
@@ -59,6 +59,13 @@ export function resolveCytologyReviewerRole(
       resolveCytologyPostSignOutPeerReviewPoolMembership(postSignOutPeerReview.flag, existingReviews)
     ) {
       return postSignOutPeerReview.flag.reason === 'random_selection' ? 'post_signout_peer_review_random' : 'post_signout_peer_review_targeted';
+    }
+    // Batch 440 (Pete, Oct 2): a pathologist doing the QC rescreen (rare)
+    // works from the Cytology Workspace's QC / Rescreen tile, and that
+    // counts as the rescreen. Not when a screen already needs a
+    // pathologist: then this is the pathologist's own review.
+    if (qcFlag && resolveCytologyQcPoolMembership(qcFlag, existingReviews) && !existingReviews.some(r => r.requiresPathologistReview)) {
+      return qcFlag.reason === 'random_selection' ? 'qc_random_selection' : 'qc_targeted_high_risk';
     }
     return 'pathologist_review';
   }

@@ -14,10 +14,11 @@
 
 import { caseRouter } from '@/services/cases/CaseRouter';
 import type { CaseFilterParams, PathologyCase } from '@/services/cases/ICaseService';
-import { mockServiceChargeService, getEffectiveChargeStatus } from './mockServiceChargeService';
-import { mockBillingDeficiencyService } from './mockBillingDeficiencyService';
-import { mockCodeReviewPoolService } from './mockCodeReviewPoolService';
-import { mockOutboundChargeQueueService } from './mockOutboundChargeQueueService';
+import { getEffectiveChargeStatus } from './chargeStatus';
+import { serviceChargeService } from './serviceChargeServiceInstance';
+import { billingDeficiencyService } from './billingDeficiencyServiceInstance';
+import { codeReviewPoolService } from './codeReviewPoolServiceInstance';
+import { outboundChargeQueueService } from './outboundChargeQueueServiceInstance';
 import { amendmentService, auditService } from '@/services';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
@@ -26,6 +27,7 @@ import type { OutboundChargeQueueEntry } from '@/types/billing/OutboundChargeQue
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
 import type { AuditLog } from '@/services/auditlog/IAuditService';
 import type { ServiceResult } from '../types';
+import { parseStoredUtc } from '@/utils/formatDate';
 
 export type BillingAuditLogEventKind = 'charge' | 'credit' | 'deficiency' | 'code_review' | 'dispatch' | 'amendment' | 'audit';
 
@@ -156,7 +158,7 @@ function buildEventsForCase(
   const base = {
     caseId: caseData.id, caseNumber, patientName, patientId,
     signOutDate,
-    signingPathologist: caseData.finalizedBy,
+    signingPathologist: caseData.finalizedBy ?? undefined, // stored as null when signed out with no signing user
     clientId: caseData.order?.facilityId,
     clientName: caseData.order?.facilityName,
   };
@@ -239,13 +241,15 @@ function buildEventsForCase(
     events.push({
       ...base, id: a.id, timestamp: a.releasedAt ?? a.initiatedAt, kind: 'amendment',
       label: `${a.type === 'addendum' ? 'Addendum' : 'Amendment'} released`,
-      detail: a.explanationOfChange,
+      detail: a.explanationOfChange ?? '', // the detail filter calls .toLowerCase() on every entry
       staff: a.authoringPathologist.userName,
     });
   }
 
   for (const log of auditLogs) {
-    events.push({ ...base, id: log.id, timestamp: log.timestamp, kind: 'audit', label: log.event, detail: log.detail, staff: log.user });
+    // Batch 437 follow-up: the audit log stores UTC without a zone; as ISO so it
+    // filters, sorts and shows like every other event here.
+    events.push({ ...base, id: log.id, timestamp: parseStoredUtc(log.timestamp).toISOString(), kind: 'audit', label: log.event, detail: log.detail, staff: log.user });
   }
 
   return events;
@@ -300,10 +304,10 @@ export async function searchBillingAuditLog(filters: BillingAuditLogFilters): Pr
 
   const perCaseResults = await Promise.all(cappedCases.map(async caseData => {
     const [chargesRes, deficienciesRes, codeReviewsRes, dispatchesRes, amendmentsRes, auditRes] = await Promise.all([
-      mockServiceChargeService.getChargesForCase(caseData.id),
-      mockBillingDeficiencyService.getByCaseId(caseData.id),
-      mockCodeReviewPoolService.getByCaseId(caseData.id),
-      mockOutboundChargeQueueService.getByCaseId(caseData.id),
+      serviceChargeService.getChargesForCase(caseData.id),
+      billingDeficiencyService.getByCaseId(caseData.id),
+      codeReviewPoolService.getByCaseId(caseData.id),
+      outboundChargeQueueService.getByCaseId(caseData.id),
       amendmentService.getByCaseId(caseData.id),
       auditService.getAuditLogs({ search: caseData.id }),
     ]);

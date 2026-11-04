@@ -27,6 +27,7 @@
 // pathscribe.css), never both visible at once.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -34,14 +35,14 @@ import type { TFunction } from 'i18next';
 import type { Case } from '@/types/case/Case';
 import type { HistologyBlock, StainOrder, Specimen } from '@/types/case/Specimen';
 import type { Decant, Aliquot, MaterialLocation } from '@/types/case/Material';
-import { DECANT_TYPE_LABEL } from '@/types/case/Material';
+import { decantTypeText } from '@/utils/decantTypeText';
 import {
   resolveSpecimenDisplayId, resolveBlockDisplayId, resolveSlideDisplayId,
   resolveDecantDisplayId, resolveDecantSlideDisplayId,
   resolveAliquotDisplayId, resolveDecantAliquotDisplayId,
 } from '@/utils/materialDisplayId';
 import { fetchDispatchHistoryForCase, type DispatchHistoryEntry } from '@/services/engravers/fetchDispatchHistoryForCase';
-import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
+
 import DispatchHistoryTimeline from '../components/DispatchHistoryTimeline';
 
 interface MaterialTrackingHistoryModalProps {
@@ -50,6 +51,7 @@ interface MaterialTrackingHistoryModalProps {
 }
 
 import { is24HourForLocale } from '@/utils/formatDate';
+import { recordDocumentOutput, DOCUMENT_DESTINATION, cassetteColorService } from '@/services';
 
 /**
  * Real fix, per direct follow-up: "Maybe time in military style?
@@ -321,7 +323,7 @@ function buildFlatTree(specimens: Specimen[], fullAccession: string, query: stri
       items.push({ id: block.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.block', { label: block.label }), displayId: blockDisplayId, subtitle: t('materialTrackingHistoryModal.subtitle.block'), locationHistory: block.locationHistory, visible: blockVisible, directMatch: blockSelfMatches(block, blockDisplayId, query), readyForReview: allSlidesReady(block.stains ?? []) });
 
       (block.stains ?? []).forEach((slide, i) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const slideDisplayId = resolveSlideDisplayId(fullAccession, sp.label, block.label, level, slide);
         const slideVisible = blockVisible && slideMatches(slide, slideDisplayId, query);
         items.push({ id: slide.id, depth: 2, icon: '🔬', title: t('materialTrackingHistoryModal.itemTitle.slide', { id: `${block.label}-${level}` }), displayId: slideDisplayId, subtitle: slide.stainName || t('materialTrackingHistoryModal.subtitle.unstained'), locationHistory: slide.locationHistory, visible: slideVisible, directMatch: slideSelfMatches(slide, slideDisplayId, query), readyForReview: isSlideReady(slide) });
@@ -336,10 +338,10 @@ function buildFlatTree(specimens: Specimen[], fullAccession: string, query: stri
     for (const decant of sp.decants ?? []) {
       const decantDisplayId = resolveDecantDisplayId(fullAccession, sp.label, decant);
       const decantVisible = spVisible && decantMatches(decant, decantDisplayId, query);
-      items.push({ id: decant.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.decant', { label: decant.label }), displayId: decantDisplayId, subtitle: DECANT_TYPE_LABEL[decant.decantType], locationHistory: decant.locationHistory, visible: decantVisible, directMatch: decantSelfMatches(decant, decantDisplayId, query), readyForReview: allSlidesReady(decant.stains ?? []) });
+      items.push({ id: decant.id, depth: 1, icon: '📦', title: t('materialTrackingHistoryModal.itemTitle.decant', { label: decant.label }), displayId: decantDisplayId, subtitle: decantTypeText(t, decant), locationHistory: decant.locationHistory, visible: decantVisible, directMatch: decantSelfMatches(decant, decantDisplayId, query), readyForReview: allSlidesReady(decant.stains ?? []) });
 
       (decant.stains ?? []).forEach((slide, i) => {
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const slideDisplayId = resolveDecantSlideDisplayId(fullAccession, sp.label, decant.label, level, slide);
         const slideVisible = decantVisible && slideMatches(slide, slideDisplayId, query);
         items.push({ id: slide.id, depth: 2, icon: '🔬', title: t('materialTrackingHistoryModal.itemTitle.slide', { id: `${decant.label}-${level}` }), displayId: slideDisplayId, subtitle: slide.stainName || t('materialTrackingHistoryModal.subtitle.unstained'), locationHistory: slide.locationHistory, visible: slideVisible, directMatch: slideSelfMatches(slide, slideDisplayId, query), readyForReview: isSlideReady(slide) });
@@ -462,7 +464,7 @@ const PrintNode: React.FC<{ item: FlatTreeItem }> = ({ item }) => {
 const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> = ({ caseData, onClose }) => {
   const { t } = useTranslation();
   const fullAccession = caseData.accession?.fullAccession ?? caseData.id;
-  const specimens = caseData.specimens ?? [];
+  const specimens = useMemo(() => caseData.specimens ?? [], [caseData.specimens]);
   const [query, setQuery] = useState('');
 
   const flatItems = useMemo(() => buildFlatTree(specimens, fullAccession, query.trim(), t), [specimens, fullAccession, query, t]);
@@ -503,6 +505,8 @@ const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> 
       );
       if (!proceed) return;
     }
+    // PS-282 (Batch 437): audited.
+    void recordDocumentOutput({ action: 'print', document: 'material-tracking-history', documentId: caseData.id, caseId: fullAccession, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
     window.print();
   };
 
@@ -519,7 +523,7 @@ const MaterialTrackingHistoryModal: React.FC<MaterialTrackingHistoryModalProps> 
     fetchDispatchHistoryForCase(caseData.id).then(setDispatchHistory).catch(err => {
       console.error('[MaterialTrackingHistoryModal] failed to load dispatch history', err);
     });
-    mockCassetteColorService.getAll().then(res => {
+    cassetteColorService.getAll().then(res => {
       if (res.ok) setColorNames(Object.fromEntries(res.data.map(c => [c.key, c.displayName])));
     });
   }, [caseData.id]);

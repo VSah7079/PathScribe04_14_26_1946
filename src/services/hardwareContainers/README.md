@@ -1,3 +1,7 @@
+**Batch 737:** `HardwareContainer.supportsLargeFormat`; `update` now needs `config:equipment:manage`; seed rack RACK-STAIN-LF-01 (merged into a browser's stored list with `withMissingSeedRecords`).
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/hardwareContainers/
 
 Registry of semi-permanent, laser-engraved, reusable hardware containers (racks/baskets/trays) — their check-in/check-out lifecycle against `services/batches/` sessions (Available / In Use), so the same physical rack can't be double-assigned to two active batches.
@@ -15,6 +19,12 @@ Registry of semi-permanent, laser-engraved, reusable hardware containers (racks/
 - Only semi-permanent containers (Mode B — laser-engraved, reusable rack IDs) get a record here. Disposable containers (Mode A — a single-use, timestamped `CONT-` label) are deliberately not tracked as hardware at all — a disposable label has no physical re-use lifecycle to register.
 - **`isSmartContainer`/`storageConditionTypeId`** — real, per direct follow-up on the RFP-APLIS-2026-GLOBAL Reference Laboratory Sensor & Cold-Chain Integration gap ("smart transport containers"). Most real racks are not smart-sensored, so both stay `undefined` for the vast majority of real containers. `create()`'s own draft type and a new, previously-missing `update()` method were extended/added so an admin can actually set these, at creation or retroactively — see `services/coldChain/README.md` for the full account of what reads these fields (`processInboundTelemetryReadingEvent.ts`, resolving which real threshold a container's own telemetry should be checked against).
 
+## Batch 407
+
+`checkOut`, `checkIn` and `getByRackId` return the codes `rackNotRegistered` and `rackCheckedOut`, which the batch screens translate, instead of English text.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of HardwareContainerRegistryService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

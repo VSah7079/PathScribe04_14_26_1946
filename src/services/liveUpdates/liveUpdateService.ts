@@ -11,13 +11,13 @@ import { selectLiveUpdateTransport } from './liveUpdatePolicy';
 import { localLiveUpdateService } from './localLiveUpdateService';
 import { createSignalRLiveUpdateService } from './signalRLiveUpdateService';
 import type { ILiveUpdateService } from './ILiveUpdateService';
-import { getAccessToken } from '../auth/accessTokenSource';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 const HUB_ENV_VAR = 'VITE_LIVE_UPDATES_HUB_URL';
 const isProduction = !!import.meta.env.PROD;
 
 export const liveTransportChoice = selectLiveUpdateTransport({
-  configured: import.meta.env[HUB_ENV_VAR] as string | undefined,
+  configured: appEnv().VITE_LIVE_UPDATES_HUB_URL as string | undefined,
   isProduction,
   resolve: configured => {
     const r = resolveServiceEndpoint({ name: 'live-update hub', envVar: HUB_ENV_VAR, configured, devDefault: '', isProduction });
@@ -30,8 +30,7 @@ if (liveTransportChoice.transport === 'local' && liveTransportChoice.reason === 
 }
 
 export const liveUpdateService: ILiveUpdateService = liveTransportChoice.transport === 'signalr'
-  // PS-60: the signed-in user's SSO access token (sent as access_token,
-  // docs/architecture/LIVE_UPDATES_SIGNALR.md §4). OR terminals' device
-  // tokens are still to come.
-  ? createSignalRLiveUpdateService({ hubUrl: liveTransportChoice.hubUrl, accessTokenFactory: getAccessToken })
+  // Batch 655: the hub is reached with the browser's session cookie, never a token in the URL
+  // (docs/architecture/LIVE_UPDATES_SIGNALR.md §4). OR terminals' device tokens are still to come.
+  ? createSignalRLiveUpdateService({ hubUrl: liveTransportChoice.hubUrl })
   : localLiveUpdateService;

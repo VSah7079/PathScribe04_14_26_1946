@@ -10,7 +10,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuditLog } from '../components/Audit/useAuditLog';
 import { useIsAdmin, useIsSuperAdmin } from '../contexts/AuthContext';
-import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+
 import { VOICE_CONTEXT } from '../constants/systemActions';
 import AITab         from '../components/Config/AI/index';
 import ModelsTab     from '../components/Config/Models/index';
@@ -22,14 +22,27 @@ import TATConfigSection from '../components/Config/System/TATConfigSection';
 import MacrosTab     from '../components/Config/Macros/index';
 import VoiceSettings from '../components/Voice/VoiceSettings';
 import { ActionsTab }  from '../components/Config/Actions/ActionsTab';
-import DemoResetTab    from '../components/Config/System/DemoResetTab';
+import { adminGuideAnchorFor, configHelpSection } from '../services/help/adminGuideLinks';
+import { usePublishHelpAnchor } from '../hooks/usePublishHelpAnchor';
+import { ConfigHelpContext } from '../components/Config/help/ConfigHelpContext';
+// Batch 527 (PS-486): the demo reset is built in only in the demo build (__DEMO_TOOLS__).
+const DemoResetTab = __DEMO_TOOLS__ ? React.lazy(() => import('../components/Config/System/DemoResetTab')) : null;
 import ReportTemplatesSection    from '../components/TemplateBuilder/ReportTemplatesSection';
 import ValidationStudiesSection from '../components/ValidationStudies/ValidationStudiesSection';
 import ConfigSearchBar from '../components/Config/Search/ConfigSearchBar';
 import { resetConfigScroll } from '../utils/resetConfigScroll';
 import { ConfigDirtyGuardContext } from '../components/Config/configDirtyGuardContext';
+import { createConfigDirtyRegistry, discardDialogEdits } from '../services/configDirty/configDirtyRegistry';
+import { onConfigWritten } from '../services/authorization/guardConfigWrites';
+import { useConfigEditTracking, dismissConfigDialog } from '../hooks/useConfigEditTracking';
+import { useDirtyState } from '../contexts/DirtyStateContext';
 import ConfirmModal from '../components/Common/ConfirmModal';
 import '../pathscribe.css';
+import ConfigRefusalBanner from '../components/Config/ConfigRefusalBanner';
+import ConfigSectionGate from '../components/Config/ConfigSectionGate';
+import { CONFIG_TABS, type ConfigTabId } from '../constants/configSearchIndex';
+import { actionRegistryService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ── Admin permission check ────────────────────────────────────────────────────
 // Validation Studies tab is only visible to admin-tier roles. useIsAdmin/
@@ -39,8 +52,9 @@ import '../pathscribe.css';
 // localStorage.getItem('pathscribe-user') + JSON.parse); Config/AI/index.tsx
 // carried a second, real-bug-prone copy of the same check. Both now share
 // one implementation.
-const VALID_TABS = ['ai', 'protocols', 'staff', 'voice', 'system', 'cytology', 'tat', 'actions', 'macros', 'templates', 'validation', 'demo'] as const;
-type TabId = typeof VALID_TABS[number];
+// Batch 431: one list of tabs, shared with the Configuration search.
+const VALID_TABS = CONFIG_TABS;
+type TabId = ConfigTabId;
 
 const TAB_LABEL_KEYS: Record<TabId, string> = {
   actions:    'configuration.tabs.actions',
@@ -60,7 +74,7 @@ const TAB_LABEL_KEYS: Record<TabId, string> = {
   // "D" happens to sort.
   demo:       'configuration.tabs.demo',
 };
-const TAB_ORDER: TabId[] = ['actions', 'ai', 'macros', 'templates', 'staff', 'protocols', 'system', 'cytology', 'tat', 'validation', 'voice', 'demo'];
+const TAB_ORDER: TabId[] = ['actions', 'ai', 'macros', 'templates', 'staff', 'protocols', 'system', 'cytology', 'tat', 'validation', 'voice', ...(__DEMO_TOOLS__ ? ['demo' as TabId] : [])];
 
 function getTabFromSearch(search: string): TabId {
   const t = new URLSearchParams(search).get('tab') as TabId | null;
@@ -75,7 +89,7 @@ function getTabFromSearch(search: string): TabId {
   // session) — a plain /configuration visit should land where an
   // admin actually needs to be most often, not wherever the tab list
   // happened to order things.
-  return t && (VALID_TABS as readonly string[]).includes(t) ? t : 'system';
+  return t && (VALID_TABS as readonly string[]).includes(t) && TAB_ORDER.includes(t) ? t : 'system';
 }
 
 const ConfigurationPage: React.FC = () => {
@@ -85,6 +99,11 @@ const ConfigurationPage: React.FC = () => {
   const { log }    = useAuditLog();
 
   const [activeTab,   setActiveTab]   = useState<TabId>(() => getTabFromSearch(location.search));
+  // Batch 646: the open section of the tab, for the Help button (tabs register it; Synoptic Library keeps it in the address).
+  const [helpSection, setHelpSection] = useState<string | undefined>(undefined);
+  const helpContext = useMemo(() => ({ setSection: setHelpSection }), []);
+  const helpSectionResolved = configHelpSection(activeTab, helpSection, location.search);
+  usePublishHelpAnchor(adminGuideAnchorFor({ tab: activeTab, section: helpSectionResolved })); // Batch 669d: the top-bar book opens this section
   const [isLoaded,    setIsLoaded]    = useState(false);
   const isAdmin      = useIsAdmin();
   const isSuperAdmin = useIsSuperAdmin();
@@ -92,22 +111,49 @@ const ConfigurationPage: React.FC = () => {
   useEffect(() => { setActiveTab(getTabFromSearch(location.search)); }, [location.search]);
   useEffect(() => { const t = setTimeout(() => setIsLoaded(true), 100); return () => clearTimeout(t); }, []);
 
-  // ── PS-128: page-level dirty-flag guard ────────────────────────────────────
-  // Real fix — this page previously had zero awareness of any nested tab's
-  // own unsaved-draft state: the tab bar, the voice-nav listeners below, and
-  // ConfigSearchBar's onNavigate all called navigate()/setActiveTab()
-  // unconditionally, silently discarding whatever a tab like Macros had
-  // half-written. tabIsDirty is fed by ConfigDirtyGuardContext, which
-  // MacroPanel.tsx (the first real, confirmed case — see its own comment)
-  // now populates. A ref mirrors the state so the voice-nav listeners below
-  // (registered once, via a stable effect) can read the CURRENT dirty value
-  // without needing to be re-subscribed on every keystroke.
-  const [tabIsDirty, setTabIsDirty] = useState(false);
-  const tabIsDirtyRef = useRef(false);
-  useEffect(() => { tabIsDirtyRef.current = tabIsDirty; }, [tabIsDirty]);
-  // A tab that just became active starts clean — any dirty flag belonged to
-  // whichever tab was showing a moment ago.
-  useEffect(() => { setTabIsDirty(false); }, [activeTab]);
+  // ── PS-128: unsaved changes anywhere on the page ───────────────────────────
+  // Batch 309 guarded only switching tabs, and only for Macros. Batch 437:
+  // every editor counts (services/configDirty/configDirtyRegistry.ts) —
+  // inline forms report their exact state through ConfigDirtyGuardContext,
+  // and edits in any editor dialog are noticed here (useConfigEditTracking).
+  // The page tells the app-wide guard, so the logo, breadcrumbs, nav bar,
+  // header search and Sign Out ask before leaving too; closing or reloading
+  // the browser tab gets the browser's own warning.
+  const [pageDirty, setPageDirty] = useState(false);
+  const pageDirtyRef = useRef(false);
+  useEffect(() => { pageDirtyRef.current = pageDirty; }, [pageDirty]);
+  const registry = useMemo(() => createConfigDirtyRegistry(dirty => { pageDirtyRef.current = dirty; setPageDirty(dirty); }), []);
+  const pageRootRef = useRef<HTMLDivElement>(null);
+  // Batch 438: closing a dialog with unsaved edits from outside it (a click
+  // on its backdrop, or Escape) asks first; Discard replays the close.
+  const [outsideClose, setOutsideClose] = useState<{ dialog: object; replay: () => void } | null>(null);
+  const handleOutsideClose = useCallback((dialog: object, replay: () => void) => setOutsideClose({ dialog, replay }), []);
+  useConfigEditTracking(pageRootRef, registry, handleOutsideClose);
+  // PS-128 review: Discard closes the dialog, with its own Cancel when the
+  // replayed click or key doesn't (services/configDirty discardDialogEdits).
+  const handleOutsideCloseDiscard = () => {
+    const pending = outsideClose;
+    setOutsideClose(null);
+    if (!pending) return;
+    discardDialogEdits(pending.dialog, {
+      registry,
+      replay: pending.replay,
+      isOpen: d => (d as Element).isConnected,
+      dismiss: d => dismissConfigDialog(d, { cancel: t('common.cancel'), close: t('common.close') }),
+      afterRender: fn => { setTimeout(fn, 0); },
+    });
+  };
+  useEffect(() => onConfigWritten(() => registry.configSaved()), [registry]);
+
+  const { setDirty: setAppDirty, pendingPath, confirmNavigate, cancelNavigate } = useDirtyState();
+  useEffect(() => { setAppDirty(pageDirty); }, [pageDirty, setAppDirty]);
+  useEffect(() => () => setAppDirty(false), [setAppDirty]);
+  useEffect(() => {
+    if (!pageDirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [pageDirty]);
 
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const pendingNavRef = useRef<(() => void) | null>(null);
@@ -116,7 +162,9 @@ const ConfigurationPage: React.FC = () => {
   // so both the "just go" path and the "confirm first" path call the exact
   // same code.
   const performNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
-    navigate(`/configuration?tab=${tabId}`);
+    // Batch 431: the section rides in the address too, so the Cytology and
+    // Synoptic Library tabs (which read ?section=) open on it as well.
+    navigate(`/configuration?tab=${tabId}${section ? `&section=${encodeURIComponent(section)}` : ''}`);
     log('navigate_tab', { tabId });
     if (withScrollReset) {
       // Real fix, per direct report: switching tabs used to leave
@@ -141,18 +189,23 @@ const ConfigurationPage: React.FC = () => {
     }
   }, [navigate, log]);
 
-  const guardedNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
-    if (tabIsDirtyRef.current) {
-      pendingNavRef.current = () => performNavigateToTab(tabId, withScrollReset, section);
+  // Runs a navigation now, or after "Discard changes" when anything is unsaved.
+  const guardNavigation = useCallback((action: () => void) => {
+    if (pageDirtyRef.current) {
+      pendingNavRef.current = action;
       setShowDiscardConfirm(true);
     } else {
-      performNavigateToTab(tabId, withScrollReset, section);
+      action();
     }
-  }, [performNavigateToTab]);
+  }, []);
+
+  const guardedNavigateToTab = useCallback((tabId: TabId, withScrollReset: boolean, section?: string) => {
+    guardNavigation(() => performNavigateToTab(tabId, withScrollReset, section));
+  }, [guardNavigation, performNavigateToTab]);
 
   const handleDiscardConfirm = () => {
     setShowDiscardConfirm(false);
-    setTabIsDirty(false);
+    registry.clearAll();
     const perform = pendingNavRef.current;
     pendingNavRef.current = null;
     perform?.();
@@ -165,8 +218,8 @@ const ConfigurationPage: React.FC = () => {
 
   // ── Voice: set context on mount ─────────────────────────────────────────────
   useEffect(() => {
-    mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.CONFIGURATION);
-    return () => mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.CONFIGURATION);
+    return () => actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
   }, []);
 
   // ── Voice: tab navigation listeners ────────────────────────────────────────
@@ -181,7 +234,7 @@ const ConfigurationPage: React.FC = () => {
         // Stay on the current tab until a pending discard-confirm resolves;
         // performNavigateToTab (via the effect above) is what actually
         // advances activeTab once the navigation really happens.
-        return tabIsDirtyRef.current ? current : next;
+        return pageDirtyRef.current ? current : next;
       });
     };
 
@@ -190,7 +243,7 @@ const ConfigurationPage: React.FC = () => {
         const idx = tabIds.indexOf(current);
         const prev = tabIds[Math.max(idx - 1, 0)];
         guardedNavigateToTab(prev, false);
-        return tabIsDirtyRef.current ? current : prev;
+        return pageDirtyRef.current ? current : prev;
       });
     };
 
@@ -204,36 +257,47 @@ const ConfigurationPage: React.FC = () => {
 
   const handleTabChange = (tabId: TabId) => guardedNavigateToTab(tabId, true);
 
-  const dirtyGuardContextValue = useMemo(() => ({ setDirty: setTabIsDirty }), []);
+  const dirtyGuardContextValue = useMemo(() => ({
+    setDirty: (dirty: boolean) => registry.report('legacy', dirty),
+    report: registry.report,
+    guard: guardNavigation,
+  }), [registry, guardNavigation]);
+
+  // Leaving Configuration (logo, breadcrumb, nav bar, header search) with
+  // unsaved changes: the app-wide guard holds the address until this answers.
+  const handleLeaveConfirm = () => { registry.clearAll(); confirmNavigate(); };
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      case 'ai':        return <AITab ModelsPanel={ModelsTab} />;
-      case 'protocols': return <ProtocolsTab />;
+      case 'ai':        return <ConfigSectionGate section="tab:ai"><AITab ModelsPanel={ModelsTab} /></ConfigSectionGate>;
+      case 'protocols': return <ConfigSectionGate section="tab:protocols"><ProtocolsTab /></ConfigSectionGate>;
       case 'staff':     return <StaffTab />;
       case 'system':    return <SystemTab />;
       case 'cytology':  return <CytologyTab />;
-      case 'tat':       return <TATConfigSection />;
-      case 'actions':   return <ActionsTab />;
+      case 'tat':       return <ConfigSectionGate section="tab:tat"><TATConfigSection /></ConfigSectionGate>;
+      case 'actions':   return <ConfigSectionGate section="tab:actions"><ActionsTab /></ConfigSectionGate>;
       case 'macros':    return <MacrosTab />;
       case 'voice':     return <VoiceSettings />;
-      case 'templates':  return <ReportTemplatesSection />;
+      case 'templates':  return <ConfigSectionGate section="tab:templates"><ReportTemplatesSection /></ConfigSectionGate>;
       case 'validation': return isAdmin
-        ? <ValidationStudiesSection isSuperAdmin={isSuperAdmin} />
+        ? <ConfigSectionGate section="tab:validation"><ValidationStudiesSection isSuperAdmin={isSuperAdmin} /></ConfigSectionGate>
         : <div className="ps-cfgpage-locked">
             <div className="ps-cfgpage-locked-icon">🔒</div>
             <div className="ps-cfgpage-locked-title">{t('configuration.adminRequiredTitle')}</div>
             <div className="ps-cfgpage-locked-sub">{t('configuration.adminRequiredSub')}</div>
           </div>;
-      case 'demo':      return <DemoResetTab />;
+      case 'demo':      return DemoResetTab ? <React.Suspense fallback={null}><DemoResetTab /></React.Suspense> : null;
       default:          return null;
     }
   };
 
-  if (!isLoaded) return <div className="ps-cfgpage-loading">{t('configuration.loading')}</div>;
+  if (!isLoaded) return <LoadingState label={t('configuration.loading')} />;
 
   return (
-    <div className="ps-cfgpage-shell">
+    <div className="ps-cfgpage-shell" ref={pageRootRef}>
+
+      {/* Batch 428: a refused change names the missing permission. */}
+      <ConfigRefusalBanner />
 
       {/* ── Header + Tab bar — full width, never scrolls ── */}
       <div className="ps-cfgpage-header">
@@ -263,9 +327,11 @@ const ConfigurationPage: React.FC = () => {
       <div className="ps-cfgpage-scroll">
         {/* Inner content: full width, padding on sides */}
         <div className="ps-cfgpage-inner">
-          <ConfigDirtyGuardContext.Provider value={dirtyGuardContextValue}>
-            {renderActiveTab()}
-          </ConfigDirtyGuardContext.Provider>
+          <ConfigHelpContext.Provider value={helpContext}>
+            <ConfigDirtyGuardContext.Provider value={dirtyGuardContextValue}>
+              {renderActiveTab()}
+            </ConfigDirtyGuardContext.Provider>
+          </ConfigHelpContext.Provider>
         </div>
       </div>
 
@@ -278,6 +344,31 @@ const ConfigurationPage: React.FC = () => {
         cancelLabel={t('common.cancel')}
         onConfirm={handleDiscardConfirm}
         onCancel={handleDiscardCancel}
+        aboveDialogs
+      />
+
+      {/* ── Batch 438: closing a dialog from outside with unsaved edits ── */}
+      <ConfirmModal
+        show={!!outsideClose}
+        title={t('configuration.dirtyGuard.title')}
+        message={t('configuration.dirtyGuard.dialogMessage')}
+        confirmLabel={t('configuration.dirtyGuard.discardButton')}
+        cancelLabel={t('configuration.dirtyGuard.keepEditing')}
+        onConfirm={handleOutsideCloseDiscard}
+        onCancel={() => setOutsideClose(null)}
+        aboveDialogs
+      />
+
+      {/* ── PS-128: leaving Configuration with unsaved changes ── */}
+      <ConfirmModal
+        show={!!pendingPath}
+        title={t('configuration.dirtyGuard.title')}
+        message={t('configuration.dirtyGuard.message')}
+        confirmLabel={t('configuration.dirtyGuard.discardButton')}
+        cancelLabel={t('common.cancel')}
+        onConfirm={handleLeaveConfirm}
+        onCancel={cancelNavigate}
+        aboveDialogs
       />
     </div>
   );

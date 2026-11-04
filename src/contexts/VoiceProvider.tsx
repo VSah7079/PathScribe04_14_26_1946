@@ -2,23 +2,42 @@ import React, {
   createContext, useContext, useState, useRef, useEffect, useCallback,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockActionRegistryService } from '../services/actionRegistry/mockActionRegistryService';
+
 import { useSystemConfig } from './SystemConfigContext';
 import { callAi } from '../services/aiIntegration/aiProviderService';
 import { resolveVoiceAiConfig } from '../components/Config/AI/resolveVoiceAiModel';
 import { getSessionUser } from '../services/auth/caseAccessControl';
-import { MockVoiceMacroService } from '../services/voicemacro/mockVoiceMacroService';
+import { useAuthOptional } from './AuthContext';
+import { getPersonalSetting, setPersonalSetting } from '../services/userSettings/personalSettings';
 import { isVoiceMacroVisibleTo, applyVoiceMacroSubstitutions, type VoiceMacro } from '../types/voiceMacros';
 import { getVoiceProfileRecognitionLang, getVoiceProfileLanguage } from '../constants/voiceProfiles';
 import { getPunctuationMapForLanguage } from './punctuationMaps';
+import { buildDictationRefinementSystem, spellLocaleForDictation } from '@/services/voice/dictationRefinementPrompt';
+import { spellLangForJurisdiction } from '@/utils/formatDate';
+import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences';
+import { offerVoiceCommandToScreen, screenVoiceStatusKey } from '@/services/voice/voiceCommandEvents';
+import { actionRegistryService, voiceMacroService, auditService } from '@/services';
+import {
+  applyDictationLearning, dictationCorrectionsForCurrentUser, normaliseDictation, recordDictationCorrection,
+} from '@/services/voice/dictationCorrections';
+import { insertDictationSegment, REFINEMENT_BUDGET_MS, type DictationSegmentMeta } from '@/services/voice/dictationSegmentFlow';
+import { createVoiceCommandRunner, REPEAT_CONFIRMATION_WINDOW_MS } from '@/services/voice/voiceCommandRunner';
+import { effectiveKey, isFunctionKeyPress, matchesShortcut, pickShortcutMatch } from '@/services/actionRegistry/shortcutResolution';
+import { decideCancel, CANCEL_CONFIRM_WINDOW_MS } from '@/services/voice/voiceCancel';
+import { GoToPrefix } from '@/components/Common/GoToPrefix';
 
 export type VoicePhase = 'standby' | 'ai' | 'local' | 'dictate';
 
 export interface DictationTarget {
   fieldId: string;
   label: string;
-  onText: (text: string, isInterim?: boolean) => void;
+  /** `isInterim` text is provisional: the final call for the same segment REPLACES it (services/voice/dictationEditorWriter.ts),
+   *  or the target ignores it. `meta.raw` is the words as heard, for correction learning. */
+  onText: (text: string, isInterim?: boolean, meta?: DictationSegmentMeta) => void;
   onDone?: () => void;
+  /** Batch 664 (Cancel): how many dictated passages of this session are still in the field, and a way to remove them. */
+  uncommitted?: () => number;
+  discard?: () => { removed: number; kept: number };
   /** Called when user edits dictated text — enables AI learning from corrections */
   onCorrection?: (original: string, corrected: string) => void;
   /** Context hint for the AI refinement prompt (e.g. 'gross', 'micro', 'diagnosis') */
@@ -69,12 +88,14 @@ declare global {
   }
 }
 
-const STOP_PHRASES = ['stop dictation', 'done', 'finish', 'cancel dictation'];
+const STOP_PHRASES = ['stop dictation', 'done', 'finish'];
+/** Batch 664: this ends dictation through Cancel (asks first when dictated text would be removed), not like a stop phrase. */
+const CANCEL_PHRASE = 'cancel dictation';
 const MISS_CONFIRMATION_WINDOW_MS = 8000;
-const STRUCTURED_CONTENT_TIMEOUT_MS = 2000; // fall back to local if the AI call takes longer
+const getUserName = () => { const u = getSessionUser(); return u ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.id : 'unknown'; };
 
 // ── AI-refinement availability ────────────────────────────────────────────────
-// Cached in sessionStorage so the probe only fires once per browser session,
+// Cached as a session flag so the probe only fires once per browser session,
 // not on every HMR reload or component mount.
 // Real fix: previously hardcoded to the Gemini proxy path specifically —
 // now resolves whichever model is actually configured as the active
@@ -86,7 +107,7 @@ const STRUCTURED_CONTENT_SESSION_KEY = 'ps_voice_ai_available';
 
 async function checkStructuredContentAvailable(): Promise<boolean> {
   // Return cached result if already probed this session
-  const cached = sessionStorage.getItem(STRUCTURED_CONTENT_SESSION_KEY);
+  const cached = getSessionFlag(STRUCTURED_CONTENT_SESSION_KEY);
   if (cached !== null) return cached === 'true';
 
   let available = false;
@@ -95,10 +116,10 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
     if (!configOverride) {
       // No validated voice model configured at all — genuinely
       // unavailable, not a network/proxy problem.
-      sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, 'false');
+      setSessionFlag(STRUCTURED_CONTENT_SESSION_KEY, 'false');
       return false;
     }
-    await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride });
+    await callAi({ system: 'Reply with: OK', prompt: 'ping', maxTokens: 10, configOverride, context: { feature: 'connection-test' } });
     available = true;
   } catch (e: any) {
     // Distinguish "proxy/key genuinely missing" from "rate limited but
@@ -107,29 +128,11 @@ async function checkStructuredContentAvailable(): Promise<boolean> {
     available = typeof e?.message === 'string' && e.message.includes('429');
   }
 
-  sessionStorage.setItem(STRUCTURED_CONTENT_SESSION_KEY, String(available));
+  setSessionFlag(STRUCTURED_CONTENT_SESSION_KEY, String(available));
   return available;
 }
 
-function norm(s: string) {
-  // Real, per direct follow-up — same real Unicode-awareness fix as
-  // services/actionRegistry/mockActionRegistryService.ts's own norm()
-  // (see that file's own fuller comment): the previous ASCII-only
-  // regex destroyed non-Latin-script transcripts entirely (Korean
-  // normalized to an empty string) and mangled accented Latin text.
-  return s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim();
-}
-
-function parseShortcut(shortcut: string) {
-  const parts = shortcut.split('+').map(p => p.trim().toLowerCase());
-  return {
-    ctrl:  parts.includes('ctrl'),
-    shift: parts.includes('shift'),
-    alt:   parts.includes('alt'),
-    meta:  parts.includes('meta'),
-    key:   parts.find(p => !['ctrl','shift','alt','meta'].includes(p)) ?? '',
-  };
-}
+const norm = normaliseDictation;
 
 // ── Punctuation substitution map (real, per-language — see
 //    ./punctuationMaps.ts's own header for the full account of the
@@ -169,32 +172,9 @@ function applyPunctuation(text: string, language: import('../constants/voiceProf
 }
 
 // ── Dictation learning store ───────────────────────────────────────────────────
-const DICTATION_LEARN_KEY = 'ps_dictation_corrections';
-
-function loadDictationCorrections(): Record<string, string> {
-  try {
-    const raw = localStorage.getItem(DICTATION_LEARN_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function saveDictationCorrections(map: Record<string, string>) {
-  try { localStorage.setItem(DICTATION_LEARN_KEY, JSON.stringify(map)); } catch {}
-}
-
-const dictationCorrections: Record<string, string> = loadDictationCorrections();
-
-function applyDictationLearning(rawTranscript: string, localText: string): string {
-  const key = norm(rawTranscript);
-  return dictationCorrections[key] ?? localText;
-}
-
-function recordDictationCorrection(rawTranscript: string, corrected: string) {
-  const key = norm(rawTranscript);
-  if (!key || !corrected.trim()) return;
-  dictationCorrections[key] = corrected;
-  saveDictationCorrections(dictationCorrections);
-}
+// Batch 650: the per-person correction table lives in services/voice/dictationCorrections.ts (Batch 430 made it
+// per signed-in person); the report editors write to it through the same service.
+const VOICE_ACCENT_KEY = 'pathscribe_voice_accent';
 
 // ── Voice-dictation AI refinement ─────────────────────────────────────────────
 // Real fix: previously called Gemini directly via a hardcoded model
@@ -206,21 +186,15 @@ function recordDictationCorrection(rawTranscript: string, corrected: string) {
 // reported validation study behind it) and calls it through that same
 // shared path, so voice genuinely isn't locked to any one vendor.
 
-const VOICE_REFINEMENT_SYSTEM =
-  'You are an expert Pathology Transcription Assistant. Refine raw voice ' +
-  'transcripts into professional medical text.\n\n' +
-  'RULES:\n' +
-  '1. Correct phonetic errors (e.g. "Rose" \u2192 "Gross", "Serial" \u2192 "Ciliary").\n' +
-  '2. Format measurements using \'x\' (e.g. "3 x 2 x 1 cm").\n' +
-  '3. Use proper pathology staging capitalization (pT2b, pN0, pM0).\n' +
-  '4. Capitalize the first word and after sentence-ending punctuation.\n' +
-  '5. Preserve punctuation symbols already present (commas, periods etc.).\n' +
-  '6. Return ONLY the refined text. No explanation, no quotes.';
+// Batch 609 (#177, #179): the system prompt is built per dictation language and English
+// spelling convention (services/voice/dictationRefinementPrompt.ts); it used to be one
+// English-only constant that left Australian and Canadian dictation on American spelling.
 
 async function refineWithStructuredContent(
   text: string,
   context: string,
-  learnedCorrections: Record<string, string>
+  learnedCorrections: Record<string, string>,
+  system: string
 ): Promise<string | null> {
   const examples = Object.entries(learnedCorrections)
     .slice(0, 5)
@@ -239,7 +213,7 @@ async function refineWithStructuredContent(
       console.warn('[VoiceProvider] No validated voice AI model configured');
       return null;
     }
-    const result = await callAi({ system: VOICE_REFINEMENT_SYSTEM, prompt, configOverride });
+    const result = await callAi({ system, prompt, configOverride, context: { feature: 'voice' } });
     return result.text?.trim() || null;
   } catch (e) {
     console.warn('[VoiceProvider] AI refinement failed:', e);
@@ -253,6 +227,11 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { t } = useTranslation();
   const { config } = useSystemConfig();
   const voiceEnabled = config.voiceEnabled ?? true;
+  // Batch 609: read through refs so the long-lived recognition handlers see the current settings.
+  const jurisdictionRef = useRef(config.jurisdiction);
+  jurisdictionRef.current = config.jurisdiction;
+  const englishFuzzyFallbackRef = useRef(config.voiceEnglishFuzzyFallback ?? true);
+  englishFuzzyFallbackRef.current = config.voiceEnglishFuzzyFallback ?? true;
 
   // Probe voice AI refinement availability once on mount
   const [aiAvailable, setAiAvailable] = useState(false);
@@ -272,12 +251,16 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // what the user had actually picked. Client-side only (no real
   // server-side user-profile store exists in this mock app to persist
   // to instead).
-  const [accent, setAccentState] = useState(() => {
-    try { return localStorage.getItem('pathscribe_voice_accent') || 'en-US'; } catch { return 'en-US'; }
-  });
+  // Batch 430: the accent is the person's, kept per signed-in person
+  // (services/userSettings/personalSettings.ts), and reloaded when someone
+  // else signs in on the same browser.
+  const readAccent = () => getPersonalSetting<string>(VOICE_ACCENT_KEY, 'en-US', raw => raw) || 'en-US';
+  const [accent, setAccentState] = useState(readAccent);
+  const signedInId = useAuthOptional()?.user?.id ?? getSessionUser()?.id;
+  useEffect(() => { setAccentState(readAccent()); }, [signedInId]);
   const setAccent = useCallback((next: string) => {
     setAccentState(next);
-    try { localStorage.setItem('pathscribe_voice_accent', next); } catch { /* persistence is an optimisation, not a requirement */ }
+    setPersonalSetting(VOICE_ACCENT_KEY, next);
   }, []);
   const [dictationTarget, setDictationTarget]   = useState<DictationTarget | null>(null);
   const [isRefining, setIsRefining]             = useState(false);
@@ -292,7 +275,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // macros, refreshed once per dictation session (see startDictation
   // below) — never re-fetched per spoken segment, since the LOCAL PATH
   // substitution needs to be near-instant.
-  const voiceMacroServiceRef = useRef(new MockVoiceMacroService());
+  const voiceMacroServiceRef = useRef(voiceMacroService);
   const voiceMacrosRef = useRef<VoiceMacro[]>([]);
   const phaseRef           = useRef<VoicePhase>('standby');
   const commandPhaseRef    = useRef<'ai' | 'local'>('ai');
@@ -300,6 +283,8 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const lastRawRef         = useRef<string>('');
   const lastLocalTextRef   = useRef<string>('');
   const aiAvailableRef     = useRef(false);
+  const commandRunnerRef   = useRef(createVoiceCommandRunner({ registry: actionRegistryService, audit: auditService, getUserName }));
+  const cancelAskedAtRef    = useRef<number | null>(null);
 
   useEffect(() => { dictationTargetRef.current  = dictationTarget; }, [dictationTarget]);
   useEffect(() => { justHeardLiteralRef.current = justHeardLiteral; }, [justHeardLiteral]);
@@ -335,7 +320,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // was real, stored, admin-editable data that never actually fired
   // anything on a real, physical key press — only voice commands ever
   // called executeAction. This is the real, missing receiving half.
-  // Shares mockActionRegistryService's own getEligibleActions() — the
+  // Shares actionRegistryService's own getEligibleActions() — the
   // exact same isActive + GLOBAL_CATEGORIES-or-current-context rule
   // voice matching already uses — so keyboard and voice can never
   // silently drift apart on which actions are eligible right now.
@@ -349,21 +334,20 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const hasModifier = e.altKey || e.ctrlKey || e.metaKey;
       const target = e.target as HTMLElement | null;
       const isTyping = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
-      if (isTyping && !hasModifier) return;
+      if (isTyping && !hasModifier && !isFunctionKeyPress(e)) return;
+      // Batch 614: on a Mac, Option+letter types a character (é, ß); on a European keyboard AltGr does. In a text
+      // field that is typing, so it never runs a hotkey there.
+      if (isTyping && effectiveKey(e).producedText) return;
 
-      const eligible = mockActionRegistryService.getEligibleActions();
-      const matched = eligible.find(a => {
-        if (!a.shortcut) return false;
-        const sc = parseShortcut(a.shortcut);
-        return (
-          e.ctrlKey  === sc.ctrl  && e.shiftKey === sc.shift &&
-          e.altKey   === sc.alt   && e.metaKey  === sc.meta  &&
-          e.key.toLowerCase() === sc.key
-        );
-      });
+      const eligible = actionRegistryService.getEligibleActions();
+      // Batch 602: when the key matches the screen's own command and an always-on one, the screen's runs.
+      // The always-on one stays reachable through the "Go to" prefix (Alt+J, then its key).
+      const matched = pickShortcutMatch(eligible.filter(a => {
+        return matchesShortcut(e, a.shortcut);
+      }));
       if (matched) {
         e.preventDefault();
-        mockActionRegistryService.executeAction(matched);
+        actionRegistryService.executeAction(matched);
       }
     };
     window.addEventListener('keydown', handleGlobalShortcut);
@@ -376,17 +360,11 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const miss = pendingMissRef.current;
       if (!miss || Date.now() > miss.expiresAt) return;
       if (phaseRef.current === 'standby') return;
-      const matched = mockActionRegistryService.getActions().find(a => {
-        if (!a.shortcut) return false;
-        const sc = parseShortcut(a.shortcut);
-        return (
-          e.ctrlKey  === sc.ctrl  && e.shiftKey === sc.shift &&
-          e.altKey   === sc.alt   && e.metaKey  === sc.meta  &&
-          e.key.toLowerCase() === sc.key
-        );
+      const matched = actionRegistryService.getActions().find(a => {
+        return matchesShortcut(e, a.shortcut);
       });
       if (matched) {
-        mockActionRegistryService.confirmMiss(miss.id, matched.id, 'shortcut');
+        actionRegistryService.confirmMiss(miss.id, matched.id, 'shortcut');
         pendingMissRef.current = null;
       }
     };
@@ -394,9 +372,48 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => window.removeEventListener('keydown', onKeyDown, true);
   }, []);
 
+  // A missed phrase the person confirmed with a key runs its command inside the registry; audit that too.
+  useEffect(() => {
+    const onLearned = (e: Event) => {
+      const action = (e as CustomEvent).detail?.action;
+      if (action) commandRunnerRef.current.auditMissConfirmed(action);
+    };
+    window.addEventListener('VOICE_MAPPING_LEARNED', onLearned);
+    return () => window.removeEventListener('VOICE_MAPPING_LEARNED', onLearned);
+  }, []);
+
+  // ── Cancel (Ctrl+Alt+J, or "cancel dictation" while dictating): services/voice/voiceCancel.ts decides ──
+  const runCancel = useCallback(() => {
+    const target = dictationTargetRef.current;
+    const say = (key: string, ms: number) => { setTranscript(t(key)); setTimeout(() => setTranscript(''), ms); };
+    const endDictation = () => {
+      cancelAskedAtRef.current = null;
+      target?.onDone?.();
+      setDictationTarget(null);
+      setJustHeardLiteral(false);
+      setIsRefining(false);
+      setPhase(commandPhaseRef.current);
+    };
+    const decision = decideCancel({
+      dictating: !!target, uncommitted: target?.uncommitted?.() ?? 0,
+      commandPending: !!commandRunnerRef.current.pending(), askedAt: cancelAskedAtRef.current, now: Date.now(),
+    });
+    if (decision === 'askConfirm') { cancelAskedAtRef.current = Date.now(); say('voiceProvider.status.cancelConfirm', CANCEL_CONFIRM_WINDOW_MS); }
+    else if (decision === 'discardDictation') { const r = target?.discard?.(); endDictation(); say(r && r.kept > 0 ? 'voiceProvider.status.cancelDiscardedKept' : 'voiceProvider.status.cancelDiscarded', 3000); }
+    else if (decision === 'stopDictation') { endDictation(); say('voiceProvider.status.cancelStopped', 2000); }
+    else if (decision === 'dropPendingCommand') { commandRunnerRef.current.cancelPending(); say('voiceProvider.status.cancelCommand', 2000); }
+  }, [t]);
+  useEffect(() => {
+    window.addEventListener('PATHSCRIBE_VOICE_CANCEL', runCancel);
+    return () => window.removeEventListener('PATHSCRIBE_VOICE_CANCEL', runCancel);
+  }, [runCancel]);
+
   // ── Core dictation handler ─────────────────────────────────────────────────
   const handleDictationSegment = useCallback(async (text: string) => {
     const normed = norm(text);
+
+    if (normed.includes(CANCEL_PHRASE)) { runCancel(); return; }
+    cancelAskedAtRef.current = null;   // more speech since the question: Cancel asks again
 
     // Stop phrases exit dictation mode
     if (STOP_PHRASES.some(p => normed.includes(p))) {
@@ -455,32 +472,30 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     lastRawRef.current       = text;
     lastLocalTextRef.current = localWithLearning;
 
-    if (commandPhaseRef.current === 'ai' && aiAvailableRef.current) {
-      // ── AI PATH ────────────────────────────────────────────────────────────
-      dictationTargetRef.current?.onText(localWithLearning, true); // interim
-      setIsRefining(true);
-      setTranscript(t('voiceProvider.status.refining'));
-
-      const context       = dictationTargetRef.current?.context ?? 'Pathology Report';
-      const structuredContentPromise = refineWithStructuredContent(text, context, dictationCorrections);
-      const timeoutPromise = new Promise<null>(r => setTimeout(() => r(null), STRUCTURED_CONTENT_TIMEOUT_MS));
-      const refined        = await Promise.race([structuredContentPromise, timeoutPromise]);
-
-      setIsRefining(false);
-      setTranscript('');
-
-      if (refined && refined !== localWithLearning) {
-        dictationTargetRef.current?.onText(refined, false);
-        lastLocalTextRef.current = refined;
-      } else {
-        dictationTargetRef.current?.onText(localWithLearning, false);
-      }
-    } else {
-      // ── LOCAL PATH ─────────────────────────────────────────────────────────
-      dictationTargetRef.current?.onText(localWithLearning);
-      setTranscript('');
-    }
-  }, [t]);
+    // Batch 650: one final insert per segment (services/voice/dictationSegmentFlow.ts). The target is taken now, so
+    // a segment still refining when dictation ends is delivered to the field it was spoken into, not dropped.
+    const target = dictationTargetRef.current;
+    const sink = (txt: string, isInterim?: boolean, meta?: DictationSegmentMeta) => target?.onText(txt, isInterim, meta);
+    const useAi = commandPhaseRef.current === 'ai' && aiAvailableRef.current;
+    const context = target?.context ?? 'Pathology Report';
+    const system = buildDictationRefinementSystem({
+      language: getVoiceProfileLanguage(accent),
+      spellLocale: spellLocaleForDictation(spellLangForJurisdiction(jurisdictionRef.current), getVoiceProfileRecognitionLang(accent)),
+    });
+    const result = await insertDictationSegment({
+      raw: text,
+      localText: localWithLearning,
+      sink,
+      budgetMs: REFINEMENT_BUDGET_MS,
+      refine: useAi ? () => refineWithStructuredContent(text, context, dictationCorrectionsForCurrentUser(), system) : undefined,
+      onRefining: refining => {
+        setIsRefining(refining);
+        setTranscript(refining ? t('voiceProvider.status.refining') : '');
+      },
+    });
+    if (result.outcome === 'ai') lastLocalTextRef.current = result.text;
+    if (!useAi) setTranscript('');
+  }, [t, accent, runCancel]);
 
   // ── Speech recognition lifecycle ───────────────────────────────────────────
   useEffect(() => {
@@ -530,18 +545,38 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // so a genuine, real French/German/Dutch/Korean command
         // trigger (once translated content exists) is actually
         // matched, not silently only ever checked against English.
-        const action = mockActionRegistryService.findActionByTrigger(text, getVoiceProfileLanguage(accent));
-        if (action) {
+        // Batch 463: a command for what is on screen first (the Mohs stage question).
+        const screenOutcome = offerVoiceCommandToScreen(text, getVoiceProfileLanguage(accent));
+        if (screenOutcome) {
           pendingMissRef.current = null;
-          mockActionRegistryService.executeAction(action, text);
-          setTranscript(t('voiceProvider.status.actionExecuted', { label: action.label }));
+          setTranscript(t(screenVoiceStatusKey(screenOutcome), { text }));
+          setTimeout(() => setTranscript(''), 1200);
+          continue;
+        }
+        // Batch 650: eligibility, confirm-by-repeating and the audit entry are the runner's (services/voice/voiceCommandRunner.ts).
+        const outcome = commandRunnerRef.current.handle(text, getVoiceProfileLanguage(accent), { englishFuzzyFallback: englishFuzzyFallbackRef.current });
+        if (outcome.kind === 'confirmationNeeded') {
+          pendingMissRef.current = null;
+          setTranscript(t('voiceProvider.status.confirmRepeat', { text, label: outcome.action.label }));
+          window.setTimeout(() => {
+            const expired = commandRunnerRef.current.expirePending();
+            if (expired?.kind === 'refused') setTranscript(t('voiceProvider.status.confirmTimedOut', { label: expired.action.label }));
+            window.setTimeout(() => setTranscript(''), 1500);
+          }, REPEAT_CONFIRMATION_WINDOW_MS + 100);
+        } else if (outcome.kind === 'refused') {
+          pendingMissRef.current = null;
+          setTranscript(t(outcome.reason === 'notEligible' ? 'voiceProvider.status.notAvailableHere' : 'voiceProvider.status.confirmDeclined', { label: outcome.action.label }));
+          setTimeout(() => setTranscript(''), 1800);
+        } else if (outcome.kind === 'executed') {
+          pendingMissRef.current = null;
+          setTranscript(t('voiceProvider.status.actionExecuted', { label: outcome.action.label }));
           setTimeout(() => setTranscript(''), 1200);
         } else {
-          const miss = mockActionRegistryService.recordMiss(text);
+          const miss = actionRegistryService.recordMiss(text);
           pendingMissRef.current = { id: miss.id, expiresAt: Date.now() + MISS_CONFIRMATION_WINDOW_MS };
           setTimeout(() => {
             if (pendingMissRef.current?.id === miss.id) {
-              mockActionRegistryService.dismissMiss(miss.id);
+              actionRegistryService.dismissMiss(miss.id);
               pendingMissRef.current = null;
             }
           }, MISS_CONFIRMATION_WINDOW_MS);
@@ -590,6 +625,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [voiceEnabled]);
 
   const startDictation = useCallback((target: DictationTarget) => {
+    cancelAskedAtRef.current = null;
     setDictationTarget(target);
     setTranscript('');
     setPhase('dictate');
@@ -636,7 +672,7 @@ export const VoiceProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     toggleVoice, startDictation, stopDictation,
   };
 
-  return <VoiceContext.Provider value={value}>{children}</VoiceContext.Provider>;
+  return <VoiceContext.Provider value={value}>{children}<GoToPrefix /></VoiceContext.Provider>;
 };
 
 export const useVoice = () => useContext(VoiceContext)!;

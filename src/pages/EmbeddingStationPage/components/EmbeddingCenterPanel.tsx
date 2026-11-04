@@ -16,12 +16,28 @@
 // the already-resolved alertBadges array and this panel just renders
 // the toggleable ones (from the block's own real flags) plus the
 // derived ones by name.
+//
+// Batch 401 (PS-359): Confirm takes what it needs from the organisation's
+// Field Requirements (page "embedding"): the observed count (locked), and the
+// mold size and orientation instructions when the organisation requires them.
+// Required labels are starred, "Still required: …" says what is missing, Confirm
+// stays off until it is complete, and "confirm count" by voice
+// (EMBEDDING_CONFIRM_PIECE_COUNT) acts exactly as the button. Confirm sends the
+// orientation box's current text with it, so text typed just before is kept.
+// Block status, mold sizes, quick fills and discrepancy reasons are shown in
+// the user's language (they are stored in English).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { HistologyBlock, Specimen, EmbeddingMoldSize, EmbeddingDiscrepancyReason } from '@/types/case/Specimen';
-import { EMBEDDING_DISCREPANCY_REASONS, EMBEDDING_MOLD_SIZES, EMBEDDING_ORIENTATION_QUICK_FILLS } from '@/utils/embeddingOperations';
+import { actionRegistryService, embeddingConfirmMissing, embeddingFieldRequired } from '@/services';
+import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
+import {
+  EMBEDDING_DISCREPANCY_REASONS, EMBEDDING_MOLD_SIZES, EMBEDDING_ORIENTATION_QUICK_FILLS,
+  EMBEDDING_MOLD_SIZE_KEYS, EMBEDDING_DISCREPANCY_REASON_KEYS, blockStatusLabelKey, hasOpenEmbeddingDiscrepancy, splitBlockCandidates,
+} from '@/utils/embeddingOperations';
+import { formatList } from '@/utils/formatList';
 
 export interface EmbeddingCenterPanelProps {
   specimen: Specimen;
@@ -29,11 +45,17 @@ export interface EmbeddingCenterPanelProps {
   alertBadges: Array<'Tiny Tissue' | 'Fragile' | 'Decal Required' | 'Biopsy' | 'Needle Core'>;
   splitBlockGroupStatus: { siblings: HistologyBlock[]; allEmbedded: boolean } | null;
   onToggleAlertFlag: (flag: 'tinyTissue' | 'fragile' | 'requiresDecal') => void;
-  onConfirmPieceCount: (observedCount: number) => void;
+  /** The observed-count text and the orientation box's current text. */
+  onConfirmPieceCount: (observedCountText: string, orientationInstructions: string) => void;
+  /** The name of the person who flagged the discrepancy (the block stores the id); null while it is looked up or unknown. */
+  flaggerName?: string | null;
   onFlagDiscrepancy: (reason: EmbeddingDiscrepancyReason) => void;
+  /** Batch 669: clears the flag (one click, audited). */
+  onClearDiscrepancy: () => void;
   onSetMoldAndOrientation: (changes: { moldSize?: EmbeddingMoldSize; orientationInstructions?: string }) => void;
   onGroupSplitBlocks: (siblingBlockIds: string[]) => void;
   onOpenComments: () => void;
+  requirements: readonly ResolvedFieldRequirement[];
 }
 
 const STORED_FLAGS = ['tinyTissue', 'fragile', 'requiresDecal'] as const;
@@ -41,21 +63,35 @@ const DERIVED_BADGE_LABELS: Record<string, string> = { Biopsy: 'Biopsy', 'Needle
 
 const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
   specimen, block, alertBadges, splitBlockGroupStatus,
-  onToggleAlertFlag, onConfirmPieceCount, onFlagDiscrepancy, onSetMoldAndOrientation, onGroupSplitBlocks, onOpenComments,
+  onToggleAlertFlag, onConfirmPieceCount, flaggerName, onFlagDiscrepancy, onClearDiscrepancy, onSetMoldAndOrientation, onGroupSplitBlocks, onOpenComments, requirements,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [observedCount, setObservedCount] = useState<string>(block.pieceCount != null ? String(block.pieceCount) : '');
   const [orientationText, setOrientationText] = useState<string>(block.orientationInstructions ?? '');
   const [groupPicker, setGroupPicker] = useState<Set<string>>(new Set());
 
-  const siblingCandidates = (specimen.blocks ?? []).filter(b => b.id !== block.id && !b.splitBlockGroupId);
+  const siblingCandidates = splitBlockCandidates(specimen, block.id);
   const isEmbedded = block.status === 'Embedded';
+  const missing = isEmbedded ? [] : embeddingConfirmMissing({ observedCount, moldSize: block.moldSize, orientationInstructions: orientationText }, requirements);
+  // Batch 669: a flagged discrepancy stops Confirm until it is cleared.
+  const flagged = hasOpenEmbeddingDiscrepancy(block);
+  const canConfirm = !isEmbedded && !flagged && missing.length === 0;
+  const star = (fieldId: string) => !isEmbedded && embeddingFieldRequired(requirements, fieldId) && <span className="ps-conf-required"> *</span>;
+
+  const discrepancyLabel = (reason: EmbeddingDiscrepancyReason) => {
+    const key = EMBEDDING_DISCREPANCY_REASON_KEYS[reason];
+    return key ? t(`embeddingStation.discrepancy.reason.${key}`) : reason;
+  };
 
   const handleConfirmClick = () => {
-    const n = Number(observedCount);
-    if (Number.isNaN(n)) return;
-    onConfirmPieceCount(n);
+    if (!canConfirm) return;
+    onConfirmPieceCount(observedCount, orientationText);
   };
+  const confirmRef = useRef(handleConfirmClick);
+  confirmRef.current = handleConfirmClick;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'EMBEDDING_CONFIRM_PIECE_COUNT') confirmRef.current();
+  }), []);
 
   const handleOrientationBlur = () => {
     if (orientationText !== (block.orientationInstructions ?? '')) onSetMoldAndOrientation({ orientationInstructions: orientationText });
@@ -83,7 +119,7 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
           ))}
         </div>
 
-        <div className="ps-embedding-context-field">{t('embeddingStation.context.status')}<strong>{block.status}</strong></div>
+        <div className="ps-embedding-context-field">{t('embeddingStation.context.status')}<strong>{t(blockStatusLabelKey(block.status))}</strong></div>
         {block.tissueDescription && (
           <div className="ps-embedding-context-field">{t('embeddingStation.context.tissueDescription')}<strong>{block.tissueDescription}</strong></div>
         )}
@@ -96,16 +132,24 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
       <div className="ps-embedding-panel ps-mb-14">
         <p className="ps-embedding-panel-title">{t('embeddingStation.pieceCount.title')}</p>
         <div className="ps-embedding-context-field">{t('embeddingStation.pieceCount.expected')}<strong>{block.pieceCount ?? '—'}</strong></div>
+        <label className="ps-embedding-field-label" htmlFor="embedding-observed-count">
+          {t('embeddingStation.pieceCount.observedLabel')}{star('observedPieceCount')}
+        </label>
         <div className="ps-embedding-piece-count-row">
-          <input
-            type="number" min={0} className="ps-embedding-field-input ps-embedding-field-input--narrow"
+          <input id="embedding-observed-count"
+            type="number" min={0} step={1} className="ps-embedding-field-input ps-embedding-field-input--narrow"
             value={observedCount} onChange={e => setObservedCount(e.target.value)}
             disabled={isEmbedded}
           />
-          <button type="button" className="ps-btn-primary" disabled={isEmbedded || observedCount === ''} onClick={handleConfirmClick}>
+          <button type="button" className="ps-btn-primary" disabled={!canConfirm} onClick={handleConfirmClick}>
             ✅ {t('embeddingStation.pieceCount.confirm')}
           </button>
         </div>
+        {missing.length > 0 && (
+          <p className="ps-field-still-required" role="status">
+            {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.embedding.${id}`)), i18n.language) })}
+          </p>
+        )}
         {isEmbedded && (
           <div className="ps-embedding-context-field ps-mt-8">
             {t('embeddingStation.pieceCount.observed')}<strong>{block.pieceCountAtEmbedding}</strong>
@@ -116,19 +160,22 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
         <div className="ps-embedding-discrepancy-grid">
           {EMBEDDING_DISCREPANCY_REASONS.map(reason => (
             <button key={reason} type="button" className="ps-embedding-discrepancy-btn" onClick={() => onFlagDiscrepancy(reason)}>
-              {t(`embeddingStation.discrepancy.reason.${reasonKey(reason)}`)}
+              {t(`embeddingStation.discrepancy.reason.${EMBEDDING_DISCREPANCY_REASON_KEYS[reason]}`)}
             </button>
           ))}
         </div>
         {block.lastDiscrepancyReason && (
           <div className="ps-embedding-discrepancy-active">
-            ⚠ {t('embeddingStation.discrepancy.lastFlagged', { reason: block.lastDiscrepancyReason, by: block.lastDiscrepancyReportedBy ?? '—' })}
+            ⚠ {t('embeddingStation.discrepancy.lastFlagged', { reason: discrepancyLabel(block.lastDiscrepancyReason), by: flaggerName ?? block.lastDiscrepancyReportedBy ?? '—' })}
+            {' '}
+            <button type="button" className="ps-embedding-row-btn" onClick={onClearDiscrepancy}>{t('embeddingStation.discrepancy.clear')}</button>
+            <p className="ps-field-still-required" role="status">{t('embeddingStation.discrepancy.confirmBlocked')}</p>
           </div>
         )}
       </div>
 
       <div className="ps-embedding-panel ps-mb-14">
-        <p className="ps-embedding-panel-title">{t('embeddingStation.mold.title')}</p>
+        <p className="ps-embedding-panel-title">{t('embeddingStation.mold.title')}{star('moldSize')}</p>
         <div className="ps-embedding-mold-grid">
           {EMBEDDING_MOLD_SIZES.map(size => (
             <button
@@ -136,13 +183,13 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
               className={`ps-embedding-mold-chip${block.moldSize === size ? ' ps-embedding-mold-chip--active' : ''}`}
               onClick={() => onSetMoldAndOrientation({ moldSize: size })}
             >
-              {size}
+              {t(`embeddingStation.mold.size.${EMBEDDING_MOLD_SIZE_KEYS[size]}`)}
             </button>
           ))}
         </div>
 
-        <label className="ps-embedding-field-label ps-mt-10">{t('embeddingStation.orientation.title')}</label>
-        <textarea
+        <label className="ps-embedding-field-label ps-mt-10" htmlFor="embedding-orientation">{t('embeddingStation.orientation.title')}{star('orientationInstructions')}</label>
+        <textarea id="embedding-orientation"
           className="ps-embedding-comment-textarea"
           value={orientationText}
           placeholder={t('embeddingStation.orientation.placeholder') ?? ''}
@@ -150,14 +197,17 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
           onBlur={handleOrientationBlur}
         />
         <div className="ps-embedding-orientation-quickfills">
-          {EMBEDDING_ORIENTATION_QUICK_FILLS.map(fill => (
-            <button
-              key={fill} type="button" className="ps-embedding-row-btn"
-              onClick={() => { setOrientationText(fill); onSetMoldAndOrientation({ orientationInstructions: fill }); }}
-            >
-              {fill}
-            </button>
-          ))}
+          {EMBEDDING_ORIENTATION_QUICK_FILLS.map(key => {
+            const fill = t(`embeddingStation.orientation.quickFill.${key}`);
+            return (
+              <button
+                key={key} type="button" className="ps-embedding-row-btn"
+                onClick={() => { setOrientationText(fill); onSetMoldAndOrientation({ orientationInstructions: fill }); }}
+              >
+                {fill}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -196,18 +246,5 @@ const EmbeddingCenterPanel: React.FC<EmbeddingCenterPanelProps> = ({
     </>
   );
 };
-
-// Real, small, honest helper: maps a real EmbeddingDiscrepancyReason
-// string to the i18n leaf-key naming convention used for the other
-// enum-like keys in this namespace (camelCase, no slashes/spaces).
-function reasonKey(reason: EmbeddingDiscrepancyReason): string {
-  switch (reason) {
-    case 'Missing Tissue/Empty Cassette': return 'missingTissue';
-    case 'Extra Tissue Found': return 'extraTissue';
-    case 'Unopened Cassette/Unprocessed Tissue': return 'unopenedCassette';
-    case 'Damaged Cassette/Broken Hinge': return 'damagedCassette';
-    default: return 'other';
-  }
-}
 
 export default EmbeddingCenterPanel;

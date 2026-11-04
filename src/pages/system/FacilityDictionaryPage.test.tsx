@@ -53,6 +53,8 @@ vi.mock('../../services', () => ({
   modelService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   locationService: { listForFacility: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   placeOfServiceCodeService: { getActiveCodes: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+  // Batch 528 (PS-359): the editor loads the organisation's facility requirements; the defaults here.
+  fieldRequirementService: { forSession: vi.fn(async (page: 'facility') => (await import('../../services/fieldRequirements/fieldRequirementRules')).resolveFieldRequirements(page)) },
 }));
 
 vi.mock('../../services/referenceCheck/referenceCheckService', () => ({

@@ -1,3 +1,7 @@
+**Batch 739:** kind `lbc_processor` (liquid-based cytology processor); seeds LBC_PROC_01 (ThinPrep) and LBC_PROC_02 (SurePath).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/equipment/
 
 **The lab's equipment register (Batch 358).**
@@ -37,10 +41,12 @@
 
 ## Still open
 
-- **Linking the workflow screens.** Printer Profiles and Grossing Hardware are not linked yet (Batch 359). Engravers and cold-chain storage units aren't linked.
-- **Maintenance and calibration** records are not built.
+- **Linking the workflow screens.** Printer Profiles and Grossing Hardware are linked (Batch 359). Engravers and cold-chain storage units aren't linked.
+- **Maintenance and calibration** records were built in Batch 360; reminders and a cross-device report are not.
 - **Free-text instrument ids.** Molecular QC run records and inbound instrument messages still carry a free-text `instrumentId`.
 - **Workcenter display.** The Molecular Workcenter shows codes, not names.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Printer Profiles and Grossing Hardware links (Batch 359) and maintenance/calibration records (Batch 360) are built.*
 
 ## Batch 359: settings records point at the register
 
@@ -86,6 +92,50 @@ Pete's decision on the open question above: flag the device, don't block it.
 - **Where it shows:** the register row (red name and edge) and the molecular batch instrument picker (a warning sign and the state in the option, a red border and a warning under it when chosen).
 - **Still open:** the Molecular Workcenter lists batches by instrument code only, so it shows no red flag.
 
+## Batch 406: deck layouts (instrument profiles)
+
+Pete asked for instrument profiles that define each analyser's slot layout and which rack types each slot takes.
+- `Equipment.deckSlots?: DeckSlot[]`. Each slot has an `id` (letters, digits and `_`, since it goes into `LOC-INST-<code>-<slot>`), an optional `deck` name, and `rackTypes` from `DECK_RACK_TYPES` (`sample_tube_rack`, `extraction_plate`, `reagent_cartridge`).
+- `equipmentRules.ts`:
+  - `normaliseDeckSlotId`.
+  - `deckSlotsValid`: ids unique regardless of case, and at least one rack type per slot.
+  - `validateEquipmentDraft` reports `deckSlotsInvalid`.
+- `mockEquipmentService.ts`:
+  - Seeds the Panthers' decks and backfills them into stored registers.
+  - Tidies slot ids on save.
+- The editor is `components/Config/System/DeckLayoutEditor.tsx`, shown for analysers.
+
+## Batch 428: Configuration permissions
+
+- `mockEquipmentService`: `create`, `update`, `deactivate`, `reactivate` need `config:equipment:manage`.
+- `mockEquipmentLogService`: `add` need `config:equipment:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+Recording a service log entry (`mockEquipmentLogService.add`) needs `equipment:maintenance:record`, its own capability now (Pete), held by Histotechnologist, Cytotechnologist and Molecular Technologist as well as Admin and Lab Director. Adding or changing equipment still needs `config:equipment:manage`.
+
+## Batch 434
+
+Three slide scanners are seeded (kind `slide_scanner`, Desert Valley Medical Center): `APERIO_GT450_01`, `APERIO_GT450_02`, `GENIUS_01`. WSI scan batches and the Slide Distribution Station's Digital destination now pick scanners from the register; the code is what the slide and the batch carry.
+
+## Batch 467 — In-house molecular orders
+
+Seed `inst-pcr-01` (PCR_01, "Real-time PCR 1", QuantStudio 5) at Desert Valley: the EGFR plate's instrument.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part B): server version (PS-514)
+
+The equipment and equipment log services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/EQUIPMENT_MIGRATION_API.md`.
+
+## Batch 730
+
+- `temperature_check` log type with `temperatureCelsius` and the range it was checked against (copied from the device); `Equipment.temperatureMinCelsius/MaxCelsius`; `equipmentLogRules.temperatureOutcome` (pass inside, fail outside) and the checks in `validateEquipmentLogEntry` / `validateEquipmentDraft`.
+
+## Batch 732
+
+- Batch 732: `Equipment.supportsLargeFormat` (stainers and slide scanners; spec §11.1).

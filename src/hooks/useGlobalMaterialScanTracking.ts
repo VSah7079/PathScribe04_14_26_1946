@@ -38,22 +38,27 @@
 // system existed.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import { processMaterialLocationEvent } from '@/services/hl7/processMaterialLocationEvent';
 import { dispatchMaterialScanEvent } from '@/utils/dispatchMaterialScanEvent';
-import { dispatchSlideLabel } from '@/utils/labels/dispatchSlideLabel';
+import { dispatchScanSlideLabel, type ScanLabelStation, type ScanSlideLabelDeps } from '@/utils/labels/dispatchScanSlideLabel';
 import { hydrateGrossingBlocks } from '@/utils/hydrateGrossingBlocks';
 import { resolveMaterialFromScan } from '@/utils/resolveMaterialFromScan';
 import type { ResolvedScanTarget } from '@/utils/resolveMaterialFromScan';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
+
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { updateCaseWithRetryOrThrow } from '@/services/cases/caseWrite';
+
 import { slideIdentifier, matrixSlideIdentifier } from '@/types/labels/LabelData';
 import { useCurrentScanStation } from './useCurrentScanStation';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
 import type { Case } from '@/types/case/Case';
+import { scanStationService, auditService } from '@/services';
+import { readSessionProfile } from '@/services/auth/sessionProfile';
+import { scanEventOrganisation } from '@/services/scanStations/scanEventOrganisation';
 
 /** Real, event-carried notification that a specific case's material
  *  was just updated by a scan — listened for by SynopticReportPage.tsx
@@ -61,11 +66,32 @@ import type { Case } from '@/types/case/Case';
  *  this hook needing to know or care whether such a page even exists. */
 export const MATERIAL_SCAN_UPDATED_EVENT = 'PATHSCRIBE_MATERIAL_SCAN_UPDATED';
 
+type ScanLabelOutcomes = { id: string; outcome: Awaited<ReturnType<typeof dispatchScanSlideLabel>> }[];
+
+/** Batch 652: a slide that got no label stays Pending Cut; say why in the console so support can see it. */
+function logUnproduced(outcomes: ScanLabelOutcomes, where: string): void {
+  for (const o of outcomes) {
+    if (!o.outcome.produced) console.warn(`[Microtome] No label produced for a slide of ${where}: ${o.outcome.reason ?? 'unknown reason'}`);
+  }
+}
+
+/** Audit text (literal English, per the audit-log rule) for the labels produced at the scan. */
+function scanLabelAuditDetail(outcomes: ScanLabelOutcomes, where: string): string {
+  const printed = outcomes.filter(o => o.outcome.printed).length;
+  const engraved = outcomes.filter(o => o.outcome.engraved).length;
+  const left = outcomes.filter(o => !o.outcome.produced).length;
+  const parts = [
+    printed > 0 ? `${printed} slide label${printed === 1 ? '' : 's'} printed` : '',
+    engraved > 0 ? `${engraved} slide${engraved === 1 ? '' : 's'} engraved` : '',
+  ].filter(Boolean).join(', ');
+  return `${parts || 'Slide labels already produced'} for ${where} at the microtome.${left > 0 ? ` ${left} left pending (no label produced).` : ''}`;
+}
+
 /** Real feature, per direct follow-up: "slide engravers are common as
- *  well. In that workflow, the user scans the block at microtomy and
+ *  well. In that workflow, the user scans the block at microtome and
  *  the labels get generated dynamically." Confirmed directly:
  *  'Microtomy / Sectioning' is a real, already-established
- *  ScanStation.workflowStage value (mockScanStationService.ts's own
+ *  ScanStation.workflowStage value (scanStationService.ts's own
  *  seed data). Only ever fires for a block-level or matrix_block-
  *  level scan at a station on that real stage — a slide-level scan
  *  (the slide already exists) has nothing pending to generate.
@@ -79,12 +105,16 @@ export const MATERIAL_SCAN_UPDATED_EVENT = 'PATHSCRIBE_MATERIAL_SCAN_UPDATED';
  *  dispatch/write failure here must never block the tech's own
  *  physical scan from having already happened.
  */
-async function processMicrotomyScan(
+export async function processMicrotomyScan(
   fullAccession: string,
   specimenLetter: string | undefined,
   target: ResolvedScanTarget,
   workflowStage: string | undefined,
   userId: string,
+  // Batch 652: the station that was scanned at decides how the label is produced (engraver, printer, or both). Without
+  // one, the older engraver-only behaviour applies (callers in the app always pass it).
+  station: ScanLabelStation = { supportsEngraving: true, supportsPrinting: false },
+  labelDeps?: ScanSlideLabelDeps,
 ): Promise<void> {
   if (workflowStage !== 'Microtomy / Sectioning') return;
   if (target.level !== 'block' && target.level !== 'matrix_block') return;
@@ -102,23 +132,34 @@ async function processMicrotomyScan(
         .filter(({ s }) => s.status === 'Pending Cut');
       if (pendingIndexes.length === 0) return;
 
-      await Promise.all(pendingIndexes.map(({ s, i }) => {
-        const level = `L${i + 1}`;
+      // Batch 652: only slides whose label was really engraved or printed are marked below; the rest stay Pending Cut.
+      const outcomes = await Promise.all(pendingIndexes.map(async ({ s, i }) => {
+        const level = slideLevelOf(s, i);
         const slideId = slideIdentifier(fullAccession, specimen.label, block.label, level);
-        return dispatchSlideLabel({ fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: s.stainName, slideId }).catch(() => {});
+        const outcome = await dispatchScanSlideLabel({ fullAccession, specimenLabel: specimen.label, blockLabel: block.label, level, stainName: s.stainName, slideId }, station, labelDeps);
+        return { id: s.id, outcome };
       }));
+      const produced = outcomes.filter(o => o.outcome.produced);
+      logUnproduced(outcomes, `${specimen.label}${block.label}`);
+      if (produced.length === 0) return;
 
-      const updatedSpecimens = (caseData.specimens ?? []).map((sp: Case['specimens'][number]) => sp.id !== specimen.id ? sp : {
-        ...sp,
-        blocks: (sp.blocks ?? []).map(b => b.id !== block.id ? b : {
-          ...b,
-          stains: (b.stains ?? []).map(s => s.status === 'Pending Cut' ? { ...s, status: 'Cut & Placed' as const } : s),
+      // PS-71 (Batch 458): marked on the newest copy of the case and saved
+      // with its version (updateCaseWithRetryOrThrow), so a concurrent
+      // change elsewhere on the case is kept. Only the slides whose labels
+      // were just engraved are marked (by id), never a slide added since.
+      const engraved = new Set(produced.map(o => o.id));
+      await updateCaseWithRetryOrThrow(caseData.id, current => ({
+        specimens: (current.specimens ?? []).map((sp: Case['specimens'][number]) => sp.id !== specimen.id ? sp : {
+          ...sp,
+          blocks: (sp.blocks ?? []).map(b => b.id !== block.id ? b : {
+            ...b,
+            stains: (b.stains ?? []).map(s => s.status === 'Pending Cut' && engraved.has(s.id) ? { ...s, status: 'Cut & Placed' as const } : s),
+          }),
         }),
-      });
-      await caseRouter.updateCase(caseData.id, { specimens: updatedSpecimens });
-      mockAuditService.logEvent({
-        type: 'system', event: 'Slides Engraved at Microtomy',
-        detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for ${specimen.label}${block.label} at microtomy.`,
+      }), caseRouter);
+      auditService.logEvent({
+        type: 'system', event: 'Slides Engraved at Microtome',
+        detail: scanLabelAuditDetail(outcomes, `${specimen.label}${block.label}`),
         user: userId, caseId: caseData.id, confidence: null,
       }).catch(() => {});
     } else {
@@ -130,25 +171,32 @@ async function processMicrotomyScan(
         .filter(({ s }) => s.status === 'Pending Cut');
       if (pendingIndexes.length === 0) return;
 
-      await Promise.all(pendingIndexes.map(({ s, i }) => {
-        const level = `L${i + 1}`;
+      const outcomes = await Promise.all(pendingIndexes.map(async ({ s, i }) => {
+        const level = slideLevelOf(s, i);
         const slideId = matrixSlideIdentifier(fullAccession, matrixBlock.label, level);
-        return dispatchSlideLabel({ fullAccession, specimenLabel: matrixBlock.label, blockLabel: matrixBlock.label, level, stainName: s.stainName, slideId }).catch(() => {});
+        const outcome = await dispatchScanSlideLabel({ fullAccession, specimenLabel: matrixBlock.label, blockLabel: matrixBlock.label, level, stainName: s.stainName, slideId }, station, labelDeps);
+        return { id: s.id, outcome };
       }));
+      const produced = outcomes.filter(o => o.outcome.produced);
+      logUnproduced(outcomes, `matrix block ${matrixBlock.label}`);
+      if (produced.length === 0) return;
 
-      const updatedMatrixBlocks = (caseData.matrixBlocks ?? []).map(m => m.id !== matrixBlockId ? m : {
-        ...m,
-        slides: (m.slides ?? []).map(s => s.status === 'Pending Cut' ? { ...s, status: 'Cut & Placed' as const } : s),
-      });
-      await caseRouter.updateCase(caseData.id, { matrixBlocks: updatedMatrixBlocks });
-      mockAuditService.logEvent({
-        type: 'system', event: 'Slides Engraved at Microtomy',
-        detail: `${pendingIndexes.length} real slide${pendingIndexes.length === 1 ? '' : 's'} engraved for matrix block ${matrixBlock.label} at microtomy.`,
+      // PS-71 (Batch 458): same as the block branch above, on matrixBlocks.
+      const engraved = new Set(produced.map(o => o.id));
+      await updateCaseWithRetryOrThrow(caseData.id, current => ({
+        matrixBlocks: (current.matrixBlocks ?? []).map(m => m.id !== matrixBlockId ? m : {
+          ...m,
+          slides: (m.slides ?? []).map(s => s.status === 'Pending Cut' && engraved.has(s.id) ? { ...s, status: 'Cut & Placed' as const } : s),
+        }),
+      }), caseRouter);
+      auditService.logEvent({
+        type: 'system', event: 'Slides Engraved at Microtome',
+        detail: scanLabelAuditDetail(outcomes, `matrix block ${matrixBlock.label}`),
         user: userId, caseId: caseData.id, confidence: null,
       }).catch(() => {});
     }
   } catch (e) {
-    console.error('[Microtomy] Failed to process dynamic slide generation:', e);
+    console.error('[Microtome] Failed to process dynamic slide generation:', e);
   }
 }
 
@@ -189,7 +237,7 @@ async function processGrossingScan(
     const hydrated = await hydrateGrossingBlocks(caseData.id, specimen.id);
     if (hydrated.length === 0) return;
 
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system', event: 'Grossing Blocks Hydrated',
       detail: `${hydrated.length} real block${hydrated.length === 1 ? '' : 's'} resolved (cassette color) for specimen ${specimenLetter} at grossing — ready for PA release.`,
       user: userId, caseId: caseData.id, confidence: null,
@@ -204,7 +252,9 @@ async function processGrossingScan(
     // SynopticReportPage.tsx's own existing listener already handles
     // this generically (re-fetch + toast), no new listener needed.
     window.dispatchEvent(new CustomEvent(MATERIAL_SCAN_UPDATED_EVENT, {
-      detail: { caseId: caseData.id, targetDescription: `${specimenLetter} (${hydrated.length} cassette${hydrated.length === 1 ? '' : 's'} resolved)`, stationName: 'Grossing' },
+      // Batch 445: the count travels as a number; the report page words
+      // the toast in the user's language.
+      detail: { caseId: caseData.id, targetDescription: specimenLetter, stationName: 'Grossing', resolvedCassettes: hydrated.length },
     }));
   } catch (e) {
     console.error('[Grossing] Failed to hydrate placeholder blocks:', e);
@@ -240,6 +290,8 @@ export function useGlobalMaterialScanTracking() {
     // the disposal queue means "dispose this," not "record a new
     // location," and the two must never both act on the same scan.
     if (location.pathname.startsWith('/batch-management/disposal')) return;
+    // Batch 645: a Lockbox Drop-Off scan means "receive this container", whatever has focus; no default action or tracking may also run.
+    if (location.pathname.startsWith('/lockbox-drop-off')) return;
 
     // Real, shared resolution — see resolveMaterialFromScan.ts's own
     // header for why this used to be two independently-maintained
@@ -250,14 +302,16 @@ export function useGlobalMaterialScanTracking() {
     const { caseData, fullAccession, specimenLetter, target } = resolved;
 
     if (!stationId) return; // Real, silent no-op — same as the toast-driven version, but a global listener with no case-specific page open has nowhere sensible to show that toast; the station selector itself (Material tab) still explains this when a tech does check.
-    const stationResult = await mockScanStationService.getById(stationId);
+    const stationResult = await scanStationService.getById(stationId);
     if (!stationResult.ok) return;
     const station = stationResult.data;
 
+    // Batch 654: the organisation is the signed-in person's, never a value fixed in the code.
+    const org = scanEventOrganisation(readSessionProfile());
     await processMaterialLocationEvent({
       messageId: `local-scan-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      organisationId: 'ORG-MFT',
+      organisationId: org.organisationId,
       accessionNumber: fullAccession,
       specimenLetter,
       target,
@@ -268,10 +322,11 @@ export function useGlobalMaterialScanTracking() {
       sourceSystem: 'PathScribe (local scan)',
     });
 
-    await dispatchMaterialScanEvent({
+    // The outbound event is sent only when the organisation is known: it is never invented.
+    if (org.known) await dispatchMaterialScanEvent({
       messageId: `scan-${Date.now()}`,
       timestamp: new Date().toISOString(),
-      organisationId: 'ORG-MFT',
+      organisationId: org.organisationId,
       accessionNumber: fullAccession,
       specimenLetter,
       target,
@@ -283,12 +338,12 @@ export function useGlobalMaterialScanTracking() {
     });
 
     // Real feature, per direct follow-up: "slide engravers are common
-    // as well... the user scans the block at microtomy and the labels
+    // as well... the user scans the block at microtome and the labels
     // get generated dynamically." Fire-and-forget, same posture as
     // the other real dispatches above — a slow/failed engrave dispatch
     // must never block the location event that already, correctly
     // applied.
-    processMicrotomyScan(fullAccession, specimenLetter, target, station.workflowStage, user?.id ?? 'unknown').catch(() => {});
+    processMicrotomyScan(fullAccession, specimenLetter, target, station.workflowStage, user?.id ?? 'unknown', station).catch(() => {});
     processGrossingScan(fullAccession, specimenLetter, target, station.workflowStage, user?.id ?? 'unknown').catch(() => {});
 
     const targetDescription = target.level === 'matrix_block'

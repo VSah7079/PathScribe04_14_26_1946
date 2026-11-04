@@ -25,11 +25,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../pathscribe.css';
-import { mockInterfaceEngineService } from '@/services/interfaceEngine/mockInterfaceEngineService';
+
 import type { OrderCreatedDispatchRecord } from '@/services/interfaceEngine/IInterfaceEngineService';
 import { filterDispatchTrail, countDispatchTrail, type DispatchTrailFilter } from '@/services/interfaceEngine/buildDispatchTrail';
 import { getOrganisationDisplayName } from '@/services/organisation/organisationService';
 import { formatAuditTimestamp } from '@/utils/formatDate';
+import { interfaceEngineService } from '@/services';
+import SimulatedEngineLogPanel from '@/components/MockInterfaceEngine/SimulatedEngineLogPanel';
 
 const STATUS_LABEL_KEY: Record<OrderCreatedDispatchRecord['status'], string> = {
   delivered: 'outboundDispatchTrail.status.delivered',
@@ -56,7 +58,9 @@ const ERROR_LABEL_KEY: Record<NonNullable<OrderCreatedDispatchRecord['errorCode'
 // payload's own data and are never translated.
 
 const JsonValue: React.FC<{ value: unknown }> = ({ value }) => {
-  if (value === null) return <span className="ps-dispatch-json-null">null</span>;
+  // JSON's own null keyword, written by JSON.stringify so the viewer shows the
+  // payload's syntax rather than a literal in the markup.
+  if (value === null) return <span className="ps-dispatch-json-null">{JSON.stringify(value)}</span>;
   if (typeof value === 'string') return <span className="ps-dispatch-json-string">"{value}"</span>;
   if (typeof value === 'number' || typeof value === 'boolean') return <span className="ps-dispatch-json-literal">{String(value)}</span>;
   return <span className="ps-dispatch-json-null">{String(value)}</span>;
@@ -156,7 +160,7 @@ const OutboundDispatchTrailSection: React.FC = () => {
   const [open, setOpen] = useState<OrderCreatedDispatchRecord | null>(null);
 
   useEffect(() => {
-    mockInterfaceEngineService.listDispatchTrail().then(r => { if (r.ok) setRecords(r.data); });
+    interfaceEngineService.listDispatchTrail().then(r => { if (r.ok) setRecords(r.data); });
   }, []);
 
   const counts = useMemo(() => countDispatchTrail(records), [records]);
@@ -221,6 +225,8 @@ const OutboundDispatchTrailSection: React.FC = () => {
       <div className="ps-auditlog-count-footer">{t('outboundDispatchTrail.footerCount', { shown: shown.length, total: records.length })}</div>
 
       {open && <PayloadDrawer record={open} onClose={() => setOpen(null)} />}
+      {/* Batch 605: every other message type sent in the demo (block orders, scan events, charges ...) */}
+      <SimulatedEngineLogPanel />
     </>
   );
 };

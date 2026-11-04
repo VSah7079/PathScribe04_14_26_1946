@@ -14,12 +14,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
 const { getAll, enqueue } = vi.hoisted(() => ({ getAll: vi.fn(), enqueue: vi.fn() }));
-vi.mock('@/services/molecularOrders/mockMolecularOrderOutboundQueueService', () => ({
-  mockMolecularOrderOutboundQueueService: { getAll, enqueue },
+// Batch 406: the page takes the queue service from @/services.
+vi.mock('@/services', async () => ({
+  ...(await vi.importActual<typeof import('@/services/molecularOrders/orderQueueView')>('@/services/molecularOrders/orderQueueView')),
+  molecularOrderOutboundQueueService: { getAll, enqueue },
 }));
 
 const { processInboundHpvResultEvent } = vi.hoisted(() => ({ processInboundHpvResultEvent: vi.fn() }));
@@ -55,6 +57,7 @@ describe('MolecularOrderQueuePage — real render smoke test', () => {
   });
 
   it('simulating a Positive result on the standalone assay calls the real processor with the real fields, and shows the reflex-specific outcome', async () => {
+    processInboundHpvResultEvent.mockResolvedValue({ outcome: 'applied', reflex: 'queued' });
     const { default: MolecularOrderQueuePage } = await import('./MolecularOrderQueuePage');
     render(<MolecularOrderQueuePage />);
     await act(async () => {});
@@ -78,5 +81,20 @@ describe('MolecularOrderQueuePage — real render smoke test', () => {
     render(<MolecularOrderQueuePage />);
     await act(async () => {});
     expect(screen.getByText('molecularOrderQueue.reasonReflex')).not.toBeNull();
+  });
+
+  it('Batch 669 (mol-3): pressing Positive again says the reflex order already exists, and a processor code is shown translated', async () => {
+    const { default: MolecularOrderQueuePage } = await import('./MolecularOrderQueuePage');
+    render(<MolecularOrderQueuePage />);
+    await act(async () => {});
+    processInboundHpvResultEvent.mockResolvedValue({ outcome: 'applied', reflex: 'already-queued' });
+    fireEvent.click(screen.getByText('molecularOrderQueue.simulateResultBtn'));
+    await act(async () => {});
+    expect(screen.getByText('molecularOrderQueue.resultAppliedReflexExists')).not.toBeNull();
+    processInboundHpvResultEvent.mockResolvedValue({ outcome: 'case-not-found' });
+    fireEvent.click(screen.getByText('molecularOrderQueue.simulateResultBtn'));
+    await act(async () => {});
+    // The raw code never reaches the screen: the outcome goes through its own key.
+    expect(screen.getByText('molecularOrderQueue.resultOutcome:{"outcome":"molecularOrderQueue.outcome.case-not-found"}')).not.toBeNull();
   });
 });

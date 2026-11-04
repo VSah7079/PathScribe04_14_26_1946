@@ -78,3 +78,43 @@ export async function claimMessageId(messageId: string, eventType: string): Prom
     throw err;
   }
 }
+
+// Batch 545 (finding F10): the two engine webhooks that change a case
+// (block-exception, material-location) no longer claim here first: they
+// claim inside the case update's own transaction (applyEngineCaseUpdate.ts),
+// so a 404 or a crash leaves no claim.
+//
+// Batch 549 (F10, the remaining two, open since Batch 545): the other two
+// webhooks don't claim first any more either. cassette-dispatch-outcome
+// writes its record with createWithClaim below, and engraver-status claims
+// inside upsertEngraverStatus's transaction. A crash between the claim and
+// the write can no longer lose the event: both are written together or
+// neither is. claimMessageId stays for callers that have nothing to write.
+
+/**
+ * Writes one new document and claims `messageId`, in one transaction (Batch
+ * 549). A messageId already claimed, or a record already there, writes
+ * nothing new and returns `alreadyProcessed: true`, so a redelivery is
+ * answered as before.
+ */
+export async function createWithClaim(
+  messageId: string, eventType: string, collection: string, docId: string, data: Record<string, unknown>,
+): Promise<IdempotencyResult> {
+  const db = getAdminFirestore();
+  const claimRef = db.collection(COLLECTION).doc(messageId);
+  const ref = db.collection(collection).doc(docId);
+  return db.runTransaction(async (tx: any): Promise<IdempotencyResult> => {
+    if ((await tx.get(claimRef)).exists) return { alreadyProcessed: true };
+    // A record already written under this id with no claim (written before the
+    // claim existed, or after processed_messages was cleaned up) is the same
+    // message: claim it and answer "already processed", rather than failing
+    // on create() and leaving the engine retrying for ever.
+    if ((await tx.get(ref)).exists) {
+      tx.create(claimRef, { eventType, claimedAt: new Date().toISOString() });
+      return { alreadyProcessed: true };
+    }
+    tx.create(ref, data);
+    tx.create(claimRef, { eventType, claimedAt: new Date().toISOString() });
+    return { alreadyProcessed: false };
+  });
+}

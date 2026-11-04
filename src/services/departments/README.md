@@ -1,8 +1,12 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/departments/
 
 Coarse-grained specimen classification controlling workflow at Accession (e.g. 'Surgical Tissue') — the level ABOVE the fine-grained Specimen Dictionary entry.
 
-**Pattern:** Standard interface/mock/firestore pattern.
+**Pattern:** Interface/mock only; there is no firestore stub in this folder.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the folder has no firestore file.*
 
 ## Notes
 
@@ -28,6 +32,20 @@ Coarse-grained specimen classification controlling workflow at Accession (e.g. '
   all three, same free-text, "not validated against a format" posture
   as Facility's. 4 new tests.
 
+## Batch 428: Configuration permissions
+
+- `mockDepartmentService`: `add`, `update`, `verify`, `deactivate` need `config:departments:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+`auditRetentionOverride.ts` (new): the audit entry for a retention override below the governing-body minimum, recorded under the signed-in person (the screen wrote it as "super-admin").
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616: server version in `httpDepartmentService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `departmentServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.
+
+## Batch 716: GYN Cytology department
+
+New seed department `cat-gyn-cytology` ("GYN Cytology"), with `demoDepartmentIds.ts` naming the four demo department ids. The older three keep their ids and names (Processing Protocols and the technical-facility offer match on the names). See `specimenDictionary/cytologyDemoSpecimens.ts` for what is linked to them.

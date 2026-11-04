@@ -43,7 +43,7 @@ import type { ContainerType } from '../hardwareContainers/IHardwareContainerRegi
 import type { DecalSolutionType } from './DecalBatch';
 
 /** Real, named laboratory processing nodes. Confirmed directly per
- *  follow-up: "Grossing, Processing, Embedding, Microtomy, Checkout -
+ *  follow-up: "Grossing, Processing, Embedding, Microtome, Checkout -
  *  I may have missed some" — aligned to this app's own, already-
  *  established real workflow-stage vocabulary (ScanStation's own
  *  SCAN_STATION_WORKFLOW_STAGES: Accessioning -> Grossing ->
@@ -127,7 +127,7 @@ export const BATCH_PROCESSING_NODES = [
 ] as const;
 export type BatchProcessingNode = typeof BATCH_PROCESSING_NODES[number];
 
-/** Real, additive — per 'Cytology Processing' (ThinPrep processor
+/** Real, additive — per 'Cytology Processing' (liquid-based processor: ThinPrep, SurePath or another; Batch 739
  *  batch). The instrument's own real, sequential run status, reported
  *  inbound via CytologyInstrumentStatusEvent (services/hl7/
  *  processInboundCytologyInstrumentStatusEvent.ts) and persisted here
@@ -253,6 +253,8 @@ export interface BatchOverride {
   byUserId: string;
   byUserName: string;
   reason: string;
+  /** Batch 736: the code of the bench reason picked for the override. */
+  reasonCode?: string;
   at: string;
 }
 
@@ -321,7 +323,7 @@ export interface Batch {
    *  real, honest "site vocabulary varies too much for a closed enum"
    *  reasoning as `protocol` below, not a second, competing field. */
   referralTestRequested?: string;
-  /** Real, additive — per 'Cytology Processing' (ThinPrep processor
+  /** Real, additive — per 'Cytology Processing' (liquid-based processor: ThinPrep, SurePath or another; Batch 739
    *  batch). See CytologyInstrumentStatus's own doc comment above.
    *  Only meaningful when processingNode === 'Cytology Processing'. */
   cytologyInstrumentStatus?: CytologyInstrumentStatus;
@@ -377,6 +379,8 @@ export interface Batch {
     acknowledgedByUserId?: string;
     acknowledgedByUserName?: string;
     acknowledgedNote?: string;
+    /** Batch 736: the code of the bench reason picked for the acknowledgement. */
+    acknowledgedReasonCode?: string;
   };
   /** Free text — real run/protocol name, e.g. "Standard H&E Overnight
    *  Run." Same real, honest reasoning as every other free-text
@@ -398,12 +402,49 @@ export interface Batch {
   completedAt?: string;
   abortedAt?: string;
   abortReason?: string;
+  /** Batch 737 (spec §11.1): this staining carrier takes large-format slides; a large-format slide is refused by one
+   *  that does not. */
+  largeFormat?: boolean;
+  /** Batch 739 (fluid decision 4): the liquid-based processor (Equipment id) a Cytology Processing batch is made for. */
+  processorEquipmentId?: string;
+  /** Batch 736: the code of the bench reason picked for the abort. */
+  abortReasonCode?: string;
   /** Set only when a supervisor has overridden a real, still-open
    *  discrepancy to force completion — the spec's own "supervisor-
    *  overridden" escape hatch. Never silently applied; see
    *  IBatchService.overrideAndComplete's own doc comment. */
   override?: BatchOverride;
+  /** Batch 726 (spec §2 row 1): the manifest is sealed. Nothing can be added
+   *  to or removed from it after this; reconciling and moving on still work.
+   *  Moving a carrier to its next step seals it if it was not sealed yet. */
+  sealedAt?: string;
+  sealedByUserId?: string;
+  sealedByUserName?: string;
+  /** Batch 726 (spec §2 row 2): every step this carrier has been moved to as
+   *  the same physical carrier, oldest first (advanceToNode). The step it was
+   *  created at is `processingNode` before the first entry. */
+  nodeHistory?: BatchNodeStep[];
+  /** Batch 734 (Pete, Oct 30, 2026): an ad-hoc carrier travels from station to station; each move is recorded here
+   *  (and on the station scan log) without asking, and `stationId` follows it. */
+  stationMoves?: { fromStationId?: string; toStationId: string; at: string; byUserId: string; byUserName: string }[];
+  /** Batch 728 (spec Decision 4a): what the carrier is for, an id from the lab's batch purposes
+   *  (batches/batchPurposes.ts). Absent on carriers made before Batch 728: they count as Routine. */
+  purposeId?: string;
 }
+
+/** Batch 726: one move of a carrier to its next processing step. */
+export interface BatchNodeStep {
+  fromNode: BatchProcessingNode;
+  toNode: BatchProcessingNode;
+  at: string;
+  byUserId: string;
+  byUserName: string;
+  /** The station the carrier was scanned at, when one was set. */
+  stationId?: string;
+}
+
+/** Batch 726: how a carrier scan at a station came out, for the station scan log (spec §7.1). */
+export type CarrierScanResult = 'ok' | 'mismatch';
 
 /** Real, honest outcome of a single scanned item during active
  *  (non-reconciliation) scanning — distinct possible reasons a scan
@@ -411,10 +452,17 @@ export interface Batch {
  *  raising an immediate audio-visual alert if an incompatible
  *  specimen is added." */
 export type AddItemOutcome =
-  | { outcome: 'added'; batch: Batch; item: BatchItem }
-  | { outcome: 'already-in-batch'; reason: string }
-  | { outcome: 'in-other-active-batch'; reason: string; otherBatchId: ID; otherMasterBarcode: string }
-  | { outcome: 'not-found'; reason: string };
+  /** Batch 737: `warning` 'blockExhausted' when the block scanned in has no tissue left (it is still added). */
+  | { outcome: 'added'; batch: Batch; item: BatchItem; warning?: 'blockExhausted' }
+  // Batch 407: `reason` is English, for logs; the screen builds its own text
+  // from the outcome and the item (displayId) or what was scanned.
+  | { outcome: 'already-in-batch'; reason: string; displayId: string }
+  | { outcome: 'in-other-active-batch'; reason: string; displayId: string; otherBatchId: ID; otherMasterBarcode: string }
+  | { outcome: 'not-found'; reason: string; scanned: string }
+  /** Batch 737 (spec §11.1): a large-format slide into a staining carrier that does not take large-format slides. */
+  | { outcome: 'slide-too-large'; reason: string; displayId: string }
+  // Batch 726: the batch is not taking items (sealed, or no longer active).
+  | { outcome: 'not-accepting'; reason: string; sealed: boolean; status: BatchStatus };
 
 export interface IBatchService {
   getAll(): Promise<ServiceResult<Batch[]>>;
@@ -462,6 +510,13 @@ export interface IBatchService {
     /** Only meaningful when processingNode === 'Staining' — see
      *  Batch.stainingReagentLotIds's own doc comment. */
     stainingReagentLotIds?: string[];
+    /** Batch 728: the carrier's purpose; Routine when absent. */
+    purposeId?: string;
+    /** Batch 737 (spec §11.1): a staining carrier that takes large-format slides (a reusable rack registered as
+     *  large-format sets it too). */
+    largeFormat?: boolean;
+  /** Batch 739 (fluid decision 4): the liquid-based processor (Equipment id) a Cytology Processing batch is made for. */
+  processorEquipmentId?: string;
   }): Promise<ServiceResult<Batch>>;
   /** Real, central add-item path — resolves `scannedValue` against
    *  this app's own real material tree (via resolveMaterialFromScan.ts,
@@ -477,8 +532,13 @@ export interface IBatchService {
    *  (BatchItem.fovCount's own doc comment): the imager's own real,
    *  reported field-of-view count for this one slide, captured at the
    *  same real scan moment. Ignored (never stored) on every other
-   *  processingNode. */
-  addItemByScan(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, fovCount?: number): Promise<AddItemOutcome>;
+   *  processingNode.
+   *
+   *  Batch 726: refused ('not-accepting') unless the batch is active and not
+   *  sealed. With `stationId` (the computer's scan station), a 'loaded' event
+   *  is written to the station scan log (spec §7.1); without one, none is. */
+  addItemByScan(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, fovCount?: number, stationId?: string): Promise<AddItemOutcome>;
+  /** Batch 726: refused with `batchSealed` once the manifest is sealed. */
   removeItem(batchId: ID, itemId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>>;
   /** Real feature, per direct follow-up: "Is there a mechanism to move
    *  an asset from one container to the other?" A real, single,
@@ -498,7 +558,7 @@ export interface IBatchService {
    *  against this batch's own manifest. A match marks that item
    *  'matched'; no match records a real BatchUnexpectedScan instead
    *  (the spec's own "Unexpected/Extra"). */
-  scanItemOut(batchId: ID, scannedValue: string, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>>;
+  scanItemOut(batchId: ID, scannedValue: string, byUserId: string, byUserName: string, stationId?: string): Promise<ServiceResult<Batch>>;
   /** The spec's own "Hard Stop Gatekeeper" — real, enforced server-
    *  side (not just a disabled button): fails with a real, honest
    *  error if any item is still missing/unmatched or any unexpected
@@ -508,7 +568,7 @@ export interface IBatchService {
    *  the batch despite real, open discrepancies, but only with a
    *  real, required reason, and always recorded (BatchOverride) —
    *  never a silent bypass. */
-  overrideAndComplete(batchId: ID, byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>>;
+  overrideAndComplete(batchId: ID, byUserId: string, byUserName: string, reason: string, stationId?: string, reasonCode?: string): Promise<ServiceResult<Batch>>;
   /** Real, per direct follow-up on the RFP-APLIS-2026-GLOBAL Reference
    *  Laboratory Sensor & Cold-Chain Integration gap — called by
    *  processInboundTelemetryReadingEvent.ts the moment a genuine
@@ -518,7 +578,7 @@ export interface IBatchService {
    *  before the first is even acknowledged is a genuinely more severe
    *  situation, never silently overwritten. */
   setColdChainExcursion(batchId: ID, readingId: string, temperatureCelsius: number, detectedAt: string): Promise<ServiceResult<Batch>>;
-  acknowledgeColdChainExcursion(batchId: ID, byUserId: string, byUserName: string, note: string): Promise<ServiceResult<Batch>>;
+  acknowledgeColdChainExcursion(batchId: ID, byUserId: string, byUserName: string, note: string, reasonCode?: string): Promise<ServiceResult<Batch>>;
   /** Real, additive — per 'Cytology Processing'. Called by
    *  processInboundCytologyInstrumentStatusEvent.ts the moment the
    *  ThinPrep instrument reports a real status transition for the
@@ -531,13 +591,15 @@ export interface IBatchService {
    *  automated stainer reports a real status transition for the
    *  batch it's currently running. Fails honestly if the batch isn't
    *  genuinely a 'Staining' batch. */
-  setStainingInstrumentStatus(batchId: ID, status: StainingInstrumentStatus): Promise<ServiceResult<Batch>>;
+  setStainingInstrumentStatus(batchId: ID, status: StainingInstrumentStatus, instrumentCode?: string): Promise<ServiceResult<Batch>>;
   /** Real, per PS-289/PS-292's own Gating Strategy research — records
    *  a human's completion of the visual read checklist for this
    *  batch. Fails honestly if the batch isn't genuinely a 'Staining'
    *  batch, same posture as setStainingInstrumentStatus. */
   confirmQcVisualRead(batchId: ID, userId: string, userName: string): Promise<ServiceResult<Batch>>;
-  abort(batchId: ID, byUserId: string, byUserName: string, reason: string): Promise<ServiceResult<Batch>>;
+  /** Batch 736: `reasonCode` (on abort, override and cold-chain acknowledgement) is the picked bench reason's code
+   *  (Reason Dictionary id), saved beside the text and in the audit detail. */
+  abort(batchId: ID, byUserId: string, byUserName: string, reason: string, reasonCode?: string): Promise<ServiceResult<Batch>>;
   /** The spec's own FR-3.1 "[ 🔓 Release Rack ]" action pill — a real,
    *  explicit, manual release of a semi-permanent batch's own rack
    *  while the batch itself is still active/reconciling (e.g. the
@@ -568,5 +630,75 @@ export interface IBatchService {
    *  what's physically in the vessel. Only valid on a real, 'active'
    *  batch whose processingNode is 'Decal / Special Processing' —
    *  fails honestly otherwise. */
+  //   Batch 726 (Lab Workflow & Batch spec, Decision 9, §10.2): replaced. The carrier now keeps its batch: this is the
+  //   same move as advanceToNode(batchId, 'Processing') — no new batch, no new barcode, a step history entry, the
+  //   manifest sealed, `batch:carrier:advance` checked. fromBatch and toBatch are the same batch. The text above
+  //   describes the old behaviour and is kept for the record.
   transferToProcessing(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<{ fromBatch: Batch; toBatch: Batch }>>;
+  /** Batch 726 (spec §2 row 1): "closing the batch seals the manifest". Only
+   *  an active, unsealed batch. Needs `batch:manifest:seal`. */
+  sealManifest(batchId: ID, byUserId: string, byUserName: string): Promise<ServiceResult<Batch>>;
+  /** Batch 726 (spec §2 row 2): the same physical carrier moves to its next
+   *  processing step (stationCarrierRules.NEXT_NODE), bulk-updating every item
+   *  in it. Seals the manifest, appends a nodeHistory entry and, with a
+   *  `stationId`, writes one 'loaded' event per item marked as inferred from
+   *  the carrier. Only an active batch with items, and only to its defined
+   *  next step. Needs `batch:carrier:advance`. */
+  advanceToNode(batchId: ID, toNode: BatchProcessingNode, byUserId: string, byUserName: string, stationId?: string): Promise<ServiceResult<Batch>>;
+  /** Batch 726 (spec Decision 1, §7.1): a carrier was scanned at a station and
+   *  opened there. Writes one 'received' event per item (inferred from the
+   *  carrier) and, when the batch has no Target Workstation yet, records this
+   *  station as it. A station is required (`stationRequired`). Opening a
+   *  carrier that belongs to another step (`result: 'mismatch'`) is a
+   *  deliberate choice and needs `station:scan-mismatch:continue`. */
+  recordCarrierScan(batchId: ID, stationId: string, byUserId: string, byUserName: string, result: CarrierScanResult): Promise<ServiceResult<Batch>>;
 }
+
+/** Batch 404: returned as the error when the user lacks the action's
+ *  permission (batch:reconciliation:override, batch:run:abort,
+ *  batch:cold-chain-excursion:acknowledge). The screen shows its own text. */
+export const BATCH_NOT_PERMITTED = 'NOT_PERMITTED';
+/** Batch 404: returned when the locked reason or note is blank. */
+export const BATCH_REASON_REQUIRED = 'REASON_REQUIRED';
+
+/**
+ * Batch 407: every other refusal from the batch service, as codes the Batch
+ * Management screens translate (`batchDetail.errors.<code>`). They used to be
+ * English sentences shown as they came. The screen fills in the details it
+ * already has (the batch's barcode, which items are missing).
+ */
+export const BATCH_ERRORS = {
+  notFound: 'batchNotFound',
+  rackIdRequired: 'rackIdRequired',
+  sameBatch: 'sameBatch',
+  sourceNotActive: 'sourceNotActive',
+  destinationNotActive: 'destinationNotActive',
+  itemNotFound: 'itemNotFound',
+  itemAlreadyInDestination: 'itemAlreadyInDestination',
+  notActive: 'notActive',
+  notReconciling: 'notReconciling',
+  itemsMissing: 'itemsMissing',
+  unexpectedScans: 'unexpectedScans',
+  coldChainUnacknowledged: 'coldChainUnacknowledged',
+  excursionAlreadyOpen: 'excursionAlreadyOpen',
+  noExcursion: 'noExcursion',
+  notCytologyProcessing: 'notCytologyProcessing',
+  notStaining: 'notStaining',
+  noRack: 'noRack',
+  notDecal: 'notDecal',
+  noItemsToTransfer: 'noItemsToTransfer',
+  /** From the hardware rack registry. */
+  rackNotRegistered: 'rackNotRegistered',
+  rackCheckedOut: 'rackCheckedOut',
+  /** Batch 726. */
+  batchSealed: 'batchSealed',
+  alreadySealed: 'alreadySealed',
+  cannotAdvance: 'cannotAdvance',
+  /** Batch 763: a staining run's QC is not signed off yet (services/stainQc/). */
+  stainQcPending: 'stainQcPending',
+  stationRequired: 'stationRequired',
+} as const;
+export type BatchErrorCode = typeof BATCH_ERRORS[keyof typeof BATCH_ERRORS];
+const BATCH_ERROR_CODES: readonly string[] = [BATCH_NOT_PERMITTED, BATCH_REASON_REQUIRED, ...Object.values(BATCH_ERRORS)];
+/** Whether a batch service error is one of its codes (anything else is shown as a generic failure). */
+export const isBatchErrorCode = (error: string): boolean => BATCH_ERROR_CODES.includes(error);

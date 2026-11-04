@@ -10,5 +10,9 @@ Batch 364 (PS-350): support references in the UI. See [services/supportReference
   - It shows what a reference names: the entry's time, title and detail (tagged `data-phi`), and an "Open case" button.
   - Each lookup is audited by the service.
 
+## Batch 438
+
+`SupportReferenceLookup.tsx` shows audit times through `formatAuditTimestamp`, which reads the stored time as UTC (it was shown shifted by the viewer's offset).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*

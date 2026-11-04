@@ -1,0 +1,16 @@
+/* Batch 731 (spec §10.5): an item's end state at the bench (ItemEndStatePanel.tsx). */
+.ps-end-state { margin: 10px 0 0; padding: 10px 12px; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 8px; }
+.ps-end-state-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.ps-end-state-title { font-weight: 600; }
+.ps-end-state-current { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.ps-end-state-note { margin: 6px 0 0; font-size: 13px; color: var(--ps-text-dim); }
+.ps-end-state-head .ps-end-state-note { margin: 0; }
+.ps-end-state-note--warn { color: var(--ps-danger, #f87171); }
+.ps-end-state-toggle { margin-left: auto; background: transparent; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); border-radius: 8px; padding: 4px 10px; color: inherit; font-size: 13px; cursor: pointer; }
+.ps-end-state-toggle:focus-visible, .ps-end-state-pick:focus-visible { outline: 2px solid var(--ps-conf-teal, #14b8a6); outline-offset: 2px; }
+.ps-end-state-form { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ps-end-state-label { font-size: 12px; color: var(--ps-text-dim); }
+.ps-end-state-input { padding: 6px 8px; border-radius: 6px; border: 1px solid var(--ps-border, rgba(148, 163, 184, 0.35)); background: transparent; color: inherit; font-size: 13px; }
+.ps-end-state-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.ps-end-state-pick { background: transparent; border: 1px dashed var(--ps-border, rgba(148, 163, 184, 0.5)); border-radius: 999px; padding: 3px 10px; color: inherit; font-size: 12px; cursor: pointer; }
+.ps-end-state-actions { display: flex; gap: 8px; }

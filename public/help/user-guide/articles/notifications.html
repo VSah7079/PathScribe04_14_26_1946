@@ -1,0 +1,341 @@
+<h1 id="top">Notifications</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This page explains how PathScribe gets your attention, what each signal means and how to clear it. PathScribe does not have one single notification centre or a bell icon. Instead it uses a small number of signals, each in a fixed place: numbered badges on the top bar, urgent messages, a critical-finding window at sign-out, short messages that appear after an action, and banners and warnings about your session and connection.</p>
+<p><strong>Intended users.</strong> Everyone who signs in. Which badges you see depends on what your role may open.</p>
+<p><strong>Where it fits.</strong> These signals are always on, whatever screen you are working on. The top bar is the place to look first. Most notices arrive as a message in <a href="/help/messaging">Messaging</a>, so that is also where you clear most of them.</p>
+<div class="admonition note">
+<p class="admonition-title">There is no bell</p>
+<p>If you were expecting a bell icon with a list of alerts, there is not one in this version. The speech-bubble button with its number is the closest thing, and automatic notices land in your Messages. This page lists every signal that exists today.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/notifications-top-bar.png" alt="The top bar with the speech-bubble badge, the registry exceptions button and the My exports button"><figcaption>The top bar with the speech-bubble badge, the registry exceptions button and the My exports button</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>What raises a notice, and where it appears</strong></p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Where you see it</th>
+<th>What caused it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Number on the speech-bubble button</td>
+<td>Top bar</td>
+<td>Messages you have not opened. Includes notices sent by PathScribe itself.</td>
+</tr>
+<tr>
+<td>Red speech bubble and a two-beep tone</td>
+<td>Top bar</td>
+<td>An unread urgent message.</td>
+</tr>
+<tr>
+<td>Notice from "PathScribe System", "Delivery monitor", "PathScribe follow-up tracking", "LIS Integration" or "System Admin"</td>
+<td>Messages</td>
+<td>Something happened that needs a person (see the table below).</td>
+</tr>
+<tr>
+<td>Amber triangle with a number</td>
+<td>Top bar</td>
+<td>Registry submissions that need attention. Shown only when the number is above zero and your role may open Registry Exceptions.</td>
+</tr>
+<tr>
+<td>Download arrow, with a number when exports are ready</td>
+<td>Top bar</td>
+<td>Exports you asked for. Shown when large exports are prepared in the background on your installation.</td>
+</tr>
+<tr>
+<td><strong>Critical Finding Detected</strong> window</td>
+<td>Report, when you sign out or finalize</td>
+<td>The text of the case contains a term that may need an urgent call to the physician.</td>
+</tr>
+<tr>
+<td>Short message at the foot of the screen</td>
+<td>Report and other screens</td>
+<td>The result of something you just did: saved, refused, failed.</td>
+</tr>
+<tr>
+<td>Coloured strip under the top bar</td>
+<td>Every screen</td>
+<td>Your connection to PathScribe is offline, reconnecting or has been restored.</td>
+</tr>
+<tr>
+<td><strong>Session Expiring Soon</strong> window</td>
+<td>Every screen</td>
+<td>You have been idle and your session will end in under a minute.</td>
+</tr>
+<tr>
+<td>Live status badge (Live, Local updates, Offline)</td>
+<td>Some work screens</td>
+<td>Whether the list updates by itself.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Notices PathScribe sends to your Messages</strong></p>
+<table>
+<thead>
+<tr>
+<th>Notice</th>
+<th>Who gets it</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"Follow-up due soon" or "Follow-up overdue" for a case</td>
+<td>Staff responsible for follow-up. Overdue ones are urgent.</td>
+<td>Open the case link, then record the outcome or email the ordering clinician in Quality Assurance, Operations, Follow-up.</td>
+</tr>
+<tr>
+<td>"Delivery failed after N attempts"</td>
+<td>Administrators and laboratory directors. Urgent.</td>
+<td>Resend the report from its queue; the notice names where the failure is listed.</td>
+</tr>
+<tr>
+<td>"Case … corrected in LIS, review required"</td>
+<td>The pathologist who signed the case. Urgent.</td>
+<td>Review the correction and decide whether your synoptic data also needs amending.</td>
+</tr>
+<tr>
+<td>"High Priority: Interface Exception"</td>
+<td>Staff who resolve interface problems. Urgent, with an <strong>Open Configuration</strong> button.</td>
+<td>Use the button to go to the exception.</td>
+</tr>
+<tr>
+<td>"You're presenting at …"</td>
+<td>A tumor board presenter.</td>
+<td>Open the case link before the meeting.</td>
+</tr>
+<tr>
+<td>Access request or decision</td>
+<td>Case owners, administrators, and the person who asked</td>
+<td>Grant or refuse in the screen the notice names, or read the decision.</td>
+</tr>
+<tr>
+<td>Request for a review or a consultation, or being added as a collaborator</td>
+<td>The colleague named</td>
+<td>Open the case link and leave an internal note.</td>
+</tr>
+<tr>
+<td>"Your template request is ready"</td>
+<td>The person who asked for a new synoptic template</td>
+<td>The template is in the Synoptic Library.</td>
+</tr>
+<tr>
+<td>Support access request</td>
+<td>Approvers. Urgent, with <strong>Open Configuration</strong>.</td>
+<td>Approve or refuse in Configuration.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Control</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Speech-bubble button</td>
+<td>Opens Messages (Alt+I).</td>
+</tr>
+<tr>
+<td>Amber triangle</td>
+<td>Opens the Registry Exceptions screen. See <a href="/help/registry-exceptions">Registry Exceptions</a>.</td>
+</tr>
+<tr>
+<td>Download arrow</td>
+<td>Opens My exports. See <a href="/help/my-exports">My Exports</a>.</td>
+</tr>
+<tr>
+<td>× on a short message</td>
+<td>Closes it at once. Clicking anywhere on it closes it too.</td>
+</tr>
+<tr>
+<td>Stay Logged In / Log Out</td>
+<td>The two choices in the Session Expiring Soon window.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Blue number badge</td>
+<td>A count: unread messages, registry submissions, exports ready.</td>
+</tr>
+<tr>
+<td>Red badge or red bubble</td>
+<td>Urgent.</td>
+</tr>
+<tr>
+<td>✓ green short message</td>
+<td>Success.</td>
+</tr>
+<tr>
+<td>ℹ blue short message</td>
+<td>Information.</td>
+</tr>
+<tr>
+<td>⚠ amber short message</td>
+<td>Warning: something needs your attention. Read it; it is announced to screen readers as an alert.</td>
+</tr>
+<tr>
+<td>✕ red short message</td>
+<td>An action failed. Nothing was changed unless the message says so.</td>
+</tr>
+<tr>
+<td>Coloured dot in the strip under the top bar</td>
+<td>Orange when reconnecting, red when offline, green when restored.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Alt+I</td>
+<td>Open Messages</td>
+</tr>
+<tr>
+<td>Ctrl+Alt+Shift+7</td>
+<td>Send the secure email (in the secure email window)</td>
+</tr>
+</tbody>
+</table>
+<p>No key opens the registry or exports buttons; select them with the mouse.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Look at the top bar when you start work. A number on the speech bubble means unread messages; red means at least one is urgent.</li>
+<li>Select the bubble. Urgent messages are at the top. Open each one.</li>
+<li>Act on it. Most notices include a case link or a button that takes you to the right screen.</li>
+<li>When you have dealt with it, leave it read, or delete it from the list. The number on the bubble drops by one each time you open a message.</li>
+<li>If the amber triangle is showing, select it and work through the submissions listed; the number falls as each is resolved.</li>
+<li>If the download arrow shows a number, open My exports and select <strong>Download</strong> for each file that is ready.</li>
+</ol>
+<p><strong>Responding to Critical Finding Detected</strong></p>
+<ol>
+<li>When you start sign-out (or finalize) and PathScribe's check finds a term that may be a critical finding in the case text, sign-out stops and the <strong>Critical Finding Detected</strong> window appears over the report. It lists each term with the exact words it found. Sign-out can continue once you have recorded the notification or acknowledged the window.</li>
+<li>Telephone or otherwise tell the responsible physician first. The window records that you did; it does not make the call.</li>
+<li>Fill in <strong>Notified by</strong> (it starts as your name), <strong>Clinician notified</strong>, and <strong>Method</strong> (Verbal / Phone Call, Secure Page, Direct LIS Flag, Secure Email or Fax).</li>
+<li>For anything except email, tick <strong>Clinician read back the finding to confirm</strong> when they did. For Secure Email, choose <strong>Write the secure email…</strong>; the notification is recorded when the email has been sent.</li>
+<li>Select <strong>Record Notification</strong>. The window closes and the record is kept with the case.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>If the finding was already communicated some other way and you do not want a new record, select <strong>Acknowledge without recording</strong>. Use this only when the communication is already documented.</li>
+<li>To clear many messages at once, open Messages, select <strong>Edit</strong>, tick them, then <strong>Read All</strong>.</li>
+<li>If sound bothers you, turn the computer's volume down. The urgent tone cannot be changed inside PathScribe.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>A number never goes to zero.</strong> Messages you sent count too until you open them (see Messaging, Troubleshooting). Open the oldest unread message in the list.</li>
+<li><strong>The strip says Offline.</strong> Keep working if you can; changes made by others may be out of date. PathScribe keeps trying and shows Reconnected when it succeeds. See <a href="/help/session-and-connection">Session and Connection</a>.</li>
+<li><strong>The Session Expiring Soon window appears while you are writing.</strong> Select <strong>Stay Logged In</strong> at once, then save your work. Changes are not saved for you.</li>
+<li><strong>You do not see the amber triangle or the download arrow.</strong> Your role may not open that screen, or there is nothing waiting. This is normal.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If you chose <strong>Acknowledge without recording</strong> by mistake, tell your laboratory manager. Acknowledging creates no notification record, so the communication must be documented the way your laboratory's procedure requires.</li>
+<li>If you opened an urgent message and cannot find it later, open the filter button in Messages and choose <strong>Recently Deleted</strong>; restore it if you deleted it.</li>
+<li>If a short message flashed past, repeat the action. Most failures say "Try again".</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">A critical finding window is a patient-safety step</p>
+<p>The window is a reminder to communicate, not the communication itself. Do not record a notification you have not made. Do not select <strong>Acknowledge without recording</strong> to get past the window.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Treating an unread number as unimportant. Urgent notices from the delivery monitor or the laboratory system link to a real failure.</li>
+<li>Ignoring the strip that says Reconnecting. Two people can open the same list and see different things until it clears.</li>
+<li>Replying to a system notice. Nobody reads it; act in the screen it names.</li>
+<li>Closing a short warning without reading it. It says why an action did not complete.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Check the speech bubble, then the amber triangle, then the download arrow: it takes three seconds and covers every badge.</li>
+<li>Use Edit and Read All to clear housekeeping notices, and keep urgent ones open until you have acted.</li>
+<li>Press Alt+I to jump to Messages from any screen.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Laboratory managers: look at the delivery and interface notices first thing; they mean a report or a result did not reach its destination.</li>
+<li>Pathologists: do not sign out several cases in a row without reading the notice window for each; each case has its own.</li>
+<li>Everyone: tell your administrator if a notice you expected never arrives, so it can be traced.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: finalizing a case can raise the critical finding window.</li>
+<li><a href="/help/report/sign-out-and-release">Sign-out and release</a>: what happens after a case is signed out.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/messaging">Messaging</a>: read, reply to and clear notices.</li>
+<li><a href="/help/critical-alert">Critical Alert</a>: how an automatic critical alert reaches the ordering physician.</li>
+<li><a href="/help/registry-exceptions">Registry Exceptions</a> and <a href="/help/my-exports">My Exports</a>: the two other badged screens.</li>
+<li><a href="/help/session-and-connection">Session and Connection</a>: the connection strip and the session warning.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No sound for an urgent message</td>
+<td>The browser keeps sound off until the page has been clicked once; or the computer is muted.</td>
+</tr>
+<tr>
+<td>The tone plays only once</td>
+<td>It plays when an unread urgent message first appears, not on every one after.</td>
+</tr>
+<tr>
+<td>The speech bubble number is higher than expected</td>
+<td>Deleted messages are not counted, but unread messages you sent are.</td>
+</tr>
+<tr>
+<td>The amber triangle does not appear</td>
+<td>There are no submissions needing attention, or your role does not open Registry Exceptions.</td>
+</tr>
+<tr>
+<td>The critical finding window appeared for a harmless word</td>
+<td>The check works on wording, including terms near negations. Record the real situation, or acknowledge it as handled.</td>
+</tr>
+<tr>
+<td>Automatic critical alerts do not reach the physician</td>
+<td>In this version the email, text and record-system channels are demonstration stand-ins and are labelled Simulated. The call you record in the window is what counts. See Critical Alert.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Open Messages and read the oldest unread item.</li>
+<li>Reload the page if a badge looks stale; it refreshes when you return to the window and every minute or so.</li>
+<li>Check the strip under the top bar for a connection warning.</li>
+<li>Ask your administrator whether your role should see the registry and export buttons.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a critical finding window never appears for a case where you expected one, when a notice you know was sent never arrives, or when a badge number is wrong after a reload. Have the case number, the time and the exact wording on screen ready.</p>

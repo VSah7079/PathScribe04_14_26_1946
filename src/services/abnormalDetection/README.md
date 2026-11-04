@@ -92,10 +92,12 @@ synoptic answers against it.
 
 - Admin UI: `components/Config/System/AbnormalTriggerRulesSection.tsx`
   (Clinical Lookups group).
-- **11 real tests** in `evaluateAbnormalTriggerRules.test.ts` — field-label
+- **13 tests** in `evaluateAbnormalTriggerRules.test.ts` — field-label
   matching, case-insensitivity, the "Not Present" vs. "Present" substring
   safety case, multi-select handling, inactive-rule exclusion, and the
   highest-severity reduction helper.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): test count 11 → 13.*
 
 ## PS-137's open gap closed: signals carry the Validation Study (Batch 318)
 
@@ -110,6 +112,32 @@ PS-137's one remaining gap was that agreement signals never recorded which activ
   It resolves the covering study once per decision (`services/validationStudies/resolveActiveStudyId.ts`) and de-identifies narrative quotes exactly as before. This mapping used to be written out twice inside `useSignOutWorkflow.ts`; that hook now only calls it.
 - **Tests:** `recordAbnormalDetectionOutcomes.test.ts`, plus study-scoping cases in `mockAbnormalDetectionSignalService.test.ts` and `useSignOutWorkflow.test.ts`.
 
+## Batch 428: Configuration permissions
+
+- `mockAbnormalTriggerRuleService`: `add`, `update`, `deactivate`, `reactivate` need `config:abnormal-triggers:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets (PS-129)
+
+`abnormalTriggerRuleEditing.ts`: add, edit, deactivate and reactivate trigger rules, moved out of `AbnormalTriggerRulesSection.tsx`; refused without the configuration capability.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 615 (PS-138): searches for matched triggers
+
+`triggerCodeQueries.ts` turns a specimen's trigger matches into the searches the Code Manager offers (one per matched rule and matched value: field label plus value). It runs no search and picks no code; the pathologist chooses a finding and then a result. `pages/SynopticReportPage/hooks/useTriggerCodeQueries.ts` loads them while the Code Manager is open, where abnormal detection is on.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`abnormalTriggerRuleService`, `abnormalDetectionSignalService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 623 (PS-130): real codes while a licence is on
+
+`resolveFindingCoding.ts` decides which code(s) a matched rule attaches: the rule's own real `licensedCoding` for each code system whose licence is on and unexpired (`terminologyLicence/`), otherwise the rule's test codes, otherwise the severity default (`resolveSyntheticCoding.ts`). `evaluateAbnormalTriggerRules` takes the active licences as a fourth argument (default none, so every existing caller keeps test codes). The sign-out hook passes `activeLicensedSystems(enterpriseConfig.terminologyLicences, todayIso())`. `abnormalTriggerRuleEditing.ts` checks and stores the rule form's real codes. `SyntheticCodingTerm` keeps the test systems; the new `LicensedCodingTerm` and the union `CodingTerm` carry the rest. The case field and flag field are still named `syntheticAbnormalCoding` / `syntheticCoding` (renaming them touches stored cases).
+
+## Batch 652
+
+`codingTermText.ts` (+ test) splits a confirmed finding's coded terms into demonstration codes (the `TEST-` systems, `isDemonstrationCode` in `resolveSyntheticCoding.ts`) and real licensed codes; the worklist dot tooltip labels the first group "demonstration code, not a real SNOMED CT or ICD-O-3 code". No demonstration SNOMED lookup exists and none was bound.

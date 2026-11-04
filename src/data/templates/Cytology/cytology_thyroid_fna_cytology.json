@@ -9,6 +9,7 @@
         {
             "id": "specimen",
             "title": "Specimen",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "procedure",
@@ -96,7 +97,8 @@
                     "snomed": "",
                     "icd": "",
                     "narrativeSentenceTemplate": "Target nodule size: {value} cm.",
-                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.thyroid.noduleSize"
+                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.thyroid.noduleSize",
+                    "options": []
                 },
                 {
                     "id": "number_of_passes",
@@ -107,7 +109,8 @@
                     "snomed": "",
                     "icd": "",
                     "narrativeSentenceTemplate": "Number of passes: {value}.",
-                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.numberOfPasses"
+                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.numberOfPasses",
+                    "options": []
                 },
                 {
                     "id": "rose_performed",
@@ -141,6 +144,7 @@
         {
             "id": "adequacy",
             "title": "Specimen Adequacy",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "adequacy_status",
@@ -177,7 +181,8 @@
                     "snomed": "",
                     "icd": "",
                     "narrativeSentenceTemplate": "Follicular group count: {value}.",
-                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.thyroid.follicularGroupCount"
+                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.thyroid.follicularGroupCount",
+                    "options": []
                 },
                 {
                     "id": "unsatisfactory_reason",
@@ -231,6 +236,7 @@
         {
             "id": "diagnostic_category",
             "title": "Bethesda Diagnostic Category",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "bethesda_category",
@@ -301,13 +307,15 @@
                     "note": "Optional (+) — informational; not a data element to select, a reference note pathologists may cite: I ~13–15%, II ~4–17%, III ~13–30%, IV ~23—35%, V ~67–83%, VI ~97–100%. Ranges reflect the NIFTP reclassification and vary by practice setting — cite local institutional data where available rather than these alone.",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "cytologic_findings",
             "title": "Cytologic Findings",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cellularity",
@@ -540,6 +548,7 @@
         {
             "id": "ancillary_studies",
             "title": "Ancillary Studies",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "molecular_testing_ordered",
@@ -583,7 +592,8 @@
                     "snomed": "",
                     "icd": "",
                     "narrativeSentenceTemplate": "Molecular platform: {value}.",
-                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.molecularPlatform"
+                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.molecularPlatform",
+                    "options": []
                 },
                 {
                     "id": "molecular_result",
@@ -593,7 +603,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 },
                 {
                     "id": "cell_block_ihc",
@@ -626,6 +637,7 @@
         {
             "id": "comments",
             "title": "Comment / Correlation",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "radiologic_correlation",
@@ -636,7 +648,8 @@
                     "snomed": "",
                     "icd": "",
                     "narrativeSentenceTemplate": "Radiologic correlation: {value}.",
-                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.radiologicCorrelation"
+                    "narrativeSentenceTemplateKey": "cytologyScreening.synopticDrawer.narrative.radiologicCorrelation",
+                    "options": []
                 },
                 {
                     "id": "prior_fna_comparison",
@@ -646,7 +659,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 },
                 {
                     "id": "comment",
@@ -655,7 +669,8 @@
                     "required": false,
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         }

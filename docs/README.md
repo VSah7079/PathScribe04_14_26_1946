@@ -1,0 +1,465 @@
+**Batch 762:** `product/REQUISITION_INGESTION.md` and `architecture/REQUISITION_INGESTION_API.md` (new), GUIDE_UPDATES and FEATURE_OVERVIEW entries, `architecture/AUTHORIZATION_API.md` (five capabilities), `architecture/MESSAGE_BUS_API.md` (`requisition.ingest`), the User Guide's Accession and report pages, the Admin Guide (Integrations, permissions).
+
+**Batch 761:** GUIDE_UPDATES and FEATURE_OVERVIEW entries (reusable racks), `architecture/CASE_WORKFLOWS_API.md` (`getByMasterBarcode` returns the open run), the User Guide's Microtome page.
+
+**Batch 760:** GUIDE_UPDATES and FEATURE_OVERVIEW entries, `product/PATIENT_VERIFICATION.md` (cytology), the User Guide's cytology pages.
+
+**Batch 759:** `product/PATIENT_VERIFICATION.md` (new), GUIDE_UPDATES and FEATURE_OVERVIEW entries, `architecture/STATION_TRACKING_API.md` (action `typed`), User Guide bench, Accession and header-search pages.
+
+**Batch 758:** `product/GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md` (Microtome print mode, Block printing, the block lockout, Scan-Last racks), `architecture/STATION_TRACKING_API.md` (the Microtome bench, Planned), the User Guide's Microtome page and the Admin Guide's Print Settings table (six languages).
+
+**Batch 755b (part 2):** `product/SLIDE_IMAGE_DEMO.md` section 10 (upload done; Vercel values still to set, by the development team), `GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md`, handover rows.
+
+**Batch 755b (part 1):** `product/DEMO_SEED_DATA.md` (S13 adds Dr. Imogen Hartley; S15), `product/DEMO_GUIDE.md` (the Manchester pathologist), `GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`.
+
+**Batch 763b:** `developer/HANDOVER_FIRST_RELEASE.md` version 1.2 (Nov 2): test figures after Batch 763, what changed in Batches 752 to 763 (section 9), how requisition ingestion works (section 11, new) and the version history (section 12, new). Documentation only.
+
+**Batch 755a:** `architecture/DEMO_CHECKLISTS.md` (names, tag, copy refusal, when the tag comes off), `product/DEMO_SEED_DATA.md` (S6, S15), `product/DEMO_GUIDE.md` (Videos 4 and 9), Admin Guide chapter 6 in six languages.
+
+**Batch 754:** `architecture/DEMO_CHECKLISTS.md` (new): the demonstration checklists kept out of customer areas (customer builds, removal per organisation, the Planned endpoint and its script); `product/GUIDE_UPDATES.md` and `FEATURE_OVERVIEW.md`; the handover note.
+
+**Batch 753:** the prostate needle biopsy and radical prostatectomy checklists in PathScribe's own wording (seed row S15 done; `product/DEMO_SEED_DATA.md`, `product/DEMO_GUIDE.md`); the handover note's placeholder row updated.
+
+**Batch 752:** `developer/HANDOVER_FIRST_RELEASE.md` updated for Oct 31: test figures, new open items (front end, server, decisions), what changed in Batches 699 to 751 (section 9), and the demo's slide images hosted in Cloudflare R2 (section 10). `product/SLIDE_IMAGE_DEMO.md` gains the one-script route (`scripts/Setup-PathScribeSlideDemo.ps1`) and the record of the demo set-up. Documentation and a helper script only.
+
+**Batch 725:** the in-app User Guide page scrolls (contents list and article each have their own scroll area). Styles only. See `src/i18n/README.md`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 723:** `user-guide/img/home-overview.png` replaced with a current capture. Documentation only.
+
+**Batch 722:** `user-guide/` Home article covers the PubMed article line and paste box (new capture `home-pubmed`); `product/GUIDE_UPDATES.md` entry. Documentation only.
+
+**Batch 711:** `architecture/PASSWORD_RESET_REQUEST_API.md` (new), the password reset request on the demo sign-in screen and what a server version would need; the User Guide Sign In article and the Administrator Guide (Members, Troubleshooting) describe it (English).
+
+**Batch 698:** `developer/HANDOVER_FIRST_RELEASE.md`, the handover note for the development team: what is finished, what remains for a code-complete first release (front end, server, decisions, outside parties, process), and how to check the work. The Batch 697 sign-ins for the technical writers (Helen Schollars, Shelly Krill) are in `product/DEMO_GUIDE.md`.
+
+**Batch 678:** `compliance-guide/` gains the three-layer Readiness Matrix (`readiness/requirements.json`, generated workbook) and `IMPLEMENTATION_PLAN.md`; the Batch 677 tracker is replaced.
+
+**Batch 676:** `compliance-guide/`, the Regulatory Compliance Guide (English; eight chapters and open questions), beside the User Guide and Administrator Guide.
+
+**Batch 668:** the Help buttons moved from floating buttons over the screen into the top bar, beside the microphone; see `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 666:** `user-guide/` has 61 articles and `route-exemptions.json`; `admin-guide/` is updated to Batch 665 in six languages; `product/PHRASE_REVIEW_LIST.md` and `quality/TRANSLATION_REVIEW.md` are regenerated and extended.
+
+**Batch 667:** the User Guide covers every control on the user-facing screens, checked by `scripts/user-guide/coverage.py` and a test; see `docs/user-guide/README.md` and `docs/product/GUIDE_UPDATES.md`.
+
+**Batch 650:** `product/KNOWN_GAPS.md` lists the registered voice and key commands with no screen handler.
+
+**Batch 701:** `quality/evidence/` gains `PathScribe-Batches693-700-xray-catchup.json` and `PathScribe-Batch661-xray-catchup.json`.
+
+**Batch 649:** `product/` guides updated (Guide Updates, Feature Overview, Capabilities now 338, Known Gaps); `architecture/AUTHORIZATION_API.md` lists the 17 new capabilities; `quality/` has the Batch 649 Xray file and translation-review rows.
+
+**Batch 648:** the product guides now cover Lockbox Drop-Off; the Admin Guide's Lockbox section notes the demo seed and Demo Reset in all six languages.
+
+**Batch 647:** `admin-guide/` now holds five translations (`src/<lang>/`, rules in `TRANSLATION.md`), the full set of screenshots, and a language selector in both built editions.
+
+**Batch 646:** `admin-guide/` is the Administrator Guide: chapters in Markdown, real screen captures, a builder that checks every link and the setup order, and two built editions (customer, internal). The customer edition is published to `public/help/admin-guide/` for the app's Help buttons.
+
+## Batch 617 (part R) — one route style for every server version of a service (PS-488 dev notes, Pete)
+
+- **One route style.** Every server (HTTP) version now uses `/api/<area>/<service>/<method-kebab>`; a read whose arguments are all plain values is `GET` (arguments in the query string), everything else is `POST`; `PUT`, `PATCH` and `DELETE` are no longer used and no id or text is in the path. About 85 services written as REST resources were converted (code, fake-fetch tests, contract docs); the earlier-to-current path of every call is in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+- **Why method routes:** the interface already has one method per action, so the server's route table is the interface's method list; the kit generates the path, so it cannot be misspelt; commands carry what they change in a body, which keeps patient text out of URLs and logs.
+- **Guard:** `src/services/apiServer/httpRoutes.guard.test.ts` fails on any other verb or path shape. Three files keep their own contracts (job polling and binary downloads): `exports/httpExportApi.ts`, `reportDocuments/httpReportDocumentService.ts`, `reports/httpReportVersionService.ts`.
+- **Wire changes the server author must know:** an id that was in the path is now in the query string or the body (`update(id, changes)` sends `{ id, changes }`); `deny` and `revoke` still send only the reason (plus `id`); the audit log and error log filters are sent as a body (the value `all` is still left out); a case list sends its filters as a body and ignores a cursor with no page size, as before; the follow-up commands send only the key and the choice.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+
+## Batch 617 (part C) — server versions of the quality, referral, search, signature, dictionary, tumor board and workstation services (PS-514, PS-501)
+
+- **28 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): peer review, peer-review settings, CAPA recommendations, the QA trend policy, concordance review settings; referral tracking and the research feed settings; saved searches and scheduled reports; signature records and smart capture (and its settings); specimen categories, custom spelling dictionaries, stain types, sectioning protocols, molecular targets, subspecialties, support references, system configuration, TAT targets, workstation groups and the workstation registry; the tumor board and its four rule services. Each is chosen by `<name>ServiceInstance.ts`: the server version with an API server address, the mock without one (the demo is unchanged).
+- Interfaces moved out of mock files into `I<Name>Service.ts` (peer-review settings, QA trend policy, system configuration, intraoperative critical results) and written out for smart capture and its settings, so the mock and the server version share one interface. The old mock files re-export the names, so no import changes.
+- **One convention:** one route per interface method, `/api/<area>/<service>/<method-name>` (`HTTP_SERVICES_PATTERN.md` §7). Contracts: `docs/architecture/QUALITY_SETTINGS_API.md`, `REFERRAL_RESEARCH_API.md`, `SEARCH_REPORTING_API.md`, `SIGNATURES_SMART_CAPTURE_API.md`, `DICTIONARIES_CONFIG_API.md`, `TUMOR_BOARD_API.md`.
+- **Kept in the browser on purpose:** the research feed's `getDefaults`, `getHealth` and `recordHealth` answer from memory (no server call). The spelling dictionary's refusals keep their `code`. A failed peer-review gate check leaves the gate on (fail closed); a failed research-feed settings save throws instead of pretending to save.
+- Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team). `demoReset.ts` still names the mocks on purpose (it resets demo data).
+
+## Batch 617 (part A) — server versions of 29 more services (PS-514)
+
+- **29 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test; 509 tests): settings and dictionaries, case workflows, critical results, bulk code import, case search and the BI feed admin calls. Each is chosen by `<name>ServiceInstance.ts` (the server version with an API server address, the mock without one), so the demo is unchanged. 13 workflow files that imported a mock directly now import the instance.
+- Contracts: `docs/architecture/CONFIG_SERVICES_API.md`, `CASE_WORKFLOWS_API.md`, `CRITICAL_RESULTS_API.md`, and Batch 617 sections in `BILLING_API.md`, `CYTOLOGY_API.md`, `CASE_SEARCH_API.md`, `BI_FEED_API.md`. Screens are unchanged. No new permissions, no new strings. Not built: the endpoints themselves (India team).
+- Not given a server version, on purpose: the voice and hotkey registry (synchronous, in memory) and the AI instruction service (rules run in the browser).
+
+## Batch 617 (part B) — server versions of the delivery, print, delegation, dictionary, equipment, migration and related services (PS-514)
+
+- **26 more services have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test of every method): delivery rules, delivery retry settings and retries; print settings, facility print settings and the print queue; batch label reprint runs; delegations; participation types; internal notes; display access (tokens); diagnosis codes; external resources; feedback settings; fonts; governing bodies; performance targets; priorities; equipment and its log; data migration jobs, record results and field mappings; LIS sync; margin extraction; intraoperative critical results.
+- **Wiring:** each has an `<name>ServiceInstance.ts` (mock without an API server address, server version with one). `services/index.ts` and the workflow files that imported a mock directly (print dispatch, retries, label printing, scan batches, margin rules, retention, migration) now use the instance. The save of country signing rules keeps the demo's unguarded store because it checks the permission itself; with a server the server decides.
+- **Three interfaces were missing** and are now written: `ILabelReprintRunService`, `ILisSyncService`, `IFeedbackSettingsService` (it lived inside the mock). The mocks now declare them; behaviour is unchanged.
+- **Privacy and safety:** one route per method (`/api/<area>/<service>/<method-name>`, `HTTP_SERVICES_PATTERN.md` section 7). Searches and accession numbers (`diagnosisCodes.search`, `internalNotes.getForCase`) and display tokens (`verify`, issue) travel in a POST body, never a URL. `displayAccess.verify` fails closed: any failure is `invalid`. A plain list is `{ items }`; a method that returns nothing throws a fixed code on refusal.
+- **Contracts:** `docs/architecture/DELIVERY_PRINTING_API.md`, `DELEGATIONS_NOTES_API.md`, `CONFIG_DICTIONARIES_API.md`, `EQUIPMENT_MIGRATION_API.md`. The routes are proposals for the India team.
+- **Not a plain server version:** `interfaceDictionary` (composed in the browser over injected storage; its storage travels through the configuration calls).
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves.
+
+## Batch 616 (part B) — server versions of audit, authorization, staff, roles, facilities, access, session, biometric and the lab dictionaries (PS-484, PS-507, PS-512)
+
+- **16 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): audit, authorization, users, roles, facilities, screening-registry settings and override, access requests, session time-out, biometric, departments, locations, container types, ink colours, cassette colours, physicians and the reason dictionary. Contracts: `docs/architecture/STAFF_ADMIN_API.md`, `ACCESS_SESSION_API.md`, `LAB_DICTIONARIES_API.md`.
+- **Authorization fails closed:** with a server, each access decision is put to the server; no answer is a refusal. Access requests are resolved by the signed-in user only; the browser no longer sends who.
+- Biometric: server version built; the screens still use the browser-side functions. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+## Batch 616 (part C) — server versions of the billing, cytology, molecular and registry services (PS-498, PS-499, PS-500, PS-504)
+
+- **52 services now have an API-server version** (`http<Name>Service.ts` beside each mock, with a fake-fetch test): billing and charge capture (10), cytology and cytology QC (33), molecular batches, racks, control rules and the order queue (4), and registry reporting (5). Each is chosen by `<name>ServiceInstance.ts`: with an API server address the server version, without one the mock, so the demo is unchanged.
+- **One convention for wide interfaces:** one route per interface method, `/api/<area>/<service>/<method-name>`; reads are `GET` with the arguments in the query string, writes carry a body. Contract tables: `docs/architecture/BILLING_API.md`, `CYTOLOGY_API.md`, `MOLECULAR_API.md`, `REGISTRY_API.md`; the convention is `HTTP_SERVICES_PATTERN.md` §7.
+- Screens are unchanged. No new permissions, no new strings. Server side not built: the endpoints themselves (India team).
+
+
+## Batch 615 (part D) — vial and rack labels, CI workflow, right-to-left groundwork (PS-360, PS-471, PS-293)
+
+- **Vial and rack/batch labels** print through the interface engine like slide and cassette labels (`utils/labels/vialRackZplTemplates.ts`, `printVialRackLabel.ts`): Code 128 of the vial or rack id, sized to the label stock and printer resolution.
+- **CI:** `.github/workflows/ci.yml` runs type check, lint, tests, build and the Python report tests on every push to `main` and every pull request. It starts working once the repository is on GitHub (PS-468).
+- **Right to left:** `<html lang dir>` follows the language (`i18n/direction.ts`), and `pathscribe.css` now uses logical properties throughout, so a right-to-left language mirrors the layout. Identifiers and physical layouts (organ map, plates, label canvas) stay left to right. No right-to-left language is enabled yet (needs translations and Pete's go-ahead).
+
+## Batch 613 (part A) — case search reporting
+
+`architecture/SCHEDULED_REPORTS_API.md` (new) and a Reports section in `architecture/CASE_SEARCH_API.md`.
+
+## Batch 518
+
+- **quality/evidence/**: new. The Xray execution file for each batch is kept here, starting with Batch 518.
+- **architecture/**: new interface transaction types, and the new capabilities `interface:outbound:resend` and `label:batch:reprint`.
+
+- **architecture/** (Batch 519): `ORGAN_MAPPING_API.md` specifies the free-text node count checks the API server must repeat (PS-494).
+- **quality/evidence/** (Batch 519): `PathScribe-Batch519-xray.json`.
+
+- **architecture/** (Batch 520): `REPORT_DELIVERY_API.md`, the e-fax and file-drop contract for the API server (PS-280).
+- **quality/evidence/** (Batch 520): `PathScribe-Batch520-xray.json`.
+
+- **architecture/** (Batch 521): retries and fax confirmations in `REPORT_DELIVERY_API.md`; `ReportDeliveryStatus` in `LIVE_UPDATES_SIGNALR.md` (PS-281).
+- **quality/evidence/** (Batch 521): `PathScribe-Batch521-xray.json`.
+
+- **architecture/** (Batch 522): `CONSULT_ACCESS_API.md` (PS-290).
+- **quality/evidence/** (Batch 522): `PathScribe-Batch522-xray.json`.
+- **quality/evidence/** (Batch 523): `PathScribe-Batch523-xray.json`.
+
+## Batch 526
+
+New `product/CLINICAL_MISMATCH_CHECK.md`: the mismatch check explained for customers and staff, including the approved redesign (PS-554). `architecture/AUTHORIZATION_API.md` has the planned capabilities and the separation-of-duties rule.
+
+## Batch 527
+
+New `product/GUIDE_UPDATES.md`: a per-batch log for the guide owners, training, marketing and RFP answers (Pete, Oct 11).
+
+## Batch 529
+
+The mismatch rules are built (PS-554, part 1): `product/CLINICAL_MISMATCH_CHECK.md`, `architecture/AUTHORIZATION_API.md`.
+
+## Batch 530
+
+The mismatch alert and gates are built (PS-554, part 2): `product/CLINICAL_MISMATCH_CHECK.md`, `architecture/AUTHORIZATION_API.md`.
+
+## Batch 531
+
+Mismatch check: re-run on change and cytology alert (`product/CLINICAL_MISMATCH_CHECK.md`).
+
+## Batches 532–534
+
+`product/REPORT_RELEASE_DELAY.md` (new, Batch 534): the release delay on every report output, and Recall. Cytology case report, urgent preliminary and release delay entries are in `product/GUIDE_UPDATES.md` and `product/FEATURE_OVERVIEW.md`. Quality evidence for each batch is in `quality/`.
+
+## Batch 536
+
+Governed AI instructions and separation of duties (`product/CLINICAL_MISMATCH_CHECK.md`, `architecture/AUTHORIZATION_API.md`); the AI vendor policy's server contract (`architecture/AI_PROXY.md`).
+
+- **architecture/** (Batch 537): `DEPLOYMENT_READINESS_REVIEW.md`, the PS-539 deployment readiness review (serverless, private cloud, on site; markets and hosting rules; decisions for Pete).
+- **quality/evidence/** (Batch 537): `PathScribe-Batch537-xray.json`.
+
+## Batch 538
+
+`architecture/REPORT_DOCUMENT_STORE_API.md` (new): released report documents. The review's D2 is decided and F6 corrected.
+
+## Batch 539
+
+`architecture/`: the cytology report template (`REPORT_RENDERING_SERVICE.md` §7); F6 fixed.
+
+## Batch 540
+
+`product/REPORT_RELEASE_DELAY.md`: no correction or addendum during the release delay.
+
+## Batch 541
+
+`architecture/DEPLOYMENT_READINESS_REVIEW.md`: phase 2b decided (D1–D7), with Pete's verification checks.
+
+## Batch 542
+
+`architecture/MESSAGE_BUS_API.md` and `architecture/ASYNC_EXPORT_API.md` (new, PS-539 phase 2c contracts for decisions D1 and D7); findings F8 and F9 added to the readiness review.
+
+## Batch 543
+
+`architecture/BLOB_STORAGE_API.md` (new): file storage contract. Findings F8 and F9 fixed.
+
+## Batch 544
+
+`architecture/BLOB_STORAGE_API.md`: links only for images and attachments (corrects Batch 543). `architecture/ASYNC_EXPORT_API.md`: single-facility QA exports. `product/`: guide and feature entries.
+
+## Batch 545
+
+`architecture/INTERFACE_ENGINE_EDGE.md` (new): the interface engine edge contract (D6). The readiness review §6.2 is corrected, and findings F10 to F12 are added.
+
+## Batch 546
+
+`architecture/SITE_AGENT_API.md` (new): the site agent contract (D3). F3 and F4 are fixed, and several printing claims are corrected across the contracts.
+
+## Batch 547
+
+`architecture/RUNTIME_CONFIG.md` (new): runtime configuration, so one build serves every deployment (phase 2d).
+
+## Batch 548
+
+Phase 2d item 2: the connection banner and the waiting states. See `architecture/DEPLOYMENT_READINESS_REVIEW.md` §9.
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+- Batch 553: site agent printers in routing (`architecture/SITE_AGENT_API.md` §3). *(Batch 552's architecture notes weren't summarised here in Batch 552.)*
+
+## Batch 554 (PS-539 phase 2d: interface monitoring)
+
+- Batch 554: interface monitoring (`architecture/INTERFACE_ENGINE_EDGE.md` §9a).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- Batch 555: the browser's stand-ins for server jobs (`architecture/DEPLOYMENT_READINESS_REVIEW.md` §7).
+
+## Batch 556 (PS-539 phase 2d: report documents through the API)
+
+- Batch 556: reading report documents through the API (`architecture/REPORT_DOCUMENT_STORE_API.md` §2).
+
+## Batch 557 (PS-539 phase 2d: /api/config and hosting regions)
+
+- Batch 557: the API server's `/api/config` and the hosting regions (`architecture/RUNTIME_CONFIG.md` §5a).
+
+## Batch 558 (PS-539 phase 2d: report versions through the API)
+
+- Batch 558: report versions through the API, and why held releases need no browser endpoint (`architecture/BLOB_STORAGE_API.md` §11).
+
+## Batch 559 (PS-539 phase 2d: data topics)
+
+- Batch 559: push instead of polling, the hub's data topics (`architecture/LIVE_UPDATES_SIGNALR.md` §14).
+
+## Batch 560 (PS-539 phase 2d: push instead of polling)
+
+- Batch 560: the screens that refreshed on a timer are updated by the live-update hub (`architecture/LIVE_UPDATES_SIGNALR.md` §14).
+
+## Batch 561 (PS-539 phase 2d)
+
+- Batch 561: how the server retries a held result message (`architecture/MESSAGE_BUS_API.md` §5).
+
+## Batch 562 (PS-539 phase 2d)
+
+- Batch 562: the last polling screens on live updates; readiness review §9 items 3 and 8 closed (`architecture/DEPLOYMENT_READINESS_REVIEW.md`).
+
+## Batch 563 (PS-622)
+
+- Batch 563: the connection banner and waiting states checked in a browser (`quality/evidence/PathScribe-Batch563-browser.txt`).
+
+## Batch 564
+
+- Batch 564: every screen checked for accessibility in a browser (`quality/evidence/PathScribe-Batch564-browser.txt`).
+
+## Batch 565
+
+- Batch 565: the rest of the faint text and the screens' other states (`quality/evidence/PathScribe-Batch565-browser.txt`).
+
+## Batch 566
+
+- Batch 566: rows that hold buttons and view tiles that say which is on (`quality/evidence/PathScribe-Batch566-browser.txt`).
+
+## Batch 567
+
+- Batch 567: no control inside another in the inbox and the report editor (`quality/evidence/PathScribe-Batch567-browser.txt`).
+
+## Batch 568
+
+- Batch 568: no control inside another, app-wide (`quality/evidence/PathScribe-Batch568-browser.txt`).
+
+## Batch 569
+
+- Batch 569: focus after a keyboard delete; the wider source check (`quality/evidence/PathScribe-Batch569-browser.txt`).
+
+## Batch 570
+
+- Batch 570: focus after deleting a saved search (`quality/evidence/PathScribe-Batch570-browser.txt`); `architecture/DEPLOYMENT_READINESS_REVIEW.md` section 0, the status after phases 2a to 2d.
+
+## Batch 571
+
+- Batch 571: the live-update decision (one general `DataChanged` event on `/hubs/live`), recorded in `architecture/`.
+
+## Batch 572
+
+- Batch 572: contracts for the `caseReport` live topic and the screening hours sign-off (`architecture/`); guide and feature entries (`product/`); quality evidence (`quality/`).
+
+## Batch 573
+
+- Batch 573: presence on an open case (`architecture/LIVE_UPDATES_SIGNALR.md` §15, `architecture/CASE_API.md` §8); guide and feature entries; quality evidence.
+
+## Batch 574
+
+- Batch 574: cytology workload counter and night-shift sign-off (`architecture/CYTOLOGY_QC_API.md` §5); guide and feature entries; quality evidence, and Batch 571's missing Xray file.
+
+## Batch 575
+
+- Batch 575: "Show their changes" in place; guide entry; quality evidence.
+
+## Batch 576
+
+- Batch 576: cap checks, presence "editing", theme colours; quality evidence.
+
+## Batch 577
+
+- Batch 577: "Use their version" in `architecture/CASE_API.md`; guide entry; quality evidence.
+
+## Batch 578
+
+- Batch 578: workload cap screen follow-ups; guide entry; quality evidence.
+
+## Batch 579
+
+- Batch 579: reviewer guide (PS-63); billing codes and the Sequencer saved; guide entry; quality evidence.
+
+## Batch 580
+
+- Batch 580: the styled dropdown list (PS-62); supported browsers in `product/FEATURE_OVERVIEW.md`; guide entry; quality evidence.
+
+## Batch 583 and 584
+
+- `architecture/TEMPLATE_NOTIFICATIONS_API.md` (new): the server contract for template lifecycle e-mails (event in; recipients, language and sending on the server), with the English wording to start from.
+- `architecture/SERVERLESS_FRONTEND_AUDIT.md`: the Oct 21 audit of the front end and all READMEs against the serverless, event-driven direction (CLAUDE.md rule 11), with the four open decisions.
+- `architecture/AUTHENTICATION_OIDC.md`: the Oct 15 decisions (server-held tokens, user sync now, group mapping later with its rules). `architecture/LIVE_UPDATES_SIGNALR.md`: the deployment matrix (Azure SignalR Service for shared SaaS, Redis backplane for private cloud).
+- `quality/PLAYWRIGHT_REVIEW_GUIDE.md`: the ticket table now lists 34 tickets, and what a "known bug" test is.
+- `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `quality/README.md`: Batches 583 to 588.
+
+## Batch 581 and 582
+
+- `quality/PLAYWRIGHT_REVIEW_GUIDE.md` (new): running the review tests, step by step, on Windows.
+
+## Batch 641
+
+Batch 641 (Oct 20, 2026): recall documentation corrected (no sign-off needed for windows or wording; codes belong to the interface engine); PS-539 readiness status refreshed; recall card loading fix.
+
+## Batch 642
+
+Batch 642 (Oct 20, 2026): sign-out authentication policy. An administrator sets, in Session Security, whether signing a case out asks for a password every time (default) or once per session, with an optional second factor, an enterprise default, per-performing-facility overrides and a lock; the Sign Out button shows "(Password Required)" when a password is needed; every policy change, authentication, in-session sign-out and expiry is audited with full context. Remote sign-out limits and workstation lock need the API server (phase 2e). See `docs/architecture/SIGN_OUT_AUTHENTICATION.md`.
+
+## Batch 643
+
+Batch 643 (Oct 20, 2026): `docs/product/GUIDE_UPDATES.md` is now written in four voices (practitioner, system administrator, marketing, FormedrixAI and partners) for every entry.
+
+## Batch 644
+
+Batch 644 (Oct 20, 2026): `docs/product/FEATURE_OVERVIEW.md` now opens each of its 108 feature sections with the same four voices as `GUIDE_UPDATES.md` (practitioner, system administrator, marketing, FormedrixAI and partners); the original technical detail follows unchanged under "Technical detail". Drafted from the technical text; needs Pete's review.
+
+- Batch 679: `services/regulatoryProfile/` (documentation / clinical_support switch); `docs/product/REGULATORY_PROFILE.md`.
+
+- Batch 680: `services/aiGovernance/` (audit of AI accept/reject/code binding); sign-out gate for unaccepted AI narrative.
+
+- Batch 682: AI settings follow the regulatory profile (mismatch rules note; unused confidence checkbox removed).
+
+- Batch 683: the clinical-pathologic mismatch flag shows two checked source quotes.
+
+- Batch 684: native-language review Procedure in `HANDOVER_REVIEW_TESTS.md`; Batches 679 to 683 strings in `TRANSLATION_REVIEW.md`.
+
+- Batch 685: mismatch evidence quotes are saved with the QA record; forced-colors cue for unreviewed AI values.
+
+- Oct 28, 2026: `architecture/FEEDBACK_DESTINATION.md` (new): enhancement request destination and AI / Template validation feedback. User Guide (Personal Settings) and Administrator Guide (Feedback screen, audit events appendix) updated.
+
+## Batch 726
+
+Architecture: `STATION_TRACKING_API.md`. User Guide: Embedding, Microtome, Slide Distribution and Batch Management articles (carriers). Administrator Guide: Scan Stations stages, Decal transfer.
+
+## Batch 727
+
+User Guide: Facility Operations Display (add-ons, Stations). Administrator Guide: Display Profiles (time limit X, Stations).
+
+## Batch 728
+
+Admin Guide chapter 3 (all six languages): Research Cases & Batch Purposes; chapter 4: the Display Profile purpose filter. User Guide: Batch Management (step and purpose), Facility Operations (purpose filter). `architecture/BI_FEED_API.md` and `AUTHORIZATION_API.md`.
+
+## Batch 729
+
+User Guide: Embedding, Microtome, Slide Distribution, Grossing, Facility Operations; Admin Guide chapter 4 (not-scanned time); `architecture/STATION_TRACKING_API.md` (`activitySummary`, the bench events).
+
+## Batch 730
+
+`product/powerbi/` (new): the Power BI kit (queries, measures, guide; untested). User Guide: Lab Workflow Reports (new article), Add-On Orders, Equipment Log; Admin Guide chapter 2 (equipment temperature range, all six languages); `architecture/BI_FEED_API.md`, `ASYNC_EXPORT_API.md`, `CASE_WORKFLOWS_API.md`, `AUTHORIZATION_API.md`.
+
+## Batch 731
+
+User Guide: Add-On Orders, Embedding, Microtome, Slide Distribution (exhausted blocks, end states); Admin Guide chapter 2 (the three permissions, English); `architecture/CASE_WORKFLOWS_API.md` (IItemEndStateService, exhausted-block orders), `AUTHORIZATION_API.md`, `BI_FEED_API.md`; `product/powerbi/` (ItemEndStates query).
+
+## Batch 732
+
+Batch 732: User Guide Grossing, Add-On Orders, Embedding, Microtome, Slide Distribution; Admin Guide chapter 2 (Equipment: Takes large-format slides, all six languages); `architecture/CASE_WORKFLOWS_API.md`, `BI_FEED_API.md`.
+
+## Batch 745
+
+Batch 745: `product/DEMO_SEED_DATA.md` (S6 done), `product/DEMO_GUIDE.md` (Video 4 cases), `product/GUIDE_UPDATES.md`.
+
+## Batch 744
+
+Batch 744: `product/DEMO_SEED_DATA.md` (S14 done, manifest), `product/DEMO_GUIDE.md` (Video 8 script changes), `product/GUIDE_UPDATES.md`.
+
+## Batch 743
+
+Batch 743: `architecture/CASE_ATTACHMENTS_API.md` §6a (Assist; LIS-pushed attachment URLs, Planned), `product/GUIDE_UPDATES.md` (and Batch 742's Assist finding withdrawn), `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`, User Guide (report).
+
+## Batch 742
+
+Batch 742: `architecture/CASE_ATTACHMENTS_API.md` (new), `architecture/BLOB_STORAGE_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/CAPABILITIES.md` (one row), `product/DEMO_SEED_DATA.md`, User Guide (report, cytology screening).
+
+## Batch 741
+
+Batch 741: User Guide (grossing, cytology preparation), `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`.
+
+## Batch 740
+
+Batch 740: User Guide `workstations/cytology-prep.md` (new), `architecture/AUTHORIZATION_API.md`, `architecture/CASE_WORKFLOWS_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/DEMO_SEED_DATA.md`.
+
+## Batch 739
+
+Batch 739: `architecture/CASE_WORKFLOWS_API.md` and `architecture/INTERFACE_TRANSACTIONS.md` (aliquots, migration, instrument order), Admin Guide (equipment kind), User Guide notes, `product/GUIDE_UPDATES.md`, `product/DEMO_SEED_DATA.md`, `product/CAPABILITY_INVENTORY.md`.
+
+## Batch 738
+
+Batch 738: `product/DEMO_SEED_DATA.md` (new: seed-data status and manifest for the demo videos), `product/DEMO_GUIDE.md`, `product/GUIDE_UPDATES.md`.
+
+## Batch 737
+
+Batch 737: Admin Guide (Equipment → Staining racks, six languages), User Guide notes (add-on orders, batch management, microtomy), `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 736
+
+Batch 736: Admin Guide (System → Bench Reasons, six languages), User Guide notes, `architecture/LAB_DICTIONARIES_API.md` §7, `architecture/CASE_WORKFLOWS_API.md`, `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`, `product/STATION_TOUCH.md`.
+
+## Batch 735
+
+Batch 735: `product/STATION_TOUCH.md` (new: the touch spec with its build status and re-audit), User Guide (sign-in, grossing, embedding, microtomy, slide distribution, add-on orders, batch management: using a tablet at the bench), `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 734
+
+Batch 734: Admin Guide (Facility Printing tab: direct printing switch), User Guide Batch Management (ad-hoc carriers move), `architecture/AUTHORIZATION_API.md`, `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md`.
+
+## Batch 733
+
+Batch 733: User Guide Add-On Orders and Microtome; `architecture/CASE_WORKFLOWS_API.md`.
+
+## Batch 746
+
+Batch 746: `product/DEMO_SEED_DATA.md` (S7 done), `product/DEMO_GUIDE.md` (Video 5 data), `product/GUIDE_UPDATES.md`.
+
+## Batch 747
+
+Batch 747: `product/DEMO_SEED_DATA.md` (S8 done, findings), `product/DEMO_GUIDE.md` (Video 6), `product/GUIDE_UPDATES.md`, `product/FEATURE_OVERVIEW.md` (wall display access).
+
+## Batch 748
+
+Batch 748: `product/DEMO_SEED_DATA.md` (S9 and S11 done), `product/DEMO_GUIDE.md` (Video 7 and block types), `product/GUIDE_UPDATES.md`.
+
+## Batch 749
+
+Batch 749: `product/DEMO_SEED_DATA.md` (S4 and S5 done), `product/DEMO_GUIDE.md` (Video 3), `product/GUIDE_UPDATES.md`.
+
+## Batch 750
+
+Batch 750: `architecture/SLIDE_IMAGES.md` and `product/SLIDE_IMAGE_DEMO.md` (new); `product/GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `CAPABILITY_INVENTORY.md`, `DEMO_SEED_DATA.md` (S10), `DEMO_GUIDE.md` (Video 7 steps 17 and 18); the User Guide's Slide Images article and the Admin Guide's digital pathology section.
+
+## Batch 751
+
+Batch 751: `architecture/ORGAN_MAPPING_API.md` (Assist cases), `architecture/SYNOPTIC_RESULT_API.md` (4a), `architecture/AUTHORIZATION_API.md`; `product/GUIDE_UPDATES.md`, `FEATURE_OVERVIEW.md`, `DEMO_SEED_DATA.md` (S15), `DEMO_GUIDE.md` (Video 9); the User and Admin Guides.
+
+Batch 756: `product/` guide entries for the Video 1 fixes.

@@ -23,6 +23,7 @@
 // for anything that isn't a genuinely dynamic, per-render value.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
@@ -227,6 +228,8 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
   caseData, onClose, onReprintRequisition, onReprintContainer, onReprintCassette, onReprintSlide, batchPrintBlocked,
 }) => {
   const { t } = useTranslation();
+  // The identifier the labels are printed with (same fallback as the print paths).
+  const labelAccession = caseData.accession.fullAccession ?? caseData.id;
   const [selectedReq, setSelectedReq] = useState<Set<string>>(new Set());
   const [selectedSpecimens, setSelectedSpecimens] = useState<Set<string>>(new Set());
   const [selectedBlocks, setSelectedBlocks] = useState<Set<string>>(new Set());
@@ -236,7 +239,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
   const specimens = caseData.specimens ?? [];
   const allBlockRows = specimens.flatMap(sp => (sp.blocks ?? []).map(b => ({ specimen: sp, block: b })));
   const allSlideRows = allBlockRows.flatMap(({ specimen, block }) =>
-    (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: `L${idx + 1}` }))
+    (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: slideLevelOf(stain, idx) }))
   );
 
   // Real cascade: Column 3 shows only blocks under a currently-checked
@@ -303,7 +306,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
       ).toUpperCase();
       return {
         key, label, specimen, block,
-        rows: (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: `L${idx + 1}` })),
+        rows: (block.stains ?? []).map((stain, idx) => ({ specimen, block, stain, level: slideLevelOf(stain, idx) })),
       };
     });
 
@@ -373,7 +376,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
           {/* Column 1 — Requisition */}
           <Column n={1} title={t('manageReprintsModal.column.requisition')} count={1} widthClass="ps-reprint-column--req" bordered>
             <CheckCard
-              label={caseData.accession.fullAccession} sublabel={t('manageReprintsModal.requisitionSublabel')}
+              label={labelAccession} sublabel={t('manageReprintsModal.requisitionSublabel')}
               checked={selectedReq.has(REQ_KEY)} onToggle={() => setSelectedReq(prev => toggle(prev, REQ_KEY))}
               stacked truncateSublabel
             />
@@ -444,7 +447,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
                       damaged={isDamaged(block)}
                       exceptionNote={block.exceptionNote}
                       exceptionReportedAt={block.exceptionReportedAt}
-                      resolvedId={resolveBlockDisplayId(caseData.accession.fullAccession, specimen.label, block)}
+                      resolvedId={resolveBlockDisplayId(labelAccession, specimen.label, block)}
                       stacked
                     />
                   );
@@ -508,7 +511,7 @@ export const ManageReprintsModal: React.FC<ManageReprintsModalProps> = ({
                       checked={selectedSlides.has(key)}
                       onToggle={() => setSelectedSlides(prev => toggle(prev, key))}
                       urgent={isUrgent(block, caseData)}
-                      resolvedId={resolveSlideDisplayId(caseData.accession.fullAccession, specimen.label, block.label, level, stain)}
+                      resolvedId={resolveSlideDisplayId(labelAccession, specimen.label, block.label, level, stain)}
                       stacked
                     />
                   );

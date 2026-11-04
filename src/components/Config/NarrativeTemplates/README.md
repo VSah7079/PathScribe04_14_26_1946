@@ -10,9 +10,11 @@ tab UI that used to live here was confirmed dead and deleted (see below).
 
 ## Files
 
-- **`narrativeTemplateConfig.ts`** — 6 report sections (admin_header,
-  gross_description, etc.), each with a per-section AI instruction string
-  and field cardinality metadata. Still real, still live — no issues.
+- **`narrativeTemplateConfig.ts`** — 4 report sections (admin_header,
+  gross_description, synoptic_summary, ancillary_and_diagnosis), each with
+  a per-section AI instruction string and field cardinality metadata. Still
+  real, still live — no issues. *(Corrected in the Batch 496 README audit:
+  was "6 report sections".)*
 
 ## Deleted this pass (July 2026) — confirmed dead via full-repo grep
 

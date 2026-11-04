@@ -1,3 +1,7 @@
+**Batch 721:** `resolveAccessionPanels.ts` decides which Accession panels show (one at a time on a narrow window; Case & Patient plus Specimens, or Outside Patient Data, on a wide one) and holds the 1,480 px breakpoint. Tested in `resolveAccessionPanels.test.ts`.
+
+**Batch 649:** `createAccessionedCase.ts` checks `case:accession:create` (high risk, audited; requires the Accession screen) before anything is saved; a refusal throws its reason and saves nothing. An order arriving from the LIS, a legacy import or a control slide is not this action.
+
 # services/accessioning/
 
 Real, per the uploaded "Structured Clinical History Dictionary &
@@ -61,6 +65,29 @@ up.
 
 - **`patientIdGeneration.ts`** (+ test): `autoPatientId(caseId)` builds the generated Patient ID (`AUTO-<case id without its prefix>`). `resolveSubmittedPatientId(entered, caseId, required)` decides what to save. The entered value wins; otherwise the generated one is used; it fails only when none can be generated and the organisation requires a Patient ID. The Accession page then alerts and doesn't submit.
 
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`resolveAccessionSpecimenCytologyScreening.ts` (PS-212).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`resolveAccessionSpecimenCytologyScreening` now takes Yes / No / Not recorded (`contactBleedingFromChoice`). An explicit "no" is stored as `false`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+- Batch 608: `resolveAccessionSpecimenCytologyScreening` also records the prior cervical procedure (none, LEEP, cold knife conization, cryotherapy, other).
+
+Batch 616 (part A, PS-505): `httpAccessionOutboundQueueService.ts` and `accessionOutboundQueueInstance.ts` (the shared outbound queue calls). Contract `ACCESSIONING_API.md` section 4.
+
+## Batch 618 (PS-336)
+
+`resolveTechnicalFacilityOffer.ts` (+ test): `shouldOfferTechnicalFacility` (outside intake, or a department named Consultation), `technicalFacilityChoices` (active performing labs), `technicalFacilityForOrder` (what is saved on `order.technicalComponentFacilityId`).
+
+## Batch 652 — Specimen pipeline gaps
+
+- **`linkLockboxReceipt.ts`**: `linkLockboxReceiptAtAccession`, called by the Accession screen after it links the source order to the new case. Returns `linked`, `noReceipt`, `notPermitted` or `failed`; never throws and never undoes accessioning. Test: `services/lockbox/lockboxCaseLink.test.ts`.
+
+## Batch 658 — `downtimeReasonRule.ts`: a downtime accession needs a reason (`isDowntimeReasonMissing`), checked at submit.
+**Batch 712:** the reason is also a required field on the screen: `missingDowntimeReasonFieldIds(isDowntime, code)` returns `['downtimeReason']` while downtime mode is on and no reason is chosen, else `[]`; the page lists it under "Still required" and disables Next / Submit Accession. The submit-time check remains as a backstop.

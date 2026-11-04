@@ -1,4 +1,32 @@
 import { ServiceResult, ID } from '../types';
+import type { MessageRecipient } from './messageRecipients';
+
+export type { MessageRecipient };
+
+/** The error a send returns when the person lacks the permission (Batch 385). */
+export const MESSAGE_NOT_PERMITTED = 'MESSAGE_NOT_PERMITTED';
+
+/**
+ * Batch 385: `composedByPerson: true` marks a message the signed-in person wrote in the
+ * messages drawer; only those need message:internal:send. Notices the app sends itself
+ * (access requests to administrators, template and LIS notices) don't, so someone without the
+ * permission can still ask for access.
+ */
+export interface SendOptions { composedByPerson?: boolean }
+
+export interface SecureEmailInput {
+  fromName: string;
+  fromEmail: string;
+  to: string;
+  subject: string;
+  body: string;
+  /** Batch 517 (PS-143): the sender's organisation, whose lab's gateways apply. */
+  organisationId: string | null | undefined;
+  /** The gateway chosen (services/secureMessaging/secureGateways.ts). */
+  gatewayId: string | undefined;
+  /** Whether the message carries patient or finding details: only a gateway with its agreement in force may carry it. */
+  containsPatientData: boolean;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,17 +57,28 @@ export interface Message {
 // ─── Interface ────────────────────────────────────────────────────────────────
 
 export interface IMessageService {
+  /** Who a message can be addressed to (the organisation's staff). */
+  listRecipients(): Promise<ServiceResult<MessageRecipient[]>>;
+
+  /**
+   * Send a secure message through one of the lab's gateways. Needs
+   * message:secure-email:send. Batch 517 (PS-143): refuses with a
+   * SecureSendProblem (no gateway, gateway not available, or patient data
+   * through a gateway without its BAA / data processing agreement in force).
+   */
+  sendSecureEmail(input: SecureEmailInput): Promise<ServiceResult<void>>;
+
   /** Fetch all messages for a given user (inbox + sent) */
   getInbox(userId: ID): Promise<ServiceResult<Message[]>>;
 
   /** Fetch a single message by ID */
   getById(id: ID): Promise<ServiceResult<Message>>;
 
-  /** Send a new message */
-  send(message: Omit<Message, 'id' | 'isRead' | 'isDeleted' | 'thread'>): Promise<ServiceResult<Message>>;
+  /** Send a new message. One composed by a person needs message:internal:send (error MESSAGE_NOT_PERMITTED otherwise). */
+  send(message: Omit<Message, 'id' | 'isRead' | 'isDeleted' | 'thread'>, options?: SendOptions): Promise<ServiceResult<Message>>;
 
-  /** Reply to an existing thread */
-  reply(messageId: ID, senderId: ID, senderName: string, text: string): Promise<ServiceResult<Message>>;
+  /** Reply to an existing thread. A person's reply needs message:internal:send. */
+  reply(messageId: ID, senderId: ID, senderName: string, text: string, options?: SendOptions): Promise<ServiceResult<Message>>;
 
   /** Mark a message as read */
   markRead(id: ID): Promise<ServiceResult<Message>>;

@@ -1,0 +1,1137 @@
+{
+ "frameworks": [
+  "ISO 15189",
+  "ISO 27001",
+  "CLIA",
+  "CAP",
+  "HIPAA",
+  "GDPR",
+  "DSPT",
+  "UKAS",
+  "IVDR",
+  "PHIPA",
+  "PIPA",
+  "Rili-BÄK",
+  "CCKL",
+  "BELAC",
+  "COFRAC",
+  "ENAC",
+  "INAB",
+  "NPAAC",
+  "NATA/RCPA",
+  "IANZ",
+  "KOLAS"
+ ],
+ "phase1": [
+  "ISO 15189",
+  "ISO 27001",
+  "CLIA",
+  "CAP",
+  "HIPAA",
+  "GDPR",
+  "DSPT"
+ ],
+ "jurisdictions": {
+  "United States": [
+   "CLIA",
+   "CAP",
+   "HIPAA",
+   "ISO 15189",
+   "ISO 27001"
+  ],
+  "Canada": [
+   "ISO 15189",
+   "PHIPA",
+   "PIPA"
+  ],
+  "England, Scotland, Northern Ireland (NHS)": [
+   "UKAS",
+   "ISO 15189",
+   "DSPT",
+   "GDPR"
+  ],
+  "Ireland": [
+   "ISO 15189",
+   "INAB",
+   "GDPR"
+  ],
+  "Germany": [
+   "ISO 15189",
+   "Rili-BÄK",
+   "GDPR"
+  ],
+  "Netherlands": [
+   "ISO 15189",
+   "CCKL",
+   "GDPR"
+  ],
+  "Belgium": [
+   "ISO 15189",
+   "BELAC",
+   "GDPR"
+  ],
+  "France": [
+   "ISO 15189",
+   "COFRAC",
+   "GDPR"
+  ],
+  "Spain": [
+   "ISO 15189",
+   "ENAC",
+   "GDPR"
+  ],
+  "European Union (device regulation)": [
+   "IVDR"
+  ],
+  "Australia": [
+   "ISO 15189",
+   "NPAAC",
+   "NATA/RCPA"
+  ],
+  "New Zealand": [
+   "ISO 15189",
+   "IANZ"
+  ],
+  "South Korea": [
+   "ISO 15189",
+   "KOLAS",
+   "PIPA"
+  ]
+ },
+ "requirements": [
+  {
+   "id": "PS-R-001",
+   "area": "Audit",
+   "requirement": "All report modifications shall be audited.",
+   "code": [
+    "src/services/auditlog/auditServiceInstance.ts",
+    "src/services/reports/mockAmendmentService.ts"
+   ],
+   "tests": [
+    "src/services/reports/mockAmendmentService.test.ts",
+    "src/services/cases/caseWriteConflictAudit.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server must write the audit entry in the same transaction as the change (specified, not built)",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CLIA",
+    "CAP",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-002",
+   "area": "Audit",
+   "requirement": "Audit records shall be immutable.",
+   "code": [
+    "src/services/auditlog/IAuditService.ts"
+   ],
+   "tests": [],
+   "status": "Planned",
+   "gap": "Append-only by interface only; no hash chain or write-once storage until the API server exists",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CLIA",
+    "CAP",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-003",
+   "area": "Access",
+   "requirement": "All user access shall be attributable to a named user.",
+   "code": [
+    "src/services/auth/authSession.ts"
+   ],
+   "tests": [
+    "src/services/auth/authSession.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server deployments sign in through the identity provider only; the API server must validate the token on every call",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CLIA",
+    "CAP",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-004",
+   "area": "Traceability",
+   "requirement": "Specimen custody changes shall be tracked.",
+   "code": [
+    "src/services/batches/IBatchService.ts",
+    "src/services/batches/DecalBatch.ts"
+   ],
+   "tests": [
+    "src/services/batches/batchCustodyActions.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "The cited test covers the permission and reason checks on three overrides only; no test verified for scan-by-scan custody recording. Server records Partial (phase 2e)",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-005",
+   "area": "Records",
+   "requirement": "Released reports shall be versioned.",
+   "code": [
+    "src/services/reports/mockReportVersionService.ts",
+    "src/services/reports/httpReportVersionService.ts"
+   ],
+   "tests": [
+    "src/services/reports/mockReportVersionService.test.ts",
+    "src/services/reports/httpReportVersionService.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server version endpoints not built",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "IVDR"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-006",
+   "area": "Records",
+   "requirement": "A report PDF shall be checked against its fingerprint before it is opened, sent or released.",
+   "code": [
+    "src/services/reports/reportVersionPdf.ts"
+   ],
+   "tests": [
+    "src/services/reports/reportVersionPdf.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server storage of PDFs not built",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CAP"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-007",
+   "area": "Records",
+   "requirement": "A change to a signed report shall be classified, transmitted and then released, never silently replaced.",
+   "code": [
+    "src/services/reports/dispatchAmendedCaseInstance.ts"
+   ],
+   "tests": [
+    "src/services/reports/dispatchAmendedCaseInstance.test.ts"
+   ],
+   "status": "Live",
+   "gap": "",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-008",
+   "area": "Results",
+   "requirement": "Critical results shall be recorded with who was told, the method and receipt.",
+   "code": [
+    "src/services/clinical/criticalFindingStore.ts"
+   ],
+   "tests": [
+    "src/services/clinical/criticalFindingStore.test.ts"
+   ],
+   "status": "Live",
+   "gap": "National wording not reviewed by native experts",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "KOLAS",
+    "UKAS",
+    "NATA/RCPA"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-009",
+   "area": "Sign-out",
+   "requirement": "The same safety checks shall run at every sign-out.",
+   "code": [
+    "src/services/signoutGates/signOutReviewGates.ts"
+   ],
+   "tests": [
+    "src/services/signoutGates/signOutReviewGates.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Sign-out is not one transaction until the API server exists",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP",
+    "CLIA"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-010",
+   "area": "Sign-out",
+   "requirement": "A report shall not be signed out without a validated collection or receipt date and time, except by a recorded override with a CAPA record and report disclaimer.",
+   "code": [
+    "src/services/billing/resolvePreAnalyticDateGateConfig.ts",
+    "src/services/signoutGates/preAnalyticGate.ts"
+   ],
+   "tests": [
+    "src/services/billing/resolvePreAnalyticDateGateConfig.test.ts",
+    "src/services/signoutGates/preAnalyticGate.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Citations are expert-supplied and unverified; Canada is a placeholder; no IVDR schema-level gate",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "UKAS",
+    "IVDR",
+    "IANZ",
+    "NATA/RCPA",
+    "NPAAC",
+    "COFRAC",
+    "ENAC",
+    "KOLAS"
+   ],
+   "reviewer": "National regulatory expert",
+   "note": ""
+  },
+  {
+   "id": "PS-R-011",
+   "area": "Sign-out",
+   "requirement": "Unverified AI output shall block sign-out until a person accepts it.",
+   "code": [
+    "src/services/signoutGates/signOutReviewGates.ts"
+   ],
+   "tests": [
+    "src/services/signoutGates/signOutReviewGates.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Server must repeat the check",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-012",
+   "area": "Sign-out",
+   "requirement": "An unresolved margin ink problem shall block sign-out, citing the jurisdiction's regulatory profile.",
+   "code": [
+    "src/services/grossing/evaluateInkingGate.ts",
+    "src/services/grossing/jurisdictionInkingGateMessages.ts"
+   ],
+   "tests": [
+    "src/services/grossing/evaluateInkingGate.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Citations unverified",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP",
+    "IVDR",
+    "UKAS",
+    "NATA/RCPA",
+    "NPAAC"
+   ],
+   "reviewer": "National regulatory expert",
+   "note": ""
+  },
+  {
+   "id": "PS-R-013",
+   "area": "Records",
+   "requirement": "A save made from an old copy of a case shall not overwrite a newer save without an audited override.",
+   "code": [
+    "src/services/cases/caseWrite.ts"
+   ],
+   "tests": [
+    "src/services/cases/caseWrite.test.ts",
+    "src/services/cases/caseWriteVersion.guard.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server-side version check specified, not built",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP",
+    "ISO 27001"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-014",
+   "area": "Access",
+   "requirement": "Every protected action shall need a named capability, checked in the service that does the work, with no bypass for any role.",
+   "code": [
+    "src/services/authorization/capabilityCatalog.ts"
+   ],
+   "tests": [
+    "src/services/authorization/capabilities.guard.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "The API server must repeat every check",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CLIA",
+    "CAP",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-015",
+   "area": "Access",
+   "requirement": "Screens shall be reachable only by roles granted them.",
+   "code": [
+    "src/services/screens/screenAccess.ts"
+   ],
+   "tests": [
+    "src/services/screens/routeGating.guard.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Presentation only; server enforces",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-016",
+   "area": "Access",
+   "requirement": "Server deployments shall sign in through the organisation's identity provider only.",
+   "code": [
+    "src/services/runtimeConfig/loadRuntimeConfig.ts"
+   ],
+   "tests": [
+    "src/services/runtimeConfig/runtimeConfig.test.ts",
+    "src/services/runtimeConfig/runtimeConfig.guard.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Only Entra ID, Okta and Keycloak have documented setup; others not validated",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-017",
+   "area": "Access",
+   "requirement": "A second factor shall be required at sign-in and at signature when the organisation's policy says so.",
+   "code": [
+    "src/services/auth/mfa/mfaService.ts",
+    "src/services/auth/mfa/mfaAssurance.ts"
+   ],
+   "tests": [
+    "src/services/auth/mfa/mfaService.test.ts",
+    "src/services/auth/mfa/mfaAssurance.test.ts",
+    "src/services/auth/signerConfirmation.mfa.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "API server must repeat the claim check",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "DSPT",
+    "GDPR"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-018",
+   "area": "Access",
+   "requirement": "The organisation's MFA policy shall be held, changed and audited by the server.",
+   "code": [
+    "src/services/auth/mfa/IMfaPolicyService.ts",
+    "src/services/auth/mfa/httpMfaPolicyService.ts"
+   ],
+   "tests": [
+    "src/services/auth/mfa/httpMfaPolicyService.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Browser side built (access-14); server routes and audit events not built",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-019",
+   "area": "Access",
+   "requirement": "If the MFA policy cannot be read, sign-in shall be refused.",
+   "code": [
+    "src/services/auth/authSession.ts"
+   ],
+   "tests": [
+    "src/services/auth/authSession.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-020",
+   "area": "Access",
+   "requirement": "A session shall end after inactivity, and a second sign-in shall be confirmed before taking over.",
+   "code": [
+    "src/services/session/ISessionTimeoutService.ts",
+    "src/services/session/sessionSupersedeService.ts"
+   ],
+   "tests": [
+    "src/services/session/sessionSupersedeService.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Timeout test coverage not confirmed",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-021",
+   "area": "Access",
+   "requirement": "Repeated failed sign-ins shall lock the account.",
+   "code": [],
+   "tests": [],
+   "status": "Customer / Host",
+   "gap": "Identity provider's job on server deployments",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-022",
+   "area": "Privacy",
+   "requirement": "Clinical data shall not be written to browser storage on a server deployment.",
+   "code": [
+    "src/services/browserData/dataStorage.ts"
+   ],
+   "tests": [
+    "src/services/browserData/browserData.guard.test.ts",
+    "src/services/browserData/browserData.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Demo without a server is not covered",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-023",
+   "area": "Privacy",
+   "requirement": "Patient identifiers on screen shall be tagged so support screenshots redact them.",
+   "code": [
+    "src/services/phiSelectors.ts"
+   ],
+   "tests": [
+    "src/services/phi/phiTagging.guard.test.ts",
+    "src/services/phi/phiSelectors.guard.test.ts"
+   ],
+   "status": "Live",
+   "gap": "",
+   "crosswalk": [
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-024",
+   "area": "Privacy",
+   "requirement": "AI services and hosting regions shall be restricted by jurisdiction and facility, and every AI call logged.",
+   "code": [
+    "src/services/aiIntegration/aiVendorPolicy.ts"
+   ],
+   "tests": [
+    "src/services/aiIntegration/aiVendorPolicy.test.ts",
+    "src/services/aiIntegration/httpAiVendorPolicyService.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Server AI-proxy check specified, not built",
+   "crosswalk": [
+    "ISO 27001",
+    "GDPR",
+    "HIPAA"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-025",
+   "area": "Retention",
+   "requirement": "Retention periods shall follow the jurisdiction's governing bodies and warn below the floor.",
+   "code": [
+    "src/services/retentionPolicy/resolveRetentionEligibility.ts"
+   ],
+   "tests": [
+    "src/services/retentionPolicy/resolveRetentionEligibility.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Several seeded figures are unverified placeholders",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "GDPR"
+   ],
+   "reviewer": "Customer quality manager",
+   "note": ""
+  },
+  {
+   "id": "PS-R-026",
+   "area": "Retention",
+   "requirement": "A retention hold shall block disposal until released.",
+   "code": [
+    "src/services/retentionHolds/retentionHoldsQueue.ts"
+   ],
+   "tests": [
+    "src/services/retentionHolds/retentionHoldsQueue.test.ts"
+   ],
+   "status": "Live",
+   "gap": "",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Customer quality manager",
+   "note": ""
+  },
+  {
+   "id": "PS-R-027",
+   "area": "Retention",
+   "requirement": "Disposal shall be recorded and reportable.",
+   "code": [
+    "src/services/retentionPolicy/disposeItemByScan.ts",
+    "src/services/retentionPolicy/computeDisposalReport.ts"
+   ],
+   "tests": [
+    "src/services/retentionPolicy/specimenDisposal.test.ts",
+    "src/services/retentionPolicy/computeDisposalReport.test.ts"
+   ],
+   "status": "Live",
+   "gap": "",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "GDPR"
+   ],
+   "reviewer": "Customer quality manager",
+   "note": ""
+  },
+  {
+   "id": "PS-R-028",
+   "area": "Traceability",
+   "requirement": "Cold-chain excursions shall be flagged and acknowledged.",
+   "code": [
+    "src/services/coldChain/coldChainStatus.ts"
+   ],
+   "tests": [
+    "src/services/coldChain/coldChainStatus.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Demo data",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-029",
+   "area": "Quality",
+   "requirement": "Nonconformities and corrective actions shall be raised, escalated and verified with an audit trail.",
+   "code": [
+    "src/services/deficiencies/qaDeficiencyActions.ts"
+   ],
+   "tests": [
+    "src/services/deficiencies/qaDeficiencyActions.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Screen shows done when the store fails (known gap)",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-030",
+   "area": "Quality",
+   "requirement": "Inspectors shall get 24 months of QA evidence mapped to the jurisdiction's regulatory basis.",
+   "code": [
+    "src/services/quality/resolveQaEvidenceBinder.ts"
+   ],
+   "tests": [
+    "src/services/quality/resolveQaEvidenceBinder.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Clause texts unverified; CAPA link is a proxy",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP",
+    "CLIA",
+    "UKAS",
+    "IANZ",
+    "NATA/RCPA",
+    "IVDR"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-031",
+   "area": "Audit",
+   "requirement": "Pool claims, hand-offs, case team changes and comments shall be audited without free text.",
+   "code": [
+    "src/services/cases/poolCaseActions.ts",
+    "src/services/cases/postCaseComment.ts"
+   ],
+   "tests": [
+    "src/services/cases/poolCaseActions.test.ts",
+    "src/services/cases/postCaseComment.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Some timeouts audited from the browser only",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-032",
+   "area": "Audit",
+   "requirement": "Secure email sends shall be audited.",
+   "code": [
+    "src/components/SecureEmail/SecureEmailModal.tsx"
+   ],
+   "tests": [
+    "src/components/AppShell/messagingRequirements.test.tsx"
+   ],
+   "status": "Built (Demo)",
+   "gap": "",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-033",
+   "area": "Screening",
+   "requirement": "The European cytology compliance matrix shall report per country cases, HPV strategy, non-conformities, registry IDs, platform and interval adherence.",
+   "code": [
+    "src/services/cytology/resolveCytologyEuComplianceMatrixReport.ts"
+   ],
+   "tests": [
+    "src/services/cytology/resolveCytologyEuComplianceMatrixReport.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Interval adherence only where tables and history allow",
+   "crosswalk": [
+    "ISO 15189",
+    "INAB"
+   ],
+   "reviewer": "National regulatory expert",
+   "note": ""
+  },
+  {
+   "id": "PS-R-034",
+   "area": "Privacy",
+   "requirement": "A data subject's request for access, rectification, erasure, restriction or portability shall be supportable.",
+   "code": [],
+   "tests": [],
+   "status": "Not built",
+   "gap": "No tooling; erasure vs clinical retention policy undecided",
+   "crosswalk": [
+    "GDPR",
+    "PIPA",
+    "PHIPA"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-035",
+   "area": "Privacy",
+   "requirement": "Records of processing and DPIA support shall be available.",
+   "code": [],
+   "tests": [],
+   "status": "Not built",
+   "gap": "",
+   "crosswalk": [
+    "GDPR"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-036",
+   "area": "Security",
+   "requirement": "Security incidents and personal-data breaches shall be detected, recorded and notified.",
+   "code": [],
+   "tests": [],
+   "status": "Not built",
+   "gap": "No incident or breach workflow",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-037",
+   "area": "Security",
+   "requirement": "Data shall be backed up and recoverable.",
+   "code": [],
+   "tests": [],
+   "status": "Customer / Host",
+   "gap": "Platform property; hosting package Planned (PS-539)",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-038",
+   "area": "Security",
+   "requirement": "Data in transit shall be encrypted.",
+   "code": [
+    "src/services/apiServer/apiHttpClient.ts"
+   ],
+   "tests": [],
+   "status": "Customer / Host",
+   "gap": "TLS is configured by the host; no test asserts it",
+   "crosswalk": [
+    "ISO 27001",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Independent security assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-039",
+   "area": "Validation",
+   "requirement": "The system shall be validated for its intended use, with change control.",
+   "code": [],
+   "tests": [],
+   "status": "Planned",
+   "gap": "No Validation Guide, IQ/OQ/PQ pack or change-control record",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP",
+    "IVDR"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-040",
+   "area": "People",
+   "requirement": "Personnel competence and credentials shall be documented.",
+   "code": [
+    "src/services/staff/"
+   ],
+   "tests": [],
+   "status": "Needs mapping",
+   "gap": "Staff Credentialing screen exists; not assessed against competency duties",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Customer quality manager",
+   "note": ""
+  },
+  {
+   "id": "PS-R-041",
+   "area": "Risk",
+   "requirement": "A laboratory risk-management process shall be supported.",
+   "code": [],
+   "tests": [],
+   "status": "Not assessed",
+   "gap": "No ISO 22367 mapping; CAPA engine is the nearest",
+   "crosswalk": [
+    "ISO 15189"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-042",
+   "area": "Regulatory",
+   "requirement": "The regulatory status of PathScribe as software (device or not) shall be determined and documented.",
+   "code": [],
+   "tests": [],
+   "status": "Not assessed",
+   "gap": "Needs a legal determination; blocks any EU claim",
+   "crosswalk": [
+    "IVDR"
+   ],
+   "reviewer": "Regulatory counsel / notified body",
+   "note": ""
+  },
+  {
+   "id": "PS-R-043",
+   "area": "Hosting",
+   "requirement": "Hosting location shall be selectable, with data residency honoured.",
+   "code": [],
+   "tests": [],
+   "status": "Planned",
+   "gap": "One cloud-agnostic package and IQ checklist planned (PS-539)",
+   "crosswalk": [
+    "GDPR",
+    "HIPAA",
+    "DSPT"
+   ],
+   "reviewer": "Privacy counsel / DPO",
+   "note": ""
+  },
+  {
+   "id": "PS-R-044",
+   "area": "Management system",
+   "requirement": "An information security management system shall be in place.",
+   "code": [],
+   "tests": [],
+   "status": "Not assessed",
+   "gap": "Organisational; no certificate on record",
+   "crosswalk": [
+    "ISO 27001"
+   ],
+   "reviewer": "Certification body",
+   "note": ""
+  },
+  {
+   "id": "PS-R-045",
+   "area": "AI output governance",
+   "requirement": "AI-drafted narrative text shall not be signed out until the pathologist has accepted, edited or rejected it.",
+   "code": [
+    "src/services/signoutGates/signOutReviewGates.ts",
+    "src/pages/SynopticReportPage/hooks/useSignOutWorkflow.ts"
+   ],
+   "tests": [
+    "src/services/signoutGates/signOutReviewGates.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Gate runs in the browser; the server must enforce the same rule at sign-out (specified, not built)",
+   "crosswalk": [
+    "ISO 15189",
+    "CLIA",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-046",
+   "area": "AI output governance",
+   "requirement": "Acceptance, editing and rejection of AI-drafted text, and binding of AI-suggested codes, shall be recorded in the audit log with the user and time.",
+   "code": [
+    "src/services/aiGovernance/aiReviewAudit.ts",
+    "src/pages/SynopticReportPage/hooks/useOrchestratorDraft.ts"
+   ],
+   "tests": [
+    "src/services/aiGovernance/aiReviewAudit.test.ts",
+    "src/pages/SynopticReportPage/hooks/__tests__/useOrchestratorDraft.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Audit entries are written by the browser; the server must write them in the same transaction (specified, not built)",
+   "crosswalk": [
+    "ISO 15189",
+    "ISO 27001",
+    "CLIA",
+    "CAP",
+    "HIPAA",
+    "GDPR",
+    "DSPT"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-047",
+   "area": "AI output governance",
+   "requirement": "AI-filled values the signing pathologist has not confirmed shall be excluded from the signed report, visibly distinguished and counted in the working draft, and the omission recorded in the audit log.",
+   "code": [
+    "src/services/aiGovernance/omitUnverifiedAi.ts",
+    "src/pages/SynopticReportPage/hooks/useOmitUnverifiedAi.ts",
+    "src/pages/SynopticReportPage/aiGovernance.css"
+   ],
+   "tests": [
+    "src/services/aiGovernance/omitUnverifiedAi.test.ts",
+    "src/services/aiGovernance/aiReviewAudit.test.ts"
+   ],
+   "status": "Partial",
+   "gap": "Browser-side rule for synoptic and grossing reports; the server must apply the same rule at sign-out and Gross Complete (contract in docs/product/REGULATORY_PROFILE.md, not built). Autopsy and cytology have no AI suggestions today. Not browser-tested with a real PDF",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-048",
+   "area": "AI output governance",
+   "requirement": "Values filled by the assist-polling process shall start as unverified AI output.",
+   "code": [
+    "src/services/assistPolling/assistMilestoneRules.ts"
+   ],
+   "tests": [
+    "src/services/assistPolling/assistMilestoneRules.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Explicit accept step for auto-filled values is planned (Batch 689)",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-049",
+   "area": "AI output governance",
+   "requirement": "The clinical-pathologic mismatch check shall show the words it relied on from both sides, and say when a quote is not found in the record.",
+   "code": [
+    "src/services/clinical/detectClinicalPathologicMismatch.ts",
+    "src/components/ClinicalMismatch/ClinicalMismatchSummary.tsx"
+   ],
+   "tests": [
+    "src/components/ClinicalMismatch/ClinicalMismatchSummary.evidence.test.tsx",
+    "src/services/clinical/mismatchFallbackAndVersion.test.ts"
+   ],
+   "status": "Built (Demo)",
+   "gap": "Quotes are kept in the QA record from Batch 685; earlier records have none",
+   "crosswalk": [
+    "ISO 15189",
+    "CAP"
+   ],
+   "reviewer": "Accreditation body assessor",
+   "note": ""
+  },
+  {
+   "id": "PS-R-050",
+   "area": "AI output governance",
+   "requirement": "The regulatory profile shall decide whether AI confidence scores and score-driven actions appear; the default shall not present AI output as a clinical decision.",
+   "code": [
+    "src/services/regulatoryProfile/regulatoryProfile.ts",
+    "src/services/clinical/clinicalMismatchRules.ts"
+   ],
+   "tests": [
+    "src/services/regulatoryProfile/regulatoryProfile.test.ts",
+    "src/services/clinical/clinicalMismatchRules.test.ts"
+   ],
+   "status": "Live",
+   "gap": "Profile is set at build time; a medical-device pathway (IVDR, FDA) is not assessed and the clinical_support profile is unvalidated",
+   "crosswalk": [
+    "IVDR",
+    "ISO 15189"
+   ],
+   "reviewer": "Regulatory affairs reviewer",
+   "note": "Wording stays: provides capabilities intended to support."
+  },
+  {
+   "id": "PS-R-051",
+   "area": "AI output governance",
+   "requirement": "Machine-translated screen text shall be reviewed by a native speaker before being relied on.",
+   "code": [],
+   "tests": [],
+   "status": "Planned",
+   "gap": "Review register exists (docs/quality/TRANSLATION_REVIEW.md); native review not done for fr, de, nl, ko, es",
+   "crosswalk": [
+    "ISO 15189"
+   ],
+   "reviewer": "Native-language reviewers",
+   "note": ""
+  }
+ ]
+}

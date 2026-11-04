@@ -6,6 +6,28 @@
 - **Who can sign in:** only staff who are already provisioned and active. Nobody is created by signing in (the rule from the earlier PS-60 requirements).
 - **Password sign-in:** demo builds only. A production build sets `VITE_AUTH_MODE=sso`, and the demo accounts are then not in the bundle.
 
+> **Decision, Oct 3 2026 (Pete, PS-345): tokens move to the server.** Sections 1 and 2 describe what the browser does today: it signs in itself and keeps the tokens in `sessionStorage`. For production, the PathScribe API server holds the tokens instead (the "backend-for-frontend" pattern):
+> - The server runs the code exchange with the identity provider and keeps the access and refresh tokens server-side.
+> - The browser gets only a session cookie: `HttpOnly` (scripts can't read it), `Secure`, `SameSite=Strict` (or `Lax` where the sign-in redirect needs it), with idle and absolute timeouts.
+> - State-changing requests carry an anti-forgery token header.
+> - SignalR authenticates with the same cookie, never a token in the query string.
+> - Sign-out clears the server session and ends the identity-provider session.
+>
+> Why: a token kept where page scripts can read it is exposed to any script injection, and a session cookie that scripts can't read isn't. That's the current guidance for browser apps handling sensitive data. The front-end change (sign-in becomes a redirect to the server, and API calls send the cookie and the anti-forgery header) comes with the API-client batch. The demo mode is unchanged.
+
+> **Decisions, Oct 15 2026 (Pete, with the dev team's review; Jira PS-60):**
+> - **Sign-in tokens.** The Oct 3 decision (PS-345) stands. The dev team's "stateless JWT validation" (reference server item 4.6) is acceptable only for validating the identity provider's token during the sign-in exchange on the server, to set up the server-held session. **The browser never stores or carries a JWT**, only the HTTP-only session cookie. The dev team is to confirm.
+> - **User accounts sync now (SCIM users, phase 2e):** joiners, changes and leavers, so a leaver loses access through the directory update. Group-to-role mapping is **after the first release**; roles are assigned by hand in System → Staff and Roles.
+> - **When group mapping comes (§6.5):**
+>   - a group may grant bench roles only (Accessioner, Histotechnologist, Cytotechnologist, Molecular Technologist), never Admin, Lab Director, Template Approver or anything with signing authority;
+>   - leaving a group removes the mapped role at the next directory update, and the removal is audited;
+>   - an admin can add roles by hand on top, and each role shows whether it came from the directory or was added by hand;
+>   - a mapping needs approval from a second admin;
+>   - Microsoft Entra ID first, then Okta;
+>   - groups arrive by SCIM, not in the sign-in token (Entra stops listing groups in a token past 200);
+>   - mappings live in a table per organisation (directory group id → PathScribe role id), editable only by designated admins, every change audited.
+> - **Still owed by the dev team:** whether the Entra External ID broker passes the hospital's groups through, and in which claim (§8).
+
 ## 1. Why the sign-in itself doesn't need a server
 
 PS-60 said OAuth "needs a real backend for the token exchange (client secrets can't live in frontend code)". For Entra ID and Okta that is no longer true.
@@ -62,6 +84,7 @@ The rule lives in `src/services/auth/externalIdentity.ts`; the server must apply
 | Setting | Meaning |
 |---|---|
 | `VITE_AUTH_MODE` | `demo` (default): demo password accounts, plus any providers below. `sso`: providers only; the demo accounts are left out of the bundle. Any other value turns password sign-in off. |
+| `VITE_PWNED_CHECK` | Batch 456. `off` skips the Pwned Passwords check when a password is set (a private cloud with no internet access). Anything else, or unset: on. The common-password, pattern and service-word checks always apply. |
 | `VITE_AUTH_MICROSOFT_AUTHORITY` | `https://login.microsoftonline.com/<tenant id>/v2.0`. `/common`, `/organizations` and `/consumers` are refused: they let any Microsoft account in. |
 | `VITE_AUTH_MICROSOFT_CLIENT_ID` | The app registration's client id |
 | `VITE_AUTH_MICROSOFT_API_SCOPE` | The API's scope, e.g. `api://pathscribe-api/access_as_user`, so the access token is for the API |
@@ -73,7 +96,7 @@ The rule lives in `src/services/auth/externalIdentity.ts`; the server must apply
 **Rules:**
 - Authorities must be https (plain http only to this machine, in development).
 - Problems are reported in the browser console as `[auth] …`, and the provider is not offered.
-- These are build-time settings, like the live-update hub's URL. Runtime per-customer configuration is an open item (§8).
+- Since Batch 547 these are set per deployment in its `config.json`, read at start-up, with the same names (`RUNTIME_CONFIG.md`). The build's values are used only when there's no config.json, as in the demo. A server build signs in through the identity provider only: config.json must set `VITE_AUTH_MODE` to `sso`, and the demo accounts aren't in a server build. *(Corrected in Batch 547: this said they were build-time settings.)*
 
 ### Registering the app in Entra ID (hospital IT)
 
@@ -81,6 +104,25 @@ The rule lives in `src/services/auth/externalIdentity.ts`; the server must apply
 2. **Token configuration:** add the optional claim `email` to the ID token.
 3. **Expose an API** on the PathScribe API's registration (`access_as_user`), and grant it to the SPA registration.
 4. Give PathScribe the tenant id, the SPA client id and the API scope.
+
+## 4a. Password sign-in protections (Batch 456)
+
+These apply only where PathScribe itself checks a password (demo builds, and a site using passwords set on the Staff screen). With single sign-on the hospital's identity provider applies its own lockout and password rules.
+
+**Lockout** (`services/auth/signInLockout.ts`, used by `authSession.signInWithPassword`):
+- 5 failed password sign-ins in a row for one email lock that email for 15 minutes (the same numbers as signature confirmation). Counted per email typed, account or not, so the lock doesn't reveal which emails are accounts.
+- While locked, the password isn't checked. A correct password clears the count. Setting a new password from the Staff screen clears the lock; so does Full Reset.
+- Audited: "Sign-in failed" (attempt n of 5), "Sign-in locked", and "Sign-in refused" for an attempt while locked. The audit names the account when the email belongs to one, otherwise "Unknown email", and never records what was typed.
+- This build keeps the counts in browser storage, so the lock holds only in that browser. **The API server must keep them (SQL Server, per email, with the time of the last failure) and enforce the lock before checking the hash**, so it holds wherever the person signs in from.
+
+**Choosing a password** (`services/staffPasswords/passwordScreening.ts`, used by the Staff screen and the change at sign-in), after the 12–128 character rule:
+- `predictable`: one short pattern repeated, or a straight run of characters.
+- `contextWord`: contains "pathscribe", "formedrix", the person's email, or the part before the @ (4+ characters).
+- `common`: on the bundled list (NCSC's 100,000 most-used passwords, 9,365 entries kept), or is one once digits and symbols are trimmed from its ends.
+- `breached`: found in Have I Been Pwned's Pwned Passwords by the k-anonymity range search with padding: only the first 5 characters of the SHA-1 hash are sent. If the service can't be reached, the save goes ahead and the audit says only the local checks ran.
+- **The API server repeats all of these when it stores the hash** (the browser's checks can be bypassed), with the same error codes.
+
+No composition rules and no forced expiry, as NIST SP 800-63B advises.
 
 ## 5. The API server (ASP.NET Core): token contract and validation
 
@@ -105,7 +147,7 @@ The rule lives in `src/services/auth/externalIdentity.ts`; the server must apply
 - expected issuer and audience;
 - lifetime, with a small clock skew.
 
-**Hub:** the SignalR hub reads the same token from the `access_token` query string (`LIVE_UPDATES_SIGNALR.md` §4). The client sends it for SSO users.
+**Hub:** the SignalR hub authenticates from the same session cookie as every other endpoint, never from a token in the query string (the Oct 3 decision at the top of this document; `LIVE_UPDATES_SIGNALR.md` §4). *(Earlier text here had the hub read an `access_token` query-string value; withdrawn in Batch 652 because it contradicted the decision.)* The current browser build still sends the SSO access token through SignalR's `accessTokenFactory`, which is a demonstration-build stand-in until the server session exists; it is to be removed then.
 
 **Every endpoint** requires an authenticated caller, except the public routes: OR boards use device tokens, and consult and critical-alert links use their own tokens.
 
@@ -253,11 +295,11 @@ Reactivation (`active: true`) restores the record but not its roles or signing a
 
 - **Server side** (§5, §6): token validation, the tenant mapping, `/api/me`, row-level security, the link table, signature verification (§5.4) and SCIM.
 - **Server-side signature check** (§5.4). The browser builds the signing request's proof and checks it against the mock services (Batch 345), but only a server check makes it binding, because a modified browser could skip it. The signing endpoints need to accept the `SignatureConfirmation` and verify it.
-- **Broker:** set up Entra External ID, confirm which claim carries the upstream identity provider, and put the email-first login routing on the login page.
+- **Broker:** set up Entra External ID, confirm which claim carries the upstream identity provider **and whether it passes the hospital's groups through, and in which claim (owed by the dev team, Oct 15)**, and put the email-first login routing on the login page.
 - **Operations console** (ForMedrix-only) for tenants, identity-provider connections and SCIM tokens.
 - **Linking accounts by hand:** the Staff screen now shows a person's linked sign-in accounts and can unlink them (Batch 345); adding a link by hand waits for the operations console or SCIM.
 - **Biometric signing** for SSO builds: server-issued WebAuthn challenges. It is simulated today and offered only in demo builds.
 - **OR terminal device tokens** for the hub (`LIVE_UPDATES_SIGNALR.md` §4).
-- **Runtime configuration** of providers per customer, instead of build settings.
+- ~~Runtime configuration of providers per customer~~: done in Batch 547 (`RUNTIME_CONFIG.md`).
 - **Signing out of the provider as well** (`end_session_endpoint`), if a customer wants it.
 - **Demo passwords:** these were in the shipped bundle in plain text until Batch 343, so treat them as known and change them with `scripts/auth/hash-demo-password.mjs`.

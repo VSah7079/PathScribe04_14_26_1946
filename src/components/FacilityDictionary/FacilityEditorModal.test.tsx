@@ -18,13 +18,16 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { afterEach } from 'vitest';
 
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key) }),
+  initReactI18next: { type: '3rdParty', init: () => {} },
+  useTranslation: () => ({ t: (key: string, opts?: Record<string, unknown>) => (opts ? `${key}:${JSON.stringify(opts)}` : key), i18n: { language: 'en' } }),
 }));
 
 vi.mock('../../services', () => ({
   modelService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   locationService: { listForFacility: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
   placeOfServiceCodeService: { getActiveCodes: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
+  // Batch 528 (PS-359): the organisation's facility requirements; the defaults here.
+  fieldRequirementService: { forSession: vi.fn(async (page: 'facility') => (await import('../../services/fieldRequirements/fieldRequirementRules')).resolveFieldRequirements(page)) },
 }));
 
 vi.mock('../Config/AI/resolveClientAiModel', () => ({
@@ -180,5 +183,120 @@ describe('FacilityEditorModal — PS-73: real assigningAuthority uniqueness vali
 
     expect(onSave).toHaveBeenCalledTimes(1);
     expect(screen.queryByText(/assigningAuthorityCollision/)).toBeNull();
+  });
+});
+
+describe('FacilityEditorModal — Batch 433: "Charges need billing approval" (enterprise setting, lab override)', () => {
+  const lab: Facility = {
+    id: 'fac-lab', name: 'Lab', roles: ['performing_lab'], jurisdiction: 'US', parentId: 'fac-ent',
+    assigningAuthority: 'LAB', email: 'x@y.com', phone: '', fax: '', address: '', status: 'Active',
+    reporting: { reportFormat: 'PDF', deliveryMethod: 'Portal', autoRelease: false, copyToReferring: false },
+  } as Facility;
+  const select = () => screen.getByRole('combobox', { name: 'facilityEditorModal.general.requireBillingApproval' }) as HTMLSelectElement;
+
+  it('a lab follows its enterprise until it overrides, and the override is saved', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" onClose={() => {}} onSave={onSave} allFacilities={[lab]} facility={lab} />);
+    const s = select();
+    expect([...s.options].map(o => o.value)).toEqual(['inherit', 'on', 'off']);
+    expect(s.value).toBe('inherit');
+    fireEvent.change(s, { target: { value: 'on' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    expect(onSave.mock.calls[0][0].requireBillingApproval).toBe(true);
+  });
+
+  it('an enterprise is simply on or off', () => {
+    const ent = { ...lab, id: 'fac-ent', parentId: undefined, roles: [], isEnterprise: true, assigningAuthority: 'ENT' } as Facility;
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" onClose={() => {}} onSave={onSave} allFacilities={[ent]} facility={ent} />);
+    const s = select();
+    expect([...s.options].map(o => o.value)).toEqual(['on', 'off']);
+    expect(s.value).toBe('off');
+  });
+});
+
+describe('FacilityEditorModal — Batch 528 (PS-359): the organisation\'s Field Requirements', () => {
+  it('a field the organisation requires gets a star, blocks the save and is listed under "Still required"', async () => {
+    const { fieldRequirementService } = await import('../../services');
+    const { resolveFieldRequirements } = await import('../../services/fieldRequirements/fieldRequirementRules');
+    vi.mocked(fieldRequirementService.forSession).mockResolvedValueOnce(resolveFieldRequirements('facility', { phone: true }));
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[]} />);
+    await screen.findByText((_, el) => el?.tagName === 'LABEL' && /facilityEditorModal\.general\.phone\s*\*/.test(el.textContent ?? ''));
+
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.facilityNamePlaceholder'), { target: { value: 'New Clinic' } });
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.assigningAuthorityPlaceholder'), { target: { value: 'NEWC' } });
+    fireEvent.change(screen.getByPlaceholderText('contact@facility.com'), { target: { value: 'new@clinic.com' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert').textContent).toContain('fieldRequirements.fields.facility.phone');
+
+    fireEvent.change(screen.getByPlaceholderText('555-000-0000'), { target: { value: '555-111-2222' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('Batch 530 (Pete): fax, city, region and postal code are on the General tab and saved', async () => {
+    const { fieldRequirementService } = await import('../../services');
+    const { resolveFieldRequirements } = await import('../../services/fieldRequirements/fieldRequirementRules');
+    vi.mocked(fieldRequirementService.forSession).mockResolvedValueOnce(resolveFieldRequirements('facility', { postalCode: true }));
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[]} />);
+    await screen.findByText((_, el) => el?.tagName === 'LABEL' && /facilityEditorModal\.general\.postalCode\s*\*/.test(el.textContent ?? ''));
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.facilityNamePlaceholder'), { target: { value: 'New Clinic' } });
+    fireEvent.change(screen.getByPlaceholderText('facilityEditorModal.general.assigningAuthorityPlaceholder'), { target: { value: 'NEWC' } });
+    fireEvent.change(screen.getByPlaceholderText('contact@facility.com'), { target: { value: 'new@clinic.com' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.fax'), { target: { value: '520-555-0100' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.city'), { target: { value: 'Tucson' } });
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.region'), { target: { value: 'AZ' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('facilityEditorModal.general.postalCode'), { target: { value: '85701' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.addFacility'));
+    expect(onSave.mock.calls[0][0]).toMatchObject({ fax: '520-555-0100', city: 'Tucson', state: 'AZ', zip: '85701' });
+  });
+});
+
+
+// Batch 715: letters or numbers for specimens, blocks and slides, in the facility editor.
+describe('FacilityEditorModal — letters or numbers for labels (Batch 715)', () => {
+  const enterprise = {
+    id: 'ent-1', name: 'Trust HQ', roles: ['performing_lab'], isEnterprise: true, jurisdiction: 'US' as const,
+    assigningAuthority: 'THQ', email: 'a@b.com', phone: '', fax: '', address: '',
+    labelStyle: { specimen: 'numbers', block: 'letters' },
+    reporting: { autoRelease: false, copyToReferring: false }, status: 'Active',
+    pediatricAgeThreshold: null, authorizedPediatricPathologistIds: [], tatFirstTouchHours: null, tatTotalHours: null,
+    escalationTargets: [], escalationPriority: 'high',
+  } as unknown as Facility;
+  const lab = { ...enterprise, id: 'lab-1', name: 'Lab 1', assigningAuthority: 'LAB1', isEnterprise: undefined, parentId: 'ent-1', labelStyle: undefined } as unknown as Facility;
+
+  it('a performing lab follows the enterprise until it chooses its own, and saves only what it overrode', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="edit" facility={lab} onClose={() => {}} onSave={onSave} allFacilities={[enterprise, lab]} />);
+    const block = screen.getByTestId('label-style-block') as HTMLSelectElement;
+    expect(block.value).toBe('inherit');
+    fireEvent.change(block, { target: { value: 'numbers' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.labelStyle).toEqual({ block: 'numbers' });
+    expect(saved.specimenLabelStyle).toBeUndefined();
+  });
+
+  it('opening and saving a facility that has the old preset keeps its labels (folded into the new setting)', () => {
+    const onSave = vi.fn();
+    const legacy = { ...lab, specimenLabelStyle: 'numeric-specimen' } as unknown as Facility;
+    render(<FacilityEditorModal isOpen mode="edit" facility={legacy} onClose={() => {}} onSave={onSave} allFacilities={[enterprise, legacy]} />);
+    expect((screen.getByTestId('label-style-specimen') as HTMLSelectElement).value).toBe('numbers');
+    fireEvent.change(screen.getByTestId('label-style-slide'), { target: { value: 'letters' } });
+    fireEvent.click(screen.getByText('facilityEditorModal.saveChanges'));
+    const saved = onSave.mock.calls[0][0];
+    expect(saved.labelStyle).toEqual({ specimen: 'numbers', block: 'letters', slide: 'letters' });
+    expect(saved.specimenLabelStyle).toBeUndefined();
+  });
+
+  it('a new facility starts with nothing of its own, so it follows its enterprise', () => {
+    const onSave = vi.fn();
+    render(<FacilityEditorModal isOpen mode="add" onClose={() => {}} onSave={onSave} allFacilities={[enterprise]} />);
+    expect((screen.getByTestId('label-style-specimen') as HTMLSelectElement).value).toBe('inherit');
   });
 });

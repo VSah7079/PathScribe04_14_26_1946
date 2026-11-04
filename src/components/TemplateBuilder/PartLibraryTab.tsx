@@ -5,11 +5,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import type { ReportPart, ReportPartType } from '../../types/reportPart';
-import { mockReportPartService, onReportPartsChanged } from '../../services/reportParts/mockReportPartService';
+
 import { getActivePerformingLabs } from '../../utils/performingLabs';
 import type { Facility } from '../../services/facilities/IFacilityService';
+import { reportPartService, onReportPartsChanged } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const svc = mockReportPartService;
+const svc = reportPartService;
 
 // ── Type config (icons only — colours handled via CSS modifier classes) ──
 
@@ -224,7 +226,7 @@ const PartLibraryTab: React.FC = () => {
       <div className="ps-plib__filters">
         <div className="ps-plib__filter-group">
           {(['all', 'header', 'body', 'footer'] as const).map(f => (
-            <button
+            <button data-config-nav
               key={f}
               onClick={() => setTypeFilter(f)}
               className={`ps-plib__filter-btn${typeFilter === f ? ' active' : ''}`}
@@ -233,14 +235,14 @@ const PartLibraryTab: React.FC = () => {
             </button>
           ))}
         </div>
-        <input
+        <input data-dirty-ignore data-config-nav
           className="ps-plib__search"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={t('templateAssemblyPage.searchPartsPlaceholder')}
         />
         {labs.length > 0 && (
-          <select className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
+          <select aria-label={t('a11y.filters.lab')} data-dirty-ignore data-config-nav className="ps-conf-select" value={labFilter} onChange={e => setLabFilter(e.target.value as any)}>
             <option value="all">{t('abnormalTriggerRulesSection.labFilter.all')}</option>
             <option value="global">{t('abnormalTriggerRulesSection.labFilter.globalOnly')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -250,7 +252,7 @@ const PartLibraryTab: React.FC = () => {
 
       {/* Content */}
       {loading ? (
-        <div className="ps-plib__loading">{t('partLibraryTab.loadingParts')}</div>
+        <LoadingState variant="inline" className="ps-plib__loading" label={t('partLibraryTab.loadingParts')} />
       ) : (
         (['header', 'body', 'footer'] as ReportPartType[]).map(type => {
           if (typeFilter !== 'all' && typeFilter !== type) return null;

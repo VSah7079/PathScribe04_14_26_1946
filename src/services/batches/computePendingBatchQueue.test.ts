@@ -103,3 +103,17 @@ describe('computePendingBatchQueue — real, computed "printed but not yet physi
     expect(unscoped.find(i => i.caseId === caseB)).toBeDefined();
   });
 });
+
+describe('Pending Batch Load search and grouping (Batch 407)', () => {
+  it('matches the item id, accession or specimen, ignoring case, and groups by case in order', async () => {
+    const { filterPendingBatchQueue, groupPendingByCase } = await import('./computePendingBatchQueue');
+    const items = [
+      { displayId: 'S26-1-A1', caseAccession: 'S26-1', specimenLabel: 'A' },
+      { displayId: 'S26-2-B1', caseAccession: 'S26-2', specimenLabel: 'B' },
+      { displayId: 'S26-1-A2', caseAccession: 'S26-1', specimenLabel: 'A' },
+    ] as never[];
+    expect(filterPendingBatchQueue(items, '  s26-2 ').map((i: { displayId: string }) => i.displayId)).toEqual(['S26-2-B1']);
+    expect(filterPendingBatchQueue(items, '')).toHaveLength(3);
+    expect(groupPendingByCase(items).map(([acc, list]) => [acc, list.length])).toEqual([['S26-1', 2], ['S26-2', 1]]);
+  });
+});

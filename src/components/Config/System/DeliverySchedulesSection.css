@@ -1,0 +1,16 @@
+/* Batch 619 (PS-800): Configuration > System > Delivery Schedules. Own file so pathscribe.css does not grow. */
+.ps-dsch-root { display: flex; flex-direction: column; gap: 16px; }
+.ps-dsch-scope { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ps-dsch-list { display: flex; flex-direction: column; gap: 10px; }
+.ps-dsch-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; background: rgba(255,255,255,0.02); }
+.ps-dsch-feed { font-weight: 600; }
+.ps-dsch-summary { margin-top: 4px; opacity: 0.85; }
+.ps-dsch-source { display: inline-block; margin-top: 6px; padding: 1px 8px; border-radius: 10px; font-size: 12px; border: 1px solid rgba(255,255,255,0.15); }
+.ps-dsch-source--facility { border-color: #0891B2; }
+.ps-dsch-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.ps-dsch-days { display: flex; gap: 8px; flex-wrap: wrap; }
+.ps-dsch-day { display: inline-flex; align-items: center; gap: 4px; }
+.ps-dsch-window { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.ps-dsch-test { padding: 12px 16px; border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.ps-dsch-result { margin-top: 8px; }
+.ps-dsch-result-value { font-weight: 600; }

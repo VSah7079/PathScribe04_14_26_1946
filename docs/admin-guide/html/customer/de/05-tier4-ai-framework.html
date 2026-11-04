@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stufe 4: Das in PathScribe eingebettete KI-Framework · PathScribe-Administratorhandbuch</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="de" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administratorhandbuch</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Bildschirme, Felder, Fehlercodes suchen" aria-label="Im Handbuch suchen" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Sprache"><option value="en">English</option><option value="fr">Français</option><option value="de" selected>Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Drucken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Kapitel des Handbuchs"><a href="index.html">Inhalt</a><a href="setup-sequence.html">Reihenfolge der Einrichtung</a><a href="01-system-overview.html">1. Systemübersicht und Architektur</a><a href="02-tier1-primary-prerequisites.html">2. Stufe 1: Primäre Systemvoraussetzungen (zuerst einrichten)</a><a href="03-tier2-master-dictionaries.html">3. Stufe 2: Stammwörterbücher und klinische Grunddaten (an zweiter Stelle einrichten)</a><a href="04-tier3-workflow-engines.html">4. Stufe 3: Workflow-Engines und betriebliche Konfiguration (als Drittes einrichten)</a><a href="05-tier4-ai-framework.html" aria-current=page>5. Stufe 4: Das in PathScribe eingebettete KI-Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Stufe 5: Befundung, synoptische Formulare und Konfiguration des Schedulers</a><a href="07-tier6-interface-engine.html">7. Stufe 6: Schnittstellen-Engine und Anbindung externer Systeme</a><a href="08-tier7-billing-registry.html">8. Stufe 7: Abrechnung, Erlösmanagement und Registermeldung</a><a href="09-appendices.html">9. Anhang: Fehlerbehebung und Prüfung des Prüfprotokolls</a><a href="99-glossary.html">99. Anhang: Glossar der Begriffe und Abkürzungen</a></nav><main id="main"><aside class="pagetoc" aria-label="Auf dieser Seite"><b>Auf dieser Seite</b><ul><li class="l2"><a href="#ch5-setup-order">Einrichtung von Stufe 4</a></li><li class="l2"><a href="#ch5-ai-infrastructure">KI-Infrastruktur und Modellarchitektur</a></li><li class="l3"><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a></li><li class="l2"><a href="#ch5-specimen-vision">Probenverfolgung und Computer-Vision-Unterstützung beim Zuschnitt</a></li><li class="l3"><a href="#screen-smart_capture">Smart Capture</a></li><li class="l2"><a href="#ch5-nlp">NLP- und Auto-Strukturierungs-Engine</a></li><li class="l3"><a href="#screen-history_extraction">KI-Auslesen der Vorbefunde</a></li><li class="l2"><a href="#ch5-dp-ai">KI-Bildanalyse in der digitalen Pathologie</a></li><li class="l2"><a href="#ch5-smart-qc">Intelligente Qualitätskontrolle und Regeln zur Erkennung diagnostischer Auffälligkeiten</a></li><li class="l3"><a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a></li><li class="l2"><a href="#ch5-governance">KI-Governance, Schwellen für die Kontrolle durch den Menschen und Kalibrierung</a></li><li class="l3"><a href="#screen-ai_instructions">KI-Anweisungen</a></li><li class="l3"><a href="#screen-tab-validation">Validierungsstudien (Reiter)</a></li><li class="l3"><a href="#screen-validation-studies">Validierungsstudien: Studien</a></li><li class="l3"><a href="#screen-validation-dashboard">Validierungsstudien: Dashboard</a></li><li class="l3"><a href="#screen-validation-reports">Validierungsstudien: Berichte</a></li></ul></aside><article><h1 id="ch5"><a class="anchor" href="#ch5" aria-label="Link to this section">#</a> Stufe 4: Das in PathScribe eingebettete KI-Framework</h1>
+<p>Stufe 4 umfasst alle Einstellungen, die festlegen, ob, wo und wie PathScribe künstliche Intelligenz (KI) verwendet, sowie die Prüfungen, die dafür sorgen, dass der Pathologe die Kontrolle über das Ergebnis behält. Lesen Sie dieses Kapitel mit einer Tatsache im Kopf: Das Framework ist enger gefasst als seine Gliederung. PathScribe ruft ein externes Sprachmodell für Befund- und Diktathilfen auf und übernimmt Ergebnisse aus Bildanalyseprodukten von Herstellern. Es enthält keine Computer-Vision-Engine, keinen Tumordetektor, keinen Zellzähler, keine Biomarker-Bewertung, keine eigenständige Engine zur Verarbeitung natürlicher Sprache (NLP) und kein Werkzeug zur Kalibrierung von Modellgewichten. Jedes dieser Elemente ist unten mit <strong>Nicht umgesetzt</strong> gekennzeichnet, zusammen mit dem, was am nächsten kommt und tatsächlich vorhanden ist.</p>
+<p>Der Produktivbetrieb läuft auf Microsoft SQL Server hinter einer <a class="term" href="99-glossary.html#g-asp-net-core" title="Das Microsoft-Webframework, auf dem der API-Server von PathScribe aufgebaut ist.">ASP.NET Core</a> <a class="term" href="99-glossary.html#g-api" title="Programmierschnittstelle (Application Programming Interface). Der PathScribe-API-Server ist der ASP.NET-Core-Dienst, den der Browser für alle Produktivdaten aufruft.">API</a>. Die meisten Bildschirme in diesem Kapitel arbeiten heute im Browser mit Demonstrationsdaten; die Statuszeile jedes Bildschirms nennt, wie weit sein Serververtrag reicht.</p>
+<h2 id="ch5-setup-order"><a class="anchor" href="#ch5-setup-order" aria-label="Link to this section">#</a> Einrichtung von Stufe 4</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Schließen Sie zuerst die Stufen 1 bis 3 ab. Stufe 4 liest Einrichtungen, Ärzte, Probentypen und Codesysteme aus diesen Stufen. Arbeiten Sie dann die Bildschirme in dieser Reihenfolge ab. Teil 4 jedes Bildschirms wiederholt dessen eigene Voraussetzungen.</p>
+<ol>
+<li><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>: Wählen Sie den KI-Dienst und das Modell, legen Sie die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a>, die Konfidenzschwelle und den Standard für den Orchestrator fest.</li>
+<li><a href="#screen-tab-validation">Validierungsstudien (Reiter)</a>: der Einstieg zum Nachweis, dass ein Modell für Ihre Daten funktioniert.</li>
+<li><a href="#screen-validation-studies">Validierungsstudien: Studien</a>: eine Studie anlegen, genehmigen und aktivieren.</li>
+<li><a href="#screen-validation-reports">Validierungsstudien: Berichte</a>: eine Studie schließen und den Bericht drucken, der sie bewertet.</li>
+<li><a href="#screen-ai_instructions">KI-Anweisungen</a>: den Text freigeben, den die klinische Abweichungsprüfung an das Modell sendet.</li>
+<li><a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a>: festlegen, wann eine Diskrepanz warnt, protokolliert oder die Freigabe anhält.</li>
+<li><a href="#screen-history_extraction">KI-Auslesen der Vorbefunde</a>: das beratende Lesen früherer Fälle einschalten.</li>
+<li><a href="#screen-smart_capture">Smart Capture</a>: der Schalter für den Prototyp der Abrechnungsvorschläge und seine Checkliste für den Produktivbetrieb.</li>
+</ol>
+<p><a href="#screen-validation-dashboard">Validierungsstudien: Dashboard</a> ist eine Seite für den Tagesbetrieb und gehört nicht zur <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>. Eine Überschreibung des Modells für eine Einrichtung erfordert eine veröffentlichte Befundvorlage und eine bestandene Studie. Schließen Sie daher <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Kapitel 6</a> für die Vorlagen ab, bevor Sie sich auf eine Überschreibung für eine Einrichtung verlassen.</p>
+<p><strong>Status der sechs Bereiche der Gliederung</strong></p>
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Status</th>
+<th>Wo er konfiguriert wird</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KI-Infrastruktur und Modellarchitektur</td>
+<td>Umgesetzt für die Bildschirme und Einstellungen; Teilweise für die Serverseite (siehe jeden Bildschirm)</td>
+<td>Konfiguration, Reiter <strong>KI-Verhalten</strong>; Einrichtungsverzeichnis, Reiter <strong>KI &amp; Leistung</strong> (<a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Kapitel 2</a>)</td>
+</tr>
+<tr>
+<td>Probenverfolgung und Computer-Vision-Unterstützung beim <a class="term" href="99-glossary.html#g-grossing" title="Die Untersuchung und das Zuschneiden einer chirurgischen Probe durch einen Pathologen oder pathologischen Assistenten, wobei sie beschrieben wird und die zu verarbeitenden Stücke ausgewählt werden.">Zuschnitt</a></td>
+<td>Nicht umgesetzt. Ein Herstellerverzeichnis und ein regelbasierter Prototyp für die Abrechnung sind vorhanden</td>
+<td>Anbieterintegrationen, Kategorie Zuschnitt-Bildgebung (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Kapitel 4</a>); <a href="#screen-smart_capture">Smart Capture</a></td>
+</tr>
+<tr>
+<td>NLP- und Auto-Strukturierungs-Engine</td>
+<td>Teilweise. Einzelne Funktionen sind vorhanden; keine eigenständige Engine</td>
+<td><a href="#screen-history_extraction">KI-Auslesen der Vorbefunde</a>; Reiter Sprache und Makros (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Kapitel 4</a>); Werkzeuge auf der Befundseite</td>
+</tr>
+<tr>
+<td>KI-Bildanalyse in der digitalen Pathologie</td>
+<td>Teilweise. Die Übernahme von Herstellerergebnissen ist vorhanden. Tumorerkennung, Zellzählung und Biomarker-Bewertung sind Nicht umgesetzt</td>
+<td>Anbieterintegrationen, Kategorien KI der digitalen Pathologie und Objektträger-Viewer (<a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Kapitel 4</a>); QS-Reiter KI-Diskordanz (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Kapitel 4</a>)</td>
+</tr>
+<tr>
+<td>Intelligente Qualitätskontrolle und Regeln zur Erkennung von Auffälligkeiten</td>
+<td>Umgesetzt für die Bildschirme; Demonstration für die Serverseite der KI-Anweisungen</td>
+<td><a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a>; <a href="#screen-ai_instructions">KI-Anweisungen</a>; Regeln für abnormale Auslöser (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Kapitel 3</a>)</td>
+</tr>
+<tr>
+<td>KI-Governance, Schwellen für die Kontrolle durch den Menschen, Kalibrierung</td>
+<td>Umgesetzt für Governance und Schwellen. Kalibrierung der Gewichte: nicht vorhanden</td>
+<td><a href="#screen-ai_instructions">KI-Anweisungen</a>; <a href="#screen-tab-validation">Validierungsstudien</a>; Bereich Modellversionen im Reiter KI-Verhalten</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch5-ai-infrastructure"><a class="anchor" href="#ch5-ai-infrastructure" aria-label="Link to this section">#</a> KI-Infrastruktur und Modellarchitektur</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt für die Einstellungsbildschirme. Teilweise für den Server: Die Aufrufe im Produktivbetrieb sind beschrieben, einige sind noch nicht angeschlossen (aufgeführt bei jedem Bildschirm).</p>
+<p>Dieser Abschnitt erklärt, wie ein KI-Aufruf erfolgt und wer bestimmt, was er verwendet. Der Bildschirm, der all das festlegt, <a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>, folgt danach.</p>
+<p><strong>Der KI-Proxy.</strong> Der Browser enthält nie einen KI-Schlüssel. Er ruft die eigenen Routen <code>/api/ai/...</code> von PathScribe auf, und der Server ergänzt den Schlüssel aus einem Geheimnisspeicher wie Azure Key Vault. Routen gibt es für Anthropic, Google Gemini (Erzeugen, Streamen und Modellliste), OpenAI, Azure OpenAI (<code>/api/ai/azure/chat/completions</code>), einen benutzerdefinierten Endpunkt, AWS Bedrock (Aufruf und Streaming-Aufruf) sowie die Terminologieabfragen von <a class="term" href="99-glossary.html#g-umls" title="Das Unified Medical Language System, eine Sammlung medizinischer Vokabulare der US National Library of Medicine.">UMLS</a> und der National Library of Medicine. Der Server muss für jeden Aufruf einen Eintrag im <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> schreiben (ohne den Prompt-Text) und die Aufrufer in der Rate begrenzen. Der Proxy, den der Entwicklungs-Build verwendet, existiert im Produktivbetrieb nicht. Einen API-Schlüssel rotiert der Support von ForMedrixAI im Geheimnisspeicher des Servers. Kein Bildschirm setzt oder zeigt einen Schlüssel.</p>
+<p><strong>Anbieter.</strong> Der Bildschirm zeigt Herstellernamen. Intern wird jeder unter einer Kennung gespeichert, die nach dem <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> benannt ist, das er spricht.</p>
+<table>
+<thead>
+<tr>
+<th>Angezeigt als</th>
+<th>Gespeicherte Kennung</th>
+<th>Angebotene Modelle (das erste ist der Standard, wenn Sie den Anbieter wählen)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Anthropic (Claude)</td>
+<td><code>structured_messages</code></td>
+<td><code>claude-sonnet-4-6</code> (empfohlen), <code>claude-opus-4-8</code> (höchste Genauigkeit), <code>claude-haiku-4-5</code> (am schnellsten)</td>
+</tr>
+<tr>
+<td>OpenAI (GPT-4)</td>
+<td><code>chat_completions</code></td>
+<td><code>gpt-4o</code> (empfohlen), <code>gpt-4-turbo</code>, <code>gpt-4</code></td>
+</tr>
+<tr>
+<td>Azure OpenAI</td>
+<td><code>chat_completions_managed</code></td>
+<td><code>gpt-4o</code> (Azure), <code>gpt-4-turbo</code> (Azure)</td>
+</tr>
+<tr>
+<td>AWS Bedrock</td>
+<td><code>model_gateway</code></td>
+<td><code>anthropic.claude-sonnet-4-6-v1:0</code>, <code>anthropic.claude-opus-4-8-v1:0</code>, <code>amazon.nova-pro-v1:0</code></td>
+</tr>
+<tr>
+<td>Google (Gemini)</td>
+<td><code>structured_content</code></td>
+<td><code>gemini-1.5-flash</code> (empfohlen), <code>gemini-1.5-pro</code></td>
+</tr>
+<tr>
+<td>Selbst gehostet / benutzerdefinierter Endpunkt</td>
+<td><code>custom</code></td>
+<td><code>custom</code></td>
+</tr>
+<tr>
+<td>Mock, Demomodus</td>
+<td><code>mock</code></td>
+<td><code>mock-v1</code></td>
+</tr>
+</tbody>
+</table>
+<p>Gehört die gespeicherte Anbieterkennung nicht zu diesen, verwendet PathScribe <code>structured_messages</code>. Eine Anbietereinstellung <code>mock</code> oder ein unbekannter Wert sendet den Aufruf trotzdem über den Proxy an die Anthropic-Route (ein offengelegtes Verhalten des Proxys, keine Abkürzung für die Demo). Bedrock benötigt eine Serverroute, die Anfragen signiert und einen normalisierten Stream zurückgibt; diese Route gehört zum Vertrag des Proxys.</p>
+<p><strong>Welche Einstellung gilt.</strong> PathScribe löst die KI-Konfiguration in dieser Reihenfolge auf: eine persönliche Überschreibung (nur in einer Entwicklersicht; kein Bildschirm setzt sie für einen Administrator), dann die Laboreinstellung der Organisation, dann die Standardwerte des Builds <code>VITE_AI_PROVIDER</code>, <code>VITE_AI_MODEL</code>, <code>VITE_AI_PROXY_URL</code>, <code>VITE_AI_GATEWAY_REGION</code> (Standard <code>us-east-1</code>), <code>VITE_AI_HOSTING_REGION</code> und <code>VITE_AI_MAX_TOKENS</code> (Standard 1000). Die Einstellung der Organisation wird unter dem Schlüssel <code>pathscribe_ai_org_config</code> gespeichert.</p>
+<p><strong>Welches Modell jede Aufgabe verwendet.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Aufgabe</th>
+<th>Verwendetes Modell</th>
+<th>Hinweise</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hilfe für Befund und Narrativtext (Narrativtext erstellen, Synoptische Felder vorschlagen, Makrovorschläge, Suche nach kritischen Befunden, Vorlagenzuordnung)</td>
+<td>Das Standardmodell der Organisation oder das eigene Modell der durchführenden <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>, wenn im Einrichtungsverzeichnis im Reiter <strong>KI &amp; Leistung</strong> eines festgelegt ist</td>
+<td>Eine Einrichtung darf nur ein Modell wählen, für das eine gemeldete Studie mit der Bewertung BESTANDEN für diese Einrichtung vorliegt (<a href="#screen-validation-reports">Validierungsstudien: Berichte</a>). Das Token-Limit und das Anfrageformat der Einrichtung gehören zum Modell.</td>
+</tr>
+<tr>
+<td>Verfeinerung des Diktats</td>
+<td>Das organisationsweite Standardmodell vom Typ Sprachdiktat</td>
+<td>Keine Ebene für die Einrichtung. Ein Sprachmodell wird nur mit einer Studie, die mit BESTANDEN bewertet ist, zum Standard. Einstellung im Reiter Sprache (<a href="04-tier3-workflow-engines.html#screen-tab-voice">Kapitel 4</a>).</td>
+</tr>
+<tr>
+<td>KI-Zuordnung von synoptischen Vorlagen und Zuschnittvorlagen</td>
+<td>Wie bei der Befundhilfe</td>
+<td>Die Konfidenzschwelle für diese beiden ist im Code fest auf 60 gesetzt; es gibt keine Einstellung. Die Zuschnittzuordnung fällt auf die Standardvorlage für Gewebe zurück.</td>
+</tr>
+</tbody>
+</table>
+<p><strong><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a>.</strong> Eine Regel je <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> und optional eine engere Regel je Einrichtung legt fest, welche KI-Dienste und Hosting-Regionen für Arbeiten an diesem Ort verwendet werden dürfen. Ein Aufruf muss die Regel des Rechtsraums und die Regel der Einrichtung erfüllen. Ohne Regel ist jeder Dienst zulässig. Innerhalb einer Regel können die zulässigen Dienste alle oder eine Liste sein, und jeder zulässige Dienst kann eine Liste zulässiger Regionen tragen; keine Liste bedeutet jede Region. Ein Aufruf, dessen Region nicht erfasst ist, wird abgelehnt, wo Regionen eingeschränkt sind. Eine Ablehnung weicht nie auf einen anderen Dienst aus: Die Funktion arbeitet ohne KI weiter und zeigt "AI is not available for this jurisdiction". Der Anbieter "mock" ist immer zulässig. Der Server muss einen abgelehnten Aufruf mit 403 und dem Code <code>AI_VENDOR_NOT_ALLOWED</code> beantworten und ihn als <code>AI_CALL_REFUSED</code> protokollieren.</p>
+<p><strong>KI-Prüfprotokoll.</strong> Jeder KI-Aufruf schreibt einen Datensatz mit: <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>, Abschnitt, Anbieter, Modell, Status (abgeschlossen, Fehler, abgebrochen oder abgelehnt), Token-Anzahl, benötigter Zeit, <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a>, Rechtsraum, Einrichtung und Funktion. Das Protokoll enthält die letzten 2000 Einträge und bleibt im Browser, bis der Server es erfasst. Kein Bildschirm zeigt es an.</p>
+<p><strong>Orchestrator-Modus.</strong> Der Orchestrator-Modus schreibt den Narrativtext eines Befunds in vier festen Schritten statt in einer einzigen Anfrage. Die Engine in <code>src/orchestrator/</code> ist der produktive Code. <a href="#screen-tab-ai">KI-Verhalten (Reiter)</a> legt den Standard der Organisation fest, und eine Einrichtung kann ihn überschreiben. Wortlaut und Reihenfolge der Schritte sind nicht bearbeitbar.</p>
+<h3 id="screen-tab-ai"><a class="anchor" href="#screen-tab-ai" aria-label="Link to this section">#</a> KI-Verhalten (Reiter)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>KI-Verhalten</strong>
+<strong>2. Pflegeeintrag:</strong> KI-Verhalten (der gesamte Reiter)</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Dieser Reiter enthält die KI-Einstellungen der Organisation: welche KI-Engine verwendet wird, ob KI für die makroskopische und die mikroskopische Arbeit läuft, wie sicher ein Vorschlag sein muss, bevor er angezeigt oder eingefügt wird, welcher Dienst und welches Modell hinter den Aufrufen stehen, wohin die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> Aufrufe zulässt, ob der Orchestrator-Modus eingeschaltet ist und welche Modellversionen zur Verfügung stehen. Alles gilt für die gesamte Organisation. Eine <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> kann nur das Modell und den Schalter für den automatischen Entwurf des Narrativtexts überschreiben, und zwar in ihrem eigenen Datensatz im <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a>.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Die Geltungsbereiche der KI-Anbieterrichtlinie sind die Rechtsräume und Einrichtungen, die Sie bereits angelegt haben; richten Sie diese daher zuerst ein. Überspringen Sie die Einrichtungen, kann der Bereich zur Richtlinie nur den eigenen <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> des Labors anbieten, sodass keine Regel für eine Einrichtung geschrieben werden kann.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 1</p><dl><dt>Zuerst einrichten</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></dd><dt>Dies ermöglicht</dt><dd><a href="#screen-tab-validation">Validierungsstudien (Reiter)</a>, <a href="#screen-ai_instructions">KI-Anweisungen</a>, <a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a>, <a href="#screen-history_extraction">KI-Auslesen der Vorbefunde</a></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/tab-ai.webp" alt="Reiter KI-Verhalten: Abzeichen KI-Engine, Verhaltensschalter, Anbietereinstellungen, KI-Anbieterrichtlinie, Orchestrator-Konfiguration und Modellversionen" loading="lazy"><figcaption>Reiter KI-Verhalten: Abzeichen KI-Engine, Verhaltensschalter, Anbietereinstellungen, KI-Anbieterrichtlinie, Orchestrator-Konfiguration und Modellversionen</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong> Die Bereiche erscheinen von oben nach unten in dieser Reihenfolge. Änderungen in der ersten Gruppe werden beim Vornehmen gespeichert.</p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-engine-badge"><td>Abzeichen <strong>KI-Engine</strong></td>
+<td>Schreibgeschütztes Abzeichen</td>
+<td>Nicht zutreffend</td>
+<td>Zeigt die Modellkennung, die gerade verwendet wird, oder "Mock - Demo Mode" mit einem Kennzeichen <strong>DEMO</strong>, wenn der Anbieter "mock" gewählt ist.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-gross-driven-ai-enabled"><td><strong>Makroskopie-gesteuerte KI</strong>, <strong>Aktiviert</strong></td>
+<td>Ja/Nein-Kontrollkästchen (<code>grossEnabled</code>)</td>
+<td>Optional</td>
+<td>Wenn aus, überspringen der Abschluss des Zuschnitts und die Assistenzabfrage die KI-Auswertung der makroskopischen Beschreibung.</td>
+<td>Ein</td>
+</tr>
+<tr id="f-tab-ai-microscopic-driven-ai-enabled"><td><strong>Mikroskopie-gesteuerte KI</strong>, <strong>Aktiviert</strong></td>
+<td>Ja/Nein-Kontrollkästchen (<code>microscopicEnabled</code>)</td>
+<td>Optional</td>
+<td>Wenn aus, überspringen der Ablauf für Änderungen, das synoptische Seitenfenster und die Assistenzabfrage die KI-Arbeit am mikroskopischen Text.</td>
+<td>Ein</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Konfidenzschwelle</strong></td>
+<td>Schieberegler, ganze Zahl 0 bis 100 (<code>confidenceThreshold</code>)</td>
+<td>Optional</td>
+<td>Der Grad an Konfidenz, den ein Vorschlag braucht. Das synoptische Seitenfenster und das Abzeichen für die Prüfung des synoptischen Befunds verwenden ihn, um Vorschläge zu kennzeichnen. Ein Modell kann in seinem Fenster <strong>Einstellungen</strong> (unten) einen eigenen Wert tragen. Wird beim Ändern gespeichert.</td>
+<td>75</td>
+</tr>
+<tr id="f-tab-ai-advanced-auto-insert-suggestions-at-or-above-confidence-threshold"><td><strong>Erweitert</strong>: Vorschläge bei oder über der Konfidenzschwelle automatisch einfügen</td>
+<td>Ja/Nein-Kontrollkästchen (<code>autoInsertSuggestions</code>)</td>
+<td>Optional</td>
+<td>Wenn ein, trägt das synoptische Seitenfenster einen Vorschlag in das Feld ein, ohne auf die Annahme durch den Pathologen zu warten, falls seine Konfidenz die Schwelle erreicht.</td>
+<td>Aus</td>
+</tr>
+<tr id="f-tab-ai-advanced-show-confidence-scores-in-the-editor-ui"><td><strong>Erweitert</strong>: Konfidenzwerte in der Editor-Oberfläche anzeigen</td>
+<td>Ja/Nein-Kontrollkästchen (<code>showConfidenceScores</code>)</td>
+<td>Optional</td>
+<td>Wird nur gespeichert. Kein anderer Bildschirm liest ihn heute, daher hat eine Änderung keine Wirkung.</td>
+<td>Ein</td>
+</tr>
+<tr id="f-tab-ai-advanced-suggest-macros-based-on-diagnosis-context"><td><strong>Erweitert</strong>: Makros basierend auf dem Diagnosekontext vorschlagen</td>
+<td>Ja/Nein-Kontrollkästchen (<code>macroSuggestions</code>)</td>
+<td>Optional</td>
+<td>Wird nur gespeichert. Kein anderer Bildschirm liest ihn heute, daher hat eine Änderung keine Wirkung.</td>
+<td>Aus</td>
+</tr>
+<tr id="f-tab-ai-advanced-filter-ai-suggestions-by-subspecialty"><td><strong>Erweitert</strong>: KI-Vorschläge nach <a class="term" href="99-glossary.html#g-subspecialty" title="Ein Bereich der Pathologie, etwa Mamma oder Gastrointestinaltrakt, der zur Verteilung von Fällen verwendet wird. Eine Subspezialität kann auf den Pool-Modus umgestellt werden.">Subspezialität</a> filtern</td>
+<td>Ja/Nein-Kontrollkästchen (<code>subspecialtyRouting</code>)</td>
+<td>Optional</td>
+<td>Wird nur gespeichert. Kein anderer Bildschirm liest ihn heute, daher hat eine Änderung keine Wirkung.</td>
+<td>Ein</td>
+</tr>
+<tr id="f-tab-ai-reset-to-defaults"><td><strong>Auf Standardwerte zurücksetzen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Setzt alle oben genannten Verhaltenseinstellungen auf ihre Standardwerte zurück. Ändert weder den Anbieter noch die KI-Anbieterrichtlinie noch den Schalter für den Orchestrator.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<h4>KI-Anbietereinstellungen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Wird mit der Überschrift <strong>KI-Anbieter - Organisationseinstellungen</strong> nur für eine Person angezeigt, deren <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> admin, pathologist-admin oder superadmin ist. Alle anderen sehen einen Hinweis, dass der Anbieter vom Administrator verwaltet wird. Ein Warnfeld erinnert Sie daran, dass Falltext das System in Richtung des gewählten Dienstes verlässt. Felder, die für den gewählten Anbieter nicht zutreffen, sind ausgeblendet.</p>
+<figure class="shot"><img src="../img/tab-ai-provider.webp" alt="KI-Anbietereinstellungen mit Anbieter, Modell und Hosting-Region" loading="lazy"><figcaption>KI-Anbietereinstellungen mit Anbieter, Modell und <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a></figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-ai-provider"><td><strong>KI-Anbieter</strong></td>
+<td>Auswahl, gruppiert nach <strong>Produktionsanbieter</strong> und <strong>Entwicklung &amp; Demo</strong></td>
+<td>Pflicht</td>
+<td>Wählt den Dienst. Mit der Wahl eines Anbieters wird <strong>Modell</strong> auf das erste Modell dieses Anbieters gesetzt. Ein kurzer Hinweis unter dem Feld beschreibt den Anbieter.</td>
+<td>Anthropic (Claude), wenn nichts gespeichert ist</td>
+</tr>
+<tr id="f-tab-ai-model"><td><strong>Modell</strong></td>
+<td>Auswahl aus der Liste des Anbieters (Tabelle oben)</td>
+<td>Pflicht</td>
+<td>Die Modellkennung, die bei jedem Aufruf gesendet wird.</td>
+<td>Erstes Modell des Anbieters</td>
+</tr>
+<tr id="f-tab-ai-azure-resource-endpoint"><td><strong>Azure-Ressourcenendpunkt</strong></td>
+<td>https-Link; Platzhaltertext <code>https://my-org.openai.azure.com</code></td>
+<td>Pflicht für Azure OpenAI</td>
+<td>Die Adresse Ihrer Azure-Ressource. Wird nur für Azure OpenAI angezeigt.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-tab-ai-deployment-name"><td><strong>Bereitstellungsname</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Die Azure-Bereitstellung, die aufgerufen wird. Wird nur beibehalten, wenn auch ein Endpunkt gesetzt ist. Wird nur für Azure OpenAI angezeigt.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-tab-ai-aws-region"><td><strong>AWS-Region</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Die Bedrock-Region. Wird nur für AWS Bedrock angezeigt.</td>
+<td><code>us-east-1</code></td>
+</tr>
+<tr id="f-tab-ai-hosting-region"><td><strong>Hosting-Region</strong></td>
+<td>Text; Platzhaltertext <code>eu-west-1</code></td>
+<td>Optional</td>
+<td>Die Region, in der der Anbieter den Aufruf verarbeitet, so benannt, wie der Anbieter sie nennt. Wird bei jedem Aufruf erfasst, damit die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> sie prüfen kann. Wird für jeden Anbieter außer AWS Bedrock und Mock angezeigt.</td>
+<td>Leer (Region nicht erfasst)</td>
+</tr>
+<tr id="f-tab-ai-endpoint-base-url"><td><strong>Basis-URL des Endpunkts</strong></td>
+<td>https-Link</td>
+<td>Pflicht für Benutzerdefiniert</td>
+<td>Die Basisadresse eines OpenAI-kompatiblen Dienstes. PathScribe sendet darunter an <code>/chat/completions</code>. Wird nur für Selbst gehostet / benutzerdefinierter Endpunkt angezeigt.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-tab-ai-policy-warning"><td>Richtlinienwarnung</td>
+<td>Schreibgeschützte Meldung</td>
+<td>Nicht zutreffend</td>
+<td>Erscheint, bevor Sie einen Dienst oder eine Region speichern, die eine Regel eines Rechtsraums oder einer <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> in der Richtlinie unten nicht zulässt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-save-org-config"><td><strong>Organisationskonfiguration speichern</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Speichert die Einstellung der Organisation. Erfordert <code>config:ai-provider:manage</code>. Wenn Sie den Reiter mit ungespeicherten Änderungen verlassen, werden Sie gewarnt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-test-connection"><td><strong>Verbindung testen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Sendet eine Testanfrage (Funktion <code>connection-test</code>, 20 Tokens, mit der Bitte um die genaue Antwort "PathScribe AI connection OK"). Das Ergebnis lautet Testing, Connection OK oder Failed mit dem Fehler.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-clear-override"><td><strong>Override löschen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Erscheint nur in der Entwicklersicht, in der eine persönliche Überschreibung gesetzt werden kann. Wird einem Administrator nicht angezeigt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<h4>Wo PathScribe Daten speichert</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Eine schreibgeschützte Karte.</p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-database"><td><strong>Datenbank</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Die Region der Datenbank, übernommen aus <code>/api/config</code> des Servers. Zeigt <strong>Nicht angegeben</strong>, wenn der Server sie nicht liefert (die <a class="term" href="99-glossary.html#g-demonstration-build" title="Eine Version von PathScribe, die ihre Daten im Browser hält und Demonstrationskonten enthält. Sie verbindet sich nie mit einem echten API-Server.">Demonstrationsversion</a> hat keinen Server).</td>
+<td>Nicht angegeben</td>
+</tr>
+<tr id="f-tab-ai-file-storage-reports-exports"><td><strong>Dateispeicher (Befunde, Exporte)</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Die Region des Dateispeichers aus derselben Quelle.</td>
+<td>Nicht angegeben</td>
+</tr>
+<tr id="f-tab-ai-ai-service"><td><strong>KI-Dienst</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Die <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a>, die in den KI-Anbietereinstellungen gesetzt ist.</td>
+<td>Nicht erfasst</td>
+</tr>
+</tbody>
+</table>
+<h4>KI-Anbieterrichtlinie</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Eine Tabelle mit Regeln, eine Zeile für den eigenen <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> des Labors und je eine für jede <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>, die Sie betreuen, sowie das Bedienelement <strong>Einrichtungsregel hinzufügen</strong>. Eine Regel für eine Einrichtung schränkt die Regel ihres Rechtsraums ein. Das Prüfprotokoll-Ereignis für eine Änderung ist <code>AI_VENDOR_POLICY_CHANGED</code> (vorher und nachher).</p>
+<figure class="shot"><img src="../img/tab-ai-vendor-policy.webp" alt="Regeltabelle der KI-Anbieterrichtlinie und Regeleditor" loading="lazy"><figcaption>Regeltabelle der <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> und Regeleditor</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-jurisdiction-or-facility"><td><strong>Rechtsordnung oder Einrichtung</strong></td>
+<td>Schreibgeschützter Text (Einrichtung angezeigt als Einrichtung und Rechtsraum)</td>
+<td>Nicht zutreffend</td>
+<td>Der Geltungsbereich der Regel.</td>
+<td>Der Rechtsraum des Labors sowie jede betreute Einrichtung</td>
+</tr>
+<tr id="f-tab-ai-allowed"><td><strong>Zulässig</strong></td>
+<td>Schreibgeschützter Text: <strong>Keine Regel: jeder Dienst</strong>, <strong>Jeder Dienst</strong> oder die Liste der Dienste</td>
+<td>Nicht zutreffend</td>
+<td>Was die Regel erlaubt.</td>
+<td>Keine Regel: jeder Dienst</td>
+</tr>
+<tr id="f-tab-ai-service-in-use"><td><strong>Verwendeter Dienst</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Zeigt den Dienst, das Modell und die Region, die gerade verwendet werden, und ob dieser Geltungsbereich sie zulässt: <strong>Zulässig</strong>, <strong>Nicht zulässig: Dienst</strong>, <strong>Nicht zulässig: Region</strong> oder <strong>Nicht zulässig: Region nicht erfasst</strong>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-actions-edit-remove-rule"><td><strong>Aktionen</strong>: <strong>Bearbeiten</strong>, <strong>Regel entfernen</strong></td>
+<td>Schaltflächen</td>
+<td>Nicht zutreffend</td>
+<td><strong>Bearbeiten</strong> öffnet den Regeleditor unten. <strong>Regel entfernen</strong> löscht die Regel, sodass der Geltungsbereich wieder jeden Dienst zulässt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-add-a-facility-rule-choose-a-facility"><td><strong>Einrichtungsregel hinzufügen</strong>, <strong>Einrichtung wählen…</strong></td>
+<td>Auswahl der betreuten Einrichtungen</td>
+<td>Optional</td>
+<td>Beginnt eine Regel für eine Einrichtung.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-tab-ai-allow-every-service"><td><strong>Jeden Dienst zulassen</strong></td>
+<td>Ja/Nein-Kontrollkästchen</td>
+<td>Optional</td>
+<td>Lässt alle Dienste zu. Wenn aus, haken Sie die Dienste an, die zulässig sein sollen.</td>
+<td>Ein bei einer neuen Regel</td>
+</tr>
+<tr id="f-tab-ai-allowed-services"><td>Zulässige Dienste</td>
+<td>Ein Kontrollkästchen je KI-Dienst</td>
+<td>Pflicht, wenn <strong>Jeden Dienst zulassen</strong> aus ist</td>
+<td>Mindestens ein Dienst muss zulässig sein, sonst wird das Speichern abgelehnt (<strong>Lassen Sie mindestens einen Dienst zu oder entfernen Sie die Regel.</strong>).</td>
+<td>Keine</td>
+</tr>
+<tr id="f-tab-ai-allowed-regions-for-service"><td><strong>Zulässige Regionen für</strong> (Dienst)</td>
+<td>Text, Regionen durch Kommas getrennt, zum Beispiel <code>eu-west-1, uksouth</code></td>
+<td>Optional</td>
+<td>Leer lassen, um jede Region zuzulassen. Regionen werden von Leerzeichen befreit, in Kleinbuchstaben umgesetzt und dedupliziert. Ein leerer Eintrag oder Regionen bei einem Dienst, der nicht zulässig ist, werden abgelehnt.</td>
+<td>Leer (jede Region)</td>
+</tr>
+<tr id="f-tab-ai-save-rule"><td><strong>Regel speichern</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Speichert die Regel. Das Ergebnis lautet <strong>Gespeichert</strong> oder nennt den Grund der Ablehnung.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<h4>Orchestrator-Konfiguration</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Ein ausklappbarer Bereich. Das Abzeichen <strong>EIN - zum Umschalten klicken</strong> oder <strong>AUS - zum Umschalten klicken</strong> ist der organisationsweite Standard für den Orchestrator-Modus.</p>
+<figure class="shot"><img src="../img/tab-ai-orchestrator.webp" alt="Orchestrator-Konfiguration mit den vier Generierungsschritten" loading="lazy"><figcaption>Orchestrator-Konfiguration mit den vier Generierungsschritten</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-on-off-switch"><td>Schalter EIN/AUS</td>
+<td>Ja/Nein-Schalter</td>
+<td>Optional</td>
+<td>Der Standard der Organisation. Eine <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> kann ihn mit <strong>Automatischer Befundentwurf</strong> (Standard der Organisation übernehmen, Für das Labor aktiviert, Für das Labor deaktiviert) im Einrichtungsverzeichnis, Reiter <strong>KI &amp; Leistung</strong>, überschreiben. Das Speichern erfordert <code>config:ai-provider:manage</code>.</td>
+<td>EIN</td>
+</tr>
+<tr id="f-tab-ai-steps-summary"><td>Zusammenfassung der Schritte</td>
+<td>Schreibgeschützter Text, "N von 4 Generierungsschritten aktiv"</td>
+<td>Nicht zutreffend</td>
+<td>Zählt die aktiven Schritte.</td>
+<td>4 von 4</td>
+</tr>
+<tr id="f-tab-ai-step-cards"><td>Schrittkarten</td>
+<td>Schreibgeschützt: Schrittname, <strong>AKTIV</strong> oder <strong>DEAKTIVIERT</strong>, <strong>KI-Anweisung</strong>, <strong>Kontextfelder</strong></td>
+<td>Nicht zutreffend</td>
+<td>Vier feste Schritte laufen nacheinander: Administrativer und klinischer Kopf, <a class="term" href="99-glossary.html#g-specimen" title="Eine einem Patienten entnommene Probe, etwa eine Biopsie oder ein reseziertes Organ. Ein Fall enthält eine oder mehrere Proben.">Probe</a> und makroskopische Beschreibung, Zusammenfassung der synoptischen Daten, Zusatzuntersuchungen und Enddiagnose. Frühere Schritte liefern Kontext für spätere.</td>
+<td>Im Code festgelegt</td>
+</tr>
+</tbody>
+</table>
+<h4>Modellversionen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<p>Ein ausklappbarer Bereich mit der <a class="term" href="99-glossary.html#g-flag" title="Eine Markierung an einem Fall oder einer Probe, zum Beispiel um eine zusätzliche Färbung anzufordern oder einen Fall zurückzuhalten.">Kennzeichnung</a> <strong>Nur Administratoren</strong>, der das Modellfenster enthält.</p>
+<figure class="shot"><img src="../img/tab-ai-models.webp" alt="Tabelle Modellversionen" loading="lazy"><figcaption>Tabelle Modellversionen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-model"><td><strong>Modell</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Der Name des Modells.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-vendor"><td><strong>Anbieter</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Der Hersteller des Modells.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-type"><td><strong>Typ</strong></td>
+<td>Schreibgeschützt: Nur Makroskopie, Nur Mikroskopie, <a class="term" href="99-glossary.html#g-macro" title="Ein gespeicherter Text oder eine Gruppe von Einstellungen, etwa eine Befundformulierung oder eine Färbungsanforderung, die in einem Schritt eingefügt werden kann.">Makro</a> + Mikro, Nur Diagnose, Sprachdiktat</td>
+<td>Nicht zutreffend</td>
+<td>Wofür das Modell gedacht ist.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-accuracy"><td><strong>Genauigkeit</strong></td>
+<td>Schreibgeschützter Prozentwert</td>
+<td>Nicht zutreffend</td>
+<td>Der für das Modell erfasste Benchmark-Wert.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-cases-processed"><td><strong>Verarbeitete Fälle</strong></td>
+<td>Schreibgeschützte ganze Zahl</td>
+<td>Nicht zutreffend</td>
+<td>Fälle, die das Modell für Ihre Organisation bearbeitet hat.</td>
+<td>0 bei einem neu übernommenen Modell</td>
+</tr>
+<tr id="f-tab-ai-status"><td><strong>Status</strong></td>
+<td>Schreibgeschützt: Aktiv, Beta, Zurückgezogen</td>
+<td>Nicht zutreffend</td>
+<td>Ein aus dem ForMedrixAI Store übernommenes Modell beginnt als Beta.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-facilities-approved"><td><strong>Genehmigte Einrichtungen</strong></td>
+<td>Schreibgeschützte Liste</td>
+<td>Nicht zutreffend</td>
+<td>Einrichtungen, deren festgelegtes Modell dieses ist.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-default"><td><strong>Standard</strong></td>
+<td>Schreibgeschützte Markierung</td>
+<td>Nicht zutreffend</td>
+<td>Das Standardmodell der Organisation.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-set-default"><td><strong>Als Standard festlegen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Macht das Modell zum Standard. Ein Sprachmodell kann ohne eine gemeldete Studie mit der Bewertung BESTANDEN nicht zum Standard werden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-retire"><td><strong>Außer Betrieb nehmen</strong></td>
+<td>Schaltfläche, danach eine Bestätigung</td>
+<td>Nicht zutreffend</td>
+<td>Nimmt das Modell außer Betrieb. Die Bestätigung nennt die Einrichtungen, die darauf festgelegt sind. Das Standardmodell kann nicht außer Betrieb genommen werden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-ai-settings"><td><strong>Einstellungen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Öffnet das Fenster Modelleinstellungen unten.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<h5>Fenster Modelleinstellungen</h5>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; KI-Verhalten"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>KI-Verhalten</span></nav>
+
+<figure class="shot"><img src="../img/tab-ai-model-settings.webp" alt="Fenster Modelleinstellungen" loading="lazy"><figcaption>Fenster Modelleinstellungen</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-ai-longest-answer-tokens"><td><strong>Längste Antwort (Tokens)</strong></td>
+<td>Ganze Zahl 50 bis 8000</td>
+<td>Optional</td>
+<td>Das Meiste, was das Modell in einer Antwort schreiben darf. Leer verwendet die Einstellung der Organisation.</td>
+<td>Leer</td>
+</tr>
+<tr id="f-tab-ai-confidence-threshold"><td><strong>Konfidenzschwelle (%)</strong></td>
+<td>Ganze Zahl 0 bis 100</td>
+<td>Optional</td>
+<td>Die eigene Schwelle dieses Modells. Leer verwendet die <strong>Konfidenzschwelle</strong> der Organisation.</td>
+<td>Leer</td>
+</tr>
+</tbody>
+</table>
+<p>Alles andere wird mit "Geben Sie ganze Zahlen innerhalb der angezeigten Bereiche ein oder lassen Sie das Feld leer" abgelehnt. Dies sind die einzigen beiden Überschreibungen je Modell, die es gibt.</p>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: <code>screen:configuration:open</code>. Der Reiter ist schreibgeschützt für eine Person, die keine dieser vier Berechtigungen besitzt: <code>config:ai-behavior:manage</code> (Verhaltenseinstellungen und <strong>Auf Standardwerte zurücksetzen</strong>), <code>config:ai-provider:manage</code> (Anbietereinstellungen und Schalter für den Orchestrator), <code>config:ai-model:manage</code> (Standard festlegen, aktualisieren, außer Betrieb nehmen und ein Modell übernehmen) und <code>config:ai-vendor-policy:manage</code> (die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a>). Das Feld für den KI-Anbieter erfordert zusätzlich die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> admin, pathologist-admin oder superadmin; das ist eine Prüfung der Rolle, keine Prüfung einer <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a>. Admin und Laborleiter besitzen die vier Berechtigungen standardmäßig über die Konfigurationsgruppen, und der Superadmin besitzt alles (außer <code>config:ai-prompt:approve</code>, aus Gründen der Aufgabentrennung zurückgehalten; die Laborleitung gibt KI-Anweisungen frei, der Support von ForMedrixAI nie). Die Änderung der KI-Anbieterrichtlinie wird als <code>AI_VENDOR_POLICY_CHANGED</code> protokolliert. Eine Änderung der Verhaltenseinstellungen erfasst nur die Prüfung der Berechtigung, nicht, was geändert wurde.</p>
+<p><strong>Bekannte Grenzen.</strong>
+- <code>showConfidenceScores</code>, <code>macroSuggestions</code> und <code>subspecialtyRouting</code> werden gespeichert und von nichts anderem gelesen.
+- Für die Verhaltenseinstellungen und die KI-Anbieterrichtlinie gibt es Serververträge (<code>CONFIG_SERVICES_API.md</code>, <code>AI_VENDOR_POLICY_API.md</code>; Modelle in <code>MODELS_API.md</code>). Bis der Server angeschlossen ist, arbeiten sie im Browser mit Demonstrationsdaten.
+- Wortlaut, Reihenfolge und Feldzuordnung der Schritte in der Orchestrator-Konfiguration sind Geplant: Der Bildschirm zeigt "configurable in a future release".
+- Die KI-Rechtschreibprüfung wurde zurückgezogen und hat keine Einstellung.
+- Keine Einstellung schaltet die KI-Suche nach kritischen Befunden für sich allein ab. Sie folgt dem Anbieter, der KI-Anbieterrichtlinie und den <a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Regeln für abnormale Auslöser</a>.
+- Die Konfidenzuntergrenze für einen Befund „Auffällig“ ist 50 (Batch 655). Sie ist eine Konstante im Code, noch keine Einstellung, sodass ein Labor sie hier nicht ändern kann.
+- <strong>Das Fenster Codes (Batch 656).</strong> Jeder vorgeschlagene medizinische Code wird auf zwei Wegen bestätigt: durch das Nachschlagen des Codes selbst und, daneben, durch die eigene Formulierung der KI; jeder der beiden bestätigt ihn. Ein Code, dessen Nachschlagen fehlschlägt, bleibt außerhalb der Liste und wird wie zuvor in einem Hinweis mitgezählt. Prüfungen von <a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, eine umfangreiche klinische Terminologie.">SNOMED CT</a> laufen über die Server-Route, die <code>UMLS_API_KEY</code> enthält; starten Sie den Entwicklungsserver nach dem Bearbeiten von <code>.env</code> neu.</p>
+<h2 id="ch5-specimen-vision"><a class="anchor" href="#ch5-specimen-vision" aria-label="Link to this section">#</a> Probenverfolgung und Computer-Vision-Unterstützung beim Zuschnitt</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Labormaterialien &amp; Arbeitsabläufe &gt; Smart Capture"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Labormaterialien &amp; Arbeitsabläufe</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Nicht umgesetzt für Computer Vision. Zwei verwandte Elemente sind vorhanden und werden hier beschrieben, damit niemand sie dafür hält.</p>
+<p>PathScribe hat keine Computer-Vision-Engine für Proben. Nichts im Produkt liest eine Fotografie einer <a class="term" href="99-glossary.html#g-specimen" title="Eine einem Patienten entnommene Probe, etwa eine Biopsie oder ein reseziertes Organ. Ein Fall enthält eine oder mehrere Proben.">Probe</a>, einer <a class="term" href="99-glossary.html#g-cassette" title="Der Kunststoffhalter, in dem ein Gewebeblock zum Schneiden eingebettet und beschriftet wird.">Kassette</a> oder eines Objektträgers, um sie zu identifizieren, Blöcke zu zählen, eine Läsion zu vermessen oder sie zu verfolgen. Am nächsten kommen die folgenden Elemente, die vorhanden sind.</p>
+<ul>
+<li><strong>Das Herstellerverzeichnis für die Bildgebung beim <a class="term" href="99-glossary.html#g-grossing" title="Die Untersuchung und das Zuschneiden einer chirurgischen Probe durch einen Pathologen oder pathologischen Assistenten, wobei sie beschrieben wird und die zu verarbeitenden Stücke ausgewählt werden.">Zuschnitt</a>.</strong> Eine Liste von Bildgebungsherstellern (zum Beispiel PAX-it!/PAXcam, PathoZoom und MacroPATH, genannt im Kommentar der Oberfläche) und wie jeder erreicht wird: Name, wie die Verbindung authentifiziert wird (keine, signierter Link, OAuth-2-Bearer-Token oder gegenseitiges <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, die Verschlüsselung, die eine Webverbindung schützt und als https erscheint.">TLS</a>), die https-Basisadresse und ob der Hersteller Telepathologie unterstützt. Es ist eine Kategorie (<code>gross_imaging</code>) der <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Anbieterintegrationen</a> in <a href="04-tier3-workflow-engines.html#ch4">Kapitel 4</a>, das ihre Felder beschreibt. Es enthält nur Adressen und führt keine Bildanalyse durch. Das Kamera-Bedienelement für den Zuschnitt im <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> ist eine einfache Fotoaufnahme; es speichert das Bild eingebettet, was als nicht konform gekennzeichnet ist, und die Verlagerung auf diese Herstellerkategorie ist zurückgestellt.</li>
+<li><strong>Zuschnitt-Hardware</strong> (<a href="02-tier1-primary-prerequisites.html#screen-grossing_hardware">Kapitel 2</a>) für Waagen, Kameras und Barcode-Geräte.</li>
+<li><strong><a href="#screen-smart_capture">Smart Capture</a></strong>, unten. Trotz des Namens ruft es kein KI-Modell auf und betrachtet kein Bild. Es ist ein fester Regelsatz, der Abrechnungszeilen vorschlägt.</li>
+</ul>
+<h3 id="screen-smart_capture"><a class="anchor" href="#screen-smart_capture" aria-label="Link to this section">#</a> Smart Capture</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Labormaterialien &amp; Arbeitsabläufe &gt; Smart Capture"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Labormaterialien &amp; Arbeitsabläufe</span> <span aria-hidden="true">›</span> <span>Smart Capture</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt (Prototyp). Er arbeitet mit Demonstrationsdaten und hat einen Serververtrag (<code>SIGNATURES_SMART_CAPTURE_API.md</code>), und die Ansicht im <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> trägt die <a class="term" href="99-glossary.html#g-flag" title="Eine Markierung an einem Fall oder einer Probe, zum Beispiel um eine zusätzliche Färbung anzufordern oder einen Fall zurückzuhalten.">Kennzeichnung</a> "Prototyp, nicht Compliance-geprüft".</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>System</strong> &gt; Gruppe <strong>Labormaterialien &amp; Arbeitsabläufe</strong>
+<strong>2. Pflegeeintrag:</strong> Smart Capture</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Smart Capture schlägt für einen Fall Abrechnungszeilen nach Current Procedural Terminology (<a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, der AMA-Codesatz für medizinische und labormedizinische Verfahren, für die Abrechnung in den Vereinigten Staaten verwendet.">CPT</a>) vor, und zwar aus den Wörtern der Probenbeschreibung, der Blockanzahl und der Anzahl der Färbungen. Die Regeln sind fest und versioniert (<code>sim-rules-1.0</code>): SC-LEVEL (88302 bis 88309 nach Stufe der <a class="term" href="99-glossary.html#g-specimen" title="Eine einem Patienten entnommene Probe, etwa eine Biopsie oder ein reseziertes Organ. Ein Fall enthält eine oder mehrere Proben.">Probe</a>), SC-SPECIAL (88312), SC-IHC-FIRST und SC-IHC-ADDL (88342 und 88341) und SC-DECAL (88311). Es ist keine KI und keine Computer Vision. Der Ablauf lautet: vorschlagen, prüfen (jede Zeile annehmen oder ablehnen), freigeben (ein Pathologe bestätigt) und exportieren. In der Demonstration geht der Export an eine simulierte Engine. Dieser Bildschirm schaltet den Prototyp ein oder aus und erfasst die Checkliste für den Produktivbetrieb, die vollständig sein muss, bevor ein Export an eine echte Schnittstellen-Engine erlaubt ist.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Die Regeln erfordern, dass CPT für den <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> in den Codiersystemen eingeschaltet ist. Überspringen Sie das, schlägt die Ansicht nichts vor und meldet <code>CPT_OFF</code>.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 8</p><dl><dt>Zuerst einrichten</dt><dd><a href="03-tier2-master-dictionaries.html#screen-code_systems">Codiersysteme</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/system-smart_capture.webp" alt="Prototyp-Schalter von Smart Capture, Checkliste für den Produktivbetrieb und Exportschranke" loading="lazy"><figcaption>Prototyp-Schalter von Smart Capture, Checkliste für den Produktivbetrieb und Exportschranke</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-smart_capture-offer-the-smart-capture-drawer-in-the-billing-review"><td><strong>Smart-Capture-Ansicht in der Abrechnungsprüfung anbieten</strong></td>
+<td>Ja/Nein-Schalter</td>
+<td>Optional</td>
+<td>Wenn aus, wird die Smart-Capture-Ansicht im Bereich Abrechnung des Falls nicht angeboten. Protokolliert als "Smart Capture Prototype Switched".</td>
+<td>Ein</td>
+</tr>
+<tr id="f-smart_capture-clinical-validation-done"><td><strong>Klinische Validierung durchgeführt</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer ihn gesetzt hat und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb. Entfernen Sie einen der sechs Haken, schließt sich die Exportschranke. Protokolliert als "Smart Capture Checklist Changed".</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-security-review-done"><td><strong>Sicherheitsprüfung durchgeführt</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb.</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-privacy-review-done"><td><strong>Datenschutzprüfung durchgeführt</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb.</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-legal-review-done"><td><strong>Rechtsprüfung durchgeführt</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb.</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-claims-and-coding-policy-review-done"><td><strong>Prüfung der Abrechnungs- und Kodierrichtlinien durchgeführt</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb.</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-real-receiving-system-tested"><td><strong>Echtes Empfangssystem getestet</strong></td>
+<td>Ja/Nein-Haken; erfasst, wer und wann</td>
+<td>Optional</td>
+<td>Punkt der Checkliste für den Produktivbetrieb.</td>
+<td>Nicht gesetzt</td>
+</tr>
+<tr id="f-smart_capture-allow-export-to-a-real-interface-engine"><td><strong>Export an eine echte Schnittstellen-Engine erlauben</strong></td>
+<td>Ja/Nein-Schalter</td>
+<td>Optional</td>
+<td>Deaktiviert, bis alle sechs Haken gesetzt sind. Wenn aus, geht der Export nur an die simulierte Engine. Protokolliert als "Smart Capture Production Gate Changed".</td>
+<td>Aus</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: <code>screen:configuration:open</code>. Eine Einstellung ändern: <code>config:smart-capture:manage</code> (standardmäßig Admin und Laborleiter). Im Fall gehen <code>billing:smart-capture:review</code>, <code>billing:smart-capture:approve</code> und <code>billing:smart-capture:send</code> an die <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> Pathologe. Jede Änderung oben wird protokolliert.</p>
+<p><strong>Bekannte Grenzen.</strong> Die Regeln sind ein Prototyp und wurden nicht auf Compliance geprüft; die Haken erfassen, dass jemand angibt, die Prüfung sei erfolgt, und führen keine Prüfung durch. Nichts verwendet KI oder Bilder. Der Export an eine echte Schnittstellen-Engine ist nur eine Schranke: Es ist kein echtes Empfangssystem angeschlossen.</p>
+<h2 id="ch5-nlp"><a class="anchor" href="#ch5-nlp" aria-label="Link to this section">#</a> NLP- und Auto-Strukturierungs-Engine</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Verwaltung &amp; Compliance &gt; KI-Auslesen der Vorbefunde"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Verwaltung &amp; Compliance</span> <span aria-hidden="true">›</span> <span>KI-Auslesen der Vorbefunde</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Einzelne Sprachfunktionen sind vorhanden. Eine eigenständige NLP- oder Auto-Strukturierungs-Engine gibt es nicht, und es gibt dafür keinen Bildschirm.</p>
+<p>Was heute vorhanden ist; jedes dieser Elemente sendet Text an das Modell, das in <a href="#screen-tab-ai">KI-Verhalten (Reiter)</a> gewählt ist, und unterliegt der <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a>:</p>
+<ul>
+<li><strong>Auslesen von Vorbefunden</strong> (<a href="#screen-history_extraction">KI-Auslesen der Vorbefunde</a>): liest frühere Fälle und füllt strukturierte Felder als beratende Information.</li>
+<li><strong>Synoptik aus Narrativtext vorschlagen</strong>: füllt auf der Befundseite synoptische Felder aus dem Narrativtext. Jeder Vorschlag trägt eine Konfidenz von 0 bis 100 und ein Zitat aus dem Quelltext. Es funktioniert im Orchestrator-Modus und im <a class="term" href="99-glossary.html#g-assist-mode" title="Eine Betriebsart von PathScribe neben einem bestehenden LIS, in der das LIS den Fall weiter führt und PathScribe dessen Aktualisierungen liest und Befunde zur Prüfung durch die Pathologin oder den Pathologen entwirft.">Assistenzmodus</a>.</li>
+<li><strong>Narrativtext aus Synoptik erstellen</strong>: schreibt auf der Befundseite den Narrativtext aus den synoptischen Daten. Nur im Orchestrator-Modus.</li>
+<li><strong>Zuordnung der synoptischen Vorlage</strong>: Das Modell schlägt vor, welche synoptische Vorlage ein <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> braucht, mit einer festen Konfidenzschwelle von 60.</li>
+<li><strong>Suche nach kritischen Befunden</strong> bei der Freigabe: eine Suche, die Verneinungen berücksichtigt, nur im Narrativtext.</li>
+<li><strong>Verfeinerung des Diktats</strong> (Reiter Sprache, <a href="04-tier3-workflow-engines.html#screen-tab-voice">Kapitel 4</a>) und <strong>Makrovorschlag</strong> (Reiter Makros, <a href="04-tier3-workflow-engines.html#screen-tab-macros">Kapitel 4</a>).</li>
+</ul>
+<p>Nicht umgesetzt: eine allgemeine Pipeline von Freitext zu strukturierten Daten über die oben genannten Funktionen hinaus, ein Bildschirm zu ihrer Konfiguration und jedes trainierte klinische NLP-Modell von PathScribe selbst. Der frühere Computational Sidecar wurde am 18. Oktober 2026 zurückgezogen.</p>
+<h3 id="screen-history_extraction"><a class="anchor" href="#screen-history_extraction" aria-label="Link to this section">#</a> KI-Auslesen der Vorbefunde</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Verwaltung &amp; Compliance &gt; KI-Auslesen der Vorbefunde"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Verwaltung &amp; Compliance</span> <span aria-hidden="true">›</span> <span>KI-Auslesen der Vorbefunde</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Der Bildschirm und die Regeln arbeiten mit Demonstrationsdaten, und der Serververtrag ist beschrieben (<code>HISTORY_AI_EXTRACTION_API.md</code>), aber nichts wurde an einem echten Server erprobt. Der Zusammenfassungs-Hook für den <a class="term" href="99-glossary.html#g-assist-mode" title="Eine Betriebsart von PathScribe neben einem bestehenden LIS, in der das LIS den Fall weiter führt und PathScribe dessen Aktualisierungen liest und Befunde zur Prüfung durch die Pathologin oder den Pathologen entwirft.">Assistenzmodus</a> ist nicht umgesetzt.</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>System</strong> &gt; Gruppe <strong>Verwaltung &amp; Compliance</strong>
+<strong>2. Pflegeeintrag:</strong> KI-Auslesen der Vorbefunde</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Öffnet ein Pathologe einen früheren <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>, kann das Modell dessen Enddiagnose und mikroskopischen Text lesen und Werte für die Felder einer strukturierten Vorlage vorschlagen. Die Ergebnisse tragen die <a class="term" href="99-glossary.html#g-flag" title="Eine Markierung an einem Fall oder einer Probe, zum Beispiel um eine zusätzliche Färbung anzufordern oder einen Fall zurückzuhalten.">Kennzeichnung</a> "AI-extracted, not verified" und sind nur beratend: Befunde, Druck, <a class="term" href="99-glossary.html#g-registry" title="Eine Stelle, die Meldungen zu einer Krankheit oder einem Screening-Ergebnis für ein Land oder Programm sammelt, etwa ein Krebs- oder Zervixscreening-Register.">Register</a>, Abrechnung, Regeln und Exporte verwenden sie nie (ein Test im Code sichert das ab). Es macht je Fall zwei Modellaufrufe (die Vorlage wählen, dann die Felder füllen) und verwirft jedes Feld mit einer Konfidenz unter 30 (im Code festgelegt). Die Ergebnisse werden über einen Hash des Quelltexts zwischengespeichert, und ein fehlgeschlagener Lauf wird beim nächsten Öffnen des Falls erneut versucht. Das Ereignis <code>HISTORY_EXTRACTION_RUN</code> im <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> enthält keinen Patiententext.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Die Funktion benötigt einen funktionierenden KI-Dienst und die Liste der Einrichtungen. Ohne KI-Dienst oder mit einem, den die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> ablehnt, wird nichts ausgelesen, und der Fall zeigt keine beratenden Daten.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 7</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/system-history_extraction.webp" alt="KI-Auslesen der Vorbefunde: Geltungsbereich, Zustand und Karte zur Genauigkeit" loading="lazy"><figcaption>KI-Auslesen der Vorbefunde: Geltungsbereich, Zustand und Karte zur Genauigkeit</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-history_extraction-applies-to"><td><strong>Gilt für</strong></td>
+<td>Auswahl: <strong><a class="term" href="99-glossary.html#g-enterprise" title="Die oberste Ebene der Organisation eines Kunden in PathScribe. Hier vorgenommene Einstellungen gelten für jeden Rechtsraum und jede Einrichtung darunter, sofern sie nicht überschrieben werden.">Unternehmen</a> (alle Einrichtungen)</strong> oder eine aktive <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a></td>
+<td>Pflicht</td>
+<td>Der Geltungsbereich, den Sie ansehen und ändern.</td>
+<td>Unternehmen</td>
+</tr>
+<tr id="f-history_extraction-state-card"><td>Zustandskarte</td>
+<td>Schreibgeschützt <strong>Ein</strong> oder <strong>Aus</strong></td>
+<td>Nicht zutreffend</td>
+<td>Die Einstellung, die für den gewählten Geltungsbereich gilt. Aufgelöst als eigene Einstellung der Einrichtung, dann Einstellung des Unternehmens, dann aus.</td>
+<td>Aus</td>
+</tr>
+<tr id="f-history_extraction-source-tag"><td>Quellenmarke</td>
+<td>Schreibgeschützt: <strong>Integrierter Standard</strong>, <strong>Einstellung des Unternehmens</strong> oder <strong>Eigene Einstellung dieser Einrichtung</strong></td>
+<td>Nicht zutreffend</td>
+<td>Woher der Zustand stammt.</td>
+<td>Integrierter Standard</td>
+</tr>
+<tr id="f-history_extraction-turn-on-turn-off"><td><strong>Einschalten</strong> / <strong>Ausschalten</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Setzt den Zustand für den gewählten Geltungsbereich.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-history_extraction-use-the-enterprise-setting"><td><strong>Einstellung des Unternehmens verwenden</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Erscheint nur, wenn die gewählte Einrichtung einen eigenen Eintrag hat. Entfernt ihn, sodass die Einrichtung dem Unternehmen folgt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-history_extraction-accuracy-so-far"><td><strong>Bisherige Genauigkeit</strong></td>
+<td>Schreibgeschützte Karte: gelesene Befunde, ausgelesene Felder, als falsch markiert</td>
+<td>Nicht zutreffend</td>
+<td>Zählt für den gewählten Geltungsbereich, wie viele Befunde gelesen, wie viele Felder ausgelesen und wie viele von einem Pathologen als falsch markiert wurden.</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: <code>screen:configuration:open</code>. Ändern: <code>config:history-extraction:manage</code> (Admin und Laborleiter). Im Fall gehen <code>ai:history-extraction:run</code> und <code>ai:history-extraction:flag</code> an Pathologe, Facharzt in Weiterbildung (Fellow) und Assistenzarzt (Resident), und <code>case:clinical-history:record</code> geht an diese drei und den Pathologieassistenten. Die KI-Anbieterrichtlinie gilt und lehnt einen nicht zulässigen Dienst mit <code>vendorNotAllowed</code> ab. Das Ausführen eines Auslesens wird als <code>HISTORY_EXTRACTION_RUN</code> protokolliert.</p>
+<p><strong>Bekannte Grenzen.</strong> Nur beratend, so gewollt. Der Zusammenfassungs-Hook für den Assistenzmodus ist Nicht umgesetzt. Die Konfidenzgrenze von 30 Punkten hat keine Einstellung.</p>
+<h2 id="ch5-dp-ai"><a class="anchor" href="#ch5-dp-ai" aria-label="Link to this section">#</a> KI-Bildanalyse in der digitalen Pathologie</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Labormaterialien &amp; Arbeitsabläufe &gt; Anbieterintegrationen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Labormaterialien &amp; Arbeitsabläufe</span> <span aria-hidden="true">›</span> <span>Anbieterintegrationen</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Das Empfangen und Anzeigen von Ergebnissen aus Herstellerprodukten ist vorhanden. Tumorerkennung, Zellzählung und Biomarker-Bewertung durch PathScribe selbst sind <strong>Nicht umgesetzt</strong>.</p>
+<p>PathScribe analysiert keine Bilder. Es erfasst, was das Produkt eines Herstellers meldet. Am nächsten an ein KI-Analysemodul kommt diese Kette, die in anderen Kapiteln konfiguriert wird:</p>
+<ul>
+<li><strong>Herstellerverzeichnis</strong> (Kategorie KI der digitalen Pathologie in den <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Anbieterintegrationen</a>, <a href="04-tier3-workflow-engines.html#ch4">Kapitel 4</a>): Herstellername, Produktname, Modalität (Freitext), ein Kontrollkästchen <strong>FDA-zugelassen</strong> (ein Vermerk des Administrators zu einem Zeitpunkt, keine Prüfung) und ein Schalter für aktiv. Es ist vorbelegt mit Paige Prostate, Ibex Prostate Detect, PathAI AISight Dx, Proscia Concentriq AP-Dx, Hologic Genius Digital Diagnostics (Zervixzytologie) und BD FocalPoint GS (als nicht zugelassen markiert, da es eine Premarket Approval und keine 510(k)-Freigabe ist). Hersteller von Objektträger-Viewern (Vorlagen für Startadressen) und Stapel von Whole-Slide-Image-Scans stehen daneben.</li>
+<li><strong>Ergebnisdatensatz</strong>: ein Status (beauftragt, abgeschlossen, fehlgeschlagen oder Zeitüberschreitung), Befunde (eine Freitextbezeichnung, eine Konfidenz von 0 bis 1 und eine optionale Region), Biomarker-Messwerte als Freitext (Name und Wert) sowie ein Rang für die Triage der Objektträger mit einer Empfehlung zur Prüfung nach dem Muster der Quintile von BD.</li>
+<li><strong>Übernahme</strong>: Ein Herstellerergebnis kommt als eingehendes Ereignis der Schnittstellen-Engine an. In der Demonstration löst der Abschluss eines Stapels Zytologie-Bildgebung automatisch einen KI-Screening-Auftrag beim ersten aktiven Hersteller für Zervixzytologie aus.</li>
+<li><strong>Abzeichen in der Arbeitsliste der Zytologie und Abfrage zur Konkordanz</strong>: Die Antwort des Pathologen wird erfasst. Eine Abweichung erzeugt ein offenes Defizit und startet nie von selbst eine Korrekturmaßnahme.</li>
+<li><strong>QS-Reiter KI-Diskordanz</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Kapitel 4</a>): ein Bericht zur <a class="term" href="99-glossary.html#g-discordance" title="Ein Unterschied zwischen zwei Beurteilungen desselben Materials, etwa einer vorläufigen und einer endgültigen Diagnose oder einer ersten und einer zweiten Pathologin.">Diskordanz</a> je Hersteller und ein Bericht zu stehengebliebenen Ergebnissen. Die Zeitüberschreitung für stehengebliebene Ergebnisse wird dort gesetzt (ganze Stunden 1 bis 720, Standard 24).</li>
+</ul>
+<p>Nicht umgesetzt: ein Tumordetektor, Zellzähler oder Biomarker-Bewerter im Besitz von PathScribe und jedes Bedienelement, das die Analyse eines Herstellers abstimmt. Die echten Herstellerintegrationen sind nicht abgeschlossen. Der Vertrag ist <code>DIGITAL_PATHOLOGY_API.md</code>. Verwandte <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>: Zytologie-Instrumentierung (<a href="03-tier2-master-dictionaries.html#screen-cytology_instrumentation">Kapitel 3</a>).</p>
+<h2 id="ch5-smart-qc"><a class="anchor" href="#ch5-smart-qc" aria-label="Link to this section">#</a> Intelligente Qualitätskontrolle und Regeln zur Erkennung diagnostischer Auffälligkeiten</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Verwaltung &amp; Compliance &gt; Regeln für klinische Diskrepanzen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Verwaltung &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Regeln für klinische Diskrepanzen</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt für die Regelbildschirme. Demonstration für die Serverseite der KI-Anweisungen. Es gibt kein einzelnes Modul "Erkennung von Auffälligkeiten"; die folgenden Prüfungen sind getrennt, und jede ist dort beschrieben, wo sie konfiguriert wird.</p>
+<ul>
+<li><strong>Klinische Abweichungsprüfung</strong> (<a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a> und <a href="#screen-ai_instructions">KI-Anweisungen</a>, dieses Kapitel): Das Modell vergleicht die klinische Indikation und Anamnese mit der Diagnose, und die Regeln bestimmen, was ein Ergebnis bewirkt.</li>
+<li><strong>Regeln für abnormale Auslöser</strong> (<a href="03-tier2-master-dictionaries.html#screen-abnormal_trigger_rules">Kapitel 3</a>): einzelne Regeln mit den Schweregraden Abnormal, Kritisch und Maligne. Die vorbelegten Regeln sind Resektionsrand-Status, Perineuralscheideninvasion, Lymphknotenstatus und Lymphgefäßinvasion.</li>
+<li><strong>Suche nach kritischen Befunden im Narrativtext</strong>: Das Modell durchsucht den Narrativtext bei der Freigabe, berücksichtigt Verneinungen und sendet nur Narrativtext. Es hat keine eigene Einstellung.</li>
+<li><strong>Richtlinie zum Trend der QS-Diskordanz</strong> (<a href="04-tier3-workflow-engines.html#screen-qa_trend_policy">Kapitel 4</a>), der Reiter <strong>KI-Diskordanz</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Kapitel 4</a>) und <strong>Zytologie-QK-Regeln</strong> (<a href="04-tier3-workflow-engines.html#screen-cytology_qc_rules">Kapitel 4</a>).</li>
+</ul>
+<p>Nicht umgesetzt: ein statistischer Detektor oder Detektor mit maschinellem Lernen für Auffälligkeiten, der Durchlaufzeiten, Mengen oder Ergebnisse über Fälle hinweg überwacht.</p>
+<h3 id="screen-clinical_mismatch_rules"><a class="anchor" href="#screen-clinical_mismatch_rules" aria-label="Link to this section">#</a> Regeln für klinische Diskrepanzen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Verwaltung &amp; Compliance &gt; Regeln für klinische Diskrepanzen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Verwaltung &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Regeln für klinische Diskrepanzen</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt. Er arbeitet mit Demonstrationsdaten und hat einen Serververtrag (<code>CONFIG_SERVICES_API.md</code>, <code>/api/clinical/clinical-mismatch-rule/*</code>).</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>System</strong> &gt; Gruppe <strong>Verwaltung &amp; Compliance</strong>
+<strong>2. Pflegeeintrag:</strong> Regeln für klinische Diskrepanzen</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Bei der Freigabe vergleicht das Modell, was der Kliniker dem Labor mitgeteilt hat, mit dem, was der Pathologe diagnostiziert hat, und gibt eine Art der Diskrepanz und eine Konfidenz von 0 bis 100 zurück. Diese Regeln machen aus der Konfidenz ein Ergebnis. Unterhalb der Anzeigeschwelle wird das Ergebnis verworfen. Von der Anzeigeschwelle bis zur Aktionsschwelle gilt es als niedriges Risiko: Der Pathologe sieht eine Warnung, und das QS-Protokoll erfasst sie. Bei oder über der Aktionsschwelle gilt die Aktion der Regel: <strong><a class="term" href="99-glossary.html#g-block" title="Ein in Wachs eingebettetes Gewebestück in einer Kassette, von dem Schnitte angefertigt werden.">Block</a></strong> macht es zu hohem Risiko und hält die Freigabe an, bis eine Entscheidung erfasst ist, <strong>Warn</strong> warnt, und <strong>Log</strong> erfasst es. Entscheidungen werden als RESOLVED, UNRESOLVED oder DEFERRED erfasst. Der vollständige Ablauf steht in <code>docs/product/CLINICAL_MISMATCH_CHECK.md</code>. Eine Regel je Art der Diskrepanz gilt für alle Probentypen, und Sie können eine Regel für einen Probentyp hinzufügen.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Die Prüfung ruft den KI-Dienst auf, der im Reiter KI-Verhalten eingerichtet ist, und die Regeln für einzelne Probentypen wählen aus den aktiven Probentypen. Ohne KI-Dienst oder mit einem, den die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> ablehnt, läuft die Prüfung nicht. Überspringen Sie das Probenverzeichnis, ist die Liste <strong>Regel für einen Präparattyp hinzufügen</strong> leer.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 6</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Probenverzeichnis</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/system-clinical_mismatch_rules.webp" alt="Tabelle der Regeln für klinische Diskrepanzen und Bedienelement zum Hinzufügen einer Regel" loading="lazy"><figcaption>Tabelle der Regeln für klinische Diskrepanzen und Bedienelement zum Hinzufügen einer Regel</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong> Schwellen werden gespeichert, wenn Sie das Feld verlassen oder die Eingabetaste drücken. Die Aktion wird gespeichert, wenn Sie sie wählen.</p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-clinical_mismatch_rules-kind-of-mismatch"><td><strong>Art der Diskrepanz</strong></td>
+<td>Schreibgeschützt: unerwartete Malignität, Todesursache, Lokalisation oder Organ, erwartete Malignität fehlt, sonstige</td>
+<td>Nicht zutreffend</td>
+<td>Eine Zeile je Art für alle Probentypen sowie gegebenenfalls Zeilen für einzelne Probentypen.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-specimen-type"><td><strong>Präparattyp</strong></td>
+<td>Schreibgeschützt: alle Probentypen oder ein Typ aus dem Probenverzeichnis</td>
+<td>Nicht zutreffend</td>
+<td>Der Geltungsbereich der Zeile.</td>
+<td>Alle Probentypen</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-alert-from"><td><strong>Warnung ab</strong></td>
+<td>Ganze Zahl 0 bis 100 (Anzeigeschwelle, %)</td>
+<td>Pflicht</td>
+<td>Ergebnisse darunter werden unterdrückt.</td>
+<td>60 für jede Art</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action-at"><td><strong>Aktion ab</strong></td>
+<td>Ganze Zahl 0 bis 100 (Aktionsschwelle, %)</td>
+<td>Optional</td>
+<td>Muss mindestens <strong>Warnung ab</strong> entsprechen. Leer bedeutet, dass die Aktion mit dem Wert von <strong>Warnung ab</strong> beginnt.</td>
+<td>unerwartete Malignität 70, Todesursache 70, Lokalisation oder Organ 65, erwartete Malignität fehlt leer, sonstige 65</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-action"><td><strong>Aktion</strong></td>
+<td>Auswahl: <strong>Block</strong>, <strong>Warn</strong>, <strong>Log</strong></td>
+<td>Pflicht</td>
+<td>Was bei oder über <strong>Aktion ab</strong> geschieht.</td>
+<td>unerwartete Malignität Block, Todesursache Block, Lokalisation oder Organ Block, erwartete Malignität fehlt Log, sonstige Log</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-remove"><td><strong>Entfernen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Löscht eine Regel für einen Probentyp. Die Regel für alle Proben einer Art kann nicht entfernt werden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-add-a-rule-for-one-specimen-type"><td><strong>Regel für einen Präparattyp hinzufügen</strong></td>
+<td>Auswahl der Art und Auswahl des aktiven Probentyps</td>
+<td>Optional</td>
+<td>Legt eine Regel an, die als Kopie der Regel für alle Typen dieser Art beginnt. Eine zweite Regel für dieselbe Art und denselben Probentyp wird abgelehnt.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-clinical_mismatch_rules-amendments-corrections-and-addenda"><td><strong>Änderungen, Korrekturen und Ergänzungen</strong></td>
+<td>Ja/Nein-Kontrollkästchen</td>
+<td>Optional</td>
+<td>Wenn ein, gilt "Eine Abweichung mit hohem Risiko hält die Freigabe an, bis eine Entscheidung erfasst ist" auch für Änderungen, Korrekturen und Ergänzungen.</td>
+<td>Ein</td>
+</tr>
+</tbody>
+</table>
+<p>Eine abgelehnte Eingabe zeigt eines dieser Probleme: Schwelle außerhalb des Bereichs, Aktion unterhalb der Anzeige, Duplikat, Standard kann nicht entfernt werden, unbekannte Aktion oder unbekannte Kategorie.</p>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: <code>screen:configuration:open</code>. Ansehen: <code>config:clinical-mismatch-rules:view</code> (standardmäßig Pathologe, QS-Prüfer und Laborleiter). Ändern: <code>config:clinical-mismatch-rules:manage</code>; sie setzt <code>view</code> voraus und hat keine Standardrolle, vergeben Sie sie daher bewusst. Ohne <code>manage</code> ist der Bildschirm schreibgeschützt. Änderungen werden als <code>CLINICAL_MISMATCH_RULE_CHANGED</code> protokolliert. <code>case:clinical-mismatch:record</code> (eine Entscheidung bei der Freigabe erfassen) geht an Pathologe und Facharzt in Weiterbildung (Fellow). <a class="term" href="99-glossary.html#g-separation-of-duties" title="Eine Regel, nach der zwei Befugnisse nicht bei einer Person liegen dürfen, etwa die Regeln zur klinischen Abweichungsprüfung zu ändern und die KI-Anweisungen zu genehmigen.">Funktionstrennung</a>: Niemand darf <code>config:clinical-mismatch-rules:manage</code> zusammen mit <code>config:ai-prompt:approve</code> besitzen, und der Superadmin ist nicht ausgenommen.</p>
+<p><strong>Bekannte Grenzen.</strong> Das Modell kann sich irren; die Schwellen sind die Steuerung des Labors dafür, wie stark ein Pathologe unterbrochen wird. Eine Diskrepanz bei der Freigabe ist beratend, es sei denn, die Aktion einer Regel ist <strong>Block</strong>.</p>
+<h2 id="ch5-governance"><a class="anchor" href="#ch5-governance" aria-label="Link to this section">#</a> KI-Governance, Schwellen für die Kontrolle durch den Menschen und Kalibrierung</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt für Governance und Schwellen. Kalibrierung der Gewichte: nicht vorhanden.</p>
+<p>Die Kontrollen von PathScribe halten einen Menschen zwischen dem Modell und dem Datensatz.</p>
+<ul>
+<li><strong>Freigegebene Anweisungen.</strong> Der Text, den die klinische Abweichungsprüfung an das Modell sendet, ist versioniert, und eine zweite Person muss ihn freigeben (<a href="#screen-ai_instructions">KI-Anweisungen</a>).</li>
+<li><strong>Nachweis.</strong> Eine Validierungsstudie misst, wie oft Pathologen die Vorschläge des Modells unverändert annehmen, und eine Bewertung BESTANDEN ist es, die einer <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> erlaubt, ein Modell festzulegen, oder ein Sprachmodell zum Standard werden lässt (<a href="#screen-tab-validation">Validierungsstudien</a>).</li>
+<li><strong>Schwellen.</strong> Jede Schwelle im Produkt ist hier aufgeführt.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Schwelle</th>
+<th>Wert</th>
+<th>Wo festgelegt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Konfidenzschwelle (Vorschläge)</td>
+<td>0 bis 100, Standard 75</td>
+<td>Reiter <strong>KI-Verhalten</strong>; Überschreibung je Modell in <strong>Modelleinstellungen</strong></td>
+</tr>
+<tr>
+<td>Automatisches Einfügen bei oder über der Schwelle</td>
+<td>Standardmäßig aus</td>
+<td>Reiter <strong>KI-Verhalten</strong>, <strong>Erweitert</strong></td>
+</tr>
+<tr>
+<td>Anzeige- und Aktionsschwellen der klinischen Diskrepanz</td>
+<td>0 bis 100, Anzeige-Standard 60</td>
+<td><a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a></td>
+</tr>
+<tr>
+<td>Zuordnung von synoptischen Vorlagen und Zuschnittvorlagen</td>
+<td>Fest 60</td>
+<td>Code; keine Einstellung</td>
+</tr>
+<tr>
+<td>Feldgrenze beim Auslesen von Vorbefunden</td>
+<td>Fest 30</td>
+<td>Code; keine Einstellung</td>
+</tr>
+<tr>
+<td>Ziel-Akzeptanzrate und maximales mittleres Bearbeitungsverhältnis einer Studie</td>
+<td>standardmäßig 70 % und 30 %</td>
+<td><a href="#screen-validation-studies">Validierungsstudien: Studien</a></td>
+</tr>
+<tr>
+<td>Stehengebliebenes KI-Screening-Ergebnis</td>
+<td>Ganze Stunden 1 bis 720, Standard 24</td>
+<td>QS-Reiter <strong>KI-Diskordanz</strong> (<a href="04-tier3-workflow-engines.html#screen-quality-assurance">Kapitel 4</a>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Kalibrierung der Gewichte und Einstellungen nur für den internen Gebrauch.</strong> In PathScribe gibt es nirgends eine Einstellung zur Kalibrierung von Modellgewichten, zum Feintuning oder zur Neukalibrierung, und keine KI-Einstellung ist auf Mitarbeitende von ForMedrixAI beschränkt. Eine Suche im Code findet nur die Kalibrierung von Geräten und der Zytologie, die damit nichts zu tun haben. Keine <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> im Katalog ist für KI als nur für die Plattform markiert. Zwei verwandte Tatsachen sind wissenswert. Der API-Schlüssel wird vom Support von ForMedrixAI im Geheimnisspeicher des Servers rotiert, und dafür gibt es keinen Bildschirm. Der Modellkatalog, den der ForMedrixAI Store anbietet, gehört der Plattform, und auch dafür gibt es keinen Bildschirm für Mitarbeitende. Weil es keine solche Einstellung gibt, hat dieses Kapitel keinen Abschnitt mit der <a class="term" href="99-glossary.html#g-flag" title="Eine Markierung an einem Fall oder einer Probe, zum Beispiel um eine zusätzliche Färbung anzufordern oder einen Fall zurückzuhalten.">Kennzeichnung</a> nur für ForMedrixAI intern.</p>
+<h3 id="screen-ai_instructions"><a class="anchor" href="#screen-ai_instructions" aria-label="Link to this section">#</a> KI-Anweisungen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; System &gt; Verwaltung &amp; Compliance &gt; KI-Anweisungen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Verwaltung &amp; Compliance</span> <span aria-hidden="true">›</span> <span>KI-Anweisungen</span></nav>
+
+<p><strong>Status:</strong> Demonstration. Die Regeln laufen im Browser über eingebundenen Speicher, und der Dienst hat keine eigene Serverroute (<code>HTTP_SERVICES_REMAINING.md</code>).</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>System</strong> &gt; Gruppe <strong>Verwaltung &amp; Compliance</strong>
+<strong>2. Pflegeeintrag:</strong> KI-Anweisungen</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Die klinische Abweichungsprüfung sendet dem Modell einen Anweisungstext. Dieser Bildschirm steuert diesen Text für jedes von drei Fachgebieten: Chirurgische Pathologie, Zytologie und Obduktion (als Reiter dargestellt). Eine Änderung durchläuft das Bearbeiten und danach die Freigabe durch eine andere Person, sodass niemand allein ändern kann, was dem Modell mitgeteilt wird. Der <a class="term" href="99-glossary.html#g-block" title="Ein in Wachs eingebettetes Gewebestück in einer Kassette, von dem Schnitte angefertigt werden.">Block</a> mit den Falldaten und das JSON-Antwortformat sind im Code festgelegt und hier nicht bearbeitbar. Nur die freigegebene Version wird verwendet. Version 0 ist der integrierte Text von PathScribe.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Der Text wird von der Prüfung über den Dienst im Reiter KI-Verhalten verwendet, richten Sie daher zuerst den KI-Dienst ein. Überspringen Sie das, hat ein freigegebener Text nichts, womit er laufen kann, und <strong>Diesen Text testen</strong> meldet die KI als nicht verfügbar.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 5</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a></dd><dt>Dies ermöglicht</dt><dd><a href="#screen-clinical_mismatch_rules">Regeln für klinische Diskrepanzen</a></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/system-ai_instructions.webp" alt="Reiter der Fachgebiete in den KI-Anweisungen mit den Karten In Verwendung, Wartet auf Freigabe, Bearbeiten, Testen und Verlauf" loading="lazy"><figcaption>Reiter der Fachgebiete in den KI-Anweisungen mit den Karten In Verwendung, Wartet auf Freigabe, Bearbeiten, Testen und Verlauf</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ai_instructions-discipline-tabs"><td>Reiter der Fachgebiete</td>
+<td>Auswahl: Chirurgische Pathologie, Zytologie, Obduktion</td>
+<td>Pflicht</td>
+<td>Jedes Fachgebiet hat seinen eigenen Text und seinen eigenen Verlauf.</td>
+<td>Chirurgische Pathologie</td>
+</tr>
+<tr id="f-ai_instructions-in-use-version-n"><td><strong>In Verwendung: Version N</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Die freigegebene Version, die die Prüfung jetzt verwendet.</td>
+<td>Version 0 (integrierter Text)</td>
+</tr>
+<tr id="f-ai_instructions-awaiting-approval"><td><strong>Wartet auf Freigabe</strong></td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Die ausstehende Version, falls vorhanden. Eine neue Bearbeitung zieht die vorherige ausstehende zurück.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-ai_instructions-approve"><td><strong>Freigeben</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Macht die ausstehende Version zu der, die verwendet wird. Wird für jeden abgelehnt, der den Text seit der letzten Freigabe bearbeitet hat (SELF_APPROVAL). Erfordert <code>config:ai-prompt:approve</code>.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-ai_instructions-reject-reason"><td>Grund der Ablehnung</td>
+<td>Text</td>
+<td>Pflicht zum Ablehnen</td>
+<td>Der Grund wird im Verlauf aufbewahrt.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-ai_instructions-reject"><td><strong>Ablehnen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Deaktiviert, bis ein Grund eingegeben ist. Die freigegebene Version bleibt in Verwendung.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-ai_instructions-edit-text"><td>Text bearbeiten</td>
+<td>Textbereich, bis zu 6000 Zeichen, mit Zähler</td>
+<td>Pflicht</td>
+<td>Darf nicht leer sein, nicht über 6000 Zeichen liegen und muss sich vom aktuellen Text unterscheiden (andernfalls: leer, zu lang oder unverändert).</td>
+<td>Der Text in Verwendung</td>
+</tr>
+<tr id="f-ai_instructions-save-for-approval"><td><strong>Zur Freigabe speichern</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Legt eine neue ausstehende Version an.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-ai_instructions-clinical-indication"><td><strong>Klinische Indikation</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Beispieleingabe für den Test. Gefüllt aus einem integrierten Beispiel.</td>
+<td>Beispieltext</td>
+</tr>
+<tr id="f-ai_instructions-clinical-history"><td><strong>Klinische Anamnese</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Beispieleingabe für den Test.</td>
+<td>Beispieltext</td>
+</tr>
+<tr id="f-ai_instructions-findings"><td><strong>Befunde</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Beispieleingabe für den Test.</td>
+<td>Beispieltext</td>
+</tr>
+<tr id="f-ai_instructions-diagnosis"><td><strong>Diagnose</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Beispieleingabe für den Test.</td>
+<td>Beispieltext</td>
+</tr>
+<tr id="f-ai_instructions-pathologist-confirmed-malignant-finding"><td><strong>Vom Pathologen bestätigter maligner Befund</strong></td>
+<td>Ja/Nein-Kontrollkästchen</td>
+<td>Optional</td>
+<td>Beispieleingabe für den Test.</td>
+<td>Aus</td>
+</tr>
+<tr id="f-ai_instructions-test-this-text"><td><strong>Diesen Text testen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Führt den ausstehenden oder bearbeiteten Text einmal am Beispiel aus. Das Ergebnis lautet Diskrepanz, keine, nicht zulässig (laut <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a>) oder nicht verfügbar.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-ai_instructions-history"><td>Verlauf</td>
+<td>Schreibgeschützte Liste</td>
+<td>Nicht zutreffend</td>
+<td>Jede Version mit ihrem Status: wartet auf Freigabe, in Verwendung, abgelehnt, ersetzt oder vor der Freigabe ersetzt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: <code>screen:configuration:open</code> sowie <code>config:ai-prompt:edit</code> oder <code>config:ai-prompt:approve</code>. Das Auflisten der Versionen erfordert <code>config:ai-prompt:view</code> (QS-Prüfer und Laborleiter). <code>config:ai-prompt:edit</code> hat keine integrierte <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> und setzt <code>view</code> voraus. <code>config:ai-prompt:approve</code> geht nur an den Laborleiter und wird dem Superadmin vorenthalten; sie setzt <code>view</code> voraus. Der Superadmin besitzt <code>view</code> und <code>edit</code>. <a class="term" href="99-glossary.html#g-separation-of-duties" title="Eine Regel, nach der zwei Befugnisse nicht bei einer Person liegen dürfen, etwa die Regeln zur klinischen Abweichungsprüfung zu ändern und die KI-Anweisungen zu genehmigen.">Funktionstrennung</a>: <code>config:ai-prompt:approve</code> darf nicht zusammen mit <code>config:clinical-mismatch-rules:manage</code> besessen werden. Protokolliert als <code>AI_PROMPT_EDITED</code>, <code>AI_PROMPT_APPROVED</code> und <code>AI_PROMPT_REJECTED</code>.</p>
+<p><strong>Bekannte Grenzen.</strong> Die Serverseite ist Nicht umgesetzt. Eine Person, die nur <code>view</code> besitzt, etwa ein QS-Prüfer, kann den Bildschirm nicht öffnen, obwohl die Liste für sie geladen würde.</p>
+<h3 id="screen-tab-validation"><a class="anchor" href="#screen-tab-validation" aria-label="Link to this section">#</a> Validierungsstudien (Reiter)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt. Er arbeitet mit Demonstrationsdaten und hat einen Serververtrag (<code>QUALITY_API.md</code>, <code>/api/validation-studies/...</code>).</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>Validierungsstudien</strong>
+<strong>2. Pflegeeintrag:</strong> Validierungsstudien (der gesamte Reiter)</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Eine Validierungsstudie sammelt Belege, dass ein KI-Modell an Ihren eigenen Fällen funktioniert. Die Pathologen arbeiten wie gewohnt; bei der Freigabe erfasst PathScribe für jeden KI-Vorschlag, ob er unverändert angenommen wurde und wie stark er bearbeitet wurde. Die Signale sind de-identifiziert. Wird die Studie geschlossen, bewertet der Bericht das Modell, und nur eine Bewertung BESTANDEN erlaubt einer <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>, dieses Modell festzulegen. Der Reiter hat drei Unterreiter, <strong>Studien</strong>, <strong>Dashboard</strong> und <strong>Berichte</strong>, gewählt über <code>?section=studies</code>, <code>dashboard</code> oder <code>reports</code>. Die Studien sind beratend: <code>validationMode</code> ist immer advisory. Ein Banner weist darauf hin, und ein Umschalter <strong>So funktioniert es - mit einem Beispiel</strong> erklärt den Ablauf.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Eine Studie validiert ein Modell, das im Reiter KI-Verhalten gewählt wurde, und schreibt Einrichtungen aus dem Einrichtungsverzeichnis ein. Überspringen Sie die Modelle und die Einrichtungen, hat das Studienformular nichts zur Auswahl.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 2</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></dd><dt>Dies ermöglicht</dt><dd><a href="#screen-validation-studies">Validierungsstudien: Studien</a></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/tab-validation.webp" alt="Reiter Validierungsstudien mit dem Hinweisbanner und den drei Unterreitern" loading="lazy"><figcaption>Reiter Validierungsstudien mit dem Hinweisbanner und den drei Unterreitern</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-validation-advisory-banner"><td>Hinweisbanner</td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Weist darauf hin, dass eine Studie beratend ist.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-tab-validation-how-this-works-with-an-example"><td><strong>So funktioniert es - mit einem Beispiel</strong></td>
+<td>Umschalter</td>
+<td>Optional</td>
+<td>Zeigt oder verbirgt die ausgearbeitete Erklärung.</td>
+<td>Verborgen</td>
+</tr>
+<tr id="f-tab-validation-sub-tabs-studies-dashboard-reports"><td>Unterreiter <strong>Studien</strong>, <strong>Dashboard</strong>, <strong>Berichte</strong></td>
+<td>Auswahl</td>
+<td>Pflicht</td>
+<td>Öffnet den jeweiligen Bildschirm unten.</td>
+<td>Studien</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Der Reiter erscheint nur für eine Person, deren <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> admin, pathologist-admin oder superadmin ist. Das ist eine Prüfung der Rolle, keine Prüfung einer <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a>. Im Reiter ist er ohne <code>config:validation-studies:manage</code> und <code>validation:approval:record</code> schreibgeschützt. Beide besitzen Admin und Laborleiter über die Konfigurationsgruppe Qualität. Die Rolle Laborleiter gehört nicht zur Prüfung der Rolle; sie besitzt die Berechtigungen, kann den Reiter aber nicht öffnen.</p>
+<p><strong>Bekannte Grenzen.</strong> Siehe <a href="#screen-validation-studies">Validierungsstudien: Studien</a>.</p>
+<h3 id="screen-validation-studies"><a class="anchor" href="#screen-validation-studies" aria-label="Link to this section">#</a> Validierungsstudien: Studien</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Studien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Studien</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt.</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>Validierungsstudien</strong> &gt; Unterreiter <strong>Studien</strong>
+<strong>2. Pflegeeintrag:</strong> Studien</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Die Liste der Studien und das Formular, um eine anzulegen. Eine Studie durchläuft die Zustände Entwurf, Genehmigung ausstehend, genehmigt, aktiv, geschlossen und gemeldet. Die Schaltflächen hängen vom Zustand ab: Ein Entwurf hat <strong>Bearbeiten</strong>, <strong>Zur Prüfung einreichen</strong> und <strong>Löschen</strong>; eine Studie mit ausstehender Genehmigung hat <strong>Genehmigung erfassen</strong>; eine genehmigte Studie hat <strong>Aktivieren</strong> (ohne IRB-Referenz abgelehnt); eine aktive Studie hat <strong>Studie schließen</strong>.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Das Studienformular wählt ein Modell aus dem Reiter KI-Verhalten, aktive Einrichtungen und eingeschriebene Pathologen (gefiltert nach den gewählten Einrichtungen) sowie optional veröffentlichte Befundvorlagen. Überspringen Sie die Ärzte, ist die Liste <strong>Eingeschriebene Pathologen</strong> leer, sodass eine Studie nicht gespeichert werden kann. Veröffentlichte Vorlagen werden in <a href="06-tier5-reporting-synoptic-scheduler.html#ch6">Kapitel 6</a> eingerichtet; gibt es keine, lassen Sie <strong>Berichtsvorlagen</strong> leer, um alle Vorlagen einzubeziehen.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 3</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-tab-validation">Validierungsstudien (Reiter)</a>, <a href="#screen-tab-ai">KI-Verhalten (Reiter)</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Ärzte</a></dd><dt>Dies ermöglicht</dt><dd><a href="#screen-validation-reports">Validierungsstudien: Berichte</a>, <a href="#screen-validation-dashboard">Validierungsstudien: Dashboard</a></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/validation-studies.webp" alt="Liste der Validierungsstudien mit Neue Studie" loading="lazy"><figcaption>Liste der Validierungsstudien mit Neue Studie</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<h4>Formular Neue Studie / Studie bearbeiten</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Studien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Studien</span></nav>
+
+<figure class="shot"><img src="../img/validation-studies-new.webp" alt="Formular Neue Studie" loading="lazy"><figcaption>Formular Neue Studie</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-study-name"><td><strong>Studienname</strong></td>
+<td>Text</td>
+<td>Pflicht</td>
+<td>Der Name, der in der Liste und im Bericht angezeigt wird.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-description"><td><strong>Beschreibung</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Zweck der Studie.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-ai-model-being-validated"><td><strong>Zu validierendes KI-Modell</strong></td>
+<td>Auswahl von Modellen</td>
+<td>Pflicht</td>
+<td>Beim Bearbeiten gesperrt. Ein Link <strong>ForMedrixAI-Store durchsuchen</strong> (nur bei neuen Studien) öffnet das Fenster des Stores unten.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-target-acceptance-rate"><td><strong>Ziel-Akzeptanzrate</strong></td>
+<td>Schieberegler 50 % bis 100 %, Schritt 5</td>
+<td>Pflicht</td>
+<td>Der Anteil unverändert angenommener Vorschläge, der eine Bewertung BESTANDEN erreicht.</td>
+<td>70 %</td>
+</tr>
+<tr id="f-validation-studies-max-mean-edit-ratio"><td><strong>Maximales durchschnittliches Bearbeitungsverhältnis</strong></td>
+<td>Schieberegler 10 % bis 90 %, Schritt 5</td>
+<td>Pflicht</td>
+<td>Das Meiste, was die Pathologen Vorschläge im Durchschnitt bearbeiten dürfen, für eine Bewertung BESTANDEN.</td>
+<td>30 %</td>
+</tr>
+<tr id="f-validation-studies-start-date"><td><strong>Startdatum</strong></td>
+<td>Datum</td>
+<td>Pflicht</td>
+<td>Wann die Studie beginnt.</td>
+<td>Heute</td>
+</tr>
+<tr id="f-validation-studies-irb-ethics-reference"><td><strong>IRB-/Ethik-Referenz</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Wird im Formular angezeigt, aber nicht gespeichert. Die Referenz wird im Schritt der Genehmigung erfasst.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-participating-facilities"><td><strong>Teilnehmende Einrichtungen</strong></td>
+<td>Auswahl aktiver Einrichtungen, mehrere</td>
+<td>Pflicht</td>
+<td>Signale zählen nur für diese.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-enrolled-pathologists"><td><strong>Eingeschriebene Pathologen</strong></td>
+<td>Auswahl von Pathologen, mehrere, gefiltert nach den gewählten Einrichtungen</td>
+<td>Pflicht</td>
+<td>Nur deren Freigaben erzeugen Signale. Der zuerst Gewählte wird zum Hauptprüfer (Principal Investigator); dafür gibt es kein Feld.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-report-templates"><td><strong>Berichtsvorlagen</strong></td>
+<td>Auswahl veröffentlichter Vorlagen, mehrere</td>
+<td>Optional</td>
+<td>Leer bedeutet alle Vorlagen.</td>
+<td>Alle Vorlagen</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenster Zur Ethik-/IRB-Prüfung einreichen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Studien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Studien</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-ethics-irb-committee-name"><td><strong>Name des Ethik-/IRB-Ausschusses</strong></td>
+<td>Text</td>
+<td>Pflicht</td>
+<td>Der Ausschuss, an den die Studie geht.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-submitted-by"><td><strong>Eingereicht von</strong></td>
+<td>Text</td>
+<td>Pflicht</td>
+<td>Wer sie eingereicht hat.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-expected-review-date"><td><strong>Voraussichtliches Prüfungsdatum</strong></td>
+<td>Datum</td>
+<td>Optional</td>
+<td>Wann eine Entscheidung erwartet wird.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-notes-for-committee"><td><strong>Notizen für den Ausschuss</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Freie Notizen.</td>
+<td>Keine</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenster Ausschussgenehmigung erfassen</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Studien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Studien</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-irb-ethics-reference-number"><td><strong>IRB-/Ethik-Referenznummer</strong></td>
+<td>Text</td>
+<td>Pflicht</td>
+<td>Ohne sie kann die Studie nicht aktiviert werden.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-approved-by"><td><strong>Genehmigt von</strong></td>
+<td>Text</td>
+<td>Pflicht</td>
+<td>Die genehmigende Person oder Stelle.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-approval-date"><td><strong>Genehmigungsdatum</strong></td>
+<td>Datum</td>
+<td>Pflicht</td>
+<td>Das Datum der Genehmigung.</td>
+<td>Heute</td>
+</tr>
+<tr id="f-validation-studies-committee-minutes-reference"><td><strong>Referenz des Ausschussprotokolls</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Wo das <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> abgelegt ist.</td>
+<td>Keine</td>
+</tr>
+<tr id="f-validation-studies-conditions-attached-to-approval"><td><strong>Mit der Genehmigung verbundene Bedingungen</strong></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Etwaige Bedingungen.</td>
+<td>Keine</td>
+</tr>
+</tbody>
+</table>
+<h4>Fenster ForMedrixAI Store</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Studien"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Studien</span></nav>
+
+<p>Listet Modelle auf, die ForMedrixAI nach eigenen Regressionstests veröffentlicht hat und die Ihre Organisation noch nicht übernommen hat. Jede Zeile zeigt das Modell, sein Veröffentlichungsdatum und den Benchmark-Wert von ForMedrixAI sowie eine Schaltfläche <strong>Übernehmen</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-studies-adopt"><td><strong>Übernehmen</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Fügt das Modell Ihrer Organisation als Beta hinzu, nie als Standard, mit null Fällen, bis Ihre eigene Studie es bestätigt. Ablehnungen: Store nicht lizenziert, keine Organisation, nicht im Katalog, bereits übernommen.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> <code>config:validation-studies:manage</code> umfasst Anlegen, Aktualisieren, Zur Prüfung einreichen, Aktivieren, Schließen und Löschen. <code>validation:approval:record</code> umfasst das Erfassen der Ausschussgenehmigung. Das Übernehmen eines Modells erfordert <code>config:ai-model:manage</code>. Admin und Laborleiter besitzen die ersten beiden standardmäßig. Die Ereignisse der Studie werden als <code>validation_study_created</code>, <code>_submitted</code>, <code>_approval_recorded</code>, <code>_activated</code>, <code>_closed</code> und <code>_deleted</code> protokolliert. Das Speichern einer Bearbeitung protokolliert <code>validation_study_created</code>, und die Aktivierung erfasst den wörtlichen Namen <code>admin</code> als Person.</p>
+<p><strong>Bekannte Grenzen.</strong> Die Lizenzprüfung des Stores ist eine Attrappe, die immer besteht, und die Autorisierung des Abonnements ist offene Arbeit (PS-59). Die IRB-Referenz im Studienformular wird nicht gespeichert. Das Formular erfasst keinen zweiten Prüfer, nur einen Ausschussnamen.</p>
+<h3 id="screen-validation-dashboard"><a class="anchor" href="#screen-validation-dashboard" aria-label="Link to this section">#</a> Validierungsstudien: Dashboard</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Dashboard"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Dashboard</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt.</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>Validierungsstudien</strong> &gt; Unterreiter <strong>Dashboard</strong>
+<strong>2. Pflegeeintrag:</strong> Dashboard</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Eine schreibgeschützte Ansicht, wie eine laufende oder geschlossene Studie abschneidet. Verwenden Sie sie, um die Akzeptanzrate zu beobachten, bevor die Studie geschlossen wird.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Sie zeigt Daten, sobald eine Studie aktiv ist und Pathologen Fälle freigegeben haben. Ohne aktive Studie ist die Studienliste leer.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Referenz, nicht Teil der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a></p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-validation-studies">Validierungsstudien: Studien</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/validation-dashboard.webp" alt="Validierungs-Dashboard mit Studienauswahl und Leistungstabelle" loading="lazy"><figcaption>Validierungs-Dashboard mit Studienauswahl und Leistungstabelle</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-dashboard-study-selector"><td>Studienauswahl</td>
+<td>Auswahl aktiver oder geschlossener Studien</td>
+<td>Pflicht</td>
+<td>Wählt die angezeigte Studie.</td>
+<td>Die erste Studie</td>
+</tr>
+<tr id="f-validation-dashboard-cases-captured"><td>Erfasste Fälle</td>
+<td>Schreibgeschützte ganze Zahl</td>
+<td>Nicht zutreffend</td>
+<td>Fälle mit mindestens einem Signal.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals"><td>Abschnittssignale</td>
+<td>Schreibgeschützte ganze Zahl</td>
+<td>Nicht zutreffend</td>
+<td>Bei der Freigabe erfasste Vorschläge.</td>
+<td>0</td>
+</tr>
+<tr id="f-validation-dashboard-acceptance-rate-vs-target"><td>Akzeptanzrate im Vergleich zum Ziel</td>
+<td>Schreibgeschützter Prozentwert</td>
+<td>Nicht zutreffend</td>
+<td>Verglichen mit der <strong>Ziel-Akzeptanzrate</strong> der Studie.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-validation-dashboard-accepted-unchanged"><td>Unverändert akzeptiert</td>
+<td>Schreibgeschützter Prozentwert</td>
+<td>Nicht zutreffend</td>
+<td>Vorschläge, die wie geschrieben beibehalten wurden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-validation-dashboard-section-signals-acceptance-mean-edit-ratio-most-common-edit"><td><strong>Abschnitt</strong>, <strong>Signale</strong>, <strong>Akzeptanz</strong>, <strong>Durchschnittliches Bearbeitungsverhältnis</strong>, <strong>Häufigste Bearbeitung</strong></td>
+<td>Tabellenspalten</td>
+<td>Nicht zutreffend</td>
+<td>Leistung nach Befundabschnitt.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-validation-dashboard-advisory-notice"><td>Hinweis zur Beratung</td>
+<td>Schreibgeschützter Text</td>
+<td>Nicht zutreffend</td>
+<td>Weist darauf hin, dass die Zahlen beratend sind.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Bildschirm öffnen: dieselben Regeln für den Reiter wie bei <a href="#screen-tab-validation">Validierungsstudien (Reiter)</a>. Nichts auf der Seite ändert Daten.</p>
+<p><strong>Bekannte Grenzen.</strong> Keine bekannt.</p>
+<h3 id="screen-validation-reports"><a class="anchor" href="#screen-validation-reports" aria-label="Link to this section">#</a> Validierungsstudien: Berichte</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Konfiguration &gt; Validierungsstudien &gt; Berichte"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Konfiguration</span> <span aria-hidden="true">›</span> <span>Validierungsstudien</span> <span aria-hidden="true">›</span> <span>Berichte</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt.</p>
+<p><strong>1. Navigation:</strong> Konfiguration, Reiter <strong>Validierungsstudien</strong> &gt; Unterreiter <strong>Berichte</strong>
+<strong>2. Pflegeeintrag:</strong> Berichte</p>
+<p><strong>3. Geschäftlicher Zweck und Umfang.</strong> Erzeugt den gedruckten Bericht, der eine geschlossene Studie bewertet. Die Bewertung ist BESTANDEN, wenn die Akzeptanzrate mindestens dem Ziel entspricht und das mittlere Bearbeitungsverhältnis höchstens dem Maximum; BEDINGT BESTANDEN, wenn die Akzeptanzrate mindestens 85 % des Ziels beträgt; andernfalls WEITERE PRÜFUNG. <strong>Bericht erstellen &amp; drucken</strong> öffnet ein Druckfenster, erfasst die Ausgabe im <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a>, setzt die Studie auf gemeldet und speichert die endgültige Bewertung einmalig. Die Bewertung wird danach nie neu berechnet. Nur eine gemeldete Studie mit der Bewertung BESTANDEN, bei der die <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> zu den Teilnehmern gehört, erlaubt dieser Einrichtung, das Modell als ihre KI-Überschreibung festzulegen.</p>
+<p><strong>4. Voraussetzungen und Abhängigkeiten.</strong> Ein Bericht erfordert eine geschlossene Studie. Überspringen Sie das Schließen, erscheint die Studie nicht in der Liste.</p>
+<aside class="setup" aria-label="Einrichtungsreihenfolge"><p class="setup-step"><b>Einrichtungsreihenfolge</b> · Stufe 4, Schritt 4</p><dl><dt>Zuerst einrichten</dt><dd><a href="#screen-validation-studies">Validierungsstudien: Studien</a></dd><dt>Dies ermöglicht</dt><dd><span class="none">Keine.</span></dd></dl></aside>
+
+<p><strong>5. Bildschirm.</strong></p>
+<figure class="shot"><img src="../img/validation-reports.webp" alt="Vorschau des Validierungsberichts und Bericht erstellen &amp; drucken" loading="lazy"><figcaption>Vorschau des Validierungsberichts und Bericht erstellen &amp; drucken</figcaption></figure>
+
+<p><strong>6. Feldreferenz.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Feldname</th>
+<th>Datentyp / Format</th>
+<th>Pflicht/Optional</th>
+<th>Beschreibung und Geschäftslogik</th>
+<th>Systemstandard</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-validation-reports-study-selector"><td>Studienauswahl</td>
+<td>Auswahl geschlossener oder gemeldeter Studien</td>
+<td>Pflicht</td>
+<td>Wählt die Studie für die Vorschau.</td>
+<td>Die erste Studie</td>
+</tr>
+<tr id="f-validation-reports-report-preview"><td>Berichtsvorschau</td>
+<td>Schreibgeschützt</td>
+<td>Nicht zutreffend</td>
+<td>Die Zahlen und die Bewertung, wie sie gedruckt werden.</td>
+<td>Nicht zutreffend</td>
+</tr>
+<tr id="f-validation-reports-generate-amp-print-report"><td><strong>Bericht erstellen &amp; drucken</strong></td>
+<td>Schaltfläche</td>
+<td>Nicht zutreffend</td>
+<td>Druckt, protokolliert als <code>validation_report_generated</code>, setzt gemeldet und speichert die endgültige Bewertung.</td>
+<td>Nicht zutreffend</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Berechtigungen.</strong> Dieselben Regeln für den Reiter wie bei <a href="#screen-tab-validation">Validierungsstudien (Reiter)</a>. Das Erstellen des Berichts verwendet <code>config:validation-studies:manage</code>.</p>
+<p><strong>Bekannte Grenzen.</strong> Die Bewertung ist endgültig, sobald sie gespeichert ist; eine falsche Bewertung kann vom Bildschirm aus nicht neu berechnet werden.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

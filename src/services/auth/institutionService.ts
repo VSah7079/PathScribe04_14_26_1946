@@ -36,13 +36,13 @@
 
 import { getSessionUser } from './caseAccessControl';
 import { resolveTenantFacility, getLegacyHospitalIdForTenant } from './resolveTenantFacility';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 
 export async function getInstitutionId(): Promise<string> {
   const session = getSessionUser();
   if (!session?.organisationId) return 'HOSP-001';
 
-  const facilitiesRes = await mockFacilityService.getAll();
+  const facilitiesRes = await facilityService.getAll();
   const enterpriseFacilities = facilitiesRes.ok ? facilitiesRes.data.filter(f => f.isEnterprise) : [];
   const tenant = resolveTenantFacility(session.organisationId, enterpriseFacilities);
   return getLegacyHospitalIdForTenant(tenant) ?? 'HOSP-001';

@@ -10,21 +10,33 @@
 // established "match the existing sibling" guidance.
 //
 // LOUD, DELIBERATE DISCLOSURE — read before changing this file: every
-// view here carries a visible warning that the issued link is NOT real,
-// cryptographically-secured external access. See
-// services/consultAccess/IConsultTokenService.ts's own header for the
-// full reasoning. Never remove or soften that banner without the same
-// real backend (PS-291) this domain is deliberately waiting on.
+// view here carries a visible warning that no PathScribe server checks the
+// link yet, so it opens only in the browser that issued it (a demo). See
+// services/consultAccess/IConsultTokenService.ts's header. Keep the banner
+// until the API server serves links (docs/architecture/CONSULT_ACCESS_API.md).
+//
+// Batch 669 (access-11): the issue form has an opt-in, off by default, to show the consultant the patient's
+// full name and date of birth; the page is masked otherwise. Greyed out without case:consult-link:reveal-identity.
+//
+// Batch 522: the link carries its token after `#` (consultLinkUrl); revoking
+// takes the signed-in user in the service; refusals are translated codes.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import type { Case } from '@/types/case/Case';
-import { consultTokenService } from '@/services';
+import { consultTokenService, outsideConsultAssessmentProblem, OUTSIDE_CONSULT_ASSESSMENTS, type OutsideConsultAssessment } from '@/services';
+import type { ConsultOpinion } from '@/services/consultAccess/IConsultTokenService';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDateTime } from '@/utils/formatDate';
 import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
 import { resolveConsultTokenStatus } from '@/services/consultAccess/IConsultTokenService';
+import { consultLinkUrl } from '@/services/consultAccess/consultLinkRules';
 import { computeDefaultConsultTokenExpiry } from '@/services/consultAccess/computeDefaultConsultTokenExpiry';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { ConsultLifetimeLine } from './ConsultLifetimeLine';
+import { useCapabilities } from '@/hooks/useCapabilities';
 
 interface ExternalConsultAccessModalProps {
   isOpen: boolean;
@@ -48,11 +60,18 @@ function flattenSlides(c: Case): SlideOption[] {
   return out;
 }
 
-const STATUS_COLOR: Record<string, string> = { Active: '#10b981', Expired: '#f59e0b', Revoked: '#ef4444' };
 // The real status value (used for the color lookup above, and as the
 // underlying data) stays untouched; only the displayed badge text is
 // translated via this label-key map — same pattern as WorklistPage's
 // FILTER_LABEL_KEY / MolecularPlateBuilderPage's SAMPLE_TYPE_LABEL_KEY.
+/** Batch 522: the token service's refusal codes, as text. */
+const ISSUE_ERROR_KEY: Record<string, string> = {
+  CONSULT_LINK_NOT_PERMITTED: 'externalConsultAccessModal.notPermitted',
+  CONSULTANT_REQUIRED:        'externalConsultAccessModal.consultantRequired',
+  CONSULT_CASE_REQUIRED:      'externalConsultAccessModal.issueFailed',
+  CONSULT_REVEAL_NOT_PERMITTED: 'externalConsultAccessModal.revealNotPermitted',
+};
+
 const STATUS_LABEL_KEY: Record<string, string> = {
   Active:  'externalConsultAccessModal.status.active',
   Expired: 'externalConsultAccessModal.status.expired',
@@ -71,8 +90,71 @@ const DisclosureBanner: React.FC = () => {
   );
 };
 
+/**
+ * Batch 439 (PS-148): the opinions consultants sent back, and the
+ * pathologist's assessment of each against the case (agrees / minor
+ * difference / major discordance), once. A major discordance on a report
+ * already released recommends a CAPA to the QA lead (outsideConsultRules.ts).
+ */
+const OpinionCard: React.FC<{ opinion: ConsultOpinion; onAssessed: () => void }> = ({ opinion, onAssessed }) => {
+  const { t, i18n } = useTranslation();
+  const [assessment, setAssessment] = useState<OutsideConsultAssessment | ''>('');
+  const [note, setNote] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const K = 'externalConsultAccessModal.opinions';
+
+  const submit = async () => {
+    const problem = outsideConsultAssessmentProblem(opinion, assessment || undefined, note);
+    if (problem) { setError(t(`${K}.errors.${problem}`)); return; }
+    const res = await consultTokenService.assessOpinion(opinion.id, { assessment: assessment as OutsideConsultAssessment, note });
+    if (res.ok === false) { setError(t(`${K}.errors.${res.error}`, { defaultValue: t(`${K}.errors.failed`) })); return; }
+    onAssessed();
+  };
+
+  return (
+    <div className="eca-token-card eca-opinion-card">
+      <div className="eca-token-identifier">{opinion.consultantIdentifier}</div>
+      <div className="eca-token-meta">
+        {t(`${K}.submitted`, { date: formatDateTime(opinion.submittedAt, i18n.language) })} · {t(`${K}.signedStatus.${opinion.signedStatus}`)}
+        {opinion.diagnosticCategory ? ` · ${opinion.diagnosticCategory}` : ''}
+      </div>
+      <p className="eca-opinion-text">{opinion.opinionText}</p>
+      {opinion.assessment ? (
+        <div className={`eca-opinion-assessed eca-opinion-assessed--${opinion.assessment}`}>
+          {t(`${K}.assessedLine`, { assessment: t(`${K}.assessments.${opinion.assessment}`), name: opinion.assessedBy?.userName ?? '', date: formatDateTime(opinion.assessedAt, i18n.language) })}
+          {opinion.assessment === 'major-discordance' && <div>{t(opinion.assessedAfterRelease ? `${K}.capaRecommended` : `${K}.beforeRelease`)}</div>}
+          {opinion.assessmentNote && <div className="eca-token-meta">{opinion.assessmentNote}</div>}
+        </div>
+      ) : opinion.signedStatus === 'Signed' ? (
+        <div className="eca-opinion-assess">
+          <div className="fm-eyebrow">{t(`${K}.assessLabel`)}</div>
+          <div className="eca-scope-row">
+            {OUTSIDE_CONSULT_ASSESSMENTS.map(a => (
+              <button key={a} className={`eca-scope-btn${assessment === a ? ' eca-scope-btn--active' : ''}`} onClick={() => setAssessment(a)}>
+                {t(`${K}.assessments.${a}`)}
+              </button>
+            ))}
+          </div>
+          {assessment && assessment !== 'agrees' && (
+            <textarea className="ps-modal-dark-input rrm-textarea" rows={2} placeholder={t(`${K}.notePlaceholder`)} value={note} onChange={e => setNote(e.target.value)} aria-label={t(`${K}.noteLabel`)} />
+          )}
+          {error && <div className="eca-issue-error">{error}</div>}
+          <div className="eca-form-actions">
+            <CapabilityButton capability="case:outside-consult:assess" context={{ caseId: opinion.caseId }} className="eca-submit-btn" onClick={() => { void submit(); }}>
+              {t(`${K}.assessButton`)}
+            </CapabilityButton>
+          </div>
+        </div>
+      ) : (
+        <div className="eca-token-meta">{t(`${K}.draftOnly`)}</div>
+      )}
+    </div>
+  );
+};
+
 const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({ isOpen, caseData, currentUserId, currentUserName, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [opinions, setOpinions] = useState<ConsultOpinion[]>([]);
   const [view, setView] = useState<'list' | 'issue' | 'created'>('list');
   const [tokens, setTokens] = useState<ConsultToken[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +165,9 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
   const [note, setNote] = useState('');
   const [scopeMode, setScopeMode] = useState<'full' | 'slides'>('full');
   const [selectedSlideIds, setSelectedSlideIds] = useState<string[]>([]);
+  // Batch 669 (access-11): off by default; the consultant sees a masked patient unless ticked.
+  const [revealIdentity, setRevealIdentity] = useState(false);
+  const { has } = useCapabilities();
   const [issuing, setIssuing] = useState(false);
   const [issueError, setIssueError] = useState<string | null>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -92,8 +177,11 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
     if (!caseData) return;
     setLoading(true);
     consultTokenService.getByCaseId(caseData.id).then(res => {
-      if (res.ok) setTokens(res.data.slice().sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()));
+      if (res.ok) setTokens(res.data);
       setLoading(false);
+    });
+    consultTokenService.getOpinionsByCaseId(caseData.id).then(res => {
+      if (res.ok) setOpinions(res.data.slice().sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)));
     });
   };
 
@@ -101,7 +189,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
     if (isOpen) {
       setView('list');
       setConsultantIdentifier(''); setConsultantOrganization(''); setNote('');
-      setScopeMode('full'); setSelectedSlideIds([]); setIssueError(null); setCreatedLink(null); setCopied(false);
+      setScopeMode('full'); setSelectedSlideIds([]); setRevealIdentity(false); setIssueError(null); setCreatedLink(null); setCopied(false);
       loadTokens();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -109,6 +197,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
   if (!isOpen) return null;
 
+  const canRevealOnly = has('case:consult-link:reveal-identity', { caseId: caseData?.id ?? null }) && !has('case:consult-link:issue', { caseId: caseData?.id ?? null });
   const slideOptions = caseData ? flattenSlides(caseData) : [];
   const previewExpiry = computeDefaultConsultTokenExpiry(new Date());
   const caseLabel = caseData ? `${caseData.patient?.lastName}, ${caseData.patient?.firstName}` : undefined;
@@ -131,16 +220,22 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
       consultantIdentifier: consultantIdentifier.trim(),
       consultantOrganization: consultantOrganization.trim() || undefined,
       note: note.trim() || undefined,
+      ...(revealIdentity ? { revealIdentity: true } : {}),
     });
     setIssuing(false);
 
-    if (!res.ok) { setIssueError((res as { ok: false; error: string }).error); return; }
-    setCreatedLink(`${window.location.origin}/consult/${res.data.token}`);
+    if (!res.ok) {
+      const error = (res as { ok: false; error: string }).error;
+      setIssueError(t(ISSUE_ERROR_KEY[error] ?? 'externalConsultAccessModal.issueFailed'));
+      return;
+    }
+    setCreatedLink(consultLinkUrl(window.location.origin, res.data.token));
     setView('created');
   };
 
   const handleRevoke = async (id: string) => {
-    await consultTokenService.revoke(id, currentUserId);
+    // Batch 515: a refusal changes nothing; the list reloads either way.
+    await consultTokenService.revoke(id);
     loadTokens();
   };
 
@@ -181,15 +276,20 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
           {view === 'list' && (
             <>
-              <button
+              {/* Batch 669: someone who may reveal identity but not issue links gets a plain reason, not a dead end
+                  (their identity preview is in Audit Log → Consult links). */}
+              <CapabilityButton
+                capability="case:consult-link:issue"
+                context={{ caseId: caseData?.id ?? null }}
                 onClick={() => setView('issue')}
                 className="eca-issue-btn"
+                {...(canRevealOnly ? { disabled: true, disabledTitle: t('externalConsultAccessModal.requiresIssuePermission') } : {})}
               >
                 {t('externalConsultAccessModal.issueNewLink')}
-              </button>
+              </CapabilityButton>
 
               {loading ? (
-                <div className="eca-list-empty">{t('externalConsultAccessModal.loading')}</div>
+                <LoadingState variant="inline" className="eca-list-empty" label={t('externalConsultAccessModal.loading')} />
               ) : tokens.length === 0 ? (
                 <div className="eca-list-empty">{t('externalConsultAccessModal.noLinksYet')}</div>
               ) : (
@@ -208,29 +308,26 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                               {tok.scope.slideIds?.length
                                 ? t('externalConsultAccessModal.slideCount', { count: tok.scope.slideIds.length })
                                 : t('externalConsultAccessModal.fullCase')}
-                              {' · '}{t('externalConsultAccessModal.issuedAt', { date: new Date(tok.issuedAt).toLocaleString() })}
-                              {' · '}{t('externalConsultAccessModal.expiresAt', { date: new Date(tok.expiresAt).toLocaleString() })}
+                              {' · '}{t('externalConsultAccessModal.issuedAt', { date: formatDateTime(tok.issuedAt, i18n.language) })}
+                              {' · '}{t('externalConsultAccessModal.expiresAt', { date: formatDateTime(tok.expiresAt, i18n.language) })}
                             </div>
+                            <ConsultLifetimeLine link={tok} />
+                            {tok.revealIdentity && <div className="eca-token-viewed">{t('externalConsultAccessModal.identityShownBadge')}</div>}
                             {tok.accessCount > 0 && (
                               <div className="eca-token-viewed">
                                 {t('externalConsultAccessModal.viewedCount', {
                                   count: tok.accessCount,
-                                  last: tok.lastAccessedAt ? new Date(tok.lastAccessedAt).toLocaleString() : '—',
+                                  last: formatDateTime(tok.lastAccessedAt, i18n.language),
                                 })}
                               </div>
                             )}
                           </div>
                           <div className="eca-token-actions">
-                            <span
-                              className="eca-status-badge"
-                              style={{
-                                '--eca-status-color': STATUS_COLOR[status],
-                              } as React.CSSProperties}
-                            >
+                            <span className={`eca-status-badge eca-status-badge--${status.toLowerCase()}`}>
                               {t(STATUS_LABEL_KEY[status] ?? status)}
                             </span>
                             {status === 'Active' && (
-                              <button onClick={() => handleRevoke(tok.id)} className="eca-revoke-btn">{t('externalConsultAccessModal.revoke')}</button>
+                              <CapabilityButton capability="case:consult-link:revoke" context={{ caseId: caseData?.id ?? null }} onClick={() => handleRevoke(tok.id)} className="eca-revoke-btn">{t('externalConsultAccessModal.revoke')}</CapabilityButton>
                             )}
                           </div>
                         </div>
@@ -242,17 +339,24 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
             </>
           )}
 
+          {view === 'list' && opinions.length > 0 && (
+            <section className="eca-opinions">
+              <div className="fm-eyebrow">{t('externalConsultAccessModal.opinions.heading', { count: opinions.length })}</div>
+              {opinions.map(o => <OpinionCard key={o.id} opinion={o} onAssessed={loadTokens} />)}
+            </section>
+          )}
+
           {view === 'issue' && (
             <>
               <div>
                 <div className="fm-eyebrow">{t('externalConsultAccessModal.consultantIdentifierLabel')} <span className="ps-conf-required">*</span></div>
-                <input type="text" placeholder={t('externalConsultAccessModal.consultantIdentifierPlaceholder')} value={consultantIdentifier} onChange={e => setConsultantIdentifier(e.target.value)} className="ps-modal-dark-input" />
+                <input aria-label={t('externalConsultAccessModal.consultantIdentifierLabel')} type="text" placeholder={t('externalConsultAccessModal.consultantIdentifierPlaceholder')} value={consultantIdentifier} onChange={e => setConsultantIdentifier(e.target.value)} className="ps-modal-dark-input" />
                 <div className="eca-field-hint">{t('externalConsultAccessModal.noDirectoryLookupHint')}</div>
               </div>
 
               <div>
                 <div className="fm-eyebrow">{t('externalConsultAccessModal.organizationLabel')} <span className="rrm-optional-label">{t('externalConsultAccessModal.optional')}</span></div>
-                <input type="text" placeholder={t('externalConsultAccessModal.organizationPlaceholder')} value={consultantOrganization} onChange={e => setConsultantOrganization(e.target.value)} className="ps-modal-dark-input" />
+                <input aria-label={t('externalConsultAccessModal.organizationLabel')} type="text" placeholder={t('externalConsultAccessModal.organizationPlaceholder')} value={consultantOrganization} onChange={e => setConsultantOrganization(e.target.value)} className="ps-modal-dark-input" />
               </div>
 
               <div>
@@ -262,12 +366,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                     <button
                       key={m}
                       onClick={() => setScopeMode(m)}
-                      className="eca-scope-btn"
-                      style={{
-                        '--eca-scope-border': scopeMode === m ? 'rgba(16,185,129,0.6)' : 'rgba(255,255,255,0.1)',
-                        '--eca-scope-bg':     scopeMode === m ? 'rgba(16,185,129,0.15)' : 'transparent',
-                        '--eca-scope-color':  scopeMode === m ? '#34d399' : '#64748b',
-                      } as React.CSSProperties}
+                      className={`eca-scope-btn${scopeMode === m ? ' eca-scope-btn--active' : ''}`}
                     >
                       {m === 'full' ? t('externalConsultAccessModal.fullCaseOption') : t('externalConsultAccessModal.specificSlidesOption')}
                     </button>
@@ -289,19 +388,27 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
 
               <div>
                 <div className="fm-eyebrow">{t('externalConsultAccessModal.noteLabel')} <span className="rrm-optional-label">{t('externalConsultAccessModal.noteHint')}</span></div>
-                <textarea placeholder={t('externalConsultAccessModal.notePlaceholder')} value={note} onChange={e => setNote(e.target.value)} rows={2} className="ps-modal-dark-input rrm-textarea" />
+                <textarea aria-label={t('externalConsultAccessModal.noteLabel')} placeholder={t('externalConsultAccessModal.notePlaceholder')} value={note} onChange={e => setNote(e.target.value)} rows={2} className="ps-modal-dark-input rrm-textarea" />
+              </div>
+
+              <div>
+                <label className="eca-slide-option">
+                  <input type="checkbox" checked={revealIdentity} disabled={!has('case:consult-link:reveal-identity', { caseId: caseData?.id ?? null })} onChange={e => setRevealIdentity(e.target.checked)} />
+                  {t('externalConsultAccessModal.revealIdentityLabel')}
+                </label>
+                <div className="eca-field-hint">{t('externalConsultAccessModal.revealIdentityHint')}</div>
               </div>
 
               <div className="eca-expiry-note">
                 {t('externalConsultAccessModal.defaultLifespan')}{' '}
-                {t('externalConsultAccessModal.expiresAround')} <strong className="rrm-strong">{previewExpiry.toLocaleString()}</strong>.
+                {t('externalConsultAccessModal.expiresAround')} <strong className="rrm-strong">{formatDateTime(previewExpiry.toISOString(), i18n.language)}</strong>.
               </div>
 
               {issueError && <div className="eca-issue-error">{issueError}</div>}
 
               <div className="eca-form-actions">
                 <button onClick={() => setView('list')} className="rrm-cancel-btn">{t('externalConsultAccessModal.back')}</button>
-                <button onClick={handleIssue} disabled={issuing} className="eca-submit-btn" style={{ '--eca-submit-cursor': issuing ? 'default' : 'pointer' } as React.CSSProperties}>
+                <button onClick={handleIssue} disabled={issuing} className="eca-submit-btn">
                   {issuing ? t('externalConsultAccessModal.issuing') : t('externalConsultAccessModal.issueLink')}
                 </button>
               </div>
@@ -315,7 +422,7 @@ const ExternalConsultAccessModal: React.FC<ExternalConsultAccessModalProps> = ({
                 <span className="eca-created-notice-text">{t('externalConsultAccessModal.linkCreatedNotice')}</span>
               </div>
               <div className="eca-created-link-row">
-                <input readOnly value={createdLink} className="ps-modal-dark-input eca-created-link-input" onFocus={e => e.currentTarget.select()} />
+                <input aria-label={t('a11y.fields.consultLink')} readOnly value={createdLink} className="ps-modal-dark-input eca-created-link-input" onFocus={e => e.currentTarget.select()} />
                 <button onClick={handleCopy} className="eca-copy-btn">
                   {copied ? t('externalConsultAccessModal.copied') : t('externalConsultAccessModal.copy')}
                 </button>

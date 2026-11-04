@@ -1,19 +1,22 @@
 // src/services/cancerRegistry/mockFacilityCancerRegistryOverrideService.ts
 // Real, per direct guidance's own established pattern — mirrors
 // mockFacilityCytologyRegistryOverrideService.ts's exact CRUD shape.
-// Deliberately no seed data: unlike the cytology screening-registry
-// work (which had real, direct research confirming specific existing
-// seed facilities' own real jurisdictions), no such research was done
-// here to assign any of this app's existing seed facilities to a
-// specific real cancer registry — fabricating one would misrepresent
-// a real, researched fact as one that was actually confirmed.
+// Batch 457 (Pete: yes, give Metro General a cancer registry): the demo
+// facility Metro General Hospital (c1, a US facility) reports to the
+// NAACCR-format US cancer registry, so the seeded Registry Exceptions can be
+// resent. Superseded: the earlier decision to seed no facility here. Other
+// facilities still have no override (the enterprise setting applies).
 import type { IFacilityCancerRegistryOverrideService, FacilityCancerRegistryOverride } from './IFacilityCancerRegistryOverrideService';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 
 const STORAGE_KEY = 'facilityCancerRegistryOverrides';
 
-const load = (): FacilityCancerRegistryOverride[] => storageGet<FacilityCancerRegistryOverride[]>(STORAGE_KEY, []);
+export const CANCER_REGISTRY_DEMO_OVERRIDES: FacilityCancerRegistryOverride[] = [
+  { id: 'fac-cancer-registry-demo-c1', facilityId: 'c1', overrides: { registryId: 'naaccr_us' }, createdAt: '2026-10-04T00:00:00.000Z', updatedAt: '2026-10-04T00:00:00.000Z' },
+];
+
+const load = (): FacilityCancerRegistryOverride[] => storageGet<FacilityCancerRegistryOverride[]>(STORAGE_KEY, CANCER_REGISTRY_DEMO_OVERRIDES);
 const persist = (data: FacilityCancerRegistryOverride[]) => storageSet(STORAGE_KEY, data);
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });

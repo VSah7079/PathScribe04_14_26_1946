@@ -63,7 +63,7 @@ A language without dictionaries is skipped, never used. There are none today; th
 - **Personal and facility dictionaries (AC5):**
   - `customDictionaryRules.ts` holds the rules: single words only, and only the admin-tier roles may change the facility dictionary;
   - `ICustomDictionaryService.ts` / `mockCustomDictionaryService.ts` handle storage. They are exported as `customDictionaryService` from `@/services`;
-  - a facility addition takes effect immediately and is audited ("Facility spelling dictionary word added/removed"). Personal words aren't audited.
+  - a facility addition takes effect immediately and is audited ("Facility spelling dictionary word added/removed"). Personal words are audited too (Batch 651: "Personal spelling dictionary word added/removed", with the length of the word but never the word itself, since it can be a surname).
 - **Tests:**
   - `spellcheck.test.ts` runs the real Hunspell against the real built dictionaries, and checks that the German files are unmodified;
   - `customDictionary.test.ts`;
@@ -104,10 +104,10 @@ A language without dictionaries is skipped, never used. There are none today; th
 | Language | Base dictionary | Licence | Medical tier |
 |---|---|---|---|
 | en-US / en-GB / en-AU / en-CA | SCOWL-based (`dictionary-en*`) | MIT and BSD | PathScribe lexicon (`spellcheck-data/en/`) |
-| fr-FR | Dicollecte (`dictionary-fr`) | MPL-2.0 | none yet |
-| nl-NL | OpenTaal (`dictionary-nl`) | BSD-3 or CC-BY-3.0 | none yet |
+| fr-FR | Dicollecte (`dictionary-fr`) | MPL-2.0 | starter list (Batch 609), about 155 entries |
+| nl-NL | OpenTaal (`dictionary-nl`) | BSD-3 or CC-BY-3.0 | starter list (Batch 609), about 170 entries |
 | ko-KR | hunspell-dict-ko (`dictionary-ko`) | used under MPL-1.1 | PathScribe Korean seed list (needs review) |
-| de-DE | igerman98 (`dictionary-de`) | GPL-2.0 or GPL-3.0; used under the GPL (Pete, Sep 26) | none yet; core terms such as "Karzinom" are missing |
+| de-DE | igerman98 (`dictionary-de`) | GPL-2.0 or GPL-3.0; used under the GPL (Pete, Sep 26) | starter list (Batch 609), about 190 entries; the base dictionary still lacks "Karzinom", the starter list supplies it |
 
 ### German and the GPL (Batch 337)
 
@@ -151,9 +151,31 @@ Non-English medical tiers are built only from validated sources, through the Bat
 ## Known limits
 
 - **Medical coverage** is the curated lexicon until the licensed releases are built in: about 815 English entries plus 163 US/UK pairs, and about 150 Korean terms.
-- **No medical words yet for German, French or Dutch** until their SNOMED CT editions (and LOINC translations) are built in. German is the weakest of the three: its general dictionary lacks even "Karzinom" and "Adenokarzinom", so German reports will show false flags on medical terms until then.
+- **German, French and Dutch medical words (Batch 609):** a starter list for each (`spellcheck-data/{de,fr,nl}/pathology.dic.txt`, plain entries over the language's own `.aff`), built into `public/spellcheck/medical/{de-DE,fr-FR,nl-NL}.dic` and registered in the manifest as the medical tier. They fix the false flags on core terms (Karzinom, Adenokarzinom, carcinome, plaveiselcelcarcinoom). The German base files are still byte-for-byte unmodified (a test enforces it); the list is a separate data file. **Starter sets: they need native-speaker clinical review, and the national SNOMED CT editions will extend them once licensed.** Words in a starter list are left out of the licensed clinical tier. Terms not in a list are still flagged: add them through the facility dictionary.
 - **Inflections in other languages:** SNOMED CT and LOINC mostly give singular forms. English gets plurals from the SPECIALIST Lexicon; German, French and Dutch plurals are only accepted where the base dictionary or the terms themselves have them. French and Dutch base dictionaries accept the core terms tested (carcinome, adénocarcinome, carcinoom).
 - **`@farscrl/hunspell-wasm`** declares Node ≥ 24. Since Batch 341 the project is on Node 24 too, so npm no longer warns; the full suite passes on 24.
 
+## Batch 432
+
+- The facility dictionary needs `config:facilities:manage` (was a role-name check, `canManageFacilityDictionary`, removed). The spell menu's "Add to facility dictionary" uses the same capability.
+- A personal word can be removed only by its owner.
+- New screens: profile menu → "My dictionary"; Facility configuration → Spelling (performing labs).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 526
+
+Test files here no longer set their own time limit below the suite's 60 s (`vitest.config.ts`); on a busy Windows machine those shorter limits caused false timeouts.
+
+## Batch 609 (part C)
+
+German, French and Dutch got a starter medical tier (see Known limits). The build script reads `spellcheck-data/{de,fr,nl}/pathology.dic.txt`; tests in `spellcheck.test.ts` and `scripts/spellcheck/licensedSources.test.mjs` cover them. The German suggestion check retries up to five times, because Hunspell's suggestion time limit can return an empty list on a busy machine.
+
+## Batch 617 (part C): server versions (PS-514)
+
+The custom dictionary service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.
+
+## Batch 622: Spanish (es-ES)
+
+Spanish uses `dictionary-es` (RLA-ES, tri-licensed GPL / LGPL / MPL; used under MPL-1.1, licence text in `licenses/MPL-1.1.txt`, attribution in `NOTICE.txt`) as the base, and `spellcheck-data/es/pathology.dic.txt` (about 400 plain entries, authored for PathScribe, needs native-speaker clinical review) as the medical tier. The MedLexSp lexicon is non-commercial and is not used. `JURISDICTION_SPELLING_LOCALE.ES` is `es-ES`. A test loads the dictionary and checks a pathology sentence and a misspelling.

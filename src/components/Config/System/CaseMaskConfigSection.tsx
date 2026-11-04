@@ -35,14 +35,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockCaseMaskService } from '@/services/caseRegistry/mockCaseMaskService';
+
 import type { CaseMask, CaseMaskScopeType } from '@/types/config/CaseMask';
 import { DEFAULT_FALLBACK_PREFIX, DEFAULT_FALLBACK_MASK, DEFAULT_FALLBACK_SEQUENCE_DIGITS } from '@/types/config/CaseMask';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
-import { departmentService } from '@/services';
+import { departmentService, caseMaskService, facilityService, type Facility } from '@/services';
 import type { Department } from '@/services/departments/IDepartmentService';
-import { mockFacilityService, type Facility } from '@/services/facilities/mockFacilityService';
+
 import { renderCaseMask } from '@/services/caseRegistry/renderCaseMask';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Real i18n keys, not raw strings — SCOPE_LABEL_KEY is the Title Case
 // form (dropdown options, headers, modal field labels); SCOPE_LABEL_LOWER_KEY
@@ -131,7 +132,7 @@ const CaseMaskModal: React.FC<CaseMaskModalProps> = ({ mode, mask, departments, 
       updatedBy: getSessionUser()?.id ?? 'admin',
       updatedAt: new Date().toISOString(),
     };
-    const res = await mockCaseMaskService.saveMask(draft);
+    const res = await caseMaskService.saveMask(draft);
     setBusy(false);
     if (res.ok === false) { setError(res.error); return; }
     onSave(res.data);
@@ -150,7 +151,7 @@ const CaseMaskModal: React.FC<CaseMaskModalProps> = ({ mode, mask, departments, 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('caseMaskConfigSection.modal.scopeLabel')} <span className="ps-conf-required">*</span></label>
-              <select className="ps-conf-select" value={scopeType} disabled={mode === 'edit'}
+              <select aria-label={t('caseMaskConfigSection.modal.scopeLabel')} className="ps-conf-select" value={scopeType} disabled={mode === 'edit'}
                 onChange={e => { setScopeType(e.target.value as CaseMaskScopeType); setScopeId(''); }}>
                 <option value="department">{t('caseMaskConfigSection.modal.scopeTypeOptions.department')}</option>
                 <option value="facility">{t('caseMaskConfigSection.modal.scopeTypeOptions.facility')}</option>
@@ -159,7 +160,7 @@ const CaseMaskModal: React.FC<CaseMaskModalProps> = ({ mode, mask, departments, 
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t(SCOPE_LABEL_KEY[scopeType])} <span className="ps-conf-required">*</span></label>
-              <select className="ps-conf-select" value={scopeId} disabled={mode === 'edit'} onChange={e => setScopeId(e.target.value)}>
+              <select aria-label={t('a11y.fields.scope')} className="ps-conf-select" value={scopeId} disabled={mode === 'edit'} onChange={e => setScopeId(e.target.value)}>
                 <option value="">{t('caseMaskConfigSection.modal.selectScopePlaceholder', { scope: t(SCOPE_LABEL_LOWER_KEY[scopeType]) })}</option>
                 {availableOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
@@ -174,17 +175,17 @@ const CaseMaskModal: React.FC<CaseMaskModalProps> = ({ mode, mask, departments, 
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('caseMaskConfigSection.modal.prefixLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" value={prefix} onChange={e => setPrefix(e.target.value)} placeholder={t('caseMaskConfigSection.modal.prefixPlaceholder')} />
+              <input aria-label={t('caseMaskConfigSection.modal.prefixLabel')} className="ps-conf-input" value={prefix} onChange={e => setPrefix(e.target.value)} placeholder={t('caseMaskConfigSection.modal.prefixPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('caseMaskConfigSection.modal.sequenceDigitsLabel')} <span className="ps-conf-required">*</span></label>
-              <input className="ps-conf-input" type="number" min="1" value={sequenceDigits} onChange={e => setSequenceDigits(e.target.value)} />
+              <input aria-label={t('caseMaskConfigSection.modal.sequenceDigitsLabel')} className="ps-conf-input" type="number" min="1" value={sequenceDigits} onChange={e => setSequenceDigits(e.target.value)} />
             </div>
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('caseMaskConfigSection.modal.maskPatternLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input" value={maskPattern} onChange={e => setMaskPattern(e.target.value)} />
+            <input aria-label={t('caseMaskConfigSection.modal.maskPatternLabel')} className="ps-conf-input" value={maskPattern} onChange={e => setMaskPattern(e.target.value)} />
             <p className="ps-conf-section-subtitle ps-conf-section-subtitle--top-gap">{t('caseMaskConfigSection.modal.tokenHelp')}</p>
           </div>
 
@@ -234,9 +235,9 @@ const CaseMaskConfigSection: React.FC = () => {
   const loadAll = () => {
     setLoading(true);
     Promise.all([
-      mockCaseMaskService.getAllMasks(),
+      caseMaskService.getAllMasks(),
       departmentService.getAll(),
-      mockFacilityService.getAll(),
+      facilityService.getAll(),
     ]).then(([masksRes, deptRes, facRes]) => {
       setLoading(false);
       if (masksRes.ok) setMasks(masksRes.data);
@@ -274,13 +275,13 @@ const CaseMaskConfigSection: React.FC = () => {
   };
 
   const handleDelete = async (mask: CaseMask) => {
-    const res = await mockCaseMaskService.deleteMask(mask.scopeType, mask.scopeId);
+    const res = await caseMaskService.deleteMask(mask.scopeType, mask.scopeId);
     if (res.ok === false) { setErrorMsg(res.error); return; }
     setErrorMsg(null);
     loadAll();
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('caseMaskConfigSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('caseMaskConfigSection.loading')} />;
 
   return (
     <div>

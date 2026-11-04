@@ -141,7 +141,8 @@ export type Jurisdiction =
   | 'BE'
   | 'NL'
   | 'DE'
-  | 'FR';
+  | 'FR'
+  | 'ES';
 
 /** Human-readable label for each jurisdiction. Used in the admin UI. */
 export const JURISDICTION_LABELS: Record<Jurisdiction, string> = {
@@ -158,6 +159,7 @@ export const JURISDICTION_LABELS: Record<Jurisdiction, string> = {
   NL:     'Netherlands',
   DE:     'Germany',
   FR:     'France',
+  ES:     'Spain',
 };
 
 /** ICD-10 variant for a given jurisdiction. */
@@ -183,6 +185,9 @@ export const icd10VariantForJurisdiction = (j: Jurisdiction): string => ({
   NL:     'ICD-10 (WHO)',
   DE:     'ICD-10-GM',
   FR:     'CIM-10',
+  // CIE-10-ES (Spanish Ministry of Health): the Spanish adaptation of the
+  // US ICD-10-CM / ICD-10-PCS, not the WHO ICD-10 (docs/product/SPAIN_RESEARCH.md).
+  ES:     'CIE-10-ES',
 }[j]);
 
 /** SNOMED CT release name for a given jurisdiction. */
@@ -204,6 +209,9 @@ export const snomedReleaseForJurisdiction = (j: Jurisdiction): string => ({
   NL:     'SNOMED CT Netherlands Edition (DHD/Nictiz)',
   DE:     'SNOMED CT Germany Edition (BfArM)',
   FR:     'SNOMED CT France Edition (ANS)',
+  // Spain is a SNOMED International member. Whether a US vendor qualifies for
+  // the free national licence is unverified (SPAIN_RESEARCH.md): treat as unlicensed. A customer that holds one records it under Configuration > System > Code Systems (Batch 623, PS-130).
+  ES:     'SNOMED CT Spanish Edition (Ministerio de Sanidad)',
 }[j]);
 
 /** True if a manually obtained license is required before seeding production. */
@@ -250,6 +258,8 @@ export const JURISDICTION_LOCALE: Record<Jurisdiction, JurisdictionLocale> = {
   NL:     { locale: 'nl-NL', dateFormat: 'DD-MM-YYYY', timeFormat: '24h', spellLang: 'nl-NL' },
   DE:     { locale: 'de-DE', dateFormat: 'DD.MM.YYYY', timeFormat: '24h', spellLang: 'de-DE' },
   FR:     { locale: 'fr-FR', dateFormat: 'DD/MM/YYYY', timeFormat: '24h', spellLang: 'fr-FR' },
+  // Spain: day first with slashes, 24-hour clock (es-ES).
+  ES:     { locale: 'es-ES', dateFormat: 'DD/MM/YYYY', timeFormat: '24h', spellLang: 'es-ES' },
 };
 
 // ── Patient identifier standards ──────────────────────────────────────────────
@@ -305,7 +315,7 @@ export const PATIENT_ID_BY_JURISDICTION: Record<Jurisdiction, PatientIdStandard>
   US:     { labelKey: 'headerBar.field.mrn',                        pattern: '^\\d{5,10}$',                          formatKey: 'systemConfig.patientIdStandard.US.format',     example: '1234567',        luhnCheck: false },
   CA:     { labelKey: 'systemConfig.patientIdStandard.CA.label',    pattern: '^[0-9A-Z]{9,12}$',                     formatKey: 'systemConfig.patientIdStandard.CA.format',     example: '1234567890',     luhnCheck: false },
   GB_EW:  { labelKey: 'systemConfig.patientIdStandard.GB_EW.label', pattern: '^\\d{3}[\\s-]?\\d{3}[\\s-]?\\d{4}$', formatKey: 'systemConfig.patientIdStandard.GB_EW.format', example: '943 476 5919',   luhnCheck: true  },
-  GB_SCT: { labelKey: 'systemConfig.patientIdStandard.GB_SCT.label',pattern: '^\\d{10}$',                            formatKey: 'systemConfig.patientIdStandard.GB_SCT.format', example: '1401740054',    luhnCheck: false },
+  GB_SCT: { labelKey: 'systemConfig.patientIdStandard.GB_SCT.label',pattern: '^\\d{10}$',                            formatKey: 'systemConfig.patientIdStandard.GB_SCT.format', example: '1401740057',    luhnCheck: false },
   // Real fix, per direct, authoritative specification: this entry
   // previously described a letters-then-digits format ('AA99999'),
   // which was wrong — a real H&C Number is 10 all-numeric digits,
@@ -365,6 +375,11 @@ export const PATIENT_ID_BY_JURISDICTION: Record<Jurisdiction, PatientIdStandard>
   // key = 97-40 = 57, giving 183126912345657 — verified valid before
   // use here, the same discipline as NL's own BSN example above.
   FR:     { labelKey: 'systemConfig.patientIdStandard.FR.label', pattern: '^[12]\\d{2}(0[1-9]|1[0-2])\\d{10}$', formatKey: 'systemConfig.patientIdStandard.FR.format', example: '183126912345657', luhnCheck: true  },
+  // DNI (8 digits + control letter) or NIE (X, Y or Z + 7 digits + letter). The
+  // letter is the number mod 23 (TRWAGMYFPDXBNJZSQVHLCKE); 12345678Z is a valid
+  // DNI. luhnCheck: false because no validator for it is wired yet. The regional
+  // health card (CIP) and the national SNS code are not modelled here.
+  ES:     { labelKey: 'systemConfig.patientIdStandard.ES.label', pattern: '^(\\d{8}|[XYZ]\\d{7})[A-Z]$', formatKey: 'systemConfig.patientIdStandard.ES.format', example: '12345678Z', luhnCheck: false },
 };
 
 
@@ -460,9 +475,9 @@ export const IDENTIFIER_FORMAT_LIBRARY: IdentifierFormat[] = [
 
   // Patient identifiers
   { id: 'mrn_us',                   kind: 'mrn',         label: 'MRN',                                   description: 'US Medical Record Number: 5–10 digits.',                                                                                                                  pattern: '^\\d{5,10}$',                                         barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['US','CA'],                      lisPresets: [],                             enabled: true,  example: '1234567'         },
-  { id: 'mrn_nhs',                  kind: 'mrn',         label: 'NHS Number',                            description: 'England & Wales NHS Number: 10 digits with Luhn check digit. Format: 999 999 9999.',                                                                     pattern: '^\\d{3}[\\s-]?\\d{3}[\\s-]?\\d{4}$',                 barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_EW'],                        lisPresets: [],                             enabled: false, example: '943 476 5919'    },
-  { id: 'mrn_chi',                  kind: 'mrn',         label: 'CHI Number',                            description: 'Scotland CHI: 10 digits (DDMMYY + 4 digits).',                                                                                                          pattern: '^\\d{10}$',                                           barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_SCT'],                       lisPresets: [],                             enabled: false, example: '1401740054'      },
-  { id: 'mrn_hc',                   kind: 'mrn',         label: 'H&C Number',                            description: 'Northern Ireland H&C Number: 2 letters + 5–7 digits.',                                                                                                   pattern: '^[A-Z]{2}\\d{5,7}$',                                  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_NIR'],                       lisPresets: [],                             enabled: false, example: 'AB123456'        },
+  { id: 'mrn_nhs',                  kind: 'mrn',         label: 'NHS Number',                            description: 'England & Wales NHS Number: 10 digits with a Modulus 11 check digit (not Luhn). Format: 999 999 9999.',                                                                     pattern: '^\\d{3}[\\s-]?\\d{3}[\\s-]?\\d{4}$',                 barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_EW'],                        lisPresets: [],                             enabled: false, example: '943 476 5919'    },
+  { id: 'mrn_chi',                  kind: 'mrn',         label: 'CHI Number',                            description: 'Scotland CHI: 10 digits (DDMMYY + 4 digits).',                                                                                                          pattern: '^\\d{10}$',                                           barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_SCT'],                       lisPresets: [],                             enabled: false, example: '1401740057'      },
+  { id: 'mrn_hc',                   kind: 'mrn',         label: 'H&C Number',                            description: 'Northern Ireland H&C Number: 10 digits in the 3200000001–3999999999 range with a Modulus 11 check digit (Batch 417: was wrongly 2 letters + digits).',                                                                                                   pattern: '^3[2-9]\\d{8}$',                                  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['GB_NIR'],                       lisPresets: [],                             enabled: false, example: '3212345675'        },
   { id: 'mrn_ihi',                  kind: 'mrn',         label: 'IHI Number',                            description: 'Australia IHI: 16 digits starting with 800360.',                                                                                                         pattern: '^800360\\d{10}$',                                      barcodeTypes: ['1d_code128','2d_datamatrix'],     tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['AU'],                           lisPresets: [],                             enabled: false, example: '8003601234567890' },
   { id: 'mrn_nhi',                  kind: 'mrn',         label: 'NHI Number',                            description: 'New Zealand NHI: 3 letters + 4 digits (legacy) or 3 letters + 2 digits + 2 letters (new format).',                                                      pattern: '^[A-Z]{3}\\d{4}$|^[A-Z]{3}\\d{2}[A-Z]{2}$',          barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['NZ'],                           lisPresets: [],                             enabled: false, example: 'ZZZ0016'         },
   // Real, cited structure — see systemConfig.ts's own Jurisdiction
@@ -479,6 +494,13 @@ export const IDENTIFIER_FORMAT_LIBRARY: IdentifierFormat[] = [
   { id: 'mrn_bsn',                  kind: 'mrn',         label: 'BSN (Burgerservicenummer)',             description: 'Netherlands citizen service number: 8 or 9 digits, elfproef (eleven-test) checksum.',                     pattern: '^\\d{8,9}$',                                          barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['NL'],                           lisPresets: [],                             enabled: false, example: '111222333'       },
   { id: 'mrn_kvnr',                 kind: 'mrn',         label: 'KVNR (Krankenversichertennummer)',      description: 'Germany health insurance number: 1 uppercase letter + 9 digits — a dedicated, healthcare-only identifier, not the general Sozialversicherungsnummer.', pattern: '^[A-Z]\\d{9}$', barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['DE'],                           lisPresets: [],                             enabled: false, example: 'A123456789'      },
   { id: 'mrn_ins',                  kind: 'mrn',         label: 'INS (numéro de sécurité sociale / NIR)', description: 'France national health identity, numerically built on the NIR: 15 digits (13-digit identification + Modulus 97 check key).', pattern: '^[12]\\d{2}(0[1-9]|1[0-2])\\d{10}$',  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['FR'],                           lisPresets: [],                             enabled: false, example: '183126912345657' },
+  { id: 'mrn_dni_nie',               kind: 'mrn',         label: 'DNI / NIE (España)', description: 'Spain national identity number: DNI (8 digits + control letter) or NIE (X, Y or Z + 7 digits + control letter). The letter is the number mod 23; no check is wired yet. The regional health card (CIP) is not modelled.', pattern: '^(\\d{8}|[XYZ]\\d{7})[A-Z]$',  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['ES'],                           lisPresets: [],                             enabled: false, example: '12345678Z' },
+  // Batch 417 (Registry Engine SRS v2.1, §5.2): national identifiers the
+  // registries key on that had no entry. kind 'mrn' so scanning and search
+  // treat them as patient identifiers; off by default like the others.
+  { id: 'id_ie_ihi',                kind: 'mrn',         label: 'IHI (Ireland)',                         description: 'Ireland Individual Health Identifier: 10 digits starting 8000 with a Modulus 11 check digit. Confirm with HSE before go-live.', pattern: '^8000\\d{6}$',                                          barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['IE'],                           lisPresets: [],                             enabled: false, example: '8000000011'      },
+  { id: 'id_ie_ppsn',               kind: 'mrn',         label: 'PPSN (Ireland)',                        description: 'Ireland Personal Public Service Number: 7 digits + 1 or 2 letters, Modulus 23 check letter.',                                        pattern: '^\\d{7}[A-Z]{1,2}$',                                  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['IE'],                           lisPresets: [],                             enabled: false, example: '1234567FA'       },
+  { id: 'id_ca_phn',                kind: 'mrn',         label: 'Provincial health number (Canada)',     description: 'Canadian provincial health number: 10 digits with a Luhn check digit (Ontario OHIP; other provinces differ and need their own rule).', pattern: '^\\d{10}$',                                           barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: ['CA'],                           lisPresets: [],                             enabled: false, example: '9876543217'      },
 
   // Slide barcodes — navigate directly to synoptic
   { id: 'slide_generic_1d',         kind: 'slide',       label: 'Slide Barcode',                         description: 'Generic slide: accession + specimen letter + block number + optional sequence (e.g. S26-4200-A1-1). Scanning opens the case directly at the specimen tab.', pattern: '^[A-Z]\\d{2}-\\d{4,6}-[A-Z]\\d+(-\\d+)?$',           barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: true,  jurisdictions: [],                               lisPresets: ['generic'],                    enabled: false, example: 'S26-4200-A1-1'   },
@@ -490,7 +512,7 @@ export const IDENTIFIER_FORMAT_LIBRARY: IdentifierFormat[] = [
   { id: 'requisition_generic',      kind: 'requisition', label: 'Requisition Number',                    description: 'Lab requisition: R or REQ prefix + 6–10 digits.',                                                                                                         pattern: '^R(?:EQ)?\\d{6,10}$',                                  barcodeTypes: ['1d_code128'],                    tier: 1, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: false, example: 'REQ1234567'       },
 
   // Block (Tier 2 — internal mapping only)
-  { id: 'block_generic',            kind: 'block',       label: 'Block / Cassette ID',                   description: 'Specimen letter + block number (e.g. A1). Used for Computational Sidecar result mapping and HL7 OBR matching.',                                          pattern: '^[A-Z]\\d{1,2}[a-z]?$',                               barcodeTypes: ['1d_code128'],                    tier: 2, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: true,  example: 'A1'              },
+  { id: 'block_generic',            kind: 'block',       label: 'Block / Cassette ID',                   description: 'Specimen letter + block number (e.g. A1). Used for result-to-specimen mapping and HL7 OBR matching.',                                          pattern: '^[A-Z]\\d{1,2}[a-z]?$',                               barcodeTypes: ['1d_code128'],                    tier: 2, navigateToCaseOnMatch: false, jurisdictions: [],                               lisPresets: [],                             enabled: true,  example: 'A1'              },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -511,7 +533,7 @@ export function defaultFormatsForJurisdiction(j: Jurisdiction): IdentifierFormat
     // Real, same honest choice as KR above — accession numbering
     // isn't a government-mandated format for these four either.
     BE: 'accession_generic_uk', NL: 'accession_generic_uk',
-    DE: 'accession_generic_uk', FR: 'accession_generic_uk',
+    DE: 'accession_generic_uk', FR: 'accession_generic_uk', ES: 'accession_generic_uk',
   };
   const mrnMap: Record<Jurisdiction, string> = {
     US: 'mrn_us', CA: 'mrn_us',
@@ -519,7 +541,7 @@ export function defaultFormatsForJurisdiction(j: Jurisdiction): IdentifierFormat
     GB_NIR: 'mrn_hc', IE: 'mrn_us',
     AU: 'mrn_ihi', NZ: 'mrn_nhi',
     KR: 'mrn_krn',
-    BE: 'mrn_be', NL: 'mrn_bsn', DE: 'mrn_kvnr', FR: 'mrn_ins',
+    BE: 'mrn_be', NL: 'mrn_bsn', DE: 'mrn_kvnr', FR: 'mrn_ins', ES: 'mrn_dni_nie',
   };
   const enabledIds = new Set([accessionMap[j], mrnMap[j], 'block_generic']);
   return IDENTIFIER_FORMAT_LIBRARY.map(f => ({ ...f, enabled: enabledIds.has(f.id) }));
@@ -550,6 +572,11 @@ export interface SystemConfig {
   jurisdiction:                    Jurisdiction;
   terminologyConfig:               InstitutionTerminologyConfig;
   voiceEnabled:                    boolean;
+  /** Batch 609 (#179): whether a non-English voice profile may still fuzzy-match English
+   *  command phrases when nothing in its own language matches. On by default (the
+   *  behaviour before this setting); turn it off once a language's commands are
+   *  translated, so a near-miss is not read as an unrelated English command. */
+  voiceEnglishFuzzyFallback:       boolean;
   /** Whether pathologists (role === 'pathologist' specifically) see peer-
    *  average/top-performer comparisons on their own Contribution dashboard.
    *  Defaults to false, matching the design decision this mirrors: peer
@@ -597,6 +624,7 @@ export const DEFAULT_SYSTEM_CONFIG: SystemConfig = {
     icdo:   { active: true,  mode: 'mock' },
   },
   voiceEnabled: true,
+  voiceEnglishFuzzyFallback: true,
   showPeerAveragesToPathologists: false,
   facilityTimezone: 'America/Phoenix',
 };

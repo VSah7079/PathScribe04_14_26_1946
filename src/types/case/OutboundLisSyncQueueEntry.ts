@@ -20,7 +20,12 @@
 // reportingMode boundary.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type LisSyncKind = 'corrected' | 'new_instance' | 'corrected_with_addition';
+/** Batch 426: 'final' is an Assist case's first release of a workup (Finalize). */
+export type LisSyncKind = 'final' | 'corrected' | 'new_instance' | 'corrected_with_addition'
+  /** Batch 427: the case's combined PDF (every finalized workup), for a site that takes one PDF per accession. */
+  | 'case_pdf'
+  /** Batch 751: an organ map file for the laboratory system (organMapping/organMapDelivery.ts), after its workup's message. */
+  | 'organ_map';
 
 export interface OutboundLisSyncQueueEntry {
   /** Real UUID — the external "TransactionID" a downstream LIS dedupes
@@ -43,4 +48,15 @@ export interface OutboundLisSyncQueueEntry {
   retryCount: number;
   maxRetriesExceeded: boolean;
   lastAttemptAt?: string;
+  /** Batch 538: the stored report document (workup or combined case PDF) this message carries; a retry sends it. */
+  reportDocumentId?: string;
+  pdfSha256?: string;
+  /** Batch 426: the workup version this message carries (1 for the first release). */
+  workupVersion?: number;
+  /** Batch 426: the observations as sent, so the next correction can say what changed. */
+  sentObservations?: import('@/services/reports/synopticResultPayload').SynopticObservation[];
+  /** Batch 426: who released it (for a retry, which has no one on the page). */
+  signer?: { id: string; name: string; signedAt: string };
+  /** Batch 751 (kind organ_map): the file sent, its SHA-256, the map's fingerprint and where it went. */
+  organMapFile?: { fileName: string; sha256?: string; fingerprint: string; mapType: string; destination: string };
 }

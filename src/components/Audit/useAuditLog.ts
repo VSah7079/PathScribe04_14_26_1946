@@ -86,7 +86,14 @@ export type AuditAction =
   | "protocol_change_committed"
   | "flag_manager_opened"
   | "team_modal_opened"
-  | "codes_modal_opened";
+  | "codes_modal_opened"
+  // Batch 511 (PS-478): logged by the report page's amendment, grossing and
+  // sign-out hooks, but never listed here. Typing the hooks' logger found
+  // them: they were saved with no category and their raw JSON as detail.
+  | "amendment_draft_opened"
+  | "amendment_released"
+  | "grossing_template_change_committed"
+  | "code_review_random_sample";
 
 // ── Event type mapping ────────────────────────────────────────────────────────
 // Maps each AuditAction to the high-level AuditEventCategory used by your
@@ -143,6 +150,10 @@ const actionTypeMap: Record<AuditAction, AuditEventCategory> = {
   protocol_change_committed:  "user",
   flag_manager_opened:        "user",
   team_modal_opened:          "user",
+  amendment_draft_opened:     "user",
+  amendment_released:         "user",
+  grossing_template_change_committed: "user",
+  code_review_random_sample:  "system",
   codes_modal_opened:         "user",
 };
 
@@ -204,6 +215,10 @@ export type AuditPayload = {
   flag_manager_opened:       { caseId: string; source?: string };
   team_modal_opened:         { caseId: string };
   codes_modal_opened:        { caseId: string };
+  amendment_draft_opened:    { caseId: string; amendmentId: string; type: string; reportInstanceId?: string; specimenId?: string };
+  amendment_released:        { caseId?: string; amendmentId?: string; type?: string; reportInstanceId?: string; specimenId?: string; previouslyReportedAs?: string; correctedTo?: string };
+  grossing_template_change_committed: { caseId: string; acceptedCount: number; totalProposed: number };
+  code_review_random_sample: { caseId: string; performingLabFacilityId: string; samplingRatePercent?: number | null };
   gross_complete:            { caseId: string; accession?: string; specimenCount: number };
   gross_updated:             { caseId: string; accession?: string; specimenCount: number; reason?: string };
 
@@ -451,12 +466,33 @@ function buildDetail<A extends keyof AuditPayload>(action: A, payload: AuditPayl
       return `Codes modal opened — case ${p.caseId}`;
     }
 
+    case "amendment_draft_opened": {
+      const p = payload as AuditPayload["amendment_draft_opened"];
+      return `${p.type} draft opened — case ${p.caseId}${p.specimenId ? `, specimen ${p.specimenId}` : ""}`;
+    }
+    case "amendment_released": {
+      const p = payload as AuditPayload["amendment_released"];
+      return `${p.type ?? "Revision"} released — case ${p.caseId ?? "unknown"}${p.specimenId ? `, specimen ${p.specimenId}` : ""}` +
+        (p.previouslyReportedAs || p.correctedTo ? ` — previously reported as "${p.previouslyReportedAs ?? ""}", corrected to "${p.correctedTo ?? ""}"` : "");
+    }
+    case "grossing_template_change_committed": {
+      const p = payload as AuditPayload["grossing_template_change_committed"];
+      return `Grossing template changes committed — case ${p.caseId}: ${p.acceptedCount} of ${p.totalProposed} proposed change(s) accepted`;
+    }
+    case "code_review_random_sample": {
+      const p = payload as AuditPayload["code_review_random_sample"];
+      return `Case ${p.caseId} picked for random code review at performing lab ${p.performingLabFacilityId} (sampling rate ${p.samplingRatePercent ?? "not set"}%)`;
+    }
+
     default:
       return JSON.stringify(payload);
   }
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────────
+
+/** The `log` function useAuditLog returns (Batch 511: typed so hooks that take it as a parameter are checked too). */
+export type AuditLogFn = <A extends keyof AuditPayload>(action: A, payload: AuditPayload[A]) => void;
 
 export function useAuditLog() {
   const { user } = useAuth();

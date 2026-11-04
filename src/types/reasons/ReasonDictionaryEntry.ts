@@ -38,7 +38,18 @@ export type ReasonDictionaryCategory =
   | 'POST_SIGNOUT_BILLING_CHANGE'
   | 'ADDENDUM'
   | 'AMENDMENT'
-  | 'CORRECTION';
+  | 'CORRECTION'
+  /** Batch 399: why a critical intraoperative result didn't go to the operating surgeon. */
+  | 'SURGEON_UNAVAILABLE'
+  /** Batch 736 (Pete, Oct 30, 2026): the bench's tap-to-pick reasons, which each lab words its own way
+   *  (services/reasons/benchReasons.ts). The Microtome's Block exhausted flag; the pathologist's answer to it, and the
+   *  Add-On builder's reason for an order on an exhausted block; Batch Management's Abort, complete with exceptions
+   *  and cold-chain acknowledgement. */
+  | 'BENCH_BLOCK_EXHAUSTED'
+  | 'BENCH_ADDON_EXHAUSTED'
+  | 'BENCH_BATCH_ABORT'
+  | 'BENCH_BATCH_OVERRIDE'
+  | 'BENCH_BATCH_COLD_CHAIN';
 
 export interface ReasonDictionaryEntry {
   id: string;
@@ -46,6 +57,13 @@ export interface ReasonDictionaryEntry {
   name: string;
   description: string;
   status: 'Active' | 'Inactive';
+  /** Batch 438 (PS-146), AMENDMENT and CORRECTION reasons: a revision for
+   *  this reason means the original report may have affected clinical
+   *  management, so releasing one recommends a CAPA. Absent: the starting
+   *  value (services/reasons/revisionReasonRules.ts). */
+  clinicallySignificant?: boolean;
+  /** Batch 736, bench reasons: shown in this order (lowest first); absent sorts after. */
+  sortOrder?: number;
 }
 
 export interface IReasonDictionaryService {

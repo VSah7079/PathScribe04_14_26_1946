@@ -3,6 +3,9 @@
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IProtocolService, Protocol } from './IProtocolService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { CYTOLOGY_DEMO_PROTOCOLS } from './cytologyDemoProtocols';
+import { SURGICAL_DEMO_PROTOCOLS } from './surgicalDemoProtocols';
 
 const load = () => storageGet<Protocol[]>('pathscribe_protocols', [
   {
@@ -86,13 +89,17 @@ const load = () => storageGet<Protocol[]>('pathscribe_protocols', [
     ],
     active: true, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(),
   },
+  // Batch 716: the cytology protocols (cell block / smear tracks, HPV co-test order) for the Cytology Part 2 demo.
+  ...CYTOLOGY_DEMO_PROTOCOLS,
+  // Batch 738 (Demo Seed Data S1): colon, breast, skin, small biopsy and prostate core protocols.
+  ...SURGICAL_DEMO_PROTOCOLS,
 ]);
 const persist = (data: Protocol[]) => storageSet('pathscribe_protocols', data);
 let PROTOCOLS: Protocol[] = load();
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockProtocolService: IProtocolService = {
+const protocolServiceUnchecked: IProtocolService = {
   async getAll() {
     return ok([...PROTOCOLS]);
   },
@@ -142,3 +149,8 @@ export const mockProtocolService: IProtocolService = {
     return this.update(id, entry.snapshot);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockProtocolService: IProtocolService = guardConfigWrites(protocolServiceUnchecked, [
+  ['config:processing-protocols:manage', ['add', 'update', 'restoreVersion']],
+]);

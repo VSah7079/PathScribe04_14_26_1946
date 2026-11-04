@@ -1,0 +1,6 @@
+/* Batch 727 (Lab Workflow & Batch spec, Decision 3): the ADD-ON tag, the order type beneath it, and the pinned note on
+   the wall display's queue rows. The tag reuses .ps-opsdash-stat-pill's shape with its own colour, and says ADD-ON in
+   words, so colour is never the only signal. Logical properties only. */
+.ps-opsdash-addon-pill { background: rgba(56, 189, 248, 0.18); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.45); }
+.ps-opsdash-pinned { margin-inline-start: 8px; font-size: 0.75em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.85; }
+.ps-opsdash-queue-sublabel { font-size: 0.85em; font-weight: 600; opacity: 0.9; }

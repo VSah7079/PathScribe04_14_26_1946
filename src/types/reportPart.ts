@@ -20,7 +20,7 @@
 //             Body parts are the primary authoring target.
 // ─────────────────────────────────────────────────────────────
 
-import type { TemplateNode, AiGenerationConfig, LabelConfig } from './template';
+import type { TemplateNode, AiGenerationConfig, LabelConfig, FontUnits } from './template';
 
 // ── Part type ──────────────────────────────────────────────────
 
@@ -229,6 +229,14 @@ export interface ReportTemplate {
     body?: LabelConfig;
     footer?: LabelConfig;
   };
+
+  /**
+   * Batch 612: the units of this template's font sizes (its document style and the labels in its parts).
+   * New templates are "pt" (the number is the printed size). A template saved before Batch 612 has none,
+   * which is "legacy_px": pixels, 1 px = 0.75 pt, printing as it always did until the author uses
+   * "Convert to points" (services/reportAppearance/fontUnits.ts).
+   */
+  fontUnits?: FontUnits;
 
   institutionId: string;
   createdBy: string;

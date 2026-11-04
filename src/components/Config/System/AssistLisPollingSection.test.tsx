@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
 // src/components/Config/System/AssistLisPollingSection.test.tsx — PS-87 screen.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@/i18n/config';
 

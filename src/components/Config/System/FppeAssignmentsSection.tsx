@@ -2,18 +2,24 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { userService, subspecialtyService, fppeAssignmentService, qaSupervisionAssignmentService } from '@/services';
-import { FPPE_ACTIVITY_TYPE_ID } from '@/services/quality/mockQaSupervisionAssignmentService';
+import { userService, subspecialtyService, qaSupervisionAssignmentService, FPPE_ACTIVITY_TYPE_ID } from '@/services';
+
 import type { StaffUser, Subspecialty, Facility } from '@/services';
 import { getActivePerformingLabs } from '@/utils/performingLabs';
-import type { FppeAssignment, FppeEndCondition } from '@/types/case/FppeAssignment';
+import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import { computeFppeProgress } from '@/services/cases/fppeEndCondition';
+import { canCreateFppeAssignment, buildFppeEndCondition, splitFppeAssignments, type FppeEndConditionType as EndConditionType } from '@/services/quality/fppeAssignmentForm';
+import { formatDate } from '@/utils/formatDate';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-type EndConditionType = 'case_count' | 'duration_days' | 'either';
+// Batch 515 (PS-124): reads and writes the generic QA supervision service
+// (activity FPPE_ACTIVITY_TYPE_ID) only. The legacy fppeAssignmentService and
+// its FppeAssignment type are retired; the form's decisions live in
+// services/quality/fppeAssignmentForm.ts.
 
 const FppeAssignmentsSection: React.FC = () => {
-  const { t } = useTranslation();
-  const [assignments, setAssignments] = useState<FppeAssignment[]>([]);
+  const { t, i18n } = useTranslation();
+  const [assignments, setAssignments] = useState<QaSupervisionAssignment[]>([]);
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [labs, setLabs] = useState<Facility[]>([]);
@@ -38,7 +44,7 @@ const FppeAssignmentsSection: React.FC = () => {
 
   const refresh = () => {
     setLoading(true);
-    Promise.all([fppeAssignmentService.getAll(), userService.getAll(), subspecialtyService.getAll()]).then(([aRes, uRes, sRes]) => {
+    Promise.all([qaSupervisionAssignmentService.getAll(), userService.getAll(), subspecialtyService.getAll()]).then(([aRes, uRes, sRes]) => {
       if (aRes.ok) setAssignments(aRes.data);
       if (uRes.ok) setUsers(uRes.data);
       if (sRes.ok) setSubspecialties(sRes.data);
@@ -54,49 +60,20 @@ const FppeAssignmentsSection: React.FC = () => {
   const subspecialtyName = (id?: string) => id ? (subspecialties.find(s => s.id === id)?.name ?? id) : t('fppeAssignmentsSection.form.allSubspecialties');
   const facilityName = (id: string) => labs.find(l => l.id === id)?.name ?? id;
 
-  const canCreate = provisionalUserId && proctorUserId && provisionalUserId !== proctorUserId && facilityId
-    && (endConditionType !== 'case_count' || +caseCountThreshold > 0)
-    && (endConditionType !== 'duration_days' || +durationDaysThreshold > 0)
-    && (endConditionType !== 'either' || (+caseCountThreshold > 0 && +durationDaysThreshold > 0));
+  const draft = { superviseeUserId: provisionalUserId, supervisorUserId: proctorUserId, facilityId, endConditionType, caseCountThreshold, durationDaysThreshold };
+  const canCreate = canCreateFppeAssignment(draft);
 
   const handleCreate = async () => {
     if (!canCreate) return;
     setCreating(true);
-    const endCondition: FppeEndCondition = endConditionType === 'case_count'
-      ? { type: 'case_count', threshold: +caseCountThreshold }
-      : endConditionType === 'duration_days'
-      ? { type: 'duration_days', threshold: +durationDaysThreshold }
-      : { type: 'either', caseCountThreshold: +caseCountThreshold, durationDaysThreshold: +durationDaysThreshold };
-
-    const created = await fppeAssignmentService.create({
-      provisionalUserId,
-      provisionalUserName: userName(provisionalUserId),
-      proctorUserId,
-      proctorUserName: userName(proctorUserId),
-      facilityId,
+    await qaSupervisionAssignmentService.create({
+      activityTypeId: FPPE_ACTIVITY_TYPE_ID,
+      superviseeUserId: provisionalUserId, superviseeUserName: userName(provisionalUserId),
+      supervisorUserId: proctorUserId, supervisorUserName: userName(proctorUserId),
       subspecialtyId: subspecialtyId || undefined,
-      endCondition,
+      facilityId,
+      endCondition: buildFppeEndCondition(draft),
     });
-    // PS-114, Stage 3 — real, synchronized shadow-write. Uses the old
-    // system's own real, just-generated id explicitly, so the same
-    // logical assignment shares one real id across both systems -
-    // what makes recordCaseReviewed/graduate below able to mirror
-    // correctly later without any separate id-mapping table. Real,
-    // deliberate fire-and-forget: never blocks or fails the real,
-    // already-successful old-system create above. facilityId is now
-    // carried through here too, same field-for-field mirroring
-    // discipline as every other real field already shadow-written.
-    if (created.ok) {
-      qaSupervisionAssignmentService.create({
-        id: created.data.id,
-        activityTypeId: FPPE_ACTIVITY_TYPE_ID,
-        superviseeUserId: provisionalUserId, superviseeUserName: userName(provisionalUserId),
-        supervisorUserId: proctorUserId, supervisorUserName: userName(proctorUserId),
-        subspecialtyId: subspecialtyId || undefined,
-        facilityId,
-        endCondition,
-      }).catch(() => {});
-    }
     setCreating(false);
     setShowForm(false);
     setProvisionalUserId(''); setProctorUserId(''); setSubspecialtyId(''); setFacilityId('');
@@ -104,21 +81,14 @@ const FppeAssignmentsSection: React.FC = () => {
   };
 
   const handleGraduate = async (id: string) => {
-    await fppeAssignmentService.graduate(id);
-    // PS-114, Stage 3 — real, synchronized shadow-write, same reasoning
-    // as handleCreate above. Uses the same real id, since it was shared
-    // at creation time.
-    qaSupervisionAssignmentService.graduate(id).catch(() => {});
+    await qaSupervisionAssignmentService.graduate(id);
     refresh();
   };
 
-  // Real fix, found by this app's own inline-CSS/business-logic sweep:
-  // daysSince now comes from fppeEndCondition.ts's shared
-  // computeFppeProgress() — the same real source of truth
-  // mockFppeAssignmentService.ts's actual enforcement and
-  // FppeTrackingTab.tsx's progress bar both use — instead of an
-  // independently-recomputed copy of the same days-since-start math.
-  const endConditionLabel = (a: FppeAssignment) => {
+  // daysSince comes from fppeEndCondition.ts's shared computeFppeProgress(),
+  // the same source the supervision service's completion check and
+  // FppeTrackingTab.tsx's progress bar use.
+  const endConditionLabel = (a: QaSupervisionAssignment) => {
     const daysSince = Math.floor(computeFppeProgress(a).daysSinceStart);
     if (a.endCondition.type === 'case_count') {
       return t('fppeAssignmentsSection.progress.caseCount', { reviewed: a.casesReviewedCount, threshold: a.endCondition.threshold });
@@ -132,15 +102,13 @@ const FppeAssignmentsSection: React.FC = () => {
     });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('fppeAssignmentsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('fppeAssignmentsSection.loading')} />;
 
   // Real, per direct guidance: filters BOTH the active and completed
   // sections by the same selected facility — an admin narrowing to
   // their own performing lab sees a real, complete Active+Completed
   // picture for it, not just one half.
-  const facilityFiltered = facilityFilter ? assignments.filter(a => a.facilityId === facilityFilter) : assignments;
-  const active = facilityFiltered.filter(a => a.status === 'active');
-  const completed = facilityFiltered.filter(a => a.status === 'completed');
+  const { active, completed } = splitFppeAssignments(assignments, facilityFilter);
 
   return (
     <div>
@@ -155,7 +123,7 @@ const FppeAssignmentsSection: React.FC = () => {
         <div className="ps-conf-form-row ps-mb-16">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('fppeAssignmentsSection.facilityLabel')}</label>
-            <select className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
+            <select aria-label={t('fppeAssignmentsSection.facilityLabel')} data-dirty-ignore data-config-nav className="ps-conf-select" value={facilityFilter} onChange={e => setFacilityFilter(e.target.value)}>
               <option value="">{t('fppeAssignmentsSection.allFacilities')}</option>
               {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
@@ -208,13 +176,13 @@ const FppeAssignmentsSection: React.FC = () => {
           {(endConditionType === 'case_count' || endConditionType === 'either') && (
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('fppeAssignmentsSection.form.caseCountThresholdLabel')}</label>
-              <input className="ps-conf-input" type="number" min={1} value={caseCountThreshold} onChange={e => setCaseCountThreshold(e.target.value)} />
+              <input aria-label={t('fppeAssignmentsSection.form.caseCountThresholdLabel')} className="ps-conf-input" type="number" min={1} value={caseCountThreshold} onChange={e => setCaseCountThreshold(e.target.value)} />
             </div>
           )}
           {(endConditionType === 'duration_days' || endConditionType === 'either') && (
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('fppeAssignmentsSection.form.durationThresholdLabel')}</label>
-              <input className="ps-conf-input" type="number" min={1} value={durationDaysThreshold} onChange={e => setDurationDaysThreshold(e.target.value)} />
+              <input aria-label={t('fppeAssignmentsSection.form.durationThresholdLabel')} className="ps-conf-input" type="number" min={1} value={durationDaysThreshold} onChange={e => setDurationDaysThreshold(e.target.value)} />
             </div>
           )}
           <button className="ps-conf-btn-primary" disabled={!canCreate || creating} onClick={handleCreate}>{t('fppeAssignmentsSection.form.createButton')}</button>
@@ -231,12 +199,12 @@ const FppeAssignmentsSection: React.FC = () => {
             {active.length === 0 && <tr><td className="ps-conf-td" colSpan={7}>{facilityFilter ? t('fppeAssignmentsSection.table.emptyActiveForFacility') : t('fppeAssignmentsSection.table.emptyActiveGlobal')}</td></tr>}
             {active.map(a => (
               <tr key={a.id}>
-                <td className="ps-conf-td">{a.provisionalUserName}</td>
-                <td className="ps-conf-td">{a.proctorUserName}</td>
-                <td className="ps-conf-td">{facilityName(a.facilityId)}</td>
+                <td className="ps-conf-td">{a.superviseeUserName}</td>
+                <td className="ps-conf-td">{a.supervisorUserName}</td>
+                <td className="ps-conf-td">{a.facilityId ? facilityName(a.facilityId) : '—'}</td>
                 <td className="ps-conf-td">{subspecialtyName(a.subspecialtyId)}</td>
                 <td className="ps-conf-td">{endConditionLabel(a)}</td>
-                <td className="ps-conf-td">{new Date(a.startedAt).toLocaleDateString()}</td>
+                <td className="ps-conf-td">{formatDate(a.startedAt, i18n.language)}</td>
                 <td className="ps-conf-td"><button className="ps-conf-btn-secondary" onClick={() => handleGraduate(a.id)}>{t('fppeAssignmentsSection.table.graduateButton')}</button></td>
               </tr>
             ))}
@@ -254,11 +222,11 @@ const FppeAssignmentsSection: React.FC = () => {
             {completed.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{facilityFilter ? t('fppeAssignmentsSection.table.emptyCompletedForFacility') : t('fppeAssignmentsSection.table.emptyCompletedGlobal')}</td></tr>}
             {completed.map(a => (
               <tr key={a.id}>
-                <td className="ps-conf-td">{a.provisionalUserName}</td>
-                <td className="ps-conf-td">{a.proctorUserName}</td>
-                <td className="ps-conf-td">{facilityName(a.facilityId)}</td>
+                <td className="ps-conf-td">{a.superviseeUserName}</td>
+                <td className="ps-conf-td">{a.supervisorUserName}</td>
+                <td className="ps-conf-td">{a.facilityId ? facilityName(a.facilityId) : '—'}</td>
                 <td className="ps-conf-td">{a.casesReviewedCount}</td>
-                <td className="ps-conf-td">{a.completedAt ? new Date(a.completedAt).toLocaleDateString() : ''}</td>
+                <td className="ps-conf-td">{a.completedAt ? formatDate(a.completedAt, i18n.language) : ''}</td>
                 <td className="ps-conf-td">{a.completedReason === 'manually_graduated' ? t('fppeAssignmentsSection.table.completedReason.graduatedEarly') : a.completedReason === 'case_count_met' ? t('fppeAssignmentsSection.form.endConditionCaseCount') : t('fppeAssignmentsSection.form.endConditionDuration')}</td>
               </tr>
             ))}

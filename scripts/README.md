@@ -1,10 +1,32 @@
+**Batch 755b (part 2):** `Setup-PathScribeSlideDemo.ps1`: `-VercelScope <team>` for a demo project under another Vercel team, and a warning before `vercel link` would create a new project.
+
+**Batch 754:** `remove-demo-checklists.mjs` (new): removes the 19 demonstration checklists from one organisation's library on an API server (`--api`, `--organisation`; a dry run unless `--apply`; token from `PS_API_TOKEN`, never printed). The endpoint is Planned (`docs/architecture/DEMO_CHECKLISTS.md`). `check-production-bundle.mjs` now fails a customer build that contains any demonstration checklist (`DEMO_CHECKLIST_FILES`, read from the files).
+
+**Batch 752:** `Setup-PathScribeSlideDemo.ps1` (Windows PowerShell 5.1 or later) builds and publishes the slide images for the demo (seed row S10): it downloads two CAMELYON16 slides (CC0), converts them with libvips into previews and Deep Zoom tiles, makes the blurred copy, writes the licence notes and `viewer/manifest.json`, copies `tools/demo-slide-viewer/`, uploads it all to the Cloudflare R2 bucket, and sets `VITE_SLIDE_VIEWER_URL_TEMPLATE` and `VITE_SLIDE_THUMBNAIL_URL_TEMPLATE` in Vercel (Production). It asks for the R2 keys while it runs and stores no key or password. Needs the AWS CLI, libvips (the `vips-dev-x64-all` build, which has OpenSlide) and the Vercel CLI. Steps, switches and the set-up as done on Oct 31, 2026: `docs/product/SLIDE_IMAGE_DEMO.md`.
+
+**Batch 678:** `compliance/build_readiness_matrix.py` (Python 3, openpyxl) builds `docs/compliance-guide/PathScribe_Regulatory_Readiness_Matrix.xlsx` from `docs/compliance-guide/readiness/requirements.json`; it fails when an evidence path is missing.
+
+**Batch 666:** `translation-review-workbook.py` builds Korean as well (`fr,nl,de,es,ko`); `user-guide/build.py` fails when a screen route has no article (reasoned exceptions in `docs/user-guide/route-exemptions.json`) and accepts an article with no screen address (`routes: []`).
+
+**Batch 667:** `user-guide/verify-live.cjs` is the browser check of the User Guide against the running screens; it writes `docs/user-guide/LIVE_CHECK.md` and saves the overview screenshots.
+
+**Batch 667:** `user-guide/coverage.py [--list]` checks that every short on-screen label is explained in the guides (rules in `docs/user-guide/coverage-scope.json` and `coverage-ignore.json`); exit 1 on a gap.
+
 # scripts/
+
+**Batch 647:** `admin-guide/build.py` builds every language that has all ten chapter files (`docs/admin-guide/src/<lang>/`); `parity.py` (checks a translation against the English), `chunks.py` (splits and joins a chapter for translation), `uitext.py` (looks up the app's own wording in `src/i18n/locales`), `strings.json` (the builder's own words in six languages) and `capture.mjs` (now scripts the click-opened windows too) support it. Rules: `docs/admin-guide/TRANSLATION.md`.
+
+**Batch 646:** `admin-guide/build.py` builds the Administrator Guide from `docs/admin-guide/src/` (HTML pages, search index, setup-order checklist, print page; fails on a broken link or a setup-order error; `--publish` copies the customer edition to `public/help/admin-guide/`). `admin-guide/capture.mjs` takes the guide's screen captures with Playwright against the running demo. `admin-guide/guide.css` and `guide.js` are the built pages' styles and behaviour.
 
 Real, local, developer-run Node scripts — never deployed, never part of the app's own build or runtime.
 
-**Real, honest disclosure**: this README only documents what was actually built and seen this session. The real `scripts/` folder in the actual repo almost certainly has more content that was never part of any upload to this session — confirmed indirectly: `src/services/specimenDictionary/mockSpecimenDictionaryService.ts` imports from `../../../scripts/terminology-sources/specimens-starter.json`, a real file this session has never seen (it's the one, single root cause behind the same 26 pre-existing, unrelated test failures that showed up in every full-suite run this whole session). This file does not attempt to describe that file or any other real script this session never had visibility into.
+This README documents only the scripts listed below. The folder also holds `terminology-sources/specimens-starter.json` (the specimen dictionary's seed data, imported by `src/services/specimenDictionary/mockSpecimenDictionaryService.ts`), `reset-mock-data.ts`, and about 30 one-off maintenance scripts (`*.cjs`, `*.ps1`, `css-audit.js`, `tag-phi.mjs` and others) from earlier clean-up passes, which are not described here.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): this paragraph said `specimens-starter.json` had never been seen and caused 26 test failures; the file is in `scripts/terminology-sources/`, and the undocumented scripts are now named.*
 
 ## Files
+
+- **`css-unused-audit.mjs`** (Batch 596, PS-520): lists the classes in `src/pathscribe.css` that nothing in `src/`, `e2e/` or `index.html` refers to, by family (`node scripts/css-unused-audit.mjs`, or `--json`). Classes whose names code builds from a prefix are listed separately, for a check by hand. `--remove=ps-foo-,ps-bar-` deletes the dead classes with those prefixes and the comments that headed only them; `--remove-all` (Batch 597) deletes every dead class, the `@keyframes` nothing uses any more, and the comments that headed only removed rules. Names built from a prefix or a suffix are never removed. `src/services/styleRules/unusedCss.guard.test.ts` keeps the count at zero.
 
 - **`seedTerminology.ts`** — seeds the licensed terminology code sets into Firestore (`terminology/{system}/codes`, plus a `terminologyMeta` row per system). **Batch 324 (PS-47):** moved to the modular Admin SDK imports (`initializeApp`/`cert` from `firebase-admin/app`, `getFirestore`/`Timestamp` from `firebase-admin/firestore`), because firebase-admin 14 removed the namespaced `admin.firestore()` / `admin.credential` API. The behaviour is unchanged. It type-checks against 14 but hasn't been run here (it needs a real service account).
 
@@ -26,5 +48,58 @@ Real, local, developer-run Node scripts — never deployed, never part of the ap
 
 `tag-phi.mjs` still auto-tags simple cases, but its line-by-line audit over-reports (class names, comments, filters and props all match). The count that decides PS-72 is `src/services/phi/phiTagging.guard.test.ts`, which reads the code structure; see `src/services/phi/README.md`.
 
+## Batch 448
+
+`auth/hash-demo-password.mjs` is now a developer tool only, for changing the built-in starting passwords. Administrators set and reset passwords in Staff → edit → Sign-in password.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 503
+
+- **`generate-security-headers.mjs`** — writes every hosting option's security-header config from `deploy/security-headers/securityHeaders.mjs` and a deployment's origins file (`node scripts/generate-security-headers.mjs <origins.json> <outDir>`); with `origins.demo.json` it also refreshes the root `vercel.json`. See `deploy/security-headers/README.md`.
+
+## Batch 505 (PS-475): `measure-first-load.mjs`
+
+`npm run build` runs it after every build (and `npm run measure:first-load` runs it alone): the gzipped size of everything a browser fetches before PathScribe can show anything (entry script, preloaded modules, stylesheets, and the English locale chunk found through `dist/.vite/manifest.json`). Exits 1 over `--target-mb` (default 3); `--json` for machine-readable output. See `src/services/loadSize/README.md`.
+
+## Batch 507: `remove-deleted-files.mjs`
+
+`npm run cleanup:deleted` removes every path listed in the root `DELETED_FILES.txt` that is still present; a path ending in `/` is a whole folder. A delta zip can't delete files, so this is the one-step way to apply a batch's deletions. `-- --dry` only lists them. Safe to run repeatedly.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`hash-demo-password.d.mts` (in `auth/`), `measure-first-load.d.mts`, `remove-deleted-files.d.mts` and `generate-security-headers.d.mts` declare the types of the plain `.mjs` scripts that tests import, so the tests type-check under strict mode.
+
+## Batch 516
+
+`tag-phi.mjs` prints a note that its count isn't the PS-72 measure (the structure-aware guard is).
+
+## Batch 519: `import-xray.ps1`
+
+Imports a batch's Xray execution file (`docs/quality/evidence/PathScribe-BatchN-xray.json`) into Xray Cloud as a new Test Execution, through Xray's REST API (Xray Cloud has no screen that imports a results file). Run it from the repo folder in PowerShell: `.\scripts\import-xray.ps1 "$HOME\Downloads\PathScribe-Batch519-xray.json"`. It prints the new Test Execution's key. The Xray API key comes from the user environment variables `XRAY_CLIENT_ID` and `XRAY_CLIENT_SECRET`; if they aren't set it asks you to copy each value to the clipboard and press Enter, saves them, and clears the clipboard. The key is never written to the repo. Setup steps: `docs/quality/README.md`.
+
+## Batch 527 (PS-486): a lean first load
+
+`measure-first-load.mjs`: the target is now **1 MB** (PS-486), and it also counts the sign-in page's own chunks (`signInPageAssets`), since nothing shows until they arrive. New `check-production-bundle.mjs` (`npm run check:production`) checks a server build:
+- **fails** if a demo or developer screen is in it (the mock interface engine, mock EMR, mock WSI viewer, demo reset);
+- **lists** the mock service modules. With `--require-no-mocks` (Stage 2, once the HTTP services exist) those fail too.
+
+`npm run build:server` builds a server build (`vite build --mode server`), measures and checks it. Since Batch 547 the API server's address isn't needed at build time: each deployment sets it in its `config.json` (`docs/architecture/RUNTIME_CONFIG.md`), so one server build serves every site. A plain `npm run build` with no `VITE_API_BASE_URL` is the demo build, and the check fails on it.
+
+## Batch 547
+
+- `build:server` is `vite build --mode server`, so `.env.server` is loaded, not `.env.production`.
+- `measure-first-load.mjs` counts the `startApp` chunk.
+- `check-production-bundle.mjs` also fails on the demo accounts module.
+- `generate-security-headers.mjs` takes `--runtime-config config.json`.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `static-chunk-closure.mjs` (+ `.d.mts`, new): the chunks to preload for the app's start (`startApp.tsx` and its static imports). Pure; used by `vite/preloadAppStart.ts`.
+- `vite/preloadAppStart.ts` (new): the build plugin that adds those `modulepreload` tags to `index.html` (`vite.config.ts`). See `vite/README.md`.
+
+## Batch 637 (translation review workbooks)
+
+- `translation-review-workbook.py` (new, Python 3 with openpyxl): builds `PathScribe_<Language>_Review.xlsx` for French, Dutch, German and Spanish from `src/i18n/locales/`. Run `python3 scripts/translation-review-workbook.py fr,nl,de,es`; output goes to `review-workbooks/` (ignored by git).
+- `translation-review-glossary.json` (new): the glossary terms and their meanings.

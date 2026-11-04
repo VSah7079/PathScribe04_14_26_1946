@@ -1,8 +1,12 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/cassetteRouting/
 
-Admin-configurable rules resolving which logical cassette color (`services/cassetteColors/`) an order routes to, based on protocol, priority, origin station, ordering facility, and case type. Fully admin-manageable through Configuration → Cassette Routing Rules — an admin can link any real protocol to any real color and set a priority weight, all without code.
+Admin-configurable rules resolving which logical cassette color (`services/cassetteColors/`) an order routes to, based on protocol, priority, origin station, ordering facility, and case type. Fully admin-manageable through Configuration → System → Cassette Routing Rules (Lab Materials & Workflows) — an admin can link any real protocol to any real color and set a priority weight, all without code.
 
 **Pattern:** Standard interface/mock pattern (no firestore stub currently).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the screen is a section of Configuration → System, not its own Configuration tab.*
 
 ## Files
 
@@ -15,6 +19,14 @@ Admin-configurable rules resolving which logical cassette color (`services/casse
 - Cassette type/form-factor is deliberately never a second field here — it always comes from the matched protocol's own processing format, so it can never drift from the real protocol definition.
 - A real "small biopsy" category spanning several genuinely different protocols needs one rule per protocol — `protocolId` has no array form. Higher `priorityWeight` wins when more than one rule genuinely matches the same order.
 
+## Batch 428: Configuration permissions
+
+- `mockCassetteRoutingRuleService`: `create`, `update`, `deactivate`, `reactivate` need `config:cassette-routing:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of CassetteRoutingRuleService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

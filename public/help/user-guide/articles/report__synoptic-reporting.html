@@ -1,0 +1,490 @@
+<h1 id="top">Synoptic Reporting</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> A synoptic report is a structured checklist: a protocol for the organ and diagnosis, made of questions with fixed answers (histologic type, grade, margins, stage and so on). This article explains how to add a protocol to a specimen, answer the fields, work through the AI's suggestions, apply codes, use the voice and keyboard commands that move around the checklist, and how the checklist relates to the narrative <strong>Report Draft</strong> in Orchestration mode.</p>
+<p><strong>Intended users.</strong> Pathologists, fellows and residents who complete the diagnostic report. Pathology assistants see the same checklist when it is part of their grossing work.</p>
+<p><strong>Where it fits.</strong> The synoptic panel sits on the <a href="/help/report">Report</a> screen (route <code>/case/:caseId/synoptic</code>, described in that article). Its answers feed the narrative draft and the sign-out checks (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>). Gross, microscopic and ancillary text is entered on the other tabs (see <a href="/help/report/microscopic-and-material">Microscopic and Material</a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Template library today</p>
+<p>The protocol templates that ship with PathScribe are generic, PathScribe-authored placeholders (organ-system protocols for breast, prostate, kidney, lung, colon, skin and others, plus PathScribe's own Mohs, oral cavity and neck dissection checklists, cytology, grossing and one autopsy template). The licensed College of American Pathologists (CAP) and Royal College of Pathologists (RCPath) wording is not shipped: a site needs its own licence before those exact protocols can be loaded. The protocol list shows the source and version of each template, so check them against what your laboratory has approved.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">AI behaviour is simulated in demonstration builds</p>
+<p>The AI suggestions described below are produced by PathScribe's demonstration AI unless your site has connected a validated model. Treat every suggestion as a draft that a pathologist must verify.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-synoptic-reporting-panel.png" alt="The Report screen with the Synoptic Reporting tab and the right synoptic panel"><figcaption>The Report screen with the Synoptic Reporting tab and the right synoptic panel</figcaption></figure>
+
+<p>The Report screen has up to three tabs above the work area: <strong>Report Draft</strong> (shown only in Orchestration mode), <strong>Synoptic Reporting</strong> and <strong>Material</strong>. The synoptic checklist can also appear in a panel at the right of the screen next to the narrative text.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Add Synoptic Report window</strong> (opens from <strong>Add Synoptic</strong>, or when a specimen has no protocol yet, from the template picker)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select Specimens</td>
+<td>Tick the specimen(s) the protocol will cover. A badge shows how many are selected. A specimen that already has a report is marked <strong>Report exists</strong>.</td>
+</tr>
+<tr>
+<td>Search protocols by name, source, or organ…</td>
+<td>Narrows the list as you type.</td>
+</tr>
+<tr>
+<td>Filter chips</td>
+<td><strong>All</strong>, <strong>Breast</strong>, <strong>Colon</strong>, <strong>Lung</strong>, <strong>Prostate</strong>.</td>
+</tr>
+<tr>
+<td>Protocol list</td>
+<td>Each template shows its source, version and category. <strong>Suggested · n%</strong> marks the protocol the AI recommends for the specimen; <strong>Applied</strong> marks one already on the case.</td>
+</tr>
+<tr>
+<td>Learn this pairing</td>
+<td>Tick it so the AI suggests this protocol for similar specimens in future cases.</td>
+</tr>
+<tr>
+<td>Don't see what you need? Request a template</td>
+<td>Sends a request for a new template.</td>
+</tr>
+<tr>
+<td>Add Report</td>
+<td>Adds the protocol to the selected specimens. The footer says "Select specimen(s) and a protocol to continue" until you have chosen both, then "Adding "name" to n specimen(s)".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Template picker inside the panel</strong> (shown when the active specimen has no synoptic yet)</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Synoptic Report</td>
+<td>Heading. The subtitle says no synoptic report is associated with the specimen yet and asks you to pick one.</td>
+</tr>
+<tr>
+<td>Suggested for this case</td>
+<td>Templates matching the case.</td>
+</tr>
+<tr>
+<td>All templates</td>
+<td>Every approved template. If none exist, the message is "No approved synoptic templates are available."</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The checklist (right synoptic panel and Synoptic Reporting tab)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Progress badge</td>
+<td>For example "3/5 req · 8/20 total": required fields answered of required total, then all fields answered of all fields.</td>
+</tr>
+<tr>
+<td>Assignment</td>
+<td>Shows who the synoptic is assigned to. When it is assigned to someone else the line reads "This synoptic is assigned to (name), they must finalise it"; when it is yours the header shows "Assigned to you". A <strong>countersign required</strong> note appears when the protocol needs a second signature.</td>
+</tr>
+<tr>
+<td>Required marker</td>
+<td>A red asterisk (*) after the field name. Every required field must be answered before finalising.</td>
+</tr>
+<tr>
+<td>Field controls</td>
+<td>One of: single-line text, long text (with spell check), number, drop-down (— Select —), radio buttons, tick boxes (multiple answers), a per-part grid, or the organ map for Mohs stages.</td>
+</tr>
+<tr>
+<td>Check notes</td>
+<td>A red note under a field when what you typed cannot be right, for example "Enter a whole number, 0 or more", "Enter a whole number, "cannot be determined" or "at least N"", or "(value) is more than the (limit) it can't exceed".</td>
+</tr>
+<tr>
+<td>Part grid</td>
+<td>A table with one row per part of the case and one column per measurement (for example positive nodes by part). Counts must be whole numbers; a total typed in the field must match the grid or you are asked to reconcile (see Exception handling).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>AI badges on a field</strong></p>
+<table>
+<thead>
+<tr>
+<th>Badge</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AI Confirmed</td>
+<td>You (or Confirm) accepted the AI's value.</td>
+</tr>
+<tr>
+<td>Overridden</td>
+<td>You replaced the AI's value.</td>
+</tr>
+<tr>
+<td>Check source</td>
+<td>The AI offered a value that needs a closer look. Hovering says "Compare with the source text before confirming". No percentage or score is shown.</td>
+</tr>
+<tr>
+<td>Tinted field with a dashed edge in Windows high-contrast mode</td>
+<td>The field holds an AI value you have not confirmed or overridden. See "AI values you have not confirmed" below.</td>
+</tr>
+<tr>
+<td>AI: not found</td>
+<td>The AI read the narrative and found no evidence for the field. Fill it in yourself.</td>
+</tr>
+<tr>
+<td>Manual, AI missed</td>
+<td>You answered a field the AI had no suggestion for. The wording says this helps train the AI.</td>
+</tr>
+<tr>
+<td>Source not found in report text</td>
+<td>The AI quoted a source that cannot be found in the Gross, Microscopic or Ancillary text. Verify the value by hand.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Orchestrator</strong> (lightning icon)</td>
+<td>Regenerates the AI suggestions for this synoptic from the current Gross description. It never overwrites a field you have already answered. It is greyed out when no template is assigned to the specimen ("nothing to regenerate against"), and shows Generating… while it works.</td>
+</tr>
+<tr>
+<td><strong>Jump to:</strong> Next Required, Next Unanswered, Next Unverified</td>
+<td>Moves to the next field of that kind. Next Unverified finds AI values that have not yet been confirmed or overridden.</td>
+</tr>
+<tr>
+<td><strong>Back</strong></td>
+<td>Returns to the field you were just on. Greyed out when there is nowhere to go back to.</td>
+</tr>
+<tr>
+<td><strong>Tabs / Page</strong></td>
+<td>Tab view shows one section at a time; Page view shows all sections on one scrolling page.</td>
+</tr>
+<tr>
+<td>Section tabs</td>
+<td>Each tab shows how many AI suggestions on it are awaiting review ("n unverified").</td>
+</tr>
+<tr>
+<td><strong>Confirm</strong> on a field</td>
+<td>Accepts the AI value.</td>
+</tr>
+<tr>
+<td><strong>Override</strong> on a field</td>
+<td>Lets you choose a different value.</td>
+</tr>
+<tr>
+<td><strong>undo</strong> on a field</td>
+<td>Reverses a confirm or override.</td>
+</tr>
+<tr>
+<td><strong>Suggest Synoptic from Narrative</strong></td>
+<td>Asks the AI to suggest synoptic answers from the gross, microscopic and ancillary text. Greyed out ("Enter a gross, microscopic or ancillary narrative first") when there is no text.</td>
+</tr>
+<tr>
+<td><strong>Generate Narrative from Synoptic</strong></td>
+<td>Writes narrative text from the current answers. Greyed out ("Answer some synoptic fields first") when nothing is answered.</td>
+</tr>
+<tr>
+<td><strong>Codes</strong></td>
+<td>Opens the Codes window (see below).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<ul>
+<li>A red asterisk marks a required field.</li>
+<li>The progress badge counts answered fields. Required fields are what block finalising.</li>
+<li>The "Some required fields are incomplete" banner appears when required fields are open. Its link, <strong>Review required fields</strong>, jumps to them.</li>
+<li>A field whose answer depends on another answer is hidden until the answer that triggers it is given (see Conditional fields).</li>
+<li>After you edit the narrative, a note under a field you answered yourself may say "The updated narrative suggests (value). Keep your value or update it?" with <strong>Keep mine</strong> and <strong>Accept new value</strong>. PathScribe never applies this on its own.</li>
+</ul>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>These are the default keys; voice phrases are the English ones (French, German, Dutch and Korean phrases also exist).</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Keyboard</th>
+<th>Voice phrases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Edit Field</td>
+<td>Alt+E</td>
+<td>"edit field", "change field", "correct field", "modify field", "override field"</td>
+</tr>
+<tr>
+<td>Confirm Field</td>
+<td>Ctrl+Alt+Shift+A</td>
+<td>"confirm field", "accept field", "approve field", "confirm answer", "accept answer"</td>
+</tr>
+<tr>
+<td>Next Unanswered Field</td>
+<td>Ctrl+Alt+U</td>
+<td>"next unanswered", "go to next unanswered", "next empty field", "next blank"</td>
+</tr>
+<tr>
+<td>Next Required Field</td>
+<td>Ctrl+Alt+Shift+R</td>
+<td>"next required", "go to next required", "next required field", "show required"</td>
+</tr>
+<tr>
+<td>Skip Field</td>
+<td>Ctrl+Alt+Q</td>
+<td>"skip field", "skip this field", "move on", "leave blank"</td>
+</tr>
+<tr>
+<td>Full View / Tabbed View</td>
+<td>Alt+V / Ctrl+Alt+T</td>
+<td>"full view", "show full view"; tabbed view phrases are in the registry</td>
+</tr>
+<tr>
+<td>Add Synoptic</td>
+<td>Alt+Z</td>
+<td>"add synoptic", "open add synoptic", "add report", "new synoptic"</td>
+</tr>
+<tr>
+<td>Add Code / Go to Codes</td>
+<td>Ctrl+Alt+H / Ctrl+Alt+G</td>
+<td>"add code", "open add code", "new code", "add medical code"</td>
+</tr>
+<tr>
+<td>Enter Gross Description</td>
+<td>Ctrl+Alt+Shift+G</td>
+<td>"enter gross", "start gross", "dictate gross", "gross description"</td>
+</tr>
+<tr>
+<td>Enter Microscopic Description</td>
+<td>Alt+Shift+G</td>
+<td>"enter micro", "start micro", "dictate micro", "microscopic description"</td>
+</tr>
+<tr>
+<td>Enter Diagnosis</td>
+<td>Ctrl+Alt+Shift+D</td>
+<td>"enter diagnosis", "start diagnosis", "dictate diagnosis", "add diagnosis"</td>
+</tr>
+<tr>
+<td>Cancel (stop or discard dictation, close a window)</td>
+<td>Ctrl+Alt+J</td>
+<td>"cancel", "close modal", "dismiss", "go back to report"</td>
+</tr>
+<tr>
+<td>Confirm AI finding (AI Review window)</td>
+<td>Space</td>
+<td>"confirm finding"</td>
+</tr>
+<tr>
+<td>Override AI finding</td>
+<td>O</td>
+<td>see the registry</td>
+</tr>
+<tr>
+<td>Skip AI finding</td>
+<td>S</td>
+<td>see the registry</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Voice and keyboard are not security</p>
+<p>The keys and phrases are shortcuts. They do not replace the permission checks on actions such as sign-out.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Add a protocol and complete it</strong></p>
+<ol>
+<li>On the Report screen select <strong>Add Synoptic</strong> (or press Alt+Z, or say "add synoptic"). The <strong>Add Synoptic Report</strong> window opens.</li>
+<li>Under <strong>Select Specimens</strong>, tick the specimen(s) the protocol covers. A specimen that already has a report shows <strong>Report exists</strong>.</li>
+<li>Pick a protocol. Use the filter chips or the search box if the list is long. A protocol marked <strong>Suggested</strong> is the AI's recommendation. Tick <strong>Learn this pairing</strong> if you want the AI to propose this protocol for similar specimens later.</li>
+<li>Select <strong>Add Report</strong>. The window closes and the checklist for the protocol appears in the panel.</li>
+<li>Look at the progress badge. Select <strong>Next Required</strong> (or press Ctrl+Alt+Shift+R) to land on the first required field that has no answer.</li>
+<li>Answer each field. Click the field or use the control: choose from the drop-down, tick a radio button or boxes, type text or a number. The badge counts up as you answer.</li>
+<li>Where a field shows an AI value and badge, read the source (hover the badge or click the field to highlight the matching text in the report) and select <strong>Confirm</strong> if it is right, or <strong>Override</strong> and pick another value.</li>
+<li>Continue until the "Some required fields are incomplete" banner goes away and the badge shows all required fields answered.</li>
+<li>Open <strong>Codes</strong> to apply any codes the laboratory needs (see below), then continue to sign-out.</li>
+</ol>
+<p><strong>Let the AI draft the answers from your narrative</strong></p>
+<ol>
+<li>Enter or dictate the Gross, Microscopic and Ancillary text.</li>
+<li>Select <strong>Suggest Synoptic from Narrative</strong>. The button shows Suggesting… and then fields fill with AI values and badges.</li>
+<li>Use <strong>Next Unverified</strong> to step through values you have not yet confirmed. Confirm or override each.</li>
+<li>Fields where the AI could not find evidence show <strong>AI: not found</strong>. Fill them yourself.</li>
+</ol>
+<p><strong>Answer by keyboard or voice</strong></p>
+<ol>
+<li>Say "next required" (or press Ctrl+Alt+Shift+R). The cursor moves to the field.</li>
+<li>Say "edit field" (or press Alt+E) to put the cursor in the field and speak or type the answer. See "Edit Field" below.</li>
+<li>Say "confirm field" (or press Ctrl+Alt+Shift+A) to accept the AI value for the current field.</li>
+<li>Repeat from step 1.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<p><strong>Edit Field.</strong> Alt+E, or the voice command "edit field", gives the keyboard focus to the answer of the synoptic field you are on, so you can type or dictate straight into it. It works on answers in the synoptic panel (since Batch 665). It does not do anything useful on the narrative Report Draft; use the section editor there.</p>
+<p><strong>Dictation into the narrative.</strong> "Enter gross", "enter micro" and "enter diagnosis" start dictation into the matching section of the Report Draft. Enter Gross and Enter Diagnosis act on the Report Draft only, so open the Report Draft tab (Orchestration mode) first. The dictation banner reads "DICTATING INTO" followed by the section, with "Say "done" or click to stop". Say "done", or click the banner, to stop.</p>
+<p><strong>Cancel (Ctrl+Alt+J or "cancel").</strong> While dictating, the first cancel stops the dictation ("Dictation stopped."). A second cancel removes what you dictated ("Dictation removed."); if you edited some of the passages in the meantime, those are kept ("Dictation removed. Passages you edited were kept."). If you cancel once and wait, the message "Cancel again to remove what you dictated." tells you what a second cancel will do. Outside dictation, cancel closes the window in front.</p>
+<p><strong>AI values you have not confirmed.</strong> A field that holds an AI value you have not confirmed or overridden is tinted so you can see it. Nothing is hidden or blocked for an optional field, but the value will not be in the signed report: when you press <strong>Sign Out Case</strong> or <strong>Finalize</strong>, PathScribe clears every optional field that still holds an unchanged, unconfirmed AI value before the sign-out window opens, and the window says how many ("n optional AI-filled fields you have not confirmed were left out of this report"). The AI suggestion stays beside the field, so you can cancel, select <strong>Confirm</strong>, and the value returns. A value you edited yourself is yours and is kept. A required field with an unconfirmed AI value still stops the sign-out. The same rule applies to the grossing report when you complete the gross on this page in Orchestration mode. Each omission is recorded in the audit log (the count only, no values).</p>
+<p><strong>Values filled in for you.</strong> If your laboratory has switched on auto-insert, or you select the <strong>Orchestrator</strong> (lightning icon), PathScribe fills empty fields with AI values. These stay unconfirmed, tinted and subject to the rule above, and the fill is recorded in the audit log. A field you already answered is never replaced.</p>
+<p><strong>AI Review before finalising.</strong> In Orchestration mode an <strong>AI Review Mode</strong> window titled "Review uncertain AI findings before sign-out" can step you through the findings the AI is least sure of, one at a time ("Field 2 of 6"). Each shows its source and says <strong>Source found in report text</strong>, or, where relevant, a banner "Source not found in report text". No percentage is shown. Press Space to confirm and go on, <strong>O</strong> to override, <strong>S</strong> to skip. Skipped findings are counted ("1 skipped"). On the last finding the confirm button reads "Space - Confirm &amp; Finalise".</p>
+<p><strong>Change the protocol.</strong> When microscopic findings suggest a different protocol, a window "Protocol adjustments proposed" lists each change as Current and Proposed with the AI's reason. Tick the changes you want, select <strong>Apply n change(s)</strong>, or select <strong>Keep existing protocols</strong>.</p>
+<p><strong>Codes window.</strong> Select <strong>Codes</strong> (Ctrl+Alt+G), or <strong>Add Code</strong> (Ctrl+Alt+H). Both open the Code Manager window, titled <strong>Codes</strong>. Codes the AI suggests under <strong>AI Suggested Codes — review and apply</strong> each show <strong>Strong match</strong> or <strong>Possible match</strong>. The label says how closely your case wording matches the code's description. It is not a chance that the code is correct, and a code is added only when you apply it. Each suggestion also says <strong>Checked origin:</strong> which part of the case the code was taken from (the report narrative, the gross or microscopic description, the ancillary studies or the synoptic answers, and the specimen when the text names one), or "Origin not stated" when that cannot be confirmed. The software checks only that the named part exists and holds text; no person has verified the origin, so read the suggestion against the case yourself (hover the line for this note). The description beside the code is the official wording from the code dictionary, and a tick means the code was found there. Read the suggestion against your own diagnosis before you apply it.</p>
+<ol>
+<li>Choose the code system. SNOMED CT, ICD-10, CPT, LOINC and others appear as tabs. A code system marked <strong>Required</strong> is required for your jurisdiction; sign-out asks first if it has no code. A system that your jurisdiction does not allow is refused: "(system) is not allowed for this jurisdiction, so the code was not added."</li>
+<li>Type a code or a term in the search box. For SNOMED you can narrow with the filters <strong>All</strong>, <strong>Anatomy</strong>, <strong>Morphology</strong>, <strong>Organism</strong>, <strong>Specimen</strong>. The hint text suggests what to type (for example a diagnosis, site, specimen type or organism for SNOMED; a code such as C50 for ICD-10; a test name or LOINC number for LOINC).</li>
+<li>Choose where the code goes: <strong>Case Level</strong> or a specimen (the "Applying to" line shows the target). Click a result to apply it. A code already applied shows how many times ("Applied ×2"); click again to add another instance.</li>
+<li>Select <strong>AI Suggest Codes</strong> to have the AI propose codes. Review the "AI Suggested Codes, review and apply" list and apply only what you agree with. Suggestions that cannot be verified are left out and the window says how many.</li>
+<li>Use <strong>Remove code</strong>, <strong>Remove this instance</strong> or <strong>Undo removal</strong> to change your mind, then select <strong>Save</strong>. If you close with unsaved changes you are asked "You have unsaved changes. Close without saving?"</li>
+</ol>
+<p><strong>Billing codes (CPT).</strong> The billing code search ("Search Billing Codes") can apply a CPT code to a block, stain or specimen. In Assist mode the window says: "Assist mode: this records a CPT code for RVU/productivity tracking only, your LIS owns real billing for this case." The RVU figure is labelled <strong>Estimate</strong>: "Rough RVU estimate only, not a precision billing determination."</p>
+<h3 id="exception-handling">Exception handling</h3>
+<ul>
+<li><strong>Template missing.</strong> If the specimen has no protocol, the panel shows the template picker. If the list is empty, the message is "No approved synoptic templates are available." Ask your template administrator.</li>
+<li><strong>Orchestrator button is grey.</strong> No template is assigned to the specimen yet. Add a protocol first.</li>
+<li><strong>Generate Narrative is grey.</strong> Answer at least some fields first.</li>
+<li><strong>Suggest Synoptic is grey.</strong> Enter some gross, microscopic or ancillary text first.</li>
+<li><strong>Totals do not match the grid.</strong> A window "Totals don't match the grid" says what you entered and what the grid adds up to. Choose <strong>Go back and reconcile</strong>, or <strong>Continue as entered</strong> to keep the typed total. At sign-out the same check can stop you with "Sign-out stopped." followed by the problem; a draft save can fail with "The draft wasn't saved." followed by the problem.</li>
+<li><strong>Number errors.</strong> A count must be a whole number of 0 or more. A node count field also accepts "cannot be determined" or "at least N". A value over its limit shows "can't exceed" with the limit.</li>
+<li><strong>Assigned to someone else.</strong> The assignment line names the person who must finalise the synoptic. You can read it; ask the named person or reassign (see <a href="/help/report/case-team">Case Team</a>).</li>
+<li><strong>Locked after sign-out.</strong> A committed section is read-only: "This section is committed and read-only. Use Delegate, Amendment to make changes after sign-out." See <a href="/help/report/sign-out-and-release">Sign Out and Release</a>.</li>
+</ul>
+<h3 id="error-recovery">Error recovery</h3>
+<ul>
+<li><strong>Wrong value confirmed.</strong> Select <strong>undo</strong> on the field, then choose the right value.</li>
+<li><strong>Wrong protocol added.</strong> Remove it from the specimen (or use the protocol change window if the AI proposes a better one) and add the right one. Check answers carried over from the first protocol.</li>
+<li><strong>Dictated into the wrong place.</strong> Press Ctrl+Alt+J twice to stop and remove the dictation. Passages you edited stay.</li>
+<li><strong>AI overwrote nothing, but you want a fresh start.</strong> The Orchestrator button only fills fields you have not answered. To redo a field, clear it yourself and run it again.</li>
+<li><strong>Code applied by mistake.</strong> Open <strong>Codes</strong>, use <strong>Remove this instance</strong>, then <strong>Save</strong>.</li>
+</ul>
+<h2 id="required-conditional-and-calculated-fields">Required, conditional and calculated fields</h2>
+<ul>
+<li><strong>Required fields</strong> carry a red asterisk. Sign-out is blocked while a required field is empty. The progress badge shows required counts separately.</li>
+<li><strong>Conditional fields</strong> appear only when an earlier answer calls for them. Choosing a different earlier answer hides the follow-on fields and they no longer count towards "required". If a hidden field had an answer, check it when you change the earlier answer.</li>
+<li><strong>Multi-answer conditions.</strong> A field can depend on either of two answers (for example "linear or focal"); it shows when any one matches.</li>
+<li><strong>Calculated fields.</strong> Some totals are worked out for you: "Calculated from the grid." (a part grid total) or "Calculated from the organ map's margin questions." Until the grid has counts, enter the total yourself.</li>
+</ul>
+<h2 id="margins-staging-and-the-organ-map">Margins, staging and the organ map</h2>
+<ul>
+<li><strong>Margins.</strong> Margin questions (distance to margin, status of each margin) are ordinary fields of the protocol. When the protocol includes an organ map, margin answers can be drawn on the map and the margin totals can be worked out from the map's margin questions.</li>
+<li><strong>Staging.</strong> Staging fields (for example pT, pN, pM) are protocol fields too. The protocol decides the options; PathScribe does not calculate a stage from other answers unless the protocol says so.</li>
+<li><strong>Organ map.</strong> Protocols that include the PathScribe anatomical map (the prostate templates and some colorectal ones) show a map where you mark findings. For Mohs micrographic surgery, the stages question is required and uses the map to record each stage; if a stage has not been added yet, a voice instruction about it is refused with "Not applied: that stage hasn't been added yet".</li>
+</ul>
+<h2 id="orchestration-mode-and-synoptic-mode">Orchestration mode and Synoptic mode</h2>
+<p>The Report screen follows the laboratory's reporting mode.</p>
+<ul>
+<li><strong>Orchestration mode</strong> (PathScribe owns the report). The <strong>Report Draft</strong> tab is shown. When the synoptic is complete, PathScribe shows "Synoptic complete. Generating a narrative draft…" and writes the narrative sections. You review each section (<strong>Accept</strong>, <strong>Accept all</strong>, <strong>Regen all</strong>), and you sign out from PathScribe. An empty Report Draft offers <strong>Generate Report</strong> (after you complete the synoptic fields), <strong>Start writing manually</strong> (blank sections with no AI), or dictating the Gross directly.</li>
+<li><strong>Assist mode</strong> (the LIS owns the official report). The <strong>Report Draft</strong> tab is not shown. You work in the <strong>Synoptic Reporting</strong> tab and the <strong>Material</strong> tab, and finalise through the LIS (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>).</li>
+</ul>
+<p>In both modes the <strong>Synoptic Reporting</strong> tab and the right-hand panel carry the same checklist, with the same answers.</p>
+<h2 id="synoptic-panel-sequencer-and-ai-review-windows">Synoptic panel, sequencer and AI review windows</h2>
+<h3 id="right-synoptic-panel">Right synoptic panel</h3>
+<ul>
+<li>While the protocol loads the panel says <strong>Loading synoptic report…</strong>. If it cannot, it shows <strong>Failed to load template</strong>. With no case it says <strong>No case loaded.</strong></li>
+<li><strong>Tab view — one section at a time</strong> and <strong>Page view — all sections scrollable</strong> switch the layout of the sections.</li>
+<li>Hover over a field name: for an AI-filled field the tooltip is <strong>Click to highlight source in report</strong>; otherwise <strong>Click to focus field</strong>.</li>
+<li>The jump bar's back button is <strong>Return to the field you were just on</strong>; it is disabled with <strong>Nowhere to go back to yet</strong> until you have jumped.</li>
+<li>A grid of counts with no entries says <strong>The grid has no counts yet.</strong>; a part grid with no parts says <strong>This case has no parts yet.</strong></li>
+</ul>
+<h3 id="add-synoptic">Add Synoptic</h3>
+<p>Search the protocol list in the Add Synoptic window. When nothing matches it says <strong>No protocols match your search</strong>.</p>
+<h3 id="ai-protocol-review">AI Protocol Review</h3>
+<p>When the microscopic findings suggest a different protocol, <strong>AI Protocol Review</strong> opens with the title "Protocol adjustments proposed". Each change shows the <strong>Current</strong> and <strong>Proposed</strong> protocol (a protocol that is no longer needed reads <strong>(remove — no longer needed)</strong>) and the AI's reason. Tick the changes you want. The counter reads <strong>{{selected}} of {{total}} selected</strong>. The apply button reads <strong>Apply N changes →</strong>, and <strong>No changes selected</strong> while none is ticked. <strong>Keep existing protocols</strong> closes the window without change.</p>
+<h3 id="ai-generated-narrative">AI-Generated Narrative</h3>
+<p><strong>AI-Generated Narrative</strong> opens the title "Review and edit before inserting into the report". Edit the <strong>Generated Text — edit freely before accepting</strong>, choose where it goes (<strong>Insert into</strong>) and select the <strong>Insert into (field)</strong> button, or <strong>Discard</strong>.</p>
+<h3 id="sequencer">Sequencer</h3>
+<p>The sequencer sets the order of specimens and synoptics in the report. A specimen with none says <strong>No synoptics for this specimen</strong>. The preview says <strong>No report preview available.</strong> when empty, and <strong>No fields completed yet</strong> for a synoptic with no answers; <strong>Show less</strong> collapses a long list. <strong>Save Sequence</strong> saves the order (it is available only after you change something); the close button is named <strong>Close sequencer</strong>.</p>
+<h3 id="unsaved-changes">Unsaved changes</h3>
+<p>Leaving the page with unsaved work opens a warning. <strong>Stay on Page</strong> keeps you where you are, <strong>Discard &amp; Leave</strong> throws the changes away, and <strong>💾 Save Draft &amp; Leave</strong> saves first.</p>
+<h3 id="wsi-viewer">WSI viewer</h3>
+<p>When more than one slide viewer is installed, a selector with the tooltip <strong>Select WSI viewer</strong> chooses which one the launch button opens.</p>
+<h2 id="code-manager-more-detail">Code Manager: more detail</h2>
+<p>Several small items in the <strong>Codes</strong> window (Code Manager):</p>
+<ul>
+<li><strong>Applied Codes</strong> is the list on the left; <strong>No case-level codes</strong> shows when nothing is applied at case level. A code already used on another specimen shows <strong>Applied elsewhere</strong>; hover over it for <strong>Already applied to: (where)</strong>. Use <strong>Move here</strong> to move it.</li>
+<li>The code-system tabs include <strong>CPT (RVU)</strong> (named <strong>Billing Code</strong> in Orchestration mode) and <strong>Case coding</strong>, which shows the codes already on the case: "No codes on this case yet." A code from a system your laboratory does not allow shows <strong>Not allowed by the Code Systems setting</strong>.</li>
+<li>Search box: <strong>Search {{system}} — code or term…</strong>. Above the right-hand panel, a hint reads <strong>— click a row on the left to change</strong>: it means the target of a new code is whichever row you select in the Applied Codes list. The hint under it depends on the system, for example <strong>Type a code (e.g. C50) or description</strong> for ICD-10 and <strong>Type a test name or LOINC number</strong> for LOINC. When nothing is found the window says <strong>No results for "(search)"</strong> and <strong>Try a different term or switch filters</strong>. If the search itself fails it shows <strong>Search unavailable</strong> with the reason, or "Search failed — please try again."</li>
+<li><strong>Findings that may need a code:</strong> lists words from the report. Select one to search for it; you choose what is applied.</li>
+<li>The AI button reads <strong>AI Suggest Codes</strong> or <strong>AI Suggest (Narrative)</strong> the first time, <strong>AI thinking…</strong> while it works, and afterwards <strong>Re-run (Synoptic)</strong>, <strong>Re-run (Narrative)</strong> or <strong>Re-run AI Suggestions</strong>. If it fails the message is "AI suggestion failed". A code already applied shows a tick and "apply again" to add another instance; if saving fails the window says "Failed to save — please try again."</li>
+<li><strong>ICD-10 and ICD-11 side by side</strong> compares the two systems. The mapping is marked <strong>Simulated map</strong>; where only a guess exists it shows <strong>Simulated suggestion</strong>, and a code with no mapping shows <strong>No map entry</strong>.</li>
+<li><strong>Enter an ICD-O-3 code yourself</strong>: type a code and choose <strong>Add</strong>. The box shows the hint 8500/3 or C50.9. 8500/3 is a morphology code; C50.9 is a topography code. A morphology code is four digits, a slash and a behaviour digit (0, 1, 2, 3, 6 or 9); a topography code runs from C00 to C80. The code is stored as "ICD-O-3 topography, entered manually" or "ICD-O-3 morphology, entered manually (behaviour)".</li>
+<li><strong>OPCS-4 needs an NHS TRUD licence</strong>: until your organisation holds the licence, a <strong>Reference sample</strong> (marked Simulated) is shown for orientation only and cannot be applied to a case.</li>
+</ul>
+<h2 id="comments-and-toast-messages">Comments and toast messages</h2>
+<ul>
+<li>The case comment and specimen comment windows say "No comments yet on this case." or "No comments yet on this specimen." when empty. Your new comment is labelled "— new comment" under your name, and the specimen box says "Add a comment for (specimen)…".</li>
+<li>A message bar that appears after a save (for example the draft saved message) can be closed with the cross, named <strong>Close message</strong>.</li>
+</ul>
+<h2 id="organ-map-and-mohs-stages">Organ map and Mohs stages</h2>
+<ul>
+<li>The organ map panel says <strong>Click a sector to go to its question.</strong> Choose <strong>Remove from report</strong> to take the picture out of the report.</li>
+<li><strong>On an Assist case</strong> your laboratory system writes the report, so the map is a working aid only: it is drawn from your answers and clicking it jumps to the question, but there is no <strong>Insert into report</strong>. The panel says "Your laboratory system writes this report." in its place, and the map never holds up finalising, Mohs included. If your laboratory has asked for the map to be sent to its laboratory system, the panel also shows a quiet line once the case is finalised: "Map file sent to the laboratory system at (time)." Nothing else changes for you, and you are never asked to choose.</li>
+<li>For Mohs surgery, the stage table has a row per sector with a <strong>Tumour at margin</strong> tick box (its screen-reader name is "Tumour at margin: (sector)"), a <strong>Blocks cut</strong> box, <strong>Add stage N</strong>, <strong>Remove stage N</strong> and <strong>Mark stage clear</strong>. The number of stages is limited.</li>
+</ul>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Confirming an AI value without reading its source, especially one marked "Source not found in report text".</li>
+<li>Changing an early answer and forgetting that conditional follow-on fields are now hidden or newly shown.</li>
+<li>Dictating with Enter Gross or Enter Diagnosis while on a tab that has no Report Draft. The command only acts on the Report Draft.</li>
+<li>Treating "Suggested" protocols as approved. The AI proposes; you choose.</li>
+<li>Applying codes in a system your jurisdiction does not allow.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Learn the three jump keys: Next Required (Ctrl+Alt+Shift+R), Next Unanswered (Ctrl+Alt+U) and the <strong>Next Unverified</strong> button.</li>
+<li>Use Confirm Field (Ctrl+Alt+Shift+A) for each AI value you agree with; it applies any codes tied to the answer.</li>
+<li>Use Page view to read the whole checklist at once, Tab view to focus on one section.</li>
+<li>Tick <strong>Learn this pairing</strong> when you pick a protocol so the next similar specimen is suggested correctly.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Complete the narrative first, then use <strong>Suggest Synoptic from Narrative</strong>, then clean up the exceptions.</li>
+<li>Review every unverified AI value before sign-out. The AI Review window is a safety net, not a substitute.</li>
+<li>Check the progress badge and the required-fields banner before choosing Sign Out.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Gross and microscopic text, specimen details and images: <a href="/help/report/microscopic-and-material">Microscopic and Material</a>.</li>
+<li>Grossing sets the specimens and parts the protocol covers: see <a href="/help/report">Report</a>.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li>Narrative generation, review checks and sign-out: <a href="/help/report/sign-out-and-release">Sign Out and Release</a>.</li>
+<li>Second opinions and delegation of the synoptic: <a href="/help/report/case-team">Case Team</a>.</li>
+<li>Cases flagged for discussion: <a href="/help/tumor-board">Tumor Board</a>.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<ul>
+<li><strong>Edit Field does nothing.</strong> It needs a synoptic field to be current. Click a field in the panel or use a Next command first.</li>
+<li><strong>The Orchestrator button is greyed out.</strong> No template is assigned to the specimen.</li>
+<li><strong>"Sign-out stopped" with a totals message.</strong> The typed total and the grid disagree. Reconcile or continue as entered.</li>
+<li><strong>A required field will not clear.</strong> It may depend on another answer. Use Next Required to find it.</li>
+<li><strong>Codes will not apply.</strong> The code system may not be allowed for your jurisdiction, or the search is a short demonstration list (OPCS-4 codes in this build "come from a short demonstration list and cannot be applied to a case"; ICD-11 and ICD-O search show "coming soon").</li>
+<li><strong>My template is not the CAP or RCPath wording.</strong> The shipped templates are generic placeholders; see the note at the top.</li>
+</ul>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Note the exact message on screen.</li>
+<li>Check the progress badge and the banner for what is still open.</li>
+<li>Use Next Required or Next Unanswered to find the field.</li>
+<li>If the problem is a missing or wrong template, contact your template administrator.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact support if a protocol will not load, if answers disappear after a save, if the AI suggestions never appear on a connected model, or if a code system your site needs is missing.</p>

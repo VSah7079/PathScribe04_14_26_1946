@@ -49,14 +49,17 @@
 // here rather than silently guessed at.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { slideLevelOf } from '@/services/material/slideLevels';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { userService } from '@/services';
 import { getCurrentJurisdiction } from './RetentionPolicy';
 import type { RetainableMaterialType } from './RetentionPolicy';
-import { resolveMostConservativeEligibleDate, resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { resolveFacilityIdForLocation } from './resolveRetentionEligibility';
+import { caseDisposalClock, resolveCaseDisposalDate } from './resolveCaseDisposalDate';
 import { cassetteIdentifier, slideIdentifier, matrixBlockIdentifier, matrixSlideIdentifier, specimenIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
 import type { Case } from '@/types/case/Case';
 import type { MaterialLocation } from '@/types/case/Material';
+import { mostRecentLocation } from './mostRecentLocation';
 
 export interface DisposalReportRow {
   /** Composite, real key — same shape computeDisposalQueue.ts and
@@ -99,19 +102,7 @@ export interface DisposalReportFilters {
   dateTo?: string;
 }
 
-/** Real fix, found by this app's own inline-CSS/business-logic sweep:
- *  this used to assume append-order and take the last array element,
- *  the same bug class MaterialTreePanel.tsx's own mostRecentLocation()
- *  header comment already documented and fixed for the tree view — a
- *  late-arriving or backfilled location event should never silently
- *  look current just because it happened to append last. This
- *  compliance-facing disposal report needs the exact same real
- *  "current location" answer the tree view already shows, so it now
- *  sorts by `at` instead of trusting array order. */
-function mostRecentLocation(history: MaterialLocation[] | undefined): MaterialLocation | undefined {
-  if (!history || history.length === 0) return undefined;
-  return [...history].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
-}
+// One shared rule for an item's last location (Batch 669, batch-4): see ./mostRecentLocation.ts.
 
 function inDateRange(disposedAt: string, dateFrom: string | undefined, dateTo: string | undefined): boolean {
   const disposedDay = disposedAt.slice(0, 10);
@@ -147,9 +138,9 @@ async function evaluateDisposedItem(
   // file's own header note on why this can drift from the rules
   // actually in force at the moment of disposal.
   let eligibleSince: string | undefined;
-  if (c.finalizedAt) {
+  if (caseDisposalClock(c) !== 'notStarted') {
     const jurisdiction = getCurrentJurisdiction();
-    const eligibleDate = await resolveMostConservativeEligibleDate(materialType, jurisdiction, c.finalizedAt, specimenDictionaryEntryIds);
+    const eligibleDate = await resolveCaseDisposalDate(c, materialType, jurisdiction, specimenDictionaryEntryIds);
     eligibleSince = eligibleDate?.toISOString();
   }
 
@@ -214,7 +205,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
         for (let i = 0; i < (block.stains ?? []).length; i++) {
           const slide = block.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const slideDisplayId = slideIdentifier(fullAccession, specimen.label, block.label, level);
           const slideRow = await evaluateDisposedItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -234,7 +225,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
         for (let i = 0; i < (decant.stains ?? []).length; i++) {
           const slide = decant.stains![i];
-          const level = `L${i + 1}`;
+          const level = slideLevelOf(slide, i);
           const decantSlideDisplayId = decantSlideIdentifier(fullAccession, specimen.label, decant.label, level);
           const decantSlideRow = await evaluateDisposedItem(
             c, [specimen.label], [specimen.specimenDictionaryEntryId], 'slide',
@@ -263,7 +254,7 @@ export async function computeDisposalReport(filters: DisposalReportFilters): Pro
 
       for (let i = 0; i < (matrixBlock.slides ?? []).length; i++) {
         const slide = matrixBlock.slides[i];
-        const level = `L${i + 1}`;
+        const level = slideLevelOf(slide, i);
         const matrixSlideDisplayId = matrixSlideIdentifier(fullAccession, matrixBlock.label, level);
         const matrixSlideRow = await evaluateDisposedItem(
           c, participantLabels, participantCategoryIds, 'slide',

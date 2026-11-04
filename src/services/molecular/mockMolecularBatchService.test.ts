@@ -1,7 +1,13 @@
 // src/services/molecular/mockMolecularBatchService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach , vi } from 'vitest';
+
+// Batch 405: cloneAndSupersede checks molecular:batch:supersede; these tests are about the clone itself.
+const { enforce } = vi.hoisted(() => ({ enforce: vi.fn(async (_key: string) => ({ allowed: true })) }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({ authorizationService: { enforce: (k: string) => enforce(k) } }));
 import { storageSet, storageGet } from '../mockStorage';
 import type { MolecularBatch } from './IMolecularBatchService';
+import { MOLECULAR_DEMO_BATCHES } from './molecularDemoSeed';
+import { MOLECULAR_RUN_HISTORY_BATCHES } from './molecularRunHistoryDemoSeed'; // Batch 746 (S7)
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -18,7 +24,8 @@ describe('mockMolecularBatchService — real, per direct specification', () => {
     const res = await mockMolecularBatchService.getAll();
     expect(res.ok).toBe(true);
     if (res.ok) {
-      expect(res.data).toHaveLength(1);
+      // Batch 456: plus the demo baseline's batches (molecularDemoSeed.ts).
+      expect(res.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length + MOLECULAR_RUN_HISTORY_BATCHES.length);
       expect(res.data[0].batchBarcode).toBe('BATCH-20260906-0042');
     }
   });
@@ -45,7 +52,7 @@ describe('mockMolecularBatchService — real, per direct specification', () => {
     });
     expect(res.ok).toBe(false);
     const all = await mockMolecularBatchService.getAll();
-    if (all.ok) expect(all.data).toHaveLength(1); // still just the seed — nothing created
+    if (all.ok) expect(all.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length + MOLECULAR_RUN_HISTORY_BATCHES.length); // still just the seed — nothing created
   });
 
   it('create refuses a target instrument that is not an active instrument in the list (Batch 356, PS-326)', async () => {
@@ -133,6 +140,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
     const res = await mockMolecularBatchService.cloneAndSupersede('mb-001', '   ', 'u1', 'Test User');
     expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('reasonRequired'); // Batch 669: a code the screen translates, not an English sentence
     const original = await mockMolecularBatchService.getById('mb-001');
     if (original.ok) expect(original.data.status).toBe('active'); // real, genuinely untouched
   });
@@ -141,6 +149,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
     const res = await mockMolecularBatchService.cloneAndSupersede('does-not-exist', 'Well A03 was mis-scanned', 'u1', 'Test User');
     expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('batchNotFound');
   });
 
   it('real, per direct guidance\'s own regulatory/audit-integrity reasoning: a successful clone creates a genuinely new, separate real batch record, distinct from the original', async () => {
@@ -212,6 +221,7 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     await mockMolecularBatchService.cloneAndSupersede('mb-001', 'First correction', 'u2', 'Second Tech');
     const secondAttempt = await mockMolecularBatchService.cloneAndSupersede('mb-001', 'Trying again', 'u3', 'Third Tech');
     expect(secondAttempt.ok).toBe(false);
+    expect('error' in secondAttempt && secondAttempt.error).toBe('alreadySuperseded');
   });
 
   it('real, honest refusal, never a partial state: if the real create() gating rejects the clone, the original is left completely untouched', async () => {
@@ -238,7 +248,78 @@ describe('cloneAndSupersede — real, per direct guidance: Clone & Supersede ove
     storageSet('molecular_batches', stored);
     const cloneAttempt = await mockMolecularBatchService.cloneAndSupersede(created.data.id, 'Trying to clone an expired-lot batch', 'u1', 'Test User');
     expect(cloneAttempt.ok).toBe(false);
+    expect('error' in cloneAttempt && cloneAttempt.error).toBe('lotGatingFailed'); // Batch 669: a code, not the English summary
     const originalAfter = await mockMolecularBatchService.getById(created.data.id);
     if (originalAfter.ok) expect(originalAfter.data.status).toBe('draft'); // real, genuinely untouched, not superseded
+  });
+});
+
+describe('Batch 405: supersede permission and patient-well specimens', () => {
+  it('superseding checks molecular:batch:supersede and stops on a refusal', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    enforce.mockImplementationOnce(async () => ({ allowed: false }));
+    const res = await mockMolecularBatchService.cloneAndSupersede('mb-001', 'Mis-scanned specimen', 'u2', 'Second Tech');
+    expect(enforce).toHaveBeenCalledWith('molecular:batch:supersede');
+    expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('notPermitted');
+  });
+});
+
+describe('Batch 405: create refuses a patient well with no specimen', () => {
+  it('returns wellSpecimenMissing before anything is saved', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const res = await mockMolecularBatchService.create({
+      assayCode: 'st-hpv-highrisk-screen', assayName: 'HPV', targetInstrumentId: 'PANTHER_01', plateLayout: '96_well', reagentLots: [],
+      wells: [{ wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN' }], createdByUserId: 'u1', createdByUserName: 'Tech',
+    } as never);
+    expect(res.ok).toBe(false);
+    expect('error' in res && res.error).toBe('wellSpecimenMissing');
+    const all = await mockMolecularBatchService.getAll();
+    expect(all.ok && all.data).toHaveLength(1 + MOLECULAR_DEMO_BATCHES.length + MOLECULAR_RUN_HISTORY_BATCHES.length);
+  });
+});
+
+
+describe('Batch 406: the plate goes in a deck slot that takes an extraction plate', () => {
+  const base = {
+    assayCode: 'RESP_PCR', assayName: 'Respiratory PCR Panel', targetInstrumentId: 'PANTHER_01', plateLayout: '96_well' as const,
+    reagentLots: [{ componentType: 'MASTER_MIX' as const, lotNumber: 'MM-NEW', expirationDate: '2027-01-01T00:00:00.000Z', qcStatus: 'signed_off' as const }],
+    wells: [], createdByUserId: 'u1', createdByUserName: 'Test User',
+  };
+
+  it('refuses a sample-rack slot or a slot the deck lacks, and accepts the plate slot (stored in upper case)', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    for (const deckSlot of ['SLOT_A1', 'SLOT_Z9']) {
+      expect(await mockMolecularBatchService.create({ ...base, deckSlot })).toEqual({ ok: false, error: 'deckSlotInvalid' });
+    }
+    const res = await mockMolecularBatchService.create({ ...base, deckSlot: 'slot_a4' });
+    expect(res.ok && res.data.deckSlot).toBe('SLOT_A4');
+  });
+
+  it('superseding a run whose slot the deck no longer takes a plate in leaves the slot for the tech', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const created = await mockMolecularBatchService.create({ ...base, deckSlot: 'SLOT_A4' });
+    if (!created.ok) throw new Error('create failed');
+    await mockMolecularBatchService.updateByUuid(created.data.batchUuid, { deckSlot: 'SLOT_A1' });
+    const res = await mockMolecularBatchService.cloneAndSupersede(created.data.id, 'Instrument fault', 'u1', 'Test User');
+    expect(res.ok).toBe(true);
+    expect(res.ok && res.data.deckSlot).toBeUndefined();
+  });
+});
+
+describe('Batch 669 (mol-9): a plate with in-house orders on it keeps them through Clone & Supersede', () => {
+  it('the wells bound to orders carry onto the clone with their order, accession and specimen, but not a scan', async () => {
+    const { mockMolecularBatchService } = await import('./mockMolecularBatchService');
+    const draft = await mockMolecularBatchService.getById('mb-demo-467-egfr');
+    if (!draft.ok) throw new Error('demo plate missing');
+    // An order on the draft EGFR plate (the demo baseline's draft), as the Order Queue binds it.
+    await mockMolecularBatchService.updateByUuid(draft.data.batchUuid, { wells: [...draft.data.wells, { wellPosition: 'A03', sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-9', accessionNumber: 'S26-9', specimenUuid: 'sp-9' }] });
+    const res = await mockMolecularBatchService.cloneAndSupersede('mb-demo-467-egfr', 'Instrument fault', 'u1', 'Tech');
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const well = res.data.wells.find(w => w.wellPosition === 'A03');
+    expect(well).toMatchObject({ sampleType: 'PATIENT_SPECIMEN', orderId: 'MO-9', accessionNumber: 'S26-9', specimenUuid: 'sp-9' });
+    expect(well?.containerBarcode).toBeUndefined();
+    expect(res.data.status).toBe('draft');
   });
 });

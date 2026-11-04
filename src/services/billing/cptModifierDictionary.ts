@@ -81,3 +81,11 @@ export const DEFAULT_CPT_MODIFIERS: CptModifierEntry[] = [
   { code: '91', description: 'Modifier 91' },
   { code: '92', description: 'Modifier 92' },
 ];
+
+/** PS-48 (Batch 451, moved out of ModifierDictionarySection.tsx): the rows of
+ *  the downloadable upload template (CSV through utils/csv): the column
+ *  headers parseModifierUploadRows reads, with two real modifiers as examples. */
+export const MODIFIER_UPLOAD_TEMPLATE_FILENAME = 'ModifierDictionaryTemplate.csv';
+export function modifierUploadTemplateRows(): { Code: string; Description: string }[] {
+  return DEFAULT_CPT_MODIFIERS.slice(0, 2).map(m => ({ Code: m.code, Description: m.description }));
+}

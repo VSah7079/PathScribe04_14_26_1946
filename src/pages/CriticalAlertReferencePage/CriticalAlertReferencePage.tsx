@@ -26,12 +26,17 @@
 // fields here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import { useParams } from 'react-router';
-import { mockCriticalAlertReferenceTokenService } from '@/services/clinical/mockCriticalAlertReferenceTokenService';
+
+import { openCriticalAlertReference } from '@/services/clinical/openCriticalAlertReference';
+import { formatFacilityDateTime } from '@/utils/formatFacilityDateTime';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
 import { resolveCriticalAlertReferenceTokenStatus } from '@/services/clinical/ICriticalAlertReferenceTokenService';
 import type { CriticalAlertReferenceToken } from '@/services/clinical/ICriticalAlertReferenceTokenService';
+import { criticalAlertReferenceTokenService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const DisclosureBanner: React.FC = () => (
   <div className="ps-critalert-disclosure-banner">
@@ -43,26 +48,32 @@ const DisclosureBanner: React.FC = () => (
 );
 
 const CriticalAlertReferencePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { config } = useSystemConfig();
   const { token } = useParams<{ token: string }>();
   const [status, setStatus] = useState<'loading' | 'invalid' | 'ready'>('loading');
   const [record, setRecord] = useState<CriticalAlertReferenceToken | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
+  const openingRef = useRef<{ token: string; promise: ReturnType<typeof openCriticalAlertReference> } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (!token) { setStatus('invalid'); return; }
 
-    mockCriticalAlertReferenceTokenService.resolve(token).then(res => {
+    // Batch 669 (access-12): the view is recorded before the record is shown, so "Viewed n times" includes this view.
+    // Batch 702: one view per visit. React StrictMode (development) runs this effect twice, and each run used to record
+    // its own view, so one visit counted two. Both runs now wait on the same opening; only the run that is still mounted
+    // shows the result. A different token starts a new opening.
+    if (openingRef.current?.token !== token) {
+      openingRef.current = { token, promise: openCriticalAlertReference(token, criticalAlertReferenceTokenService) };
+    }
+    openingRef.current.promise.then(res => {
       if (cancelled) return;
       if (!res.ok) { setStatus('invalid'); return; }
       setRecord(res.data);
       setAcknowledged(!!res.data.acknowledgedAt);
       setStatus('ready');
-      // Recorded once per real page view, not on every resolve() — same
-      // real posture as consultAccess's own recordAccess() doc comment.
-      mockCriticalAlertReferenceTokenService.recordAccess(res.data.id);
     });
 
     return () => { cancelled = true; };
@@ -71,13 +82,13 @@ const CriticalAlertReferencePage: React.FC = () => {
   const handleAcknowledge = async () => {
     if (!record) return;
     setAcknowledging(true);
-    const res = await mockCriticalAlertReferenceTokenService.recordAcknowledged(record.id);
+    const res = await criticalAlertReferenceTokenService.recordAcknowledged(record.id);
     setAcknowledging(false);
     if (res.ok) { setRecord(res.data); setAcknowledged(true); }
   };
 
   if (status === 'loading') {
-    return <div className="ps-critalert-shell"><div className="ps-critalert-card ps-critalert-card--loading">{t('criticalAlertReferencePage.loading')}</div></div>;
+    return <div className="ps-critalert-shell"><LoadingState variant="inline" className="ps-critalert-card ps-critalert-card--loading" label={t('criticalAlertReferencePage.loading')} /></div>;
   }
 
   if (status === 'invalid' || !record) {
@@ -111,7 +122,7 @@ const CriticalAlertReferencePage: React.FC = () => {
             {t(tokenStatus === 'Active' ? 'criticalAlertReferencePage.statusLabel.active' : 'criticalAlertReferencePage.statusLabel.expired')}
           </div>
           <div className="ps-critalert-meta-line">
-            {t('criticalAlertReferencePage.expiresLabel', { date: new Date(record.expiresAt).toLocaleString() })}
+            {t('criticalAlertReferencePage.expiresLabel', { date: formatFacilityDateTime(record.expiresAt, i18n.language, config.facilityTimezone) })}
             {' · '}
             {t('criticalAlertReferencePage.viewedLabel', { count: record.accessCount })}
           </div>

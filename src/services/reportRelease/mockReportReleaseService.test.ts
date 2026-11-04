@@ -23,6 +23,7 @@ store.set('pathscribe-user', JSON.stringify({ id: 'TEST-USER', role: 'superadmin
 
 const { mockReportReleaseService } = await import('./mockReportReleaseService');
 const { caseRouter } = await import('../cases/CaseRouter');
+const { caseVersionOf } = await import('../cases/caseWrite');
 
 let counter = 0;
 function makeCaseId(): string {
@@ -63,7 +64,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
 
   describe('getOrgDefault / setOrgDefault', () => {
     it('a real, saved org config is honestly read back, not silently reverted to the fallback', async () => {
-      const saved: import('./IReportReleaseService').ReportReleaseOrgConfig = { enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true };
+      const saved: import('./IReportReleaseService').ReportReleaseOrgConfig = { enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' };
       await mockReportReleaseService.setOrgDefault(saved);
       const result = await mockReportReleaseService.getOrgDefault();
       expect(result.ok).toBe(true);
@@ -72,7 +73,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real, saved org config actually changes resolveBufferForCase — including a real, non-default STAT bypass setting', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 22, bypassForStat: false, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const result = await mockReportReleaseService.resolveBufferForCase({ order: { priority: 'STAT' } } as any);
       // bypassForStat is now false at the org level — a real STAT case
       // no longer bypasses, and gets the real, newly-configured duration.
@@ -81,7 +82,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real, disabled org config makes the buffer never apply, for any case', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: false, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: false, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const result = await mockReportReleaseService.resolveBufferForCase({ order: { priority: 'Routine' } } as any);
       expect(result.applies).toBe(false);
       expect(result.bypassReason).toBe('Release buffer disabled');
@@ -90,7 +91,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
 
   describe('resolveBufferForCase — real facility override', () => {
     it('a real, performing facility that has genuinely opted out of inheriting uses its own, real override values', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 10, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const facilityMod = await import('../facilities/mockFacilityService');
       const created = await facilityMod.mockFacilityService.add({
         name: 'QA Test Performing Lab', assigningAuthority: 'QATEST', address: '1 Test Way', phone: '555-0100', fax: '555-0101',
@@ -109,7 +110,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
     });
 
     it('a real facility explicitly inheriting the system default correctly falls through to the real org config, not its own dormant override values', async () => {
-      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 17, bypassForStat: true, watermarkText: 'TEST WATERMARK', restrictHardcopyPrinting: true });
+      await mockReportReleaseService.setOrgDefault({ enabled: true, durationMinutes: 17, bypassForStat: true, watermarkText: 'TEST WATERMARK', releaseHoldPrintPolicy: 'warn' });
       const facilityMod = await import('../facilities/mockFacilityService');
       const created = await facilityMod.mockFacilityService.add({
         name: 'QA Test Inheriting Lab', assigningAuthority: 'QATEST2', address: '1 Test Way', phone: '555-0100', fax: '555-0101',
@@ -185,7 +186,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       // finalizedBy is set by the real finalizeCase() flow, not
       // startBuffer() itself — set directly here to simulate that real,
       // already-signed state.
-      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, current!.version);
+      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'TRAINEE-999', userName: 'A Resident' });
       expect(result.ok).toBe(false);
@@ -201,10 +202,23 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase({ status: 'in-progress' });
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, current!.version);
+      await caseRouter.updateCase(caseId, { finalizedBy: 'PATH-001' }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       expect(result.ok).toBe(true);
+    });
+
+    it('Batch 649: the signer without report:release:recall (a session with no role) cannot recall; the case stays held', async () => {
+      const caseId = await seedCase({ status: 'in-progress' });
+      await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
+      store.set('pathscribe-user', JSON.stringify({ id: 'NO-ROLE-USER', role: 'pathologist' }));
+      try {
+        const result = await mockReportReleaseService.recall(caseId, { userId: 'NO-ROLE-USER', userName: 'No Role' });
+        expect(result.ok).toBe(false);
+      } finally {
+        store.set('pathscribe-user', JSON.stringify({ id: 'TEST-USER', role: 'superadmin' }));
+      }
+      expect((await caseRouter.getCase(caseId))?.status).toBe('pending-release');
     });
 
     it('refuses to recall a case that is not genuinely in pending-release', async () => {
@@ -221,7 +235,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       // tests elsewhere: directly manipulate the stored timestamp rather
       // than actually waiting minutes in a real test run.
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       expect(result.ok).toBe(false);
@@ -260,7 +274,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase({ status: 'in-progress' });
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
 
       const result = await mockReportReleaseService.checkAndReleaseIfExpired(caseId);
       expect(result.released).toBe(true);
@@ -281,7 +295,7 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       const caseId = await seedCase();
       await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
       const current = await caseRouter.getCase(caseId);
-      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, current!.version);
+      await caseRouter.updateCase(caseId, { releaseBufferExpiresAt: new Date(Date.now() - 1000).toISOString() }, caseVersionOf(current));
       await mockReportReleaseService.checkAndReleaseIfExpired(caseId);
 
       const auditMod = await import('../auditlog/mockAuditService');
@@ -290,5 +304,18 @@ describe('mockReportReleaseService — Phase 1 + Phase 2, per direct specificati
       if (!logs.ok) return;
       expect(logs.data.some(l => l.caseId === caseId)).toBe(true);
     });
+  });
+});
+
+describe('Batch 534: the background release tracker', () => {
+  it('a recall settles it, so the background release never sends the recalled report', async () => {
+    const { mockHeldReleaseService } = await import('./mockHeldReleaseService');
+    const caseId = await seedCase({ status: 'in-progress' });
+    await mockReportReleaseService.startBuffer(caseId, { previousStatus: 'in-progress', durationMinutes: 10 }, { userId: 'PATH-001', userName: 'Pete Nimmo' });
+    await mockHeldReleaseService.add({ id: `t-${caseId}`, caseId, kind: 'surgical-sign-out', event: { caseId, reportType: 'FINAL', releasedAt: 'x' }, followUps: [],
+      heldAt: 'x', expiresAt: new Date(Date.now() + 600_000).toISOString(), releasedBy: { userId: 'PATH-001', userName: 'Pete Nimmo' }, status: 'held' });
+    expect((await mockReportReleaseService.recall(caseId, { userId: 'PATH-001', userName: 'Pete Nimmo' })).ok).toBe(true);
+    const res = await mockHeldReleaseService.getByCaseId(caseId);
+    expect(res.ok && res.data[0].status).toBe('recalled');
   });
 });

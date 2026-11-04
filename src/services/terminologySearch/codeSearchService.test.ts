@@ -1,6 +1,6 @@
 // src/services/terminologySearch/codeSearchService.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { searchCodes, verifyCodeExists, filterToVerifiedCodes, clearVerifiedCodeCache } from './codeSearchService';
+import { searchCodes, verifyCodeExists, filterToVerifiedCodes, verifyAndDescribeCodes, verifyCodeWithDisplay, clearVerifiedCodeCache } from './codeSearchService';
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -113,8 +113,9 @@ describe('verifyCodeExists — real, per direct guidance: "optimize our code and
     globalThis.fetch = fetchSpy as any;
 
     await verifyCodeExists('254837009', 'SNOMED', 'Malignant tumor');
+    const calls = fetchSpy.mock.calls.length; // Batch 656: two look-ups per verification (by code, by wording)
     await verifyCodeExists('254837009', 'SNOMED', 'Malignant tumor');
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(calls);
   });
 
   it('a real, positive result is reused across a genuinely DIFFERENT search phrase for the same code — existence doesn\'t depend on how it was found', async () => {
@@ -125,9 +126,10 @@ describe('verifyCodeExists — real, per direct guidance: "optimize our code and
     globalThis.fetch = fetchSpy as any;
 
     await verifyCodeExists('254837009', 'SNOMED', 'Malignant tumor of breast');
+    const calls = fetchSpy.mock.calls.length; // Batch 656: two look-ups per verification (by code, by wording)
     const second = await verifyCodeExists('254837009', 'SNOMED', 'a completely different search phrase');
     expect(second).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(calls);
   });
 
   it('a negative result for the exact same query is cached too — avoids re-attempting an identical, already-failed search', async () => {
@@ -135,21 +137,22 @@ describe('verifyCodeExists — real, per direct guidance: "optimize our code and
     globalThis.fetch = fetchSpy as any;
 
     await verifyCodeExists('999999999', 'SNOMED', 'some phrase');
+    const calls = fetchSpy.mock.calls.length;
     await verifyCodeExists('999999999', 'SNOMED', 'some phrase');
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(calls);
   });
 
   it('real safety property: a negative result never blocks a genuinely different search phrase from trying again for the same code — never risks hiding a real code behind one bad query', async () => {
-    const fetchSpy = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ result: { results: [] } }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ result: { results: [{ ui: '254837009', name: 'Malignant tumor', rootSource: 'SNOMEDCT_US' }] } }) });
+    const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+      const found = String(url).includes('better') ;
+      return { ok: true, json: async () => ({ result: { results: found ? [{ ui: '254837009', name: 'Malignant tumor', rootSource: 'SNOMEDCT_US' }] : [] } }) };
+    });
     globalThis.fetch = fetchSpy as any;
 
     const first = await verifyCodeExists('254837009', 'SNOMED', 'a poor search phrase');
     const second = await verifyCodeExists('254837009', 'SNOMED', 'a better search phrase');
     expect(first).toBe(false);
     expect(second).toBe(true);
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   it('real safety property: a network/timeout failure is never cached — a transient outage never permanently hides a real code', async () => {
@@ -157,8 +160,9 @@ describe('verifyCodeExists — real, per direct guidance: "optimize our code and
     globalThis.fetch = fetchSpy as any;
 
     await verifyCodeExists('254837009', 'SNOMED', 'Malignant tumor');
+    const calls = fetchSpy.mock.calls.length;
     await verifyCodeExists('254837009', 'SNOMED', 'Malignant tumor');
-    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls.length).toBe(calls * 2); // nothing cached: the second run repeats every look-up
   });
 });
 
@@ -206,5 +210,59 @@ describe('codeSearchService — real, per direct guidance: "everything needs to 
     await vi.advanceTimersByTimeAsync(4000);
     const results = await resultPromise;
     expect(results).toEqual([]);
+  });
+});
+
+describe('verifyCodeExists (Batch 656): an exact look-up by the code itself confirms a real code the wording search misses', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = originalFetch; });
+  it('SNOMED: the code look-up finds it although the long wording returns nothing', async () => {
+    globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+      const u = String(url);
+      if (u.includes('inputType=sourceUi')) return { ok: true, json: async () => ({ result: { results: [{ ui: '254837009', name: 'Malignant neoplasm of breast', rootSource: 'SNOMEDCT_US' }] } }) };
+      return { ok: true, json: async () => ({ result: { results: [] } }) };
+    }) as any;
+    expect(await verifyCodeExists('254837009', 'SNOMED', 'Invasive ductal carcinoma of the left breast, upper outer quadrant')).toBe(true);
+  });
+  it('SNOMED: a code the look-up does not return stays unverified', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ result: { results: [] } }) }) as any;
+    expect(await verifyCodeExists('999999999', 'SNOMED', 'Made up concept')).toBe(false);
+  });
+});
+
+describe('verifyAndDescribeCodes (Batch 696): the dictionary describes the code, not the AI', () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = originalFetch; });
+
+  it('replaces the AI wording with the dictionary description and keeps the AI wording for the audit', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: { results: [{ ui: '413448000', name: 'Invasive carcinoma of breast, no special type', rootSource: 'SNOMEDCT_US' }] } }),
+    }) as any;
+    const out = await verifyAndDescribeCodes([{ code: '413448000', system: 'SNOMED', display: 'IDC of breast' }]);
+    expect(out).toHaveLength(1);
+    expect(out[0].display).toBe('Invasive carcinoma of breast, no special type');
+    expect(out[0].aiWording).toBe('IDC of breast');
+    expect(out[0].verifiedBy).toBe('dictionary');
+  });
+  it('keeps the AI wording when the dictionary answer carries no description, and still counts the code as found', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ result: { results: [{ ui: '413448000', rootSource: 'SNOMEDCT_US' }] } }) }) as any;
+    const out = await verifyAndDescribeCodes([{ code: '413448000', system: 'SNOMED', display: 'IDC of breast' }]);
+    expect(out[0].display).toBe('IDC of breast');
+  });
+  it('drops a code the dictionary does not have', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ result: { results: [] } }) }) as any;
+    expect(await verifyAndDescribeCodes([{ code: '999999999', system: 'SNOMED', display: 'Made up' }])).toEqual([]);
+  });
+  it('CPT is checked against the billing code table, not looked up, and keeps its description', async () => {
+    const fetchSpy = vi.fn(); globalThis.fetch = fetchSpy as any;
+    const out = await verifyAndDescribeCodes([{ code: '88305', system: 'CPT', display: 'Code 88305 — Specimen Level' }]);
+    expect(out[0].verifiedBy).toBe('code-map');
+    expect(out[0].display).toBe('Code 88305 — Specimen Level');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+  it('verifyCodeWithDisplay and verifyCodeExists agree', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ result: { results: [{ ui: '254837009', name: 'Malignant tumor of breast', rootSource: 'SNOMEDCT_US' }] } }) }) as any;
+    expect((await verifyCodeWithDisplay('254837009', 'SNOMED', 'x')).found).toBe(await verifyCodeExists('254837009', 'SNOMED', 'x'));
   });
 });

@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nivel 7: Facturación, gestión del ciclo de ingresos e informes a registros · Guía del administrador de PathScribe (edición interna de ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="es" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Guía del administrador</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Buscar pantallas, campos, códigos de error" aria-label="Buscar en la guía" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Idioma"><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es" selected>Español</option></select>
+<button class="print" type="button" onclick="window.print()">Imprimir / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Capítulos de la guía"><a href="index.html">Contenido</a><a href="setup-sequence.html">Orden de configuración</a><a href="01-system-overview.html">1. Descripción general y arquitectura del sistema</a><a href="02-tier1-primary-prerequisites.html">2. Nivel 1: Requisitos previos del sistema principal (configurar primero)</a><a href="03-tier2-master-dictionaries.html">3. Nivel 2: diccionarios maestros y datos clínicos básicos (configurar en segundo lugar)</a><a href="04-tier3-workflow-engines.html">4. Nivel 3: Motores de flujo de trabajo y configuración operativa (configurar en tercer lugar)</a><a href="05-tier4-ai-framework.html">5. Nivel 4: El marco de IA integrado de PathScribe</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Nivel 5: informes, formularios sinópticos y configuración del programador</a><a href="07-tier6-interface-engine.html">7. Nivel 6: Motor de interfaces e integraciones con sistemas externos</a><a href="08-tier7-billing-registry.html" aria-current=page>8. Nivel 7: Facturación, gestión del ciclo de ingresos e informes a registros</a><a href="09-appendices.html">9. Apéndices: resolución de problemas y verificación del registro de auditoría</a><a href="99-glossary.html">99. Apéndice: Glosario de términos y abreviaturas</a></nav><main id="main"><aside class="pagetoc" aria-label="En esta página"><b>En esta página</b><ul><li class="l2"><a href="#ch8-billing-architecture">Arquitectura del motor de facturación</a></li><li class="l3"><a href="#screen-billing_type_triggers">Activadores de liberación de cargos (TC/26/Global)</a></li><li class="l2"><a href="#ch8-charge-capture">Reglas de captura de cargos, asignación CPT/HCPCS y tarifas</a></li><li class="l3"><a href="#screen-modifier_dictionary">Diccionario de modificadores CPT</a></li><li class="l3"><a href="#screen-rvu_code_map">Mapa de códigos RVU (productividad)</a></li><li class="l3"><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a></li><li class="l2"><a href="#ch8-autocoding-holds">Motor de codificación automática y reglas de retención de facturación</a></li><li class="l3"><a href="#screen-ncci_edit_rules">Reglas de edición NCCI (agrupación)</a></li><li class="l3"><a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a></li><li class="l3"><a href="#screen-billing_release">Liberación de facturación</a></li><li class="l3"><a href="#screen-dft_export_preview">Vista previa de la exportación de facturación</a></li><li class="l2"><a href="#ch8-cancer-registry">Configuración del registro de cáncer</a></li><li class="l3"><a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a></li><li class="l3"><a href="#screen-cosd_destination">Registro de cáncer del Reino Unido (COSD)</a></li><li class="l3"><a href="#screen-us_epath">Anatomía Patológica electrónica de EE. UU.</a></li><li class="l3"><a href="#screen-cytology_registry">Notificación al registro de citología</a></li><li class="l3"><a href="#screen-batch_registry_feed">Archivos por lotes para registros</a></li><li class="l2"><a href="#ch8-quality-reporting">Notificación de calidad y de salud pública (MIPS/MACRA)</a></li><li class="l2"><a href="#ch8-payment-reference">Asignaciones de pagos por jurisdicción, tipos de pago maestros y registro financiero</a></li><li class="l3"><a href="#screen-master_payment_types">Diccionario maestro de tipos de pago</a></li><li class="l3"><a href="#screen-jurisdiction_payment_mappings">Asignación de pagos por jurisdicción</a></li><li class="l3"><a href="#screen-audit-financial">Registros del sistema: Financiero</a></li></ul></aside><article><h1 id="ch8"><a class="anchor" href="#ch8" aria-label="Link to this section">#</a> Nivel 7: Facturación, gestión del ciclo de ingresos e informes a registros</h1>
+<p>Este capítulo describe cómo decide PathScribe qué se cobra, cuándo puede salir un cargo del sistema y a qué registros de cáncer y de cribado se notifica un <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>. También describe las consultas de pago que utiliza la carga útil del cargo y la página Registros del sistema, donde se vigilan los eventos financieros.</p>
+<p>Lea primero estos tres puntos, porque fijan lo que puede esperar y lo que no.</p>
+<ol>
+<li><strong>Qué hace PathScribe con el dinero.</strong> PathScribe resuelve cada cargo una sola vez, al finalizar el caso, en un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> fijo: código <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a> o <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a>, unidades de valor relativo (<a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a>) y <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a>. No guarda precios. <strong>Tarifas: No construido.</strong> No hay ningún campo de importe en dólares, precio ni tarifa de pagador en las reglas de facturación. La carga útil del cargo no lleva importes en dólares. El reembolso lo calcula su sistema de facturación o el motor de interfaces, no PathScribe.</li>
+<li><strong>Qué hace PathScribe con los registros.</strong> PathScribe decide si un caso es notificable, comprueba los datos obligatorios y construye una carga útil <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.">JSON</a> estructurada. No escribe por sí mismo <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.">XML</a> <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.">NAACCR</a>, XML <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, el conjunto de datos nacional inglés para el registro del cáncer.">COSD</a> ni ningún otro formato de transmisión de un registro. El motor de interfaces (el motor de ForMedrixAI, que se entrega con PathScribe) traduce y transmite. Ninguna especificación de registro del producto está confirmada con la especificación publicada por el propio registro, salvo que la sección lo indique.</li>
+<li><strong>La mayor parte de este capítulo es hoy una Demostración.</strong> El almacenamiento de producción es Microsoft SQL Server detrás de una <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> <a class="term" href="99-glossary.html#g-asp-net-core" title="El marco web de Microsoft sobre el que se construye el servidor de la API de PathScribe.">ASP.NET Core</a>. Los servicios que hay detrás de estas pantallas son servicios de demostración que se ejecutan en el navegador, y los contratos de la API de <code>docs/architecture</code> no dicen que nada se haya probado con un servidor real. Cada pantalla indica su propio estado.</li>
+</ol>
+<h2>Orden de configuración del Nivel 7</h2>
+<p>Configure las pantallas en este orden. El cuadro "Orden de configuración" de cada pantalla <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> lo que esa pantalla requiere.</p>
+<ol>
+<li><a href="#screen-modifier_dictionary">Diccionario de modificadores CPT</a>: la lista de modificadores que ofrece el Diccionario de facturación.</li>
+<li><a href="#screen-rvu_code_map">Mapa de códigos RVU</a>: la lista de <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a> y valores relativos a la que apunta cada regla de facturación.</li>
+<li><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>: las reglas de facturación con versiones.</li>
+<li><a href="#screen-ncci_edit_rules">Reglas de edición NCCI</a>: los pares de agrupación (usted los carga; no se entrega ninguno).</li>
+<li><a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a>: una segunda persona aprueba los pasos 1 a 4 antes de que nada entre en vigor.</li>
+<li><a href="#screen-billing_type_triggers">Activadores de liberación de cargos</a>: el hito del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> en el que cada tipo de facturación crea su cargo.</li>
+<li><a href="#screen-billing_release">Liberación de facturación</a>: reglas de retención y de lotes para los cargos que están listos.</li>
+<li><a href="#screen-master_payment_types">Diccionario maestro de tipos de pago</a>: las categorías de pago.</li>
+<li><a href="#screen-jurisdiction_payment_mappings">Asignación de pagos por jurisdicción</a>: los esquemas locales de pagadores asignados a esas categorías.</li>
+<li><a href="#screen-dft_export_preview">Vista previa de la exportación de facturación</a>: compruebe lo que enviaría un caso real.</li>
+<li><a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a>: el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> de cada <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> y la aprobación de la puesta en marcha.</li>
+<li><a href="#screen-cosd_destination">Registro de cáncer del Reino Unido (COSD)</a>: ajustes del destino de Inglaterra.</li>
+<li><a href="#screen-us_epath">Anatomía Patológica electrónica de EE. UU.</a>: perfiles de cada estado para el canal <a class="term" href="99-glossary.html#g-epath" title="Notificación electrónica de patología, el envío de informes de patología a un registro de cáncer en un formato electrónico estándar.">ePath</a> de EE. UU.</li>
+<li><a href="#screen-cytology_registry">Notificación al registro de citología</a>: ajustes del programa de cribado cervical.</li>
+<li><a href="#screen-batch_registry_feed">Archivos por lotes para registros</a>: entregas a registros basadas en archivos.</li>
+</ol>
+<p>La <a href="#screen-audit-financial">pestaña financiera de Registros del sistema</a> es una página de referencia. No forma parte de la configuración.</p>
+<p>No están construidos en este capítulo: las tarifas, las sugerencias de facturación con IA o en lenguaje natural a partir del texto del informe, la salida <a class="term" href="99-glossary.html#g-x12" title="El estándar ANSI para transacciones electrónicas comerciales, incluidas las reclamaciones sanitarias en Estados Unidos.">X12</a> 837P, KVDT y SESAM-Vitale, los archivos por lotes <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.">XML</a> <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.">NAACCR</a> y la notificación de calidad <a class="term" href="99-glossary.html#g-mips" title="El Merit-based Incentive Payment System, un programa estadounidense de Medicare que ajusta el pago según las medidas de calidad notificadas.">MIPS</a> y <a class="term" href="99-glossary.html#g-macra" title="La Medicare Access and CHIP Reauthorization Act de Estados Unidos, que creó el Quality Payment Program, que incluye MIPS.">MACRA</a>.</p>
+<h2 id="ch8-billing-architecture"><a class="anchor" href="#ch8-billing-architecture" aria-label="Link to this section">#</a> Arquitectura del motor de facturación</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span></nav>
+
+<p><strong>Cómo se modela un cargo.</strong> PathScribe divide un cargo en un componente técnico, un componente profesional o ambos juntos. El producto los llama tipos de facturación:</p>
+<table>
+<thead>
+<tr>
+<th>Tipo de facturación</th>
+<th>Etiqueta en pantalla</th>
+<th>Qué cubre</th>
+<th>Conjunto de modificadores</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TC</td>
+<td>Técnico (TC)</td>
+<td>Trabajo de laboratorio: <a class="term" href="99-glossary.html#g-grossing" title="El examen y corte de una muestra quirúrgica por un patólogo o un ayudante de patólogo, describiéndola y eligiendo las piezas que se van a procesar.">tallado</a>, procesamiento, preparaciones, tinciones</td>
+<td><code>-TC</code></td>
+</tr>
+<tr>
+<td>26</td>
+<td>Profesional (26)</td>
+<td>La interpretación del patólogo</td>
+<td><code>-26</code></td>
+</tr>
+<tr>
+<td>Global</td>
+<td>Combinado (Global)</td>
+<td>Ambas partes facturadas juntas</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p>PathScribe fija el <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a> a partir del tipo de facturación sin excepciones: TC lleva <code>-TC</code>, 26 lleva <code>-26</code> y Global no lleva ninguno. Los demás modificadores son solo informativos.</p>
+<p><strong>Cuándo se crea un cargo.</strong> De forma predeterminada, el componente técnico se crea cuando se talla la <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>. Los componentes profesional y global se crean en la firma final. Puede cambiarlo para toda la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> o para un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> en <a href="#screen-billing_type_triggers">Activadores de liberación de cargos</a>.</p>
+<p><strong>Los cargos son fijos una vez creados.</strong> Al finalizar el <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>, PathScribe resuelve el cargo una sola vez en un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> de cargo inmutable que conserva una instantánea del <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a>, el <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a>, las <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> y el modificador. Las ediciones posteriores de una regla de facturación no cambian un cargo ya creado. Una corrección posterior a la firma utiliza un par de abono y refacturación, no una edición.</p>
+<p><strong>Las reglas de facturación tienen versiones.</strong> Una regla de facturación se identifica por el código de facturación, el ámbito y la versión. Las versiones solo se añaden, nunca se modifican. Los estados son DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED y RETIRED. La persona que redacta o envía una versión no puede aprobarla (el <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Una regla por la que una persona prepara un cambio y otra distinta lo aprueba. La importación de códigos de facturación lo utiliza.">principio de los cuatro ojos</a>, aplicado en los servicios). Al aprobarse, la nueva versión entra en vigor y la versión a la que sustituye termina.</p>
+<p><strong>Ámbito.</strong> Una regla se aplica a toda la empresa o a un solo centro. En estas pantallas se utiliza la palabra Sede (Site), no Centro (Facility).</p>
+<p><strong>Casos divididos.</strong> Cuando el componente técnico se realiza en un laboratorio distinto del que hace la lectura profesional, el caso lleva un centro del componente técnico y el centro ejecutor. La decisión de liberación lo comprueba (véase <a href="#screen-billing_release">Liberación de facturación</a>).</p>
+<p><strong>Adónde van los cargos.</strong> Los cargos listos van a la Cola de salida. El barrido de salida omite un cargo en estado PENDING_APPROVAL o HOLD. El motor de interfaces se encarga del transporte, la traducción y los reintentos. PathScribe solo decide qué se libera y cuándo.</p>
+<p><strong>Aprobación opcional de cargos.</strong> Un cargo puede quedar retenido a la espera de aprobación. La <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a> de aprobación <code>billing:charge:approve</code> se comprueba por cada <a class="term" href="99-glossary.html#g-performing-lab" title="El centro que realiza las pruebas y emite el informe, a diferencia de un cliente que solo envía muestras.">laboratorio ejecutor</a>. Está en el <a class="term" href="99-glossary.html#g-capability-catalog" title="La lista completa de capacidades, con el nivel de riesgo de cada una y cualquier capacidad que requiera.">catálogo de capacidades</a>, pero ningún <a class="term" href="99-glossary.html#g-role" title="Un conjunto de capacidades con nombre concedido al personal, como Administrador o Patólogo. Una persona puede tener varios roles.">rol</a> integrado la tiene de forma predeterminada; concédala a través de <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a> si utiliza la aprobación de cargos.</p>
+<h3 id="screen-billing_type_triggers"><a class="anchor" href="#screen-billing_type_triggers" aria-label="Link to this section">#</a> Activadores de liberación de cargos (TC/26/Global)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Activadores de liberación de cargos (TC/26/Global)"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Activadores de liberación de cargos (TC/26/Global)</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Activadores de liberación de cargos (TC/26/Global)</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Fija el hito del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> en el que cada tipo de facturación crea su cargo. Los valores predeterminados son: TC cuando la <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> está tallada, y 26 y Global cuando el caso está firmado. Puede anular un valor predeterminado para toda la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> o para un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a>. Un centro sin anulación propia utiliza el ajuste de la empresa.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Una anulación por centro solo se puede fijar para un centro que exista, de modo que configure antes los centros. Si no hay ningún centro en la lista, aun así puede fijar los activadores de toda la empresa.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 6</p><dl><dt>Configurar primero</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><a href="#screen-billing_release">Liberación de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-billing_type_triggers.webp" alt="Activadores de liberación de cargos con una lista de hitos por tipo de facturación" loading="lazy"><figcaption>Activadores de liberación de cargos con una lista de hitos por tipo de facturación</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_type_triggers-scope-selector"><td>Selector de ámbito</td>
+<td>Elección entre Empresa o un centro</td>
+<td>Obligatorio</td>
+<td>Elige de quién se ven y se modifican los activadores.</td>
+<td>Empresa</td>
+</tr>
+<tr id="f-billing_type_triggers-technical-tc-trigger"><td>Activador técnico (TC)</td>
+<td>Elección entre hitos del caso</td>
+<td>Obligatorio</td>
+<td>El hito en el que se crea el cargo técnico. Al cambiar la lista desplegable se guarda de inmediato.</td>
+<td>Muestra tallada (<code>SPECIMEN_GROSSED</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-professional-26-prof-trigger"><td>Activador profesional (26)</td>
+<td>Elección entre hitos del caso</td>
+<td>Obligatorio</td>
+<td>El hito en el que se crea el cargo profesional. Se guarda de inmediato.</td>
+<td>Caso firmado (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-combined-global-trigger"><td>Activador combinado (Global)</td>
+<td>Elección entre hitos del caso</td>
+<td>Obligatorio</td>
+<td>El hito en el que se crea el cargo global. Se guarda de inmediato.</td>
+<td>Caso firmado (<code>CASE_SIGNED_OUT</code>)</td>
+</tr>
+<tr id="f-billing_type_triggers-reset-to-default"><td>Restablecer valores predeterminados</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Elimina la anulación del ámbito elegido y lo devuelve al valor predeterminado integrado.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:billing-triggers:manage</code>. Admin y Lab Director la tienen de forma predeterminada. Cada cambio escribe un evento de auditoría ("Charge release trigger changed", "Charge release triggers reset to default").</p>
+<p><strong>Límites conocidos.</strong> Solo servicio de demostración. Un cambio de activador afecta a los cargos que se creen a partir de ese momento y no modifica los cargos ya creados.</p>
+<h2 id="ch8-charge-capture"><a class="anchor" href="#ch8-charge-capture" aria-label="Link to this section">#</a> Reglas de captura de cargos, asignación CPT/HCPCS y tarifas</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span></nav>
+
+<p><strong>Tarifas: No construido.</strong> El esquema pide tarifas. No hay pantalla, contrato ni campo para un importe en dólares, un precio o una tarifa específica de un pagador. Una regla de facturación lleva solo el código <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a>, el código <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a> y los valores <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> de trabajo, gastos de la consulta (PE) y responsabilidad profesional (MP). Lo más parecido que existe son los valores RVU del <a href="#screen-billing_dictionary">Diccionario de facturación</a> y del <a href="#screen-rvu_code_map">Mapa de códigos RVU</a>. La comprobación llamada <code>ZERO_FEE_MAPPING_ERROR</code> está redactada como una comprobación de tarifa, pero detecta un cargo que se resolvió con RVU cero en trabajo, PE y MP y que no tiene aviso de supresión.</p>
+<p><strong>Carga masiva de códigos.</strong> Para cargar en <a class="term" href="99-glossary.html#g-block" title="Una pieza de tejido incluida en parafina dentro de un casete, de la que se cortan las preparaciones.">bloque</a> listas de CPT, HCPCS u otros códigos, utilice <a href="03-tier2-master-dictionaries.html#screen-code_import">Importación de códigos (masiva)</a>. Está documentada junto con las demás consultas.</p>
+<p><strong>Codificación automática.</strong> Véase el párrafo de estado en <a href="#ch8-autocoding-holds">Motor de codificación automática y reglas de retención de facturación</a>.</p>
+<h3 id="screen-modifier_dictionary"><a class="anchor" href="#screen-modifier_dictionary" aria-label="Link to this section">#</a> Diccionario de modificadores CPT</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Diccionario de modificadores CPT"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Diccionario de modificadores <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a></span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Diccionario de modificadores CPT</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> La lista de códigos de modificadores CPT (por ejemplo 26, TC, 59, XS) que ofrece la pestaña Reglas de codificación del Diccionario de facturación. Los modificadores de aquí son informativos. PathScribe no comprueba ni añade ningún <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a> distinto de la regla fija de TC y 26 descrita en la introducción del capítulo.</p>
+<p>Las descripciones que se entregan son marcadores de posición como "Modifier 59", marcados como sintéticos, porque el texto de la American Medical Association (<a class="term" href="99-glossary.html#g-ama" title="American Medical Association, editora y propietaria del conjunto de códigos CPT.">AMA</a>) tiene licencia. Si dispone de una licencia, cargue sus propias descripciones.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Es un punto de partida. Cada cambio se convierte en una versión nueva que espera aprobación, por lo que hace falta una segunda persona con derechos de aprobación antes de que un cambio entre en vigor.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 1</p><dl><dt>Configurar primero</dt><dd><span class="none">Ninguno, es un punto de partida.</span></dd><dt>Esto habilita</dt><dd><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>, <a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-modifier_dictionary.webp" alt="Diccionario de modificadores CPT con la versión activa y la lista de códigos" loading="lazy"><figcaption>Diccionario de modificadores CPT con la versión activa y la lista de códigos</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-modifier_dictionary-version-label"><td>Etiqueta de versión</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>La versión activa del diccionario. Id de la versión inicial <code>modifier-v-seed-2026</code>. También se entrega una segunda versión pendiente con licencia.</td>
+<td>Versión inicial</td>
+</tr>
+<tr id="f-modifier_dictionary-code"><td>Código</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>El código del modificador. Incluidos: 26, TC, 22, 52, 53, 59, XE, XS, XP, XU, 76, 77, 90, 91, 92 (15 códigos).</td>
+<td>15 códigos incluidos</td>
+</tr>
+<tr id="f-modifier_dictionary-description"><td>Descripción</td>
+<td>Texto</td>
+<td>Obligatorio al editar una fila</td>
+<td>La descripción que ve el personal. Al guardar se crea una versión nueva en PENDING_APPROVAL; nunca se activa automáticamente.</td>
+<td>"Modifier {code}" (sintético)</td>
+</tr>
+<tr id="f-modifier_dictionary-license-status"><td>Estado de la licencia</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>Muestra <code>synthetic</code> para los marcadores de posición entregados.</td>
+<td>synthetic</td>
+</tr>
+<tr id="f-modifier_dictionary-upload-csv"><td>Cargar <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a></td>
+<td>Archivo, CSV</td>
+<td>Opcional</td>
+<td>Sustituye el diccionario con un archivo con las columnas Code y Description. Plantilla: <code>ModifierDictionaryTemplate.csv</code>. Crea una versión pendiente.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-modifier_dictionary-licence-confirmation"><td>Confirmación de la licencia</td>
+<td>Casilla de verificación</td>
+<td>Obligatorio para cargar</td>
+<td>Usted confirma que tiene derecho a utilizar las descripciones cargadas. La carga no continúa sin ella.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-modifier_dictionary-version-label-for-the-upload"><td>Etiqueta de la versión de la carga</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Da nombre a la versión pendiente.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Crear o editar: <code>config:billing-modifiers:manage</code>. Aprobar, rechazar o activar una versión: <code>config:billing-tables:approve</code>, que se utiliza en <a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a>. Admin y Lab Director tienen ambas de forma predeterminada. La persona que envió una versión no puede aprobarla.</p>
+<p><strong>Límites conocidos.</strong> El diccionario es solo una lista. Ninguna pantalla ni comprobación impone un modificador en un cargo. El texto entregado es sintético.</p>
+<h3 id="screen-rvu_code_map"><a class="anchor" href="#screen-rvu_code_map" aria-label="Link to this section">#</a> Mapa de códigos RVU (productividad)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Mapa de códigos RVU (productividad)"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Mapa de códigos <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> (productividad)</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Mapa de códigos RVU (productividad)</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Una lista breve y seleccionada de códigos <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a> con sus unidades de valor relativo, que se utiliza para la productividad del patólogo (RVU de trabajo) y como lista de origen de la que el Diccionario de facturación toma los códigos CPT. No es un sistema de facturación y no lleva importes en dólares. La lista inicial es un subconjunto del archivo de valores relativos de la tarifa de médicos 2026 de <a class="term" href="99-glossary.html#g-cms" title="Los Centers for Medicare and Medicaid Services, la agencia estadounidense que establece las normas de facturación de Medicare, incluidas las ediciones NCCI.">CMS</a>, con la etiqueta "CMS 2026 (April update)" (id de versión <code>rvu-v-seed-2026</code>). Varias filas no tienen RVU de trabajo y aparecen como Sin verificar.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Es un punto de partida. Una versión pendiente o rechazada nunca se utiliza para resolver un cargo, de modo que nada de lo que cargue cuenta hasta que una segunda persona lo apruebe.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 2</p><dl><dt>Configurar primero</dt><dd><span class="none">Ninguno, es un punto de partida.</span></dd><dt>Esto habilita</dt><dd><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>, <a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-rvu_code_map.webp" alt="Tabla del Mapa de códigos RVU con carga y edición" loading="lazy"><figcaption>Tabla del Mapa de códigos RVU con carga y edición</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-version"><td>Versión</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>La etiqueta de la versión activa.</td>
+<td>CMS 2026 (April update)</td>
+</tr>
+<tr id="f-rvu_code_map-search"><td>Buscar</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Filtra la tabla.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-rvu_code_map-upload-csv"><td>Cargar <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a></td>
+<td>Archivo, CSV</td>
+<td>Opcional</td>
+<td>Columnas: Code o <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a>, Description, WorkRVU. Respeta el código de estado de CMS (solo las filas A, R y T son facturables) y omite las filas de modificadores. A las filas cargadas se les deduce el nivel a partir de la descripción (<a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> de forma predeterminada) y el tipo de facturación Global. Crea una versión pendiente. Plantilla: <code>RvuCodeMapTemplate.csv</code>.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-rvu_code_map-version-label-for-the-upload"><td>Etiqueta de la versión de la carga</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Da nombre a la versión pendiente.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana de edición</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-rvu_code_map-code"><td>Código</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El código <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a>. Bloqueado al editar una fila existente. Se rechaza un código duplicado.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-rvu_code_map-billing-code"><td>Código de facturación</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El código de facturación de PathScribe. Bloqueado al editar.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-rvu_code_map-description"><td>Descripción</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Descripción sencilla.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-rvu_code_map-level"><td>Nivel</td>
+<td>Elección: <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, <a class="term" href="99-glossary.html#g-block" title="Una pieza de tejido incluida en parafina dentro de un casete, de la que se cortan las preparaciones.">bloque</a>, <a class="term" href="99-glossary.html#g-stain" title="Un colorante o anticuerpo aplicado a una preparación para poder ver una característica del tejido.">tinción</a>, decantación</td>
+<td>Obligatorio</td>
+<td>Aquello a lo que se asocia el código.</td>
+<td>muestra</td>
+</tr>
+<tr id="f-rvu_code_map-component-type"><td>Tipo de componente</td>
+<td>Elección: TC, 26, Global</td>
+<td>Obligatorio</td>
+<td>El tipo de facturación al que se aplica esta fila.</td>
+<td>Global</td>
+</tr>
+<tr id="f-rvu_code_map-work-rvu"><td><a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> de trabajo</td>
+<td>Número positivo</td>
+<td>Opcional</td>
+<td>Déjelo en blanco para marcar la fila como Sin verificar.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-pe"><td>RVU — Gastos de práctica</td>
+<td>Número</td>
+<td>Opcional</td>
+<td>RVU de gastos de la consulta (PE).</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-rvu_code_map-rvu-mp"><td>RVU — Responsabilidad civil</td>
+<td>Número</td>
+<td>Opcional</td>
+<td>RVU de responsabilidad profesional (MP).</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-rvu_code_map-hcpcs"><td>Código <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Código de nivel II, si se aplica alguno.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Editar o cargar: <code>config:billing-rvu:manage</code>. Aprobar: <code>config:billing-tables:approve</code>. Admin y Lab Director tienen ambas de forma predeterminada. Se aplica el <a class="term" href="99-glossary.html#g-four-eyes-principle" title="Una regla por la que una persona prepara un cambio y otra distinta lo aprueba. La importación de códigos de facturación lo utiliza.">principio de los cuatro ojos</a>.</p>
+<p><strong>Límites conocidos.</strong> La lista es un subconjunto seleccionado, no el archivo completo de <a class="term" href="99-glossary.html#g-cms" title="Los Centers for Medicare and Medicaid Services, la agencia estadounidense que establece las normas de facturación de Medicare, incluidas las ediciones NCCI.">CMS</a>. La selección del código base por muestra (88302, 88305, 88309) no se puede deducir de los datos del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>, por lo que no es automática.</p>
+<h3 id="screen-billing_dictionary"><a class="anchor" href="#screen-billing_dictionary" aria-label="Link to this section">#</a> Diccionario de facturación (captura de cargos)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Diccionario de facturación (captura de cargos)"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Diccionario de facturación (<a class="term" href="99-glossary.html#g-charge-capture" title="Registrar el trabajo facturable realizado en un caso para poder enviarlo a facturación.">captura de cargos</a>)</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Diccionario de facturación (captura de cargos)</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> La lista de reglas de facturación con versiones. Cada regla vincula un código de facturación de PathScribe con un código <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a>, un código <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a> opcional, un tipo de facturación y valores <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a>, para la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> o para un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a>. Una anulación por centro sustituye a la regla de la empresa para ese centro. Los cargos se resuelven a partir de estas reglas cuando se finaliza un <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> El selector de CPT lee el Mapa de códigos RVU y las casillas de modificadores leen el Diccionario de modificadores CPT. Si los omite, la búsqueda de CPT está vacía y no se ofrece ningún <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a>.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 3</p><dl><dt>Configurar primero</dt><dd><a href="#screen-rvu_code_map">Mapa de códigos RVU</a>, <a href="#screen-modifier_dictionary">Diccionario de modificadores CPT</a></dd><dt>Esto habilita</dt><dd><a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a>, <a href="#screen-billing_release">Liberación de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-billing_dictionary.webp" alt="Tabla del Diccionario de facturación con selector de centro" loading="lazy"><figcaption>Tabla del Diccionario de facturación con selector de centro</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-viewing"><td>Viendo</td>
+<td>Elección entre Empresa o un centro</td>
+<td>Obligatorio</td>
+<td>De quién <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> las reglas la tabla.</td>
+<td>Empresa</td>
+</tr>
+<tr id="f-billing_dictionary-billing-code"><td>Código de facturación</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>El código de facturación de PathScribe.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td>CPT</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>El código CPT.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Descripción</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>La descripción de la regla.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td>UVR (trabajo)</td>
+<td>Número, columna</td>
+<td>No aplicable</td>
+<td>RVU de trabajo. Aparece la <a class="term" href="99-glossary.html#g-flag" title="Un indicador colocado en un caso o una muestra, por ejemplo para pedir una tinción adicional o para retener un caso.">marca</a> "Mapa de códigos: N" cuando el RVU almacenado difiere del Mapa de códigos RVU.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Vigente desde</td>
+<td>Fecha, columna</td>
+<td>No aplicable</td>
+<td>La fecha en que empieza la versión activa.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Ámbito</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Toda la organización, Excepción por centro o Heredado.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Estado</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>El estado de la versión.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-versions"><td>Versiones</td>
+<td>Número, columna</td>
+<td>No aplicable</td>
+<td>Cuántas versiones existen.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Acciones</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Historial, Duplicar, Nueva versión.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Nueva versión, pestaña Facturación y UVR</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-billing-code"><td>Código de facturación</td>
+<td>Texto</td>
+<td>Obligatorio para un código nuevo</td>
+<td>El código al que pertenece esta regla.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-scope"><td>Ámbito</td>
+<td>Elección entre Empresa o un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a></td>
+<td>Obligatorio</td>
+<td>Dónde se aplica la regla.</td>
+<td>El ámbito que se está viendo</td>
+</tr>
+<tr id="f-billing_dictionary-country"><td>País</td>
+<td>Elección: US, UK, AU, CA, los 27 estados de la <a class="term" href="99-glossary.html#g-eu" title="Unión Europea.">UE</a>, NZ</td>
+<td>Opcional</td>
+<td>El país al que está destinado el código.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-hcpcs-code"><td>Código <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, el conjunto de códigos estadounidense que añade códigos a CPT para suministros y servicios.">HCPCS</a></td>
+<td>Búsqueda</td>
+<td>Opcional</td>
+<td>Busca en el diccionario HCPCS de nivel II de dominio público incorporado.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-cpt-code"><td>Código <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a></td>
+<td>Búsqueda en las entradas del Mapa de códigos <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a></td>
+<td>Obligatorio</td>
+<td>El código CPT que se factura.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-description"><td>Descripción</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Descripción de la regla.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-level"><td>Nivel</td>
+<td>Elección: <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, <a class="term" href="99-glossary.html#g-block" title="Una pieza de tejido incluida en parafina dentro de un casete, de la que se cortan las preparaciones.">bloque</a>, <a class="term" href="99-glossary.html#g-stain" title="Un colorante o anticuerpo aplicado a una preparación para poder ver una característica del tejido.">tinción</a>, decantación</td>
+<td>Obligatorio</td>
+<td>Aquello a lo que se asocia el código.</td>
+<td>muestra</td>
+</tr>
+<tr id="f-billing_dictionary-component-type"><td>Tipo de componente</td>
+<td>Elección: TC, 26, Global</td>
+<td>Obligatorio</td>
+<td>El tipo de facturación.</td>
+<td>Global</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work-pe-mp"><td>UVR — Trabajo, UVR — Gastos de la consulta, UVR — Responsabilidad profesional</td>
+<td>Números</td>
+<td>Opcional</td>
+<td>Los tres valores RVU.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from"><td>Vigente desde</td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>Fecha de inicio de la versión.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Motivo del cambio</td>
+<td>Texto</td>
+<td>Obligatorio cuando el ámbito ya tiene versiones</td>
+<td>Se conserva en la versión para la auditoría.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-notes"><td>Notas</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Notas libres.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Nueva versión, pestaña Reglas de codificación</h4>
+<p>Son informativas y nunca se imponen.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-modifiers-commonly-associated"><td>Modificadores asociados habitualmente</td>
+<td>Casillas del Diccionario de modificadores <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a></td>
+<td>Opcional</td>
+<td>Recordatorio de los modificadores que suelen acompañar a este código.</td>
+<td>Ninguna marcada</td>
+</tr>
+<tr id="f-billing_dictionary-quantity-rule"><td>Regla de cantidad (descriptiva)</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Indicación sobre las unidades.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-bundling-rule"><td>Regla de agrupación (descriptiva)</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Indicación sobre la agrupación. Los pares <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un conjunto de ediciones de Medicare de Estados Unidos que indican qué pares de códigos no se pueden facturar juntos.">NCCI</a> se guardan en <a href="#screen-ncci_edit_rules">Reglas de edición NCCI</a>.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-documentation-requirements"><td>Requisitos de documentación (descriptivo)</td>
+<td>Texto separado por comas</td>
+<td>Opcional</td>
+<td>Lo que debe constar en el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-billing_dictionary-suppression-advisory"><td>Aviso de supresión (descriptivo, nunca se aplica automáticamente)</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Marca una regla de <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> cero como intencionada, para que la comprobación de tarifa cero no avise.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana Historial</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_dictionary-version"><td>Versión</td>
+<td>Número, columna</td>
+<td>No aplicable</td>
+<td>Número de versión.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a></td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>CPT de esa versión.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-rvu-work"><td>UVR (trabajo)</td>
+<td>Número, columna</td>
+<td>No aplicable</td>
+<td><a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> de trabajo.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-effective-from-effective-to"><td>Vigente desde, Vigente hasta</td>
+<td>Fechas, columnas</td>
+<td>No aplicable</td>
+<td>El período en que se aplicó la versión.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-status"><td>Estado</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED o RETIRED.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-change-reason"><td>Motivo del cambio</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>El motivo introducido.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-billing_dictionary-actions"><td>Acciones</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Duplicar. Enviar para aprobación (versiones DRAFT). Retirar (versiones ACTIVE).</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p>Una versión nueva se guarda siempre como DRAFT. <strong>Enviar para aprobación</strong> la pasa a PENDING_APPROVAL.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Crear, enviar y retirar: <code>config:billing-rules:manage</code>. Aprobar o rechazar: <code>config:billing-tables:approve</code>. Admin y Lab Director tienen ambas de forma predeterminada. Se escriben eventos de auditoría al enviar, aprobar y rechazar ("Billing rule submitted for approval").</p>
+<p><strong>Límites conocidos.</strong> No hay campo de precio ni de tarifa (véase Tarifas más arriba). Las reglas de codificación son solo orientativas.</p>
+<h2 id="ch8-autocoding-holds"><a class="anchor" href="#ch8-autocoding-holds" aria-label="Link to this section">#</a> Motor de codificación automática y reglas de retención de facturación</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span></nav>
+
+<p><strong>Motor de codificación automática: Parcial.</strong> Lo que está construido se basa en reglas y siempre lo confirma una persona:</p>
+<ul>
+<li>Códigos sugeridos a partir de datos estructurados del <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a>: categorías de <a class="term" href="99-glossary.html#g-stain" title="Un colorante o anticuerpo aplicado a una preparación para poder ver una característica del tejido.">tinción</a>, 88312 para una tinción especial, 88342 y +88341 para la inmunohistoquímica por <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a>, y 88331 o 88332 para una <a class="term" href="99-glossary.html#g-frozen-section" title="Una muestra de tejido congelada y cortada mientras el paciente está en cirugía para que un patólogo pueda dar una respuesta rápida.">biopsia intraoperatoria</a>.</li>
+<li>Una lista de reserva de códigos predeterminados. No está lista para facturar.</li>
+<li>Introducción manual de códigos en la ventana de códigos y en el panel de revisión de facturación.</li>
+</ul>
+<p><strong>No construido:</strong> las sugerencias a partir del texto del informe mediante IA o procesamiento del lenguaje natural. Ese trabajo depende de la opinión de los asesores jurídicos y de cumplimiento. Los códigos base de muestra (88302, 88305, 88309) no se deducen automáticamente. La pantalla de configuración más cercana es <a href="05-tier4-ai-framework.html#screen-smart_capture">Captura inteligente</a>.</p>
+<p><strong>Comprobaciones de facturación en la firma.</strong> En la firma, PathScribe ejecuta seis comprobaciones y registra una deficiencia por cada hallazgo:</p>
+<table>
+<thead>
+<tr>
+<th>Activador</th>
+<th>Código</th>
+<th>Gravedad</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td><code>UNSUPPORTED_CPT_LEVEL</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>B</td>
+<td><code>NCCI_BUNDLING_VIOLATION</code> (solo los pares con indicador de <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a> 0)</td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>C</td>
+<td><code>MISSING_DIAGNOSTIC_ICD10</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>D</td>
+<td><code>UNATTACHED_ANCILLARY_ORDER</code></td>
+<td>COMPLIANCE_WARNING</td>
+</tr>
+<tr>
+<td>E</td>
+<td><code>MODIFIER_MISMATCH</code></td>
+<td>CRITICAL_REJECTION_RISK</td>
+</tr>
+<tr>
+<td>F</td>
+<td><code>ZERO_FEE_MAPPING_ERROR</code></td>
+<td>REVENUE_LEAKAGE</td>
+</tr>
+</tbody>
+</table>
+<p><code>MISSING_CHARGE</code>, <code>POST_SIGNOUT_CORRECTION</code> y <code>BLOCK_DELETED</code> se generan fuera de la firma. Estas comprobaciones nunca impiden que el patólogo firme. Un aviso emergente indica que se han marcado elementos de facturación para <a class="term" href="99-glossary.html#g-qa" title="Garantía de calidad, la revisión del trabajo para detectar y corregir problemas.">GC</a> y los hallazgos van a GC. Sí bloquean la exportación: un caso no se puede exportar mientras alguna deficiencia esté OPEN o UNDER_REVIEW. Los estados son OPEN, UNDER_REVIEW, RESOLVED y OVERRIDDEN_WITH_JUSTIFICATION.</p>
+<h3 id="screen-ncci_edit_rules"><a class="anchor" href="#screen-ncci_edit_rules" aria-label="Link to this section">#</a> Reglas de edición NCCI (agrupación)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Reglas de edición NCCI (agrupación)"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Reglas de edición <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un conjunto de ediciones de Medicare de Estados Unidos que indican qué pares de códigos no se pueden facturar juntos.">NCCI</a> (agrupación)</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Reglas de edición NCCI (agrupación)</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Contiene los pares procedimiento-procedimiento de la National Correct Coding Initiative (NCCI): un código de la columna 1 y un código de la columna 2 que no pueden facturarse juntos. Un par con indicador de <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a> 0 genera una deficiencia en la firma. No se entregan datos reales de <a class="term" href="99-glossary.html#g-cms" title="Los Centers for Medicare and Medicaid Services, la agencia estadounidense que establece las normas de facturación de Medicare, incluidas las ediciones NCCI.">CMS</a>. La lista inicial es un único par sintético (88305 con 88300, indicador 0, trimestre <code>DEMO</code>) y la pantalla <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> una advertencia. El titular de la licencia carga el <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a>.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Es un punto de partida. Una carga o una edición se convierte en una importación pendiente, por lo que hace falta aprobación antes de utilizar los pares.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 4</p><dl><dt>Configurar primero</dt><dd><span class="none">Ninguno, es un punto de partida.</span></dd><dt>Esto habilita</dt><dd><a href="#screen-pending_approvals">Aprobaciones pendientes de reglas de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-ncci_edit_rules.webp" alt="Reglas de edición NCCI con la advertencia de datos sintéticos y la tabla de pares" loading="lazy"><figcaption>Reglas de edición NCCI con la advertencia de datos sintéticos y la tabla de pares</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-quarter-version"><td>Versión del trimestre</td>
+<td>Texto, por ejemplo <code>2026Q3</code></td>
+<td>Obligatorio para cargar</td>
+<td>Da nombre a la importación.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-ncci_edit_rules-upload-csv"><td>Cargar CSV</td>
+<td>Archivo, CSV</td>
+<td>Opcional</td>
+<td>Columnas: Column 1, Column 2, Modifier Indicator (0, 1 o 9), Effective Date, Deletion Date. Plantilla: <code>NcciPtpEditTemplate.csv</code>. Crea una importación pendiente.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-ncci_edit_rules-pair-table"><td>Tabla de pares</td>
+<td>Tabla, solo lectura</td>
+<td>No aplicable</td>
+<td>Columna 1, columna 2, indicador y fechas de la importación activa.</td>
+<td>Un par sintético</td>
+</tr>
+<tr id="f-ncci_edit_rules-synthetic-data-warning"><td>Advertencia de datos sintéticos</td>
+<td>Aviso</td>
+<td>No aplicable</td>
+<td>Se muestra mientras la importación activa es la lista inicial sintética.</td>
+<td>Se muestra</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana de edición</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-ncci_edit_rules-modifier-indicator"><td>Indicador de <a class="term" href="99-glossary.html#g-modifier" title="Un código corto añadido a un código CPT para indicar cómo se realizó un servicio, por ejemplo que solo se prestó el componente técnico.">modificador</a></td>
+<td>Elección: 0 nunca se omite, 1 se puede omitir con un modificador, 9 la edición no se aplica</td>
+<td>Obligatorio</td>
+<td>Solo los pares con 0 generan una deficiencia en la firma.</td>
+<td>El valor actual</td>
+</tr>
+<tr id="f-ncci_edit_rules-deletion-date"><td>Fecha de eliminación</td>
+<td>Fecha</td>
+<td>Opcional</td>
+<td>La fecha en que el par deja de aplicarse.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<p>Cada edición vuelve a enviar la tabla completa como una importación nueva en PENDING_APPROVAL llamada "Manual edit" con el par.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cargar o editar: <code>config:billing-ncci:manage</code>. Aprobar: <code>config:billing-tables:approve</code>. Admin y Lab Director tienen ambas de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> No se entregan datos reales de <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un conjunto de ediciones de Medicare de Estados Unidos que indican qué pares de códigos no se pueden facturar juntos.">NCCI</a>. Los indicadores 1 y 9 no generan una deficiencia.</p>
+<h3 id="screen-pending_approvals"><a class="anchor" href="#screen-pending_approvals" aria-label="Link to this section">#</a> Aprobaciones pendientes de reglas de facturación</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Aprobaciones pendientes de reglas de facturación"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Aprobaciones pendientes de reglas de facturación</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Aprobaciones pendientes de reglas de facturación</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> La cola de aprobación por una segunda persona. Aquí esperan las versiones de reglas de facturación, las versiones del diccionario de modificadores, las importaciones <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, un conjunto de ediciones de Medicare de Estados Unidos que indican qué pares de códigos no se pueden facturar juntos.">NCCI</a>, las versiones <a class="term" href="99-glossary.html#g-rvu" title="Unidad de valor relativo, la medida del trabajo y del coste de un servicio que se utiliza en el pago de Medicare y en los informes de productividad.">RVU</a> y los trabajos de importación de códigos. Nada entra en vigor hasta que lo aprueba una persona distinta de quien lo envió.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> La cola solo <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> los elementos que han enviado las pantallas anteriores. La persona que aprueba necesita la <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a> de aprobación y no debe ser quien lo envió.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 5</p><dl><dt>Configurar primero</dt><dd><a href="#screen-modifier_dictionary">Diccionario de modificadores CPT</a>, <a href="#screen-rvu_code_map">Mapa de códigos RVU</a>, <a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>, <a href="#screen-ncci_edit_rules">Reglas de edición NCCI</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-pending_approvals.webp" alt="Tablas de Aprobaciones pendientes de reglas de facturación y de Actualizaciones de diccionarios pendientes" loading="lazy"><figcaption>Tablas de Aprobaciones pendientes de reglas de facturación y de Actualizaciones de diccionarios pendientes</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-pending_approvals-billing-code"><td>Código de facturación</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas: el código de la regla.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-cpt"><td><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a></td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-rvu-work"><td>RVU (trabajo)</td>
+<td>Número, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-effective-from"><td>Vigente desde</td>
+<td>Fecha, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-scope"><td>Ámbito</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-drafted-by"><td>Redactado por</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas: la persona que redactó.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-submitted-by"><td>Enviado por</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas: la persona que envió.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-change-reason"><td>Motivo del cambio</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de reglas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-dictionary"><td>Diccionario</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de diccionarios: qué diccionario (importación de códigos, modificadores, NCCI, RVU).</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-label"><td>Etiqueta</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Tabla de diccionarios: etiqueta de la versión o del trabajo.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-pending_approvals-approve"><td>Aprobar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Activa el elemento. En una importación de códigos aplica el trabajo completo. Si usted lo envió, el botón está bloqueado y una indicación explica el motivo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-pending_approvals-reject"><td>Rechazar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Abre un cuadro de motivo; <strong>Confirmar rechazo</strong> termina el elemento.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-pending_approvals-rejection-reason"><td>Motivo del rechazo</td>
+<td>Texto</td>
+<td>Obligatorio para rechazar</td>
+<td>Se guarda con la decisión.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Aprobar y rechazar: <code>config:billing-tables:approve</code>. Admin y Lab Director la tienen de forma predeterminada. Las decisiones escriben eventos de auditoría.</p>
+<p><strong>Límites conocidos.</strong> En un sistema de una sola persona nadie puede aprobar, porque quien envía no puede aprobar su propio elemento.</p>
+<h3 id="screen-billing_release"><a class="anchor" href="#screen-billing_release" aria-label="Link to this section">#</a> Liberación de facturación</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Liberación de facturación"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Liberación de facturación</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Liberación de facturación</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Las reglas de retención. Cada regla indica a qué cargos se aplica y qué hacer con ellos: liberarlos de inmediato, retenerlos durante un tiempo o liberarlos en un lote programado, con revisión manual o sin ella. Gana la regla coincidente más específica. PathScribe decide qué y cuándo. El motor de interfaces mueve el mensaje.</p>
+<p><strong>Puntos de especificidad:</strong> <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> 100, tipo de facturación 8, tipos de <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> 4, centro solicitante 4, patólogo 2, modificación 1.</p>
+<p><strong>Cuando ninguna regla coincide:</strong> liberar en el hito, con revisión manual activada y liberación automática activada.</p>
+<p><strong>Se aplica siempre:</strong> un cambio de modificación se aparca para su revisión; un cargo cuyo <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, el conjunto de códigos de la AMA para procedimientos médicos y de laboratorio, utilizado para la facturación en Estados Unidos.">CPT</a> no tiene asignación se aparca (<code>unmappedCpt</code>); un caso dividido sin centro técnico se aparca (<code>missingTechnicalFacility</code>).</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Una regla puede nombrar un centro o un centro solicitante, de modo que configúrelos antes. Un lote programado se envía según un calendario definido en Programaciones de entrega.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 7</p><dl><dt>Configurar primero</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a>, <a href="#screen-billing_type_triggers">Activadores de liberación de cargos</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Programaciones de entrega</a></dd><dt>Esto habilita</dt><dd><a href="#screen-dft_export_preview">Vista previa de la exportación de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-billing_release.webp" alt="Lista de reglas de Liberación de facturación con el panel Probar un cargo" loading="lazy"><figcaption>Lista de reglas de Liberación de facturación con el panel Probar un cargo</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-billing_release-billing-type"><td>Tipo de facturación</td>
+<td>Elección: TC, 26, Global, cualquiera</td>
+<td>Obligatorio</td>
+<td>Criterio.</td>
+<td>cualquiera</td>
+</tr>
+<tr id="f-billing_release-case-types"><td>Tipos de caso</td>
+<td>Lista separada por comas</td>
+<td>Opcional</td>
+<td>Criterio.</td>
+<td>En blanco (cualquiera)</td>
+</tr>
+<tr id="f-billing_release-ordering-site"><td>Centro solicitante</td>
+<td>Elección entre centros</td>
+<td>Opcional</td>
+<td>Criterio.</td>
+<td>Cualquiera</td>
+</tr>
+<tr id="f-billing_release-primary-pathologist"><td>Patólogo principal</td>
+<td>Elección entre el personal</td>
+<td>Opcional</td>
+<td>Criterio.</td>
+<td>Cualquiera</td>
+</tr>
+<tr id="f-billing_release-amendment"><td>Modificación</td>
+<td>Elección: cualquiera, original, modificada</td>
+<td>Obligatorio</td>
+<td>Criterio.</td>
+<td>cualquiera</td>
+</tr>
+<tr id="f-billing_release-release-mode"><td>Modo de liberación</td>
+<td>Elección: DYNAMIC_WITH_HOLD, SCHEDULED_BATCH</td>
+<td>Obligatorio</td>
+<td>Liberar tras una retención o en el siguiente lote.</td>
+<td>DYNAMIC_WITH_HOLD</td>
+</tr>
+<tr id="f-billing_release-hold-duration-minutes"><td>Duración de la retención (minutos)</td>
+<td>Número entero, de 0 a 43.200</td>
+<td>Obligatorio para una retención</td>
+<td>Cuánto tiempo se retiene antes de liberar.</td>
+<td>0</td>
+</tr>
+<tr id="f-billing_release-batch-schedule"><td>Calendario del lote</td>
+<td>Ajustes de programación</td>
+<td>Obligatorio para un lote</td>
+<td>El editor comienza en semanal, de lunes a viernes, 22:00, America/New_York.</td>
+<td>Véase a la izquierda</td>
+</tr>
+<tr id="f-billing_release-auto-release-on-complete"><td>Liberación automática al completarse</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Libera cuando termina la retención.</td>
+<td>Activada</td>
+</tr>
+<tr id="f-billing_release-manual-review-required"><td>Revisión manual obligatoria</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Una persona revisa antes de liberar.</td>
+<td>Activada</td>
+</tr>
+<tr id="f-billing_release-try-a-charge"><td>Probar un cargo</td>
+<td>Panel de prueba</td>
+<td>Opcional</td>
+<td>Ejecuta la decisión para un cargo de ejemplo y <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> la regla que coincidió.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p>Las comprobaciones de reglas generan estos códigos de problema: <code>billingTypeInvalid</code>, <code>modeInvalid</code>, <code>holdInvalid</code>, <code>batchRequired</code>, <code>amendmentInvalid</code>, <code>caseTypesInvalid</code>. Se incluyen tres reglas de <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> (TC, 26, Global), cada una con DYNAMIC_WITH_HOLD, 0 minutos, liberación automática activada y revisión manual activada.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:billing-release:manage</code>. Admin y Lab Director la tienen de forma predeterminada. Los guardados se auditan. Liberar, retener, retirar y reenviar mensajes son capacidades de interfaz independientes (<code>interface:outbound:release</code>, <code>hold</code>, <code>retract</code>, <code>resend</code>), que tiene Admin.</p>
+<p><strong>Límites conocidos.</strong> Conectada a la Cola de salida solo en el servicio de demostración.</p>
+<h3 id="screen-dft_export_preview"><a class="anchor" href="#screen-dft_export_preview" aria-label="Link to this section">#</a> Vista previa de la exportación de facturación</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Vista previa de la exportación de facturación"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Vista previa de la exportación de facturación</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Vista previa de la exportación de facturación</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Busque un <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> y vea lo que PathScribe enviaría a facturación. La carga útil <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.">JSON</a> es lo que envía PathScribe. El texto <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, la familia de estándares para el intercambio de información sanitaria entre sistemas.">HL7</a> <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction (transacción financiera detallada), el mensaje HL7 que transporta los cargos a un sistema de facturación.">DFT</a>^P03 es una vista previa de lo que construiría el motor de interfaces. PathScribe no genera ni envía HL7. <a class="term" href="99-glossary.html#g-x12" title="El estándar ANSI para transacciones electrónicas comerciales, incluidas las reclamaciones sanitarias en Estados Unidos.">X12</a> 837P, KVDT y SESAM-Vitale no existen.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Necesita un caso finalizado con cargos. Si el caso tiene una deficiencia de facturación abierta, la exportación queda bloqueada.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 10</p><dl><dt>Configurar primero</dt><dd><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>, <a href="#screen-billing_release">Liberación de facturación</a>, <a href="#screen-jurisdiction_payment_mappings">Asignación de pagos por jurisdicción</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-dft_export_preview.webp" alt="Vista previa de la exportación de facturación con la carga útil JSON y la vista previa HL7" loading="lazy"><figcaption>Vista previa de la exportación de facturación con la carga útil JSON y la vista previa HL7</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-dft_export_preview-case-id-or-accession"><td>Id del caso o <a class="term" href="99-glossary.html#g-accession-number" title="El identificador permanente de un caso, construido a partir de la máscara de caso del centro. Se trata como identificador del paciente en pantalla: se muestra dentro de etiquetas de datos del paciente para que se puedan ocultar en las capturas de pantalla.">número de acceso</a></td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El caso del que se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> la vista previa.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-dft_export_preview-json-payload"><td>Carga útil JSON</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>La carga útil del <a class="term" href="99-glossary.html#g-webhook" title="Una dirección web a la que un sistema llama para enviar una actualización a otro, como un LIS que envía un cambio de estado en JSON.">webhook</a> más la clase financiera.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-dft_export_preview-hl7-dft-p03-preview"><td>Vista previa HL7 DFT^P03</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>Solo ilustrativa.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-dft_export_preview-send-to-billing-engine"><td>Enviar al motor de facturación</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Envía al motor simulado (distintivo "Simulado"). Bloqueado mientras haya una deficiencia abierta.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-dft_export_preview-send-financial-class-preview"><td>Enviar clase financiera (vista previa)</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Muestra la carga útil de la clase financiera.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir y utilizar: <code>config:interface-preview:view</code>. Admin y Lab Director la tienen de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> El envío es simulado. No hay conectado ningún motor de facturación real.</p>
+<h2 id="ch8-cancer-registry"><a class="anchor" href="#ch8-cancer-registry" aria-label="Link to this section">#</a> Configuración del registro de cáncer</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span></nav>
+
+<p><strong>Qué existe.</strong> PathScribe tiene 14 definiciones de registros de cáncer y 12 definiciones de registros de cribado cervical. Todos los registros de cáncer están marcados como <code>configurable</code>, lo que significa que la especificación no está verificada con la especificación publicada por el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>. De los registros de cribado, tres están marcados como verificados: el sistema de gestión del cribado cervical del Reino Unido (CSMS), PALGA en los Países Bajos y el National Cancer Screening Register (NCSR) de Australia.</p>
+<table>
+<thead>
+<tr>
+<th>Id del <a class="term" href="99-glossary.html#g-cancer-registry" title="Organismo que recopila los diagnósticos de cáncer de un país o región, como los registros NAACCR de Norteamérica o la recopilación COSD de Inglaterra.">registro de cáncer</a></th>
+<th>Formato de transmisión indicado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>naaccr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.">XML</a> <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.">NAACCR</a></td>
+</tr>
+<tr>
+<td><code>epath_npcr_us</code></td>
+<td><a class="term" href="99-glossary.html#g-hl7-v2" title="El formato de mensaje HL7 de uso generalizado, formado por líneas de campos separados por barras verticales, en el que cada mensaje comienza con un segmento MSH.">HL7 v2</a> <a class="term" href="99-glossary.html#g-oru" title="El tipo de mensaje HL7 de resultado de observación no solicitado. ORU^R01 transporta un resultado.">ORU</a></td>
+</tr>
+<tr>
+<td><code>cpac_canada</code></td>
+<td>XML NAACCR</td>
+</tr>
+<tr>
+<td><code>cosd_uk</code></td>
+<td>XML <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, el conjunto de datos nacional inglés para el registro del cáncer.">COSD</a> (GB_EW)</td>
+</tr>
+<tr>
+<td><code>phs_scotland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nicr_northern_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>ncri_ireland</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nkr_netherlands</code></td>
+<td>Protocolo PALGA</td>
+</tr>
+<tr>
+<td><code>inca_france</code></td>
+<td>CDA CR-ACP</td>
+</tr>
+<tr>
+<td><code>adt_gekid_germany</code></td>
+<td>XML oBDS</td>
+</tr>
+<tr>
+<td><code>bcr_belgium</code></td>
+<td><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.">JSON</a> HD-S4S</td>
+</tr>
+<tr>
+<td><code>aihw_australia</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>nz_cancer_registry</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+<tr>
+<td><code>kccr_korea</code></td>
+<td>HL7 v2 ORU</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Qué significa hoy cada formato.</strong> PathScribe construye una sola carga útil JSON estructurada. El formato indicado es el destino al que la traduciría el motor de interfaces. PathScribe no escribe XML NAACCR, XML COSD, oBDS, CDA ni los demás formatos. <strong>No hay registro de cáncer de España ni registro de cribado de España</strong>, aunque España es una <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a> del producto. <strong>XML NAACCR como archivo por lotes: No construido.</strong> <strong><a class="term" href="99-glossary.html#g-mips" title="El Merit-based Incentive Payment System, un programa estadounidense de Medicare que ajusta el pago según las medidas de calidad notificadas.">MIPS</a> y <a class="term" href="99-glossary.html#g-macra" title="La Medicare Access and CHIP Reauthorization Act de Estados Unidos, que creó el Quality Payment Program, que incluye MIPS.">MACRA</a>: No construido</strong> (véase <a href="#ch8-quality-reporting">Notificación de calidad y de salud pública</a>).</p>
+<p><strong>Reglas de notificación incorporadas.</strong></p>
+<ul>
+<li>El activador es únicamente la firma de anatomía patológica quirúrgica. La citología nunca activa una notificación de cáncer. La notificación se envía sin esperar respuesta y nunca retiene la firma.</li>
+<li>Datos obligatorios: fecha de nacimiento, fecha del diagnóstico, diagnóstico primario y código <a class="term" href="99-glossary.html#g-icd-o" title="Clasificación Internacional de Enfermedades para Oncología, que codifica la localización y el tipo (morfología) del tumor. La tercera edición es ICD-O-3, con códigos como 8500/3.">ICD-O</a>. Un registro que se basa en un identificador de paciente necesita también ese identificador. Una notificación a la que faltan datos queda retenida como <code>HOLD_MISSING_MANDATORY_DATA</code> y aparece en Excepciones de registros.</li>
+<li>Notificabilidad: solo están construidas las exclusiones documentadas de NAACCR (carcinoma in situ de cuello uterino y CIN III, neoplasia intraepitelial prostática III, y carcinoma basocelular y espinocelular de piel). La lista no es exhaustiva.</li>
+<li>Barrera de envío: una instancia de validación nunca envía casos reales. Una instancia de producción retiene una notificación hasta que se aprueba la puesta en marcha para ese registro.</li>
+<li>Exclusión voluntaria del paciente: el ajuste <strong>Honours opt-out</strong> está desactivado de forma predeterminada. Cuando está desactivado, un paciente que ha ejercido la exclusión voluntaria se notifica igualmente y el <a class="term" href="99-glossary.html#g-audit-log" title="El registro de lo que hicieron las personas, el sistema y la IA, que se lee en la pantalla Registros del sistema. Su texto de detalle está en inglés y no contiene nombres de pacientes ni valores clínicos.">registro de auditoría</a> lo deja constancia.</li>
+</ul>
+<h3 id="screen-cancer_registry_settings"><a class="anchor" href="#screen-cancer_registry_settings" aria-label="Link to this section">#</a> Notificación al registro de cáncer</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio &gt; Notificación al registro de cáncer"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span> <span aria-hidden="true">›</span> <span>Notificación al <a class="term" href="99-glossary.html#g-cancer-registry" title="Organismo que recopila los diagnósticos de cáncer de un país o región, como los registros NAACCR de Norteamérica o la recopilación COSD de Inglaterra.">registro de cáncer</a></span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Materiales y flujos de trabajo del laboratorio</strong>
+<strong>2. Elemento de mantenimiento:</strong> Notificación al registro de cáncer</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Elige a qué registro de cáncer notifica la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> de forma predeterminada y permite que un <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> lo anule. También contiene la aprobación de puesta en marcha de cada <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>. Cada fila de registro <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> su distintivo de estado de la especificación, sus jurisdicciones, su identificador y su formato de transmisión.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Las anulaciones por centro se eligen de la lista de centros, de modo que configure antes los centros. Si no se elige ningún registro, no se genera ninguna notificación de cáncer.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 11</p><dl><dt>Configurar primero</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><a href="#screen-batch_registry_feed">Archivos por lotes para registros</a>, <a href="#screen-cosd_destination">Registro de cáncer del Reino Unido (COSD)</a>, <a href="#screen-us_epath">Patología electrónica de EE. UU.</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-cancer_registry_settings.webp" alt="Registro predeterminado de la empresa, anulaciones por centro y panel de conexión con el registro" loading="lazy"><figcaption>Registro predeterminado de la empresa, anulaciones por centro y panel de conexión con el registro</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-enterprise-default-registry"><td>Registro predeterminado de la empresa</td>
+<td>Elección entre Ninguno y los 14 registros</td>
+<td>Obligatorio</td>
+<td>El registro que utiliza cualquier centro sin anulación.</td>
+<td>Ninguno (la lista inicial de demostración asigna Metro General a <code>naaccr_us</code>)</td>
+</tr>
+<tr id="f-cancer_registry_settings-honours-opt-out"><td>Honours opt-out</td>
+<td>Casilla de verificación</td>
+<td>Opcional</td>
+<td>Si está marcada, un paciente que ha ejercido la exclusión voluntaria no se notifica.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-cancer_registry_settings-save"><td>Guardar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Guarda los dos campos anteriores.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-go-live"><td>Registro (puesta en marcha)</td>
+<td>Elección</td>
+<td>Obligatorio cuando se usa más de un registro</td>
+<td>Elige qué registro muestra el panel de conexión de más abajo.</td>
+<td>El primero en uso</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-override"><td>Añadir excepción</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Abre una nueva fila de anulación por centro.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-facility"><td>Centro</td>
+<td>Elección entre centros</td>
+<td>Obligatorio para una anulación</td>
+<td>El centro al que se aplica la anulación.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry"><td>Registro</td>
+<td>Elección entre los 14 registros</td>
+<td>Obligatorio para una anulación</td>
+<td>El registro de ese centro.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-save-cancel-remove"><td>Guardar, Cancelar, Quitar</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Guardan o descartan una anulación, o quitan una guardada.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Panel de conexión con el registro (puesta en marcha)</h4>
+<p>El mismo panel aparece en <a href="#screen-cytology_registry">Notificación al registro de citología</a>. Hace pasar a un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> por Pendiente, En pruebas, Validado y En producción. Una instancia tiene uno de dos roles. Una instancia de validación nunca envía datos reales y solo ejecuta el conjunto de pruebas. Una instancia de producción envía resultados reales solo a registros en producción con una aprobación vigente; en los demás casos los resultados quedan retenidos y se envían al aprobarse.</p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cancer_registry_settings-template-version-and-status"><td>Versión y estado de la plantilla</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>La versión de la plantilla del registro y si está vigente.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-changed"><td>Qué ha cambiado</td>
+<td>Lista, solo lectura</td>
+<td>No aplicable</td>
+<td>Cambios desde la versión que confirmó por última vez.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-agreement-reference"><td>Referencia del acuerdo</td>
+<td>Texto</td>
+<td>Obligatorio para registrar</td>
+<td>La referencia del acuerdo de intercambio de datos. <strong>Registrar acuerdo</strong> la guarda.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cancer_registry_settings-run-test-suite"><td>Ejecutar conjunto de pruebas</td>
+<td>Botón (instancia de validación)</td>
+<td>Opcional</td>
+<td>Ejecuta los casos de prueba sintéticos (pacientes <code>SYN-</code>): 3 de cribado y 2 de cáncer. Se necesita al menos 1 resultado aceptado (<code>REGISTRY_GO_LIVE_MIN_TEST_ACCEPTS</code>).</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-export-validation-record"><td>Exportar registro de validación</td>
+<td>Botón (instancia de validación)</td>
+<td>Opcional</td>
+<td>Descarga el archivo del registro de validación.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-validation-record-file"><td>Archivo del registro de validación</td>
+<td>Archivo <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, un formato de datos en texto sin formato utilizado por la API, por `config.json` y por los webhooks.">JSON</a> (instancia de producción)</td>
+<td>Opcional</td>
+<td>Importa un registro exportado desde una instancia de validación.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-pre-checks"><td>Comprobaciones previas a la puesta en marcha</td>
+<td>Lista, solo lectura</td>
+<td>No aplicable</td>
+<td><code>agreementRecorded</code>, <code>templateCurrent</code>, <code>validationRecord</code>, <code>testEvidence</code>, <code>specificationConfirmed</code>, <code>codesMapped</code>, <code>identifierHold</code>, <code>overridesReviewed</code>.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-registry-test-sign-off-reference"><td>Referencia de conformidad de la prueba del registro</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>La referencia de conformidad que da el propio registro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cancer_registry_settings-specification-confirmed"><td>Especificación confirmada</td>
+<td>Casilla de verificación</td>
+<td>Obligatorio para los registros <code>configurable</code></td>
+<td>Usted confirma la especificación con la del propio registro.</td>
+<td>Sin marcar</td>
+</tr>
+<tr id="f-cancer_registry_settings-request-go-live"><td>Solicitar puesta en producción</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Inicia la aprobación.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-i-am-approving-as"><td>Apruebo en calidad de</td>
+<td>Elección: Administrador del <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a>, Director del laboratorio, Persona designada por el director delegado del laboratorio</td>
+<td>Obligatorio para aprobar</td>
+<td>La calidad en la que aprueba.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-approve-with-my-credentials"><td>Aprobar con mis credenciales</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Le pide que vuelva a introducir sus credenciales y después registra la aprobación.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-withdraw-request-stop-live-reporting"><td>Retirar solicitud, Detener la comunicación en producción</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Cancelan una solicitud pendiente o detienen un registro en producción.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-part-of-the-template"><td>Parte de la plantilla</td>
+<td>Elección</td>
+<td>Obligatorio para una regla local</td>
+<td>Qué parte de la plantilla afecta un cambio local.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cancer_registry_settings-what-the-rule-does"><td>Qué hace la regla</td>
+<td>Texto</td>
+<td>Obligatorio para una regla local</td>
+<td>Describe el cambio local o la regla del adaptador.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cancer_registry_settings-add-rule-remove-confirm-reviewed"><td>Añadir regla, Quitar, Confirmar como revisado</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Gestionan las reglas locales y confirman que se revisaron.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cancer_registry_settings-the-person-who-requests-go-live-may-also-approve-it"><td>La persona que solicita la puesta en marcha también puede aprobarla</td>
+<td>Sí/No (solo producción)</td>
+<td>Opcional</td>
+<td>Permite que quien la solicita la apruebe.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-cancer_registry_settings-approvals-required"><td>Aprobaciones necesarias</td>
+<td>Número entero, de 1 a 3 (solo producción)</td>
+<td>Opcional</td>
+<td>Cuántas aprobaciones hacen falta.</td>
+<td>1</td>
+</tr>
+<tr id="f-cancer_registry_settings-go-live-history"><td>Historial de puesta en marcha</td>
+<td>Lista, solo lectura</td>
+<td>No aplicable</td>
+<td>Cada solicitud, aprobación y detención.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar los ajustes del registro: <code>config:cancer-registry:manage</code>. Ejecutar el conjunto de pruebas: <code>registry:test-suite:run</code>. Aprobar la puesta en marcha: <code>registry:live-register:approve</code>. Admin las tiene de forma predeterminada; el Lab Director no tiene <code>config:cancer-registry:manage</code> y tiene la aprobación de la puesta en marcha mediante su propia asignación inicial. La aprobación exige volver a introducir las credenciales.</p>
+<p><strong>Límites conocidos.</strong> La captura de ICD-O-3 está abierta: la pestaña <a class="term" href="99-glossary.html#g-icd-o" title="Clasificación Internacional de Enfermedades para Oncología, que codifica la localización y el tipo (morfología) del tumor. La tercera edición es ICD-O-3, con códigos como 8500/3.">ICD-O</a> de la ventana de códigos guarda identificadores de morfología SNOMED, no códigos como <code>8500/3</code>. Las especificaciones de los registros no están verificadas. Esta pantalla no tiene en la tabla de acceso una <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a> de cambio a nivel de sección; sus botones se desactivan mediante los botones de capacidad.</p>
+<h3 id="screen-cosd_destination"><a class="anchor" href="#screen-cosd_destination" aria-label="Link to this section">#</a> Registro de cáncer del Reino Unido (COSD)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Registro de cáncer del Reino Unido (COSD)"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Registro de cáncer del Reino Unido (<a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, el conjunto de datos nacional inglés para el registro del cáncer.">COSD</a>)</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Registro de cáncer del Reino Unido (COSD)</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Ajustes de destino del Cancer Outcomes and Services Dataset (COSD), que en pantalla aparece como COSD (Inglaterra). Usted fija la etiqueta de transporte, el plazo de corrección y las fechas no laborables, una vez para la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a> y, opcionalmente, una vez por <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a>. Los nombres de los elementos del panel de comprobación son el modelo simplificado de PathScribe, no el esquema oficial de COSD.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Elija antes el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> COSD en la pantalla del <a class="term" href="99-glossary.html#g-cancer-registry" title="Organismo que recopila los diagnósticos de cáncer de un país o región, como los registros NAACCR de Norteamérica o la recopilación COSD de Inglaterra.">registro de cáncer</a>. Al quitar la entrada de un centro, ese centro vuelve a los ajustes de la empresa.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 12</p><dl><dt>Configurar primero</dt><dd><a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-cosd_destination.webp" alt="Ajustes de destino de COSD con el panel de comprobación y el calculador del vencimiento de la corrección" loading="lazy"><figcaption>Ajustes de destino de COSD con el panel de comprobación y el calculador del vencimiento de la corrección</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-scope"><td>Ámbito</td>
+<td>Empresa o un centro</td>
+<td>Obligatorio</td>
+<td>Una entrada por ámbito.</td>
+<td>Empresa</td>
+</tr>
+<tr id="f-cosd_destination-transport"><td>Transporte</td>
+<td>Elección: restMtls, sftp, portalUpload</td>
+<td>Obligatorio</td>
+<td>Solo una etiqueta. El motor de interfaces guarda la dirección y las credenciales.</td>
+<td><a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> segura (restMtls)</td>
+</tr>
+<tr id="f-cosd_destination-correction-working-days"><td>Días laborables para corregir</td>
+<td>Número entero, de 1 a 30</td>
+<td>Obligatorio</td>
+<td>Días laborables de que se dispone para corregir un envío rechazado.</td>
+<td>5</td>
+</tr>
+<tr id="f-cosd_destination-non-working-dates"><td>Fechas no laborables</td>
+<td>Lista de fechas, AAAA-MM-DD</td>
+<td>Opcional</td>
+<td>Días que no se cuentan como laborables. No se supone ninguno.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cosd_destination-remove"><td>Quitar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Solo entradas de centro; vuelve a los ajustes de la empresa.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Comprobar un envío de ejemplo</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-nhs-number"><td>Número del NHS</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El paciente de ejemplo.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cosd_destination-date-of-birth"><td>Fecha de nacimiento</td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>Ejemplo.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cosd_destination-diagnosis-date"><td>Fecha del diagnóstico</td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>Ejemplo.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cosd_destination-icd-o-3"><td>CIE-O-3</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Ejemplo.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cosd_destination-primary-diagnosis"><td>Diagnóstico principal</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Ejemplo.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<h4>¿Cuándo vence una corrección?</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cosd_destination-rejected-on"><td>Rechazado el</td>
+<td>Fecha</td>
+<td>Obligatorio</td>
+<td>Cuenta hacia delante los días laborables de corrección, omitiendo los fines de semana y sus fechas no laborables.</td>
+<td>En blanco</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:cosd-destination:manage</code>. Admin y Lab Director la tienen de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> Lo que queda por confirmar con la especificación real de <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, el conjunto de datos nacional inglés para el registro del cáncer.">COSD</a> es: los nombres de los elementos, la lista de elementos obligatorios, los valores de las listas de códigos, las reglas de fechas, el sobre de envío, los códigos de rechazo y el inicio del plazo de corrección.</p>
+<h3 id="screen-us_epath"><a class="anchor" href="#screen-us_epath" aria-label="Link to this section">#</a> Anatomía Patológica electrónica de EE. UU.</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Administración y cumplimiento &gt; Anatomía Patológica electrónica de EE. UU."><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Administración y cumplimiento</span> <span aria-hidden="true">›</span> <span>Anatomía Patológica electrónica de EE. UU.</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Administración y cumplimiento</strong>
+<strong>2. Elemento de mantenimiento:</strong> Anatomía Patológica electrónica de EE. UU.</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Notificación de patología electrónica (<a class="term" href="99-glossary.html#g-epath" title="Notificación electrónica de patología, el envío de informes de patología a un registro de cáncer en un formato electrónico estándar.">ePath</a>) a los registros estatales de cáncer de EE. UU. Un mensaje base genérico del National Program of Cancer Registries (NPCR) (<a class="term" href="99-glossary.html#g-hl7-v2" title="El formato de mensaje HL7 de uso generalizado, formado por líneas de campos separados por barras verticales, en el que cada mensaje comienza con un segmento MSH.">HL7 v2</a>.5.1 <a class="term" href="99-glossary.html#g-oru" title="El tipo de mensaje HL7 de resultado de observación no solicitado. ORU^R01 transporta un resultado.">ORU</a>^R01) se ajusta mediante un perfil estatal y se envía por un transporte (<a class="term" href="99-glossary.html#g-phin-ms" title="El Public Health Information Network Messaging System, un medio de transporte estadounidense para enviar informes de salud pública.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, una forma segura de copiar archivos a otro sistema.">SFTP</a>, TCP directo o una <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> HTTPS). El estado se toma del estado del <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> ejecutor, nunca de la dirección del paciente. Solo se entrega un perfil de ejemplo con su etiqueta.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> El centro necesita tener su estado fijado en el Diccionario de centros. Sin centro o sin perfil, la notificación se aparca (<code>routing:noFacility</code>, <code>routing:noProfile</code>) y la firma no se retiene.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 13</p><dl><dt>Configurar primero</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a>, <a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-us_epath.webp" alt="Lista de perfiles ePath de EE. UU. y asignaciones" loading="lazy"><figcaption>Lista de perfiles ePath de EE. UU. y asignaciones</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-assignment-scope"><td>Ámbito de la asignación</td>
+<td>Empresa o un centro</td>
+<td>Obligatorio</td>
+<td>Dónde se aplica un perfil. Un centro recurre a un perfil de su propio estado y después al valor predeterminado de la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a>.</td>
+<td>Empresa</td>
+</tr>
+<tr id="f-us_epath-assigned-profile"><td>Perfil asignado</td>
+<td>Elección entre perfiles</td>
+<td>Obligatorio</td>
+<td>El perfil que se utiliza.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<h4>Ventana de perfil</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-us_epath-state"><td>Estado</td>
+<td>Dos letras</td>
+<td>Obligatorio</td>
+<td>El estado al que corresponde el perfil.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-us_epath-name"><td>Nombre</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Nombre para mostrar.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-us_epath-required-fields"><td>Campos obligatorios</td>
+<td>Lista de códigos de segmento-campo como <code>PID-11</code></td>
+<td>Opcional</td>
+<td>Deben estar rellenados. Nunca <code>MSH</code>. No pueden coincidir con los campos opcionales.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-us_epath-optional-fields"><td>Campos opcionales</td>
+<td>Lista de códigos de segmento-campo</td>
+<td>Opcional</td>
+<td>Se envían cuando existen.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-us_epath-transport"><td>Transporte</td>
+<td>Elección: <a class="term" href="99-glossary.html#g-phin-ms" title="El Public Health Information Network Messaging System, un medio de transporte estadounidense para enviar informes de salud pública.">PHIN-MS</a>, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, una forma segura de copiar archivos a otro sistema.">SFTP</a>, TCP directo, <a class="term" href="99-glossary.html#g-api" title="Interfaz de programación de aplicaciones. El servidor de la API de PathScribe es el servicio ASP.NET Core al que el navegador llama para obtener todos los datos de producción.">API</a> HTTPS</td>
+<td>Obligatorio</td>
+<td>Etiqueta de transporte para el motor de interfaces.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-us_epath-which-facility-decides-the-state"><td>Qué <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> determina el estado</td>
+<td>Elección: centro del componente técnico, centro de lectura</td>
+<td>Obligatorio</td>
+<td>Elige el centro cuyo estado selecciona el perfil.</td>
+<td>Componente técnico</td>
+</tr>
+<tr id="f-us_epath-final-report-only"><td>Solo informe final</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Comprobación.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-us_epath-icd-o-morphology-required"><td>Se exige morfología <a class="term" href="99-glossary.html#g-icd-o" title="Clasificación Internacional de Enfermedades para Oncología, que codifica la localización y el tipo (morfología) del tumor. La tercera edición es ICD-O-3, con códigos como 8500/3.">ICD-O</a></td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Comprobación.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-us_epath-snomed-required"><td>Se exige SNOMED</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Comprobación.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-us_epath-specimen-identifier-required"><td>Se exige el identificador de la <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a></td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Comprobación.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-us_epath-provider-npi-required"><td>Se exige el <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, el identificador de diez dígitos de un proveedor sanitario estadounidense, necesario en un cargo.">NPI</a> del profesional</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Comprobación. Falla en los casos de demostración, que no tienen NPI.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-us_epath-state-specific-fields"><td>Campos específicos del estado</td>
+<td>Filas con campo, modo (obligatorio o fijo) y valor</td>
+<td>Opcional</td>
+<td>Reglas estatales adicionales.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p>Una notificación que no supera una comprobación queda retenida para su revisión (<code>HOLD_EPATH_PROFILE</code>).</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:us-epath:manage</code>. Admin y Lab Director la tienen de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> Los identificadores OBR y OBX son valores predeterminados, pendientes de confirmar con la guía del NPCR. Ningún perfil estatal está verificado.</p>
+<h3 id="screen-cytology_registry"><a class="anchor" href="#screen-cytology_registry" aria-label="Link to this section">#</a> Notificación al registro de citología</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Citología &gt; Notificación al registro"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Citología</span> <span aria-hidden="true">›</span> <span>Notificación al <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a></span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Citología</strong> &gt; sección <strong>Notificación al registro</strong>
+<strong>2. Elemento de mantenimiento:</strong> Notificación al registro</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Notificación a programas de cribado cervical, independiente de los registros de cáncer. Un resultado de cribado nunca activa una notificación de cáncer. Hay 12 definiciones: <code>csms_uk</code>, <code>nicsp_northern_ireland</code>, <code>sccrs_scotland</code>, <code>cervicalcheck_ireland</code>, <code>palga_netherlands</code>, <code>germany_okfe</code>, <code>france_crcdc</code>, <code>belgium_chr</code>, <code>ncsr_australia</code>, <code>ncsp_new_zealand</code>, <code>canada_provincial</code> y <code>kncsp_kccr_korea</code>. No hay registro de cribado de EE. UU. ni de España. La asignación de cada registro conecta sus categorías de citología con los códigos del registro para idoneidad, interpretación principal, interpretación adicional y recomendación.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> La tabla de asignación enumera sus categorías de interpretación de citología, de modo que estas van primero. Si las omite, la tabla está vacía.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 14</p><dl><dt>Configurar primero</dt><dd><a href="03-tier2-master-dictionaries.html#screen-cytology_categories">Interpretación y recomendaciones</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_nomenclature">Sistema de nomenclatura</a>, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Diccionario de centros</a></dd><dt>Esto habilita</dt><dd><a href="#screen-batch_registry_feed">Archivos por lotes para registros</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/cytology-cytology_registry.webp" alt="Notificación al registro de citología con el valor predeterminado de la empresa, las excepciones y la tabla de asignación" loading="lazy"><figcaption>Notificación al registro de citología con el valor predeterminado de la <a class="term" href="99-glossary.html#g-enterprise" title="El nivel superior de la organización de un cliente en PathScribe. La configuración definida aquí se aplica a todas las jurisdicciones y centros inferiores, salvo que se anule.">empresa</a>, las excepciones y la tabla de asignación</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-enterprise-default-registry"><td>Registro predeterminado de la empresa</td>
+<td>Elección entre Ninguno y los 12 registros</td>
+<td>Obligatorio</td>
+<td>Lo utiliza cualquier <a class="term" href="99-glossary.html#g-facility" title="Un laboratorio o sede dentro de una empresa. Un centro ejecutor realiza las pruebas; un centro cliente solo envía muestras.">centro</a> sin excepción.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cytology_registry-save"><td>Guardar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Guarda el valor predeterminado.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cytology_registry-add-override"><td>Añadir excepción</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Inicia una excepción por centro.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-cytology_registry-facility"><td>Centro</td>
+<td>Elección entre centros</td>
+<td>Obligatorio para una excepción</td>
+<td>El centro.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cytology_registry-registry"><td>Registro</td>
+<td>Elección entre los 12 registros</td>
+<td>Obligatorio para una excepción</td>
+<td>El registro de ese centro.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cytology_registry-save-cancel-configure-remove"><td>Guardar, Cancelar, Configurar, Quitar</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Guardan o descartan una excepción, abren su configuración o la quitan.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Configuración del registro</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-cytology_registry-registry"><td>Registro</td>
+<td>Elección</td>
+<td>Obligatorio</td>
+<td>El <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> que se configura.</td>
+<td>El primero</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-until-every-category-it-uses-has-a-registry-code"><td>Retener un resultado hasta que todas las categorías que use tengan un código del registro</td>
+<td>Casilla de verificación</td>
+<td>Opcional</td>
+<td>Desactivada para los registros integrados.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-cytology_registry-hold-a-result-unless-the-patient-has-a-verified-identifier"><td>Retener un resultado salvo que el paciente tenga un identificador verificado</td>
+<td>Casilla de verificación</td>
+<td>Opcional</td>
+<td>Solo se <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> cuando el registro tiene un formato de identificador.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-cytology_registry-category"><td>Categoría</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Su categoría de citología.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cytology_registry-field"><td>Campo</td>
+<td>Texto, columna</td>
+<td>No aplicable</td>
+<td>Idoneidad, interpretación principal, interpretación adicional o recomendación.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-cytology_registry-registry-code"><td>Código del registro</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>El código del registro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cytology_registry-registry-text"><td>Texto del registro</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>El texto del registro, para los registros que codifican con texto.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-cytology_registry-save-registry-configuration"><td>Guardar la configuración del registro</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Guarda la asignación.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p>El <strong>panel de conexión con el registro</strong> se describe en <a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a>. Aquí utiliza las capacidades de cribado.</p>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:screening-registry:manage</code>. Ejecutar el conjunto de pruebas: <code>registry:test-suite:run</code>. Aprobar la puesta en marcha: <code>registry:live-register:approve</code>. Admin las tiene de forma predeterminada. El Lab Director no tiene <code>config:screening-registry:manage</code> de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> Tres registros están marcados como verificados (CSMS, PALGA, NCSR); los demás son configurables y no están verificados. Alemania, Francia y Bélgica son registros de archivos por lotes (véase Archivos por lotes para registros).</p>
+<h3 id="screen-batch_registry_feed"><a class="anchor" href="#screen-batch_registry_feed" aria-label="Link to this section">#</a> Archivos por lotes para registros</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio &gt; Archivos por lotes para registros"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span> <span aria-hidden="true">›</span> <span>Archivos por lotes para registros</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Materiales y flujos de trabajo del laboratorio</strong>
+<strong>2. Elemento de mantenimiento:</strong> Archivos por lotes para registros</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Para un <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> que admite archivos en lugar de mensajes, un perfil de lote indica qué registros entran, cómo se organiza el archivo y cómo se nombra. Formatos: <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.">XML</a> y XML <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.">NAACCR</a>. <strong>El XML NAACCR figura en la lista pero No está construido</strong>: el perfil NAACCR que se entrega está desactivado. Se entrega un perfil de ejemplo (basado en <code>germany_okfe</code>, CSV, delimitador <code>;</code>, 10 columnas, desactivado) que no es una especificación de programa. Los diseños reales de los programas No están construidos.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Un lote se genera según el calendario de Programaciones de entrega y lo envía el motor de interfaces por <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, una forma segura de copiar archivos a otro sistema.">SFTP</a>. Elija antes el registro en la pantalla de cáncer o de citología.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 15</p><dl><dt>Configurar primero</dt><dd><a href="#screen-cancer_registry_settings">Notificación al registro de cáncer</a>, <a href="#screen-cytology_registry">Notificación al registro de citología</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Programaciones de entrega</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-batch_registry_feed.webp" alt="Tarjetas de perfil de Archivos por lotes para registros" loading="lazy"><figcaption>Tarjetas de perfil de Archivos por lotes para registros</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-waiting"><td>En espera</td>
+<td>Recuentos, solo lectura</td>
+<td>No aplicable</td>
+<td><strong>Comprobar lo que está pendiente</strong> <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> los registros en espera, los pendientes ahora, los retenidos, los fuera de plazo y el próximo archivo.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-batch_registry_feed-make-the-file-now"><td>Generar el archivo ahora</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Genera un archivo a mano. Se descarga una vez y nunca se almacena. Un manifiesto enumera <a class="term" href="99-glossary.html#g-sha-256" title="Un hash criptográfico que convierte un archivo o un registro en una huella de tamaño fijo, utilizada para detectar un cambio.">SHA-256</a>, secuencia, recuentos y registros retenidos.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-batch_registry_feed-turn-on-turn-off"><td>Activar, Desactivar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Activa el perfil.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-batch_registry_feed-edit"><td>Editar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Abre el editor del perfil.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-batch_registry_feed-remove"><td>Quitar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>No está disponible para los perfiles que se entregan.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-batch_registry_feed-run-status"><td>Estado de la ejecución</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>awaitingAck, accepted, partlyRejected o rejected.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<h4>Editor de perfil</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-batch_registry_feed-program-name"><td>Nombre del programa</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Da nombre al programa.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-batch_registry_feed-registry"><td>Registro</td>
+<td>Elección entre los 26 registros (de cribado y de cáncer)</td>
+<td>Obligatorio</td>
+<td>Qué <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-batch_registry_feed-file-format"><td>Formato de archivo</td>
+<td>Elección: <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, un formato de texto utilizado por los formularios CAP SDC y algunos archivos de registros.">XML</a>, XML <a class="term" href="99-glossary.html#g-naaccr" title="La North American Association of Central Cancer Registries, que establece los estándares de datos para la notificación a registros de cáncer en Norteamérica.">NAACCR</a></td>
+<td>Obligatorio</td>
+<td>El XML NAACCR se rechaza (<code>formatNotAvailable</code>).</td>
+<td>CSV</td>
+</tr>
+<tr id="f-batch_registry_feed-delimiter"><td>Delimitador</td>
+<td>Elección: coma, punto y coma, tabulación</td>
+<td>Obligatorio para CSV</td>
+<td>Separador de columnas.</td>
+<td>Coma</td>
+</tr>
+<tr id="f-batch_registry_feed-first-row-holds-headings"><td>La primera fila contiene los encabezados</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Escribe una fila de encabezados.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-batch_registry_feed-protect-against-spreadsheet-formulas"><td>Proteger frente a fórmulas de hoja de cálculo</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Protege el texto que empieza como una fórmula.</td>
+<td>Activado</td>
+</tr>
+<tr id="f-batch_registry_feed-xml-root-and-record-element"><td>Raíz XML y elemento de registro</td>
+<td>Texto, dos cuadros</td>
+<td>Obligatorio para XML</td>
+<td>Nombres válidos y distintos.</td>
+<td>Results, Result</td>
+</tr>
+<tr id="f-batch_registry_feed-code-in-file-name"><td>Código en el nombre del archivo</td>
+<td>Texto, de 1 a 20 letras, dígitos, guion o guion bajo</td>
+<td>Opcional</td>
+<td>El código del programa en el nombre del archivo.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-batch_registry_feed-file-name-pattern"><td>Patrón del nombre de archivo</td>
+<td>Texto con {program} {date} {time} {seq}</td>
+<td>Obligatorio</td>
+<td>Debe contener {date} o {seq}.</td>
+<td><code>{program}_{date}_{seq}</code></td>
+</tr>
+<tr id="f-batch_registry_feed-columns"><td>Columnas</td>
+<td>Lista: campo (15 campos), Encabezado, Obligatorio, subir, bajar, quitar, Añadir una columna</td>
+<td>Obligatorio</td>
+<td>Cada campo una sola vez. Un registro al que falta una columna obligatoria queda retenido como <code>REGISTRY_NOT_READY</code>.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-batch_registry_feed-live-preview"><td>Vista previa en directo</td>
+<td>Texto, solo lectura</td>
+<td>No aplicable</td>
+<td>Muestra el diseño del archivo.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Gestionar perfiles: <code>config:batch-registry-feed:manage</code> (Admin y Lab Director). Generar un archivo: <code>registry:batch-file:generate</code> (Admin, y necesita la primera <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a>).</p>
+<p><strong>Límites conocidos.</strong> Un reenvío de un solo registro desde Excepciones de registros sigue enviando un mensaje para un programa por lotes. El calendario procede de Programaciones de entrega. La entrega por <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, una forma segura de copiar archivos a otro sistema.">SFTP</a> corresponde al motor de interfaces.</p>
+<h2 id="ch8-quality-reporting"><a class="anchor" href="#ch8-quality-reporting" aria-label="Link to this section">#</a> Notificación de calidad y de salud pública (MIPS/MACRA)</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Materiales y flujos de trabajo del laboratorio"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Materiales y flujos de trabajo del laboratorio</span></nav>
+
+<p><strong>Estado:</strong> No construido</p>
+<p>PathScribe no tiene ninguna medida, pantalla, exportación ni contrato del Merit-based Incentive Payment System (<a class="term" href="99-glossary.html#g-mips" title="El Merit-based Incentive Payment System, un programa estadounidense de Medicare que ajusta el pago según las medidas de calidad notificadas.">MIPS</a>), de la Medicare Access and CHIP Reauthorization Act (<a class="term" href="99-glossary.html#g-macra" title="La Medicare Access and CHIP Reauthorization Act de Estados Unidos, que creó el Quality Payment Program, que incluye MIPS.">MACRA</a>) ni del Quality Payment Program. Una búsqueda en el código fuente y en los documentos no encontró ninguno. Nada de lo que hay aquí calcula una medida de calidad ni construye un archivo de envío.</p>
+<p><strong>Lo más parecido que existe:</strong></p>
+<ul>
+<li>El <a href="07-tier6-interface-engine.html#screen-bi_feed">canal de informes</a> envía los datos de los casos a una herramienta de inteligencia empresarial, en la que puede construir sus propias medidas.</li>
+<li>Exportaciones: los usuarios con la <a class="term" href="99-glossary.html#g-capability" title="Un permiso, con nombre de la forma `domain:object:verb`, como `config:roles:manage`. A los roles se les conceden capacidades, y cada acción protegida comprueba una.">capacidad</a> adecuada pueden descargar exportaciones de la aplicación, y la <a href="#screen-audit-financial">pestaña financiera de Registros del sistema</a> exporta los eventos de facturación como <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a>.</li>
+<li>La notificación a registros de cáncer y de cribado cervical (más arriba) es la notificación de salud pública que está construida, dentro de los límites descritos.</li>
+</ul>
+<h2 id="ch8-payment-reference"><a class="anchor" href="#ch8-payment-reference" aria-label="Link to this section">#</a> Asignaciones de pagos por jurisdicción, tipos de pago maestros y registro financiero</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span></nav>
+
+<p>PathScribe describe quién paga en dos capas. Un <strong>tipo de pago maestro</strong> es una categoría que se utiliza en todas partes (por ejemplo, el seguro comercial). Una <strong>asignación de pagos por <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a></strong> indica que un esquema local (por ejemplo <code>DE_GKV</code>) pertenece a una categoría y a qué formato de salida está destinado. La clase financiera que acompaña a un cargo se construye con ambos. Los formatos de salida que nombra la asignación son solo etiquetas: <a class="term" href="99-glossary.html#g-x12" title="El estándar ANSI para transacciones electrónicas comerciales, incluidas las reclamaciones sanitarias en Estados Unidos.">X12</a> 837P, KVDT y SESAM-Vitale están Planificados y no se genera ninguno.</p>
+<h3 id="screen-master_payment_types"><a class="anchor" href="#screen-master_payment_types" aria-label="Link to this section">#</a> Diccionario maestro de tipos de pago</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Diccionario maestro de tipos de pago"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Diccionario maestro de tipos de pago</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Diccionario maestro de tipos de pago</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Las categorías de pago que utilizan las asignaciones, el <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> de casos y la carga útil del cargo. Se incluyen once: SELF_PAY, PATIENT_COPAY_GAP, COMMERCIAL_INSURANCE, MUTUELLE_COMPLEMENTARY, STATUTORY_SOCIAL_HEALTH, PUBLIC_UNIVERSAL_BENEFIT, PUBLIC_NHS (etiqueta de identificador "NHS Number"), RECIPROCAL_INTERNATIONAL, SPONSOR_CLINICAL_TRIAL, OCCUPATIONAL_WORKERS_COMP (etiqueta de identificador "Claim #") y DIRECT_CONTRACT_INSTITUTIONAL.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Es un punto de partida para el pago. Las asignaciones solo pueden elegir aquí un tipo activo.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 8</p><dl><dt>Configurar primero</dt><dd><span class="none">Ninguno, es un punto de partida.</span></dd><dt>Esto habilita</dt><dd><a href="#screen-jurisdiction_payment_mappings">Asignación de pagos por jurisdicción</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-master_payment_types.webp" alt="Lista del Diccionario maestro de tipos de pago" loading="lazy"><figcaption>Lista del Diccionario maestro de tipos de pago</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-master_payment_types-id"><td>Id</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Se guarda en mayúsculas y los espacios pasan a guiones bajos. Queda bloqueado tras crearlo, porque las asignaciones lo referencian. Se rechaza un duplicado.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-master_payment_types-display-name"><td>Nombre para mostrar</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El nombre que ve el personal.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-master_payment_types-requires-subscriber-id"><td>Requiere ID de suscriptor</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>El personal debe introducir un número de suscriptor o de póliza.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-master_payment_types-subscriber-id-label"><td>Etiqueta del ID de suscriptor</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>La etiqueta de ese número (por ejemplo "Claim #").</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-master_payment_types-requires-guarantor"><td>Requiere garante</td>
+<td>Elección: obligatorio, opcional, no obligatorio</td>
+<td>Obligatorio</td>
+<td>Si hace falta un garante.</td>
+<td>no obligatorio</td>
+</tr>
+<tr id="f-master_payment_types-supports-split-billing"><td>Admite facturación dividida</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Si las partes técnica y profesional pueden ir a pagadores distintos.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-master_payment_types-notes"><td>Notas</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Notas libres.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-master_payment_types-active"><td>Activo</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Botones <strong>Desactivar</strong> y <strong>Reactivar</strong>.</td>
+<td>Activo</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:payment-types:manage</code>. Admin y Lab Director la tienen de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> Desactivar un tipo no se comprueba frente a las asignaciones que lo utilizan.</p>
+<h3 id="screen-jurisdiction_payment_mappings"><a class="anchor" href="#screen-jurisdiction_payment_mappings" aria-label="Link to this section">#</a> Asignación de pagos por jurisdicción</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Configuración &gt; Sistema &gt; Consultas financieras y de ingresos &gt; Asignación de pagos por jurisdicción"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Configuración</span> <span aria-hidden="true">›</span> <span>Sistema</span> <span aria-hidden="true">›</span> <span>Consultas financieras y de ingresos</span> <span aria-hidden="true">›</span> <span>Asignación de pagos por <a class="term" href="99-glossary.html#g-jurisdiction" title="Un país o sistema nacional de salud cuyas normas aplica PathScribe, como Estados Unidos, Inglaterra y Gales o Alemania. Determina los sistemas de códigos, las reglas de firma, los mínimos de conservación y los formatos.">jurisdicción</a></span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> pestaña de Configuración <strong>Sistema</strong> &gt; grupo <strong>Consultas financieras y de ingresos</strong>
+<strong>2. Elemento de mantenimiento:</strong> Asignación de pagos por jurisdicción</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Asigna cada esquema local de pagador a un tipo de pago maestro. La pestaña "Datos del paciente externo" del <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a> de casos lee estas asignaciones (selector Jurisdicción principal), y la carga útil de la clase financiera las utiliza. Se incluyen trece filas: US_MEDICARE, US_COMMERCIAL, CA_OHIP (código de país CA_ON), UK_NHS_TRUST, DE_GKV, DE_BG, FR_CPAM, FR_MUTUELLE, NL_BASIS, BE_MUT, AU_MBS, NZ_ACC y KR_NHIS. <strong>No hay ninguna fila para España, Escocia, Irlanda del Norte ni Irlanda</strong>, aunque el código define 14 jurisdicciones, entre ellas España.</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> La lista de tipos maestros debe contener antes la categoría. Solo se ofrecen los tipos activos.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Nivel 7, paso 9</p><dl><dt>Configurar primero</dt><dd><a href="#screen-master_payment_types">Diccionario maestro de tipos de pago</a>, <a href="02-tier1-primary-prerequisites.html#screen-jurisdiction_overview">Resumen de jurisdicciones</a></dd><dt>Esto habilita</dt><dd><a href="#screen-dft_export_preview">Vista previa de la exportación de facturación</a></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/system-jurisdiction_payment_mappings.webp" alt="Lista de Asignación de pagos por jurisdicción con filtro de país" loading="lazy"><figcaption>Lista de Asignación de pagos por jurisdicción con filtro de país</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-jurisdiction_payment_mappings-country-filter"><td>Filtro de país</td>
+<td>Elección entre países</td>
+<td>Opcional</td>
+<td>Reduce la lista.</td>
+<td>Todos</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-show-inactive"><td>Mostrar inactivos</td>
+<td>Interruptor Sí/No</td>
+<td>Opcional</td>
+<td>Incluye las filas inactivas.</td>
+<td>Desactivado</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-country-code"><td>Código de país</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Se guarda en mayúsculas. Texto libre, no se comprueba con la lista de jurisdicciones.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-scheme-code"><td>Código del esquema local</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Se guarda en mayúsculas.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-local-display-terminology"><td>Terminología local mostrada</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>El nombre que ve el personal.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-master-payment-type"><td>Tipo de pago maestro</td>
+<td>Elección entre tipos maestros activos</td>
+<td>Obligatorio</td>
+<td>La categoría.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-primary-outbound-format"><td>Formato de salida principal</td>
+<td>Texto</td>
+<td>Obligatorio</td>
+<td>Una etiqueta como <a class="term" href="99-glossary.html#g-x12" title="El estándar ANSI para transacciones electrónicas comerciales, incluidas las reclamaciones sanitarias en Estados Unidos.">X12</a> 837P. No se genera ningún archivo.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-notes"><td>Notas</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Notas libres.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-jurisdiction_payment_mappings-active"><td>Activo</td>
+<td>Sí/No</td>
+<td>Opcional</td>
+<td>Las filas inactivas se ocultan del selector Jurisdicción principal.</td>
+<td>Activo</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir la pantalla: <code>screen:configuration:open</code>. Cambiar: <code>config:payment-mappings:manage</code>. Admin y Lab Director la tienen de forma predeterminada.</p>
+<p><strong>Límites conocidos.</strong> No hay comprobación de duplicados por código de país y código de esquema. La salida X12 837P, KVDT y SESAM-Vitale está Planificada.</p>
+<h3 id="screen-audit-financial"><a class="anchor" href="#screen-audit-financial" aria-label="Link to this section">#</a> Registros del sistema: Financiero</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Inicio &gt; Registros del sistema &gt; Financiero"><span>Inicio</span> <span aria-hidden="true">›</span> <span>Registros del sistema</span> <span aria-hidden="true">›</span> <span>Financiero</span></nav>
+
+<p><strong>Estado:</strong> Demostración</p>
+<p><strong>1. Navegación:</strong> página <strong>Registros del sistema</strong> &gt; pestaña <strong>Financiero</strong>
+<strong>2. Elemento de mantenimiento:</strong> No aplicable, es una página de <a class="term" href="99-glossary.html#g-accession" title="El acto de recibir una muestra y asignarle un número de caso permanente; también ese número (el número de acceso). Vincula un caso con el tejido físico y su cadena de custodia.">registro</a>.</p>
+<p><strong>3. Finalidad comercial y alcance.</strong> Una vista de solo lectura de los eventos de facturación y de los cargos salientes fallidos o en cola. Tiene dos subpestañas: <strong>Registros de facturación</strong> y <strong><a class="term" href="99-glossary.html#g-dlq" title="Cola de mensajes fallidos (dead-letter queue), la lista de mensajes que han agotado todos los reintentos. Registros del sistema tiene una para los mensajes salientes de la interfaz y otra para los cargos.">DLQ</a> de salida</strong> (<a class="term" href="99-glossary.html#g-dead-letter" title="Un mensaje o trabajo que ha agotado todos los reintentos automáticos y espera a que una persona lo reenvíe o lo descarte.">cola de mensajes fallidos</a>, la lista de cargos cuyo envío falló).</p>
+<p><strong>4. Requisitos previos y dependencias.</strong> Solo <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> datos cuando ya existen cargos.</p>
+<aside class="setup" aria-label="Orden de configuración"><p class="setup-step"><b>Orden de configuración</b> · Referencia, no forma parte de la configuración</p><dl><dt>Configurar primero</dt><dd><a href="#screen-billing_dictionary">Diccionario de facturación (captura de cargos)</a>, <a href="#screen-billing_release">Liberación de facturación</a></dd><dt>Esto habilita</dt><dd><span class="none">Ninguno.</span></dd></dl></aside>
+
+<p><strong>5. Pantalla.</strong></p>
+<figure class="shot"><img src="../img/screen-audit-financial.webp" alt="Pestaña Financiero de Registros del sistema, filtros y resultados de Registros de facturación" loading="lazy"><figcaption>Pestaña Financiero de Registros del sistema, filtros y resultados de Registros de facturación</figcaption></figure>
+
+<p><strong>6. Referencia de campos.</strong></p>
+<h4>Filtros de Registros de facturación</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-number"><td>Número de <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a></td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-patient-name"><td>Nombre del paciente</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-patient-name-range-a-z"><td>Intervalo de nombres de pacientes (A–Z)</td>
+<td>Dos letras</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-patient-id-mrn-mpi"><td>ID del paciente (<a class="term" href="99-glossary.html#g-mrn" title="Número de historia clínica, el identificador que un centro asigna a un paciente.">NHC</a>, <a class="term" href="99-glossary.html#g-mpi" title="Índice maestro de pacientes, el registro que vincula los distintos identificadores que tiene un paciente.">MPI</a>)</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-billing-event-date-from-to"><td>Fecha del evento de facturación desde, hasta</td>
+<td>Fechas</td>
+<td>Opcional</td>
+<td>Filtro por la fecha del evento.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-date-of-service-from-to"><td>Fecha del servicio desde, hasta</td>
+<td>Fechas</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-report-sign-out-date-from-to"><td>Fecha de firma del informe desde, hasta</td>
+<td>Fechas</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-type"><td>Tipo</td>
+<td>Elección: Cargo, Abono, Deficiencia, Revisión de códigos, Envío, Modificación, Auditoría</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>Todos</td>
+</tr>
+<tr id="f-audit-financial-billing-type"><td>Tipo de facturación</td>
+<td>Elección</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>Todos</td>
+</tr>
+<tr id="f-audit-financial-status"><td>Estado</td>
+<td>Elección: Borrador, Pendiente de aprobación, Aprobado, Exportado, Rechazado, En espera</td>
+<td>Opcional</td>
+<td>Filtro.</td>
+<td>Todos</td>
+</tr>
+<tr id="f-audit-financial-staff-signing-pathologist-ordering-facility"><td>Personal, Patólogo firmante, Centro solicitante</td>
+<td>Búsquedas (Explorar)</td>
+<td>Opcional</td>
+<td>Filtros.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-detail-text-search"><td>Búsqueda en el texto del detalle</td>
+<td>Texto</td>
+<td>Opcional</td>
+<td>Busca en el texto del detalle.</td>
+<td>En blanco</td>
+</tr>
+<tr id="f-audit-financial-saved-queries"><td>Consultas guardadas</td>
+<td>Elección y Guardar</td>
+<td>Opcional</td>
+<td>Se conservan como ajustes personales.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-audit-financial-clear-search"><td>Borrar, Buscar</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Restablecen o ejecutan.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-audit-financial-export-csv"><td>Exportar <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a></td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Necesita <code>audit:billing-log:export</code>.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Resultados de Registros de facturación</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-case-patient-patient-id"><td>Caso, Paciente, ID del paciente</td>
+<td>Columnas</td>
+<td>No aplicable</td>
+<td>Los datos del paciente están etiquetados como información sanitaria protegida.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-audit-financial-timestamp-type-billing-type-status-event-detail"><td>Marca de tiempo, Tipo, Tipo de facturación, Estado, Evento, Detalle</td>
+<td>Columnas</td>
+<td>No aplicable</td>
+<td>El evento.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-audit-financial-staff-pathologist-facility"><td>Personal, Patólogo, Centro</td>
+<td>Columnas</td>
+<td>No aplicable</td>
+<td>Quién y dónde.</td>
+<td>Ninguno</td>
+</tr>
+</tbody>
+</table>
+<p>La búsqueda <a class="term" href="99-glossary.html#g-specimen" title="Una toma realizada a un paciente, como una biopsia o un órgano resecado. Un caso contiene una o más muestras.">muestra</a> como máximo 50 casos. Cuando coinciden más, aparece el mensaje "Se alcanzó el límite de casos".</p>
+<h4>DLQ de salida</h4>
+<table>
+<thead>
+<tr>
+<th>Nombre del campo</th>
+<th>Tipo de dato / formato</th>
+<th>Obligatorio/Opcional</th>
+<th>Descripción y lógica de negocio</th>
+<th>Valor predeterminado del sistema</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-financial-lab-filter"><td>Filtro de laboratorio</td>
+<td>Elección, "Todos los laboratorios de realización"</td>
+<td>Opcional</td>
+<td>Limita ambas tablas.</td>
+<td>Todos los laboratorios de realización</td>
+</tr>
+<tr id="f-audit-financial-failed-case-performing-lab-component-error-retries"><td>Fallidos: Caso, Laboratorio de realización, Componente, Error, Reintentos</td>
+<td>Columnas</td>
+<td>No aplicable</td>
+<td>Códigos de error: <code>MISSING_ICD10</code>, <code>MISSING_PROVIDER_NPI</code>, <code>DISPATCH_TIMEOUT</code>, <code>DISPATCH_REJECTED</code>. Los dos últimos solo aparecen mediante los botones de prueba.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-save-amp-re-queue"><td>Corregir y reintentar: Guardar y volver a encolar</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Adjunta al <a class="term" href="99-glossary.html#g-case" title="Un episodio de un paciente en el laboratorio, identificado por un número de acceso y compuesto por una o más muestras y un informe.">caso</a> un código CIE-10 o el <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, el identificador de diez dígitos de un proveedor sanitario estadounidense, necesario en un cargo.">NPI</a> del profesional (se audita) y lo vuelve a poner en cola.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-audit-financial-fix-amp-retry-retry-dispatch"><td>Corregir y reintentar: Reintentar envío</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Vuelve a intentarlo.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-audit-financial-capa-capture-as-capa"><td><a class="term" href="99-glossary.html#g-capa" title="Acción correctiva y preventiva. Una respuesta con seguimiento a un problema de calidad, con un responsable y un motivo para abrirla o descartarla.">CAPA</a>: Registrar como CAPA</td>
+<td>Botón</td>
+<td>Opcional</td>
+<td>Genera una deficiencia de tipo <code>def-outbound-dispatch-failure</code>.</td>
+<td>No aplicable</td>
+</tr>
+<tr id="f-audit-financial-queued-case-performing-lab-component-trigger"><td>En cola: Caso, Laboratorio de realización, Componente, Origen</td>
+<td>Columnas</td>
+<td>No aplicable</td>
+<td>Cargos a la espera de envío.</td>
+<td>Ninguno</td>
+</tr>
+<tr id="f-audit-financial-simulate-timeout-simulate-rejected"><td>Simular tiempo de espera agotado, Simular rechazo</td>
+<td>Botones</td>
+<td>Opcional</td>
+<td>Solo para pruebas. El envío real no está construido.</td>
+<td>No aplicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permisos.</strong> Abrir: <code>screen:audit-log:open</code>, que tienen Admin, Lab Director y QA Reviewer de forma predeterminada. Exportar los registros de facturación a <a class="term" href="99-glossary.html#g-csv" title="Valores separados por comas, un formato de hoja de cálculo en texto sin formato. Las exportaciones de PathScribe son archivos CSV.">CSV</a>: <code>audit:billing-log:export</code>. La misma página tiene las pestañas Registro de auditoría, Registro de errores, Registro de interfaces, Garantía de calidad, Alertas críticas, Enlaces de consulta y Trabajos del servidor; véanse <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Registros de interfaces</a> y <a href="09-appendices.html#screen-audit-log">Registro de auditoría</a>.</p>
+<p><strong>Límites conocidos.</strong> La simulación del envío es una ayuda para las pruebas. Ningún sistema de facturación real recibe cargos.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

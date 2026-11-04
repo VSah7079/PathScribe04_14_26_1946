@@ -1,12 +1,24 @@
+**Batch 759:** no patient name in the context bar; the Foreign case ID of an outside case; after a typed accession, the parts to check.
+
+**Batch 737:** `components/BlockContextPanel.tsx` lists a case's matrix blocks under **Shared (matrix) blocks** with a tick box per part (`matrixBlocks` prop from `AddOnOrderPage.tsx`); `hooks/useAddOnOrderStation.ts` saves matrix blocks with the specimens and tracks orders on matrix blocks. Rules in `services/addOnOrders/addOnOrderActions.ts`.
+
+**Batch 736:** the builder's exhausted-block reason and the dashboard's answer take the lab's reasons and an optional note; the code goes with the order or answer.
+
+**Batch 735:** the shared `StationScanField` to open a case, and a compact one beside the case details to open the next; an accession scanned with nothing focused opens it (PATHSCRIBE_SCAN). Answering a Block exhausted flag and the builder's exhausted reason use `QuickReasonPicks` (`addOnExhausted`). In the station touch layout.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # pages/AddOnOrderPage/
 
 **NEW (Sep 2026)** — PS-287, fourth of the PS-284→285→286→287→288 workstation-build sequence, and the first one genuinely different in shape from the other three: this is **case-scoped** (search or scan an accession to open the whole case), not block/slide-scoped, and it's **pathologist-initiated**, not tech-scan-to-open. A pathologist reviewing a case places one or more add-on orders (recuts/deep levels, special stains, IHC — single-stain or panel — and molecular/send-out) against any of that case's own real blocks, with real routing, priority, slide media, auto-control pairing, a real-time order tracking dashboard, and a real block-exhaustion exception + pathologist notification loop.
 
-**Route**: `/add-on-orders`. Reachable from a new tile on `Home.tsx`.
+**Route**: `/add-on-orders` (`?case=<support reference>` opens a case directly), behind `screen:add-on-orders:open`. Since Batch 375 there is no Home tile: it opens from the "Add-on order" button in the block row of the report page's header bar (`SynopticReportPage/components/HeaderBar.tsx`), shown to users who may open the screen, with the case already loaded.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Home tile was removed in Batch 375 (`Home.tsx` comment); the entry point is the header-bar button (`HeaderBar.tsx`, `services/caseAddresses/caseAddresses.ts`).*
 
 ## Scope confirmed before building
 
-The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashboard piece (PS-288). Before starting, the ambiguity between "narrow PS-287's own scope" and "build PS-288 in the same pass" (referenced in this session's own prior context) was resolved directly with the user via a scoping question. Answer: **PS-287 built in full** — order builder + routing (§1–§3), block-exhaustion exception + pathologist notification loop (§5), and the real-time order tracking dashboard (§4) — and **PS-288 deferred entirely to its own, later pass**, not bundled in here. Nothing in this folder attempts PS-288's own Embedding & Microtomy dashboard or Diagnostic Sign-Out/Scanner View.
+The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashboard piece (PS-288). Before starting, the ambiguity between "narrow PS-287's own scope" and "build PS-288 in the same pass" (referenced in this session's own prior context) was resolved directly with the user via a scoping question. Answer: **PS-287 built in full** — order builder + routing (§1–§3), block-exhaustion exception + pathologist notification loop (§5), and the real-time order tracking dashboard (§4) — and **PS-288 deferred entirely to its own, later pass**, not bundled in here. Nothing in this folder attempts PS-288's own Embedding & Microtome dashboard or Diagnostic Sign-Out/Scanner View.
 
 ## Investigation done before building (confirmed, not assumed)
 
@@ -25,7 +37,7 @@ The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashb
 - **`AddOnOrderPage.tsx`** — the page itself: a search/scan-an-accession landing state (genuinely new for this series — every sibling scans a block/slide directly), the header/context bar (Accession, Patient, Case Status, Primary Pathologist), the three-panel layout, and the Order Tracking dashboard below it.
 - **`components/BlockContextPanel.tsx`** — the left panel: every real block on the case, grouped by specimen, with levels-already-cut count, Tiny Tissue/Fragile flags, and a real status badge (Exhausted/Lost/Damaged/Cancelled) that also disables selection.
 - **`components/OrderBuilderPanel.tsx`** — the center panel: the Quick-Add Order Matrix (Recut/Special Stain/IHC/Molecular kind toggle, category-filtered stain search, IHC panel picker, level-depth input, control-pairing mode).
-- **`components/OrderSummaryRoutingPanel.tsx`** — the right panel: the active cart, priority selector, slide media/charge selector, cutting instructions, the routing preview (which real stations this order would actually reach, from `stationsForRouting`), the Reference/Send-Out Lab picker (shown only when the cart has a molecular line), and submit.
+- **`components/OrderSummaryRoutingPanel.tsx`** — the right panel: the active cart, priority selector, slide media/charge selector, cutting instructions, the routing preview (which real stations this order would actually reach, from `stationsForRouting`), a Reference/Send-Out Lab picker on each molecular line (since Batch 403; before, one picker for the whole order), and submit.
 - **`components/OrderTrackingDashboard.tsx`** — the full-width dashboard: every real add-on order on the case with its live, derived stage; "Mark Block Retrieved"; "Flag Exception" (§5's own tech-side trigger); and, for an order with an open exception, the real Cancel/Modify/Approve-Destructive-Cutting response actions.
 - **`hooks/useAddOnOrderStation.ts`** — case load/persist (real accession search via `caseRouter.getCase`, same lookup every other case-scoped page already uses), order submission across every selected block, the tracking-dashboard aggregation, the exception flag/resolve wrappers (including the real, transport-only pathologist-notification email), and routing-station resolution.
 
@@ -37,7 +49,7 @@ The ticket's own text covers five sub-areas (§1–§5) plus an Epic-level dashb
 
 ## i18n
 
-Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace (73 leaf keys) plus `home.addOnOrderTile.*` (2 keys), across all five locale files (en/fr/de/nl/ko) — verified programmatically: all five parse as valid JSON, all five have identical key sets, 810 total leaf keys per file.
+Built with `useTranslation()`/`t()` from the start. The `addOnOrder.*` namespace (108 leaf keys in `en.json`, checked Batch 652; Spanish has one more for a plural form) is in all six locale files (en, fr, de, nl, ko, es), kept in step by `localeParity.test.ts`. The `home.addOnOrderTile.*` keys this README once listed no longer exist: the Home tile was removed in Batch 375 (see Route above). The 73-key and 810-key counts quoted at PS-287 are long out of date.
 
 ## Deliberate scope cuts
 
@@ -53,6 +65,68 @@ Built with `useTranslation()`/`t()` from the start. New `addOnOrder.*` namespace
 
 `AddOnOrderPage.tsx`: the accession in the context bar is tagged.
 
+## Batch 403 (PS-287 / PS-359): Field Requirements, permissions, reference labs
+
+- **Permissions** (Pete: both, for Pathologist, Fellow and Resident): `add-on:order:place` and `add-on:exception:approve-destructive-cut`, checked in `services/addOnOrders/addOnOrderActions.ts`. The Submit, Approve, Modify and Cancel buttons are greyed without them.
+- **Field Requirements** (page "addOnOrder"):
+  - Blocks and order lines are locked.
+  - The send-out lab is locked (Pete: an unrouted send-out leaves blind spots in the courier and tracking logs).
+  - The recut level depth, bench instructions, exception note and response note are switches, off by default.
+  - Required labels are starred, "Still required: …" is shown, and buttons stay off until complete.
+- **Reference labs:** each molecular or send-out line has its own lab. It fills in from the test's default in the Stain Dictionary, or from its only approved lab. The picker offers only the labs approved for that test, or every active reference lab when none is linked. This replaces the single lab picker that applied to the whole order.
+- **Modify & Resubmit** used to resubmit the order unchanged. It now opens the level depth and bench instructions for editing.
+- **Voice:** the page sets `VOICE_CONTEXT.ADD_ON_ORDER`. "add to order" (Ctrl+Alt+Shift+A) and "submit order" (Ctrl+Alt+Shift+S) act as the buttons do.
+- **Translated:** IHC panel names, routing queues, exception reasons, case status, and the search and refusal messages. The stored values stay English. Each exception row keeps its own response note, so typing on one row no longer fills another's.
+- **Moved to `utils/`:** the stain filter, the line building and the default lab. The hook reads scan stations through `@/services` and is off the deployment baseline.
+- **Fixed:** an order on two blocks of the same specimen lost the first block's new orders (see `services/addOnOrders/`).
+- **Demo:** S26-4401-BX-001 has orders at every stage (`services/cases/addOnOrderDemo.ts`), and there are three seeded reference labs.
+- **Tests:** `components/addOnOrderRequirements.test.tsx`.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 467 — In-house molecular orders
+
+`components/OrderSummaryRoutingPanel.tsx`: a molecular line chooses in-house or send-out (in-house only where the case's performing lab runs the test); the reference lab is asked for only when sent out. `hooks/useAddOnOrderStation.ts` passes molecular lines to the molecular order engine.
+
 ---
 *See [pages/README.md](../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 514 (PS-269)
+
+The patient name in the header shows in the screen's language (Korean: full name + 님).
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 669 — saving (ws-8)
+
+Placing an order, marking a block retrieved, flagging an exception and answering one now run through `act` in `hooks/useAddOnOrderStation.ts`, which uses the shared `services/workstationSave/runCaseAction.ts` (via `hooks/useWorkstationSave.ts`): the action is run on the newest copy of the case and run again if someone else saved first (3 tries). A save that still fails comes back as `AddOnActionResult.notSaved` (`'conflict'` or `'notApplied'`), the page shows "Not saved" in the existing banner, and the case is reloaded from the store, instead of staying on screen as if saved (it used to log to the console only). Work after the save (the e-mail, the molecular order hand-off) runs once. Tests: `hooks/useAddOnOrderStation.test.tsx` (new).
+
+## Batch 669 (ws-3, ws-19, ws-20)
+
+- **Permissions (ws-19, Pete: strict).** **Mark Block Retrieved** needs `add-on:block:mark-retrieved` and **Flag Exception** needs `add-on:exception:flag` (greyed without them: `CapabilityButton`; the service checks again). Seeded to Pathologist, Fellow, Resident and Histotechnologist (the roles with the Add-On Orders or Microtome screen) and to a hospital's own roles with case access, so nobody who could do it loses it.
+- **Notice routing (ws-3, Pete, Oct 24, 2026).** Flagging an exception on a slide with no ordering pathologist (an original H&E) used to e-mail nobody. The notice now goes to the Supervisor / Accessioning Desk (`services/addOnOrders/blockExceptionRouting.ts`) and the page says so, or says nobody could be told. A slide with an open exception is listed in Order Tracking even if it was not ordered here, so the notice can be answered.
+- **Primary pathologist (ws-20).** The context bar shows the name (`primaryPathologistName` in the hook), not the stored user id.
+- **IHC panels (ws-20).** A panel stain missing from the (active) stain dictionary is named in a warning under the builder (`missingPanelStainNames`); the other stains of the panel can still be added. If none exist, nothing can be added and the warning says so. The panel presets themselves are still a fixed list.
+- **Still open (ws-19/20 rows):** a refused block still aborts the whole submit; priority is recorded and shown in tracking only; the presets are not editable.
+- **Tests:** `hooks/useAddOnOrderStation.test.tsx`, `components/addOnOrderRequirements.test.tsx`.
+
+## Batch 730
+
+- `components/OrderSummaryRoutingPanel.tsx`: **Print labels at** (only with `print:job:redirect`, chosen by the page). `hooks/useAddOnOrderStation.ts`: `submitOrder(…, printAtStationId)` prints the new slides' labels there (`services/labelPrintRoutes/printAddOnLabelsAt.ts`); `printStations`.
+
+## Batch 731
+
+- Spec §10.6: an exhausted block can be ticked; `components/ExhaustedBlockChoices.tsx` (+ `.css`, new) shows what remains, each line's alternative and the reason. `OrderTrackingDashboard.tsx`: a "Block exhausted" flag can be answered with an alternative ("Or use an alternative", Apply); the stage "Awaiting Re-embedding". `useAddOnOrderStation.ts`: `submitOrder(…, exhaustedChoices)`, `handleResolveException(…, alternative)`, audit and end-state deps.
+
+## Batch 732
+
+- Batch 732: `BlockContextPanel.tsx` lists a ticked block's pieces to order for (none: whole block) and its type; `OrderBuilderPanel.tsx`: **Levels** and **Levels per slide** for a recut; `ExhaustedBlockChoices.tsx` also opens for used-up pieces, with "Order from piece … instead".
+
+## Batch 733
+
+- Batch 733: the tracking dashboard says how many waiting slides an answer covers, with "Answer this slide only"; Approve Destructive Cutting is hidden when nothing is left, needs a note and warns.

@@ -1,0 +1,86 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 652 — UI and workflow defects, specimen pipeline and documentation consistency: peer averages, microtomy labels, Teaching Case, https-only links, barcode colour, triage gate, intraop carry, reconciliation, pool routing, Lockbox link, …",
+    "description": "Vitest, 2026-10-23: full suite 1767 files, 14,789 tests (14,777 passed; the one explicit-any guard failure found in that run has since been fixed). Type-check clean. Targeted run of the 18 test files listed here (changed in Batches 650 to 652): all passed."
+  },
+  "tests": [
+    {
+      "testKey": "PS-899",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Peer avg is computed from same-role, shared-facility active staff; fewer than three gives 'Not enough data'; shown only where peer comparison is allowed.\nPASSED: src/pages/contributionDashboardCalculations.test.ts (58)\nNot tested or not built: Server-supplied averages for production; the peer definition and the minimum of three (decision for Pete)."
+    },
+    {
+      "testKey": "PS-900",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Scanning a block at a Microtomy / Sectioning station dispatches the slide labels to the station's printer; a failed print leaves the slide Pending Cut.\nPASSED: src/utils/labels/dispatchScanSlideLabel.test.ts (9)\nPASSED: src/hooks/useGlobalMaterialScanTracking.test.ts (5)\nNot tested or not built: Real printer, QZ Tray and GS1 prefix; the once-only record lives in browser memory so a reload can print twice; ORG-MFT is still hard-coded in the hook."
+    },
+    {
+      "testKey": "PS-901",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Delegation types with Multi-recipient accept several people; each gets their own delegation and audit entry; other types stay single; capability checked per person.\nPASSED: src/services/delegations/delegateToRecipients.test.ts (12)\nNot tested or not built: The dialog naming a refused recipient (known gap: it does not)."
+    },
+    {
+      "testKey": "PS-902",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: New and edited links must start with https://; existing http links are listed as insecure and do not open.\nPASSED: src/services/externalResources/externalResourceUrl.test.ts (9)\nNot tested or not built: Server repetition of the rule; Search page and top-bar link lists (fixed links)."
+    },
+    {
+      "testKey": "PS-903",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: The print CSS forces the footer barcode bars to solid black whatever the watermark colour; deterministic PDF renderer (Python test test_surgical_pdf_same_bytes_every_time) and the support audit PDF.\nPASSED: src/services/printing/reportBarcodePrintCss.guard.test.ts (5)\nPASSED: src/services/supportAccess/supportAuditPdf.test.ts (2)\nNot tested or not built: functions/test_main.py is a Python test not run by vitest (pytest not available in this environment); the browser does not send signedAt, so the PDF date is fixed; scanning a printed barcode."
+    },
+    {
+      "testKey": "PS-904",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Release & Print stays blocked while a specimen's grossing triage checklist is open and no override reason is recorded.\nPASSED: src/services/grossing/triageReleaseGate.test.ts (7)\nNot tested or not built: Server repetition of the rule."
+    },
+    {
+      "testKey": "PS-905",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Frozen diagnosis and photos copy to the case as labelled intraoperative findings; they never change the final diagnosis; audited.\nPASSED: src/services/intraop/carryIntraopFindingsToCase.test.ts (4)\nNot tested or not built: No screen or report line shows them yet; real photo upload (mocked)."
+    },
+    {
+      "testKey": "PS-906",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Every non-deferred frozen specimen with a call is reconciled in turn by category match (no AI).\nPASSED: src/services/quality/frozenReconciliationPlan.test.ts (4)\nNot tested or not built: Recording with the review screen off (decision for Pete)."
+    },
+    {
+      "testKey": "PS-907",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Completing grossing routes the case to its pool from either screen; the timeout sweeps unassigned, unpooled cases and never takes a held case.\nPASSED: src/services/grossing/routeCaseAfterGrossing.test.ts (3)\nPASSED: src/services/cases/poolAssignmentTimeout.test.ts (6)\nNot tested or not built: The 30-second Worklist timer itself; a scheduled server function; Gross Complete waiting for an LIS assignment."
+    },
+    {
+      "testKey": "PS-908",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: Accessioning from a lockbox order links receipt and case both ways and marks the receipt accessioned; refused without lockbox:folder:review leaves the receipt open.\nPASSED: src/services/lockbox/lockboxCaseLink.test.ts (7)\nPASSED: src/services/lockbox/mockLockboxService.test.ts (4)\nPASSED: src/services/lockbox/httpLockboxService.test.ts (6)\nNot tested or not built: Accession receipt scan box (not built); the server version."
+    },
+    {
+      "testKey": "PS-909",
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: TEST- codes on a confirmed finding are labelled 'demonstration code'; a retention version whose source note says unverified shows the placeholder badge.\nPASSED: src/services/abnormalDetection/codingTermText.test.ts (2)\nPASSED: src/components/Worklist/WorklistAbnormalBadge.test.tsx (6)\nPASSED: src/services/governingBodies/retentionPlaceholder.test.ts (3)\nNot tested or not built: Real SNOMED CT / ICD-O-3 codes (licence); confirmation of the retention figures."
+    }
+  ]
+}

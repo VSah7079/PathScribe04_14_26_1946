@@ -32,6 +32,8 @@ export interface CytologyApacProficiencyTestRow {
    *  'no_response' — the real, researched CLIA deficiency-citation
    *  rule, applied honestly rather than invented. */
   consecutiveDeficiencyFlagged: boolean;
+  /** Batch 608 (#77): true for a result graded by the built-in simulator, not a provider. */
+  simulated?: boolean;
 }
 
 export interface CytologyApacProficiencyTestReport {
@@ -48,8 +50,9 @@ export function resolveCytologyApacProficiencyTestReport(results: CytologyProfic
   // ordered per provider, since the real CLIA rule is a real,
   // consecutive-event count within one real PT program, not across
   // genuinely unrelated providers.
+  // Batch 608: simulated results are shown but never counted: not in the deficiency rule, not in the rate.
   const byProvider = new Map<string, CytologyProficiencyTestResult[]>();
-  for (const r of results) {
+  for (const r of results.filter(x => !x.simulated)) {
     const list = byProvider.get(r.provider) ?? [];
     list.push(r);
     byProvider.set(r.provider, list);
@@ -75,10 +78,12 @@ export function resolveCytologyApacProficiencyTestReport(results: CytologyProfic
       outcome: r.outcome,
       scoreDetail: r.scoreDetail,
       consecutiveDeficiencyFlagged: flaggedIds.has(r.id),
+      simulated: r.simulated,
     }));
 
-  const totalEvents = results.length;
-  const satisfactoryCount = results.filter(r => r.outcome === 'satisfactory').length;
+  const counted = results.filter(r => !r.simulated);
+  const totalEvents = counted.length;
+  const satisfactoryCount = counted.filter(r => r.outcome === 'satisfactory').length;
   const satisfactoryRatePercent = totalEvents === 0 ? 0 : (satisfactoryCount / totalEvents) * 100;
 
   return { rows, totalEvents, satisfactoryCount, satisfactoryRatePercent };

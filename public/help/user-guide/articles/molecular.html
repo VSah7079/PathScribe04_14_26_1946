@@ -1,0 +1,417 @@
+<h1 id="top">Molecular</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Molecular screen (the page title reads "Molecular Workspace") is the one home for molecular testing in PathScribe. From it you see the orders that are waiting for a plate, build the plates (batches) that go on an analyser, follow each run while it is on the instrument, look back at finished runs, and check which specimens each instrument run covered. It also leads to the extraction racks and to the control rules that every plate is checked against.</p>
+<p><strong>Intended users.</strong> Molecular technologists, who run the bench. Laboratory managers use the same screen to follow runs. Pathologists see the effect of the work in the report: a finished test can fill in the matching question of the synoptic report. The Molecular tile in the <a href="/help/pathology-workspace">Pathology Workspace</a> opens this screen. By default only the Molecular Technologist role has the Molecular screen; if the tile is missing, ask your laboratory manager or administrator to add the screen to your role.</p>
+<p><strong>Where it fits.</strong> A molecular test starts as an order (usually an add-on order placed from a case), waits in the Order Queue, is put on a plate with its controls, is sent to the analyser as a worklist, and comes back as a run result. The result goes onto the order, and, when it can be trusted, into the matching question of the pathologist's report.</p>
+<div class="admonition note">
+<p class="admonition-title">Several parts are demonstration only</p>
+<p>The screen, the plate rules, the order queue, result handling and the report link are all built and work in the demonstration. What is <strong>not</strong> built is the live connection to a real analyser or reference laboratory. Sending a worklist and receiving a run result are stand-ins today. See "Exception handling" below and the notes on each tab.</p>
+</div>
+<p><strong>Patient identity and typed entries (Batch 759).</strong> This screen shows no patient name, date of birth or MRN. Check the accession number and the specimen source against the container; an outside case also shows its <strong>Foreign case ID</strong> (and a block or specimen's own <strong>Foreign ID</strong>). A typed id (when the scanner can't read a label) opens at once; a line says "Typed, not scanned: check the container shows … and …", and the typed entry is recorded quietly on the audit trail and in the scan history. See the Microtome page for the full account.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/molecular-overview.png" alt="The Molecular Workspace with its five tabs and the Order Queue showing queued orders"><figcaption>The Molecular Workspace with its five tabs and the Order Queue showing queued orders</figcaption></figure>
+
+<p>The top of the page shows the title, the line "Batch and plate management for molecular diagnostics runs (HPV, CT/NG, respiratory PCR panels, targeted NGS)", three buttons on the right, and a row of five tabs. When you open the screen without choosing a tab, it opens on <strong>Active Runs &amp; Batches</strong>.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Batch tabs (Worklist &amp; Plate Builder, Active Runs &amp; Batches, History &amp; Archive)</strong></p>
+<p>These three tabs show the same table; each tab shows batches in different states. Click a row to open that batch (<a href="/help/molecular/batch">Batch</a>).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Batch</td>
+<td>The batch barcode PathScribe gave the plate.</td>
+</tr>
+<tr>
+<td>Assay</td>
+<td>The test the plate is for.</td>
+</tr>
+<tr>
+<td>Instrument</td>
+<td>The analyser the plate is for, by name, with the deck slot in brackets when one was recorded.</td>
+</tr>
+<tr>
+<td>Plate</td>
+<td>The plate barcode.</td>
+</tr>
+<tr>
+<td>Created</td>
+<td>When the batch was made.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>A coloured badge: Draft, Active, Awaiting Results, Completed, Aborted or Superseded.</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>Tab</th>
+<th>Shows batches that are</th>
+<th>Empty message</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Worklist &amp; Plate Builder</td>
+<td>Draft (being built, or built and not yet answered)</td>
+<td>"No draft batches yet. Use "+ New Batch" to start building one."</td>
+</tr>
+<tr>
+<td>Active Runs &amp; Batches</td>
+<td>Active or Awaiting Results</td>
+<td>"No active runs right now."</td>
+</tr>
+<tr>
+<td>History &amp; Archive</td>
+<td>Completed, Aborted or Superseded</td>
+<td>"No completed, aborted, or superseded batches yet."</td>
+</tr>
+</tbody>
+</table>
+<p>A row whose instrument has an open malfunction, or is past due for maintenance or calibration, is shaded as an alert. Hold the pointer over the instrument name to read "This instrument has an open malfunction or is past due for maintenance or calibration — check it before running this batch." The alert does not stop you; it asks you to check the instrument first.</p>
+<p><strong>Order Queue tab</strong></p>
+<p>The queue lists in-house molecular orders. Above the table: "In-house molecular orders from pathologists' add-on orders. Select queued orders for one test, choose a draft plate of that test, and assign them: they take its free wells (never a control position)."</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Select</td>
+<td>A tick box. It appears only on orders that can be put on a plate now.</td>
+</tr>
+<tr>
+<td>Order</td>
+<td>The order number, with who ordered it and when.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The accession number, and the specimen block when there is one.</td>
+</tr>
+<tr>
+<td>Test</td>
+<td>The molecular test ordered.</td>
+</tr>
+<tr>
+<td>Performed</td>
+<td>In-house or Send out (with the reference laboratory's name for send-out). A warning may appear here, see Exception handling.</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Queued, On a plate, Running, At the reference lab, Resulted or Cancelled.</td>
+</tr>
+<tr>
+<td>Plate · well</td>
+<td>The plate barcode and well once the order is on a plate. Click it to open the plate. "—" when not on a plate.</td>
+</tr>
+<tr>
+<td>Result</td>
+<td>The result once there is one: Positive (detected), Negative (not detected), Indeterminate, Invalid, or Report received. Under it a short note says what happened to the report (see "Results and the report").</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>The buttons that apply to that row.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>QC &amp; Specimen Association tab</strong></p>
+<p>A read-only list of instrument runs reported by the molecular platforms, headed "Molecular Batch Management". Columns: Run Date, Instrument, Assay, Reagent Lot, Samples Run and Specimens Linked. Click a row (the arrow turns from ▸ to ▾) to list the specimens linked to that run by Accession, Specimen and Patient MRN. Nothing on this tab is typed in: runs and links arrive from the instrument. When there is none you see "No molecular batches on file yet." A run with no specimens shows "No specimens are yet linked to this batch via an inbound event."</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Extraction Racks</td>
+<td>Opens the list of extraction racks (<a href="/help/molecular/rack-board">Rack Board</a>). Not shown on the QC tab, or to a person who holds neither the view nor the manage permission for control rules.</td>
+</tr>
+<tr>
+<td>Control Rules</td>
+<td>Opens the controls each test requires on a plate (<a href="/help/molecular/control-rules">Control Rules</a>). Not shown on the QC tab.</td>
+</tr>
+<tr>
+<td>+ New Batch</td>
+<td>Opens a blank plate to build (<a href="/help/molecular/batch">Batch</a>). Not shown on the QC tab.</td>
+</tr>
+<tr>
+<td>Tabs</td>
+<td>Order Queue, Worklist &amp; Plate Builder, Active Runs &amp; Batches, History &amp; Archive, QC &amp; Specimen Association. The address changes with the tab, so a tab can be bookmarked.</td>
+</tr>
+<tr>
+<td>Reference lab list (Order Queue, send-out rows)</td>
+<td>Chooses the reference laboratory for a send-out order. Greyed out unless you may choose labs.</td>
+</tr>
+<tr>
+<td>Plate list and Assign to plate (Order Queue)</td>
+<td>Choose a draft plate for the ticked orders, then put them on it.</td>
+</tr>
+<tr>
+<td>Take off plate</td>
+<td>Returns an order on a plate to the queue.</td>
+</tr>
+<tr>
+<td>Send out instead</td>
+<td>Moves an in-house order to send-out when your laboratory no longer runs that test in-house.</td>
+</tr>
+<tr>
+<td>Cancel order</td>
+<td>Cancels the order and its add-on slide order.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Grey Draft badge</td>
+<td>The plate is being built, or built but not yet answered.</td>
+</tr>
+<tr>
+<td>Blue Active badge</td>
+<td>The worklist has gone to the instrument and the run is in progress.</td>
+</tr>
+<tr>
+<td>Amber Awaiting Results badge</td>
+<td>The run was reported as failed, or is waiting for a person to follow up.</td>
+</tr>
+<tr>
+<td>Green Completed badge</td>
+<td>The run's results have come back.</td>
+</tr>
+<tr>
+<td>Red Aborted badge</td>
+<td>The run was aborted.</td>
+</tr>
+<tr>
+<td>Grey Superseded badge</td>
+<td>The plate was retired and replaced by a copy (Clone &amp; Supersede).</td>
+</tr>
+<tr>
+<td>Shaded batch row</td>
+<td>The instrument has an open malfunction or is overdue for maintenance or calibration.</td>
+</tr>
+<tr>
+<td>Amber warning in the Performed column</td>
+<td>"This lab no longer runs this test in-house" or "Choose the reference lab before this order is sent."</td>
+</tr>
+<tr>
+<td>Order status badge</td>
+<td>Queued, On a plate, Running, At the reference lab, Resulted, Cancelled.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None on this screen. The plate builder has Ctrl+Alt+Shift+N (create the plate) and the rack screen has Ctrl+Alt+Shift+P (place the rack); see the articles for those screens. Both can also be spoken ("create plate", "place rack").</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p>This is the whole path of one in-house test, in the order it happens.</p>
+<ol>
+<li>A pathologist or technologist places an add-on order for a molecular test on a case. When the order is for an in-house test, the add-on order page says "Goes to the Molecular Workcenter's Order Queue." Nothing more is needed from the person who placed it.</li>
+<li>Open the Molecular screen and choose the <strong>Order Queue</strong> tab. The new order is listed as <strong>Queued</strong>.</li>
+<li>Check the ordering details (case, test, who ordered it).</li>
+<li>If the plate for that test does not exist yet, choose <strong>+ New Batch</strong> and build one. See <a href="/help/molecular/batch">Batch</a>. Controls are placed by the plate builder according to the <a href="/help/molecular/control-rules">Control Rules</a>. Come back to the Order Queue.</li>
+<li>Tick the queued orders to run together. Once you tick one, the tick boxes for orders of a different test are disabled, because one plate carries one test. The line above the table shows "1 selected", "2 selected" and so on.</li>
+<li>Choose the plate from the <strong>Plate</strong> list. Each choice reads for example "PLT-0042 (Panther 1) — 12 free wells". If there is none you see "No draft plate for this test".</li>
+<li>Select <strong>Assign to plate</strong>. You see "Assigned to the plate." and the orders now read <strong>On a plate</strong>, with their plate and well in the Plate · well column. Orders take free wells in row order and never take a control position.</li>
+<li>In the extraction rack screen, make sure the specimens are racked and the rack is placed on the instrument (<a href="/help/molecular/rack-board">Rack Board</a>).</li>
+<li>Open the plate (click its link in the Plate · well column) and send the worklist to the instrument. The plate builder asks you to scan the plate barcode and the instrument's deck location first. See <a href="/help/molecular/batch">Batch</a>.</li>
+<li>When the worklist is sent, the orders on the plate change to <strong>Running</strong>.</li>
+<li>When the instrument's results arrive, each order changes to <strong>Resulted</strong>, with its result in the Result column. The batch moves to <strong>Completed</strong> and appears under History &amp; Archive.</li>
+<li>Open the batch to review the run's controls, the Ct values and the interpretations. See <a href="/help/molecular/batch">Batch</a>.</li>
+<li>The pathologist sees the result in the report, in the matching synoptic question, and decides what to sign out. See <a href="/help/report">Report</a>.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Send-out tests.</strong> An order for a test that your laboratory does not run in-house goes to the Order Queue as <strong>Send out</strong>. Choose its reference laboratory from the list in the Performed column. The list holds only the laboratories approved for that test, or any active reference laboratory when the test has none. You see "Reference lab chosen." A send-out order has no tick box: it is sent with the specimen's referral batch, then reads <strong>At the reference lab</strong>, and <strong>Resulted</strong> when the laboratory reports. It never goes on a plate.</li>
+<li><strong>Following a run.</strong> Open the <strong>Active Runs &amp; Batches</strong> tab to see plates that are on the instrument, and <strong>History &amp; Archive</strong> to look back. A shaded instrument tells you to check it.</li>
+<li><strong>Finding which specimens an instrument run covered.</strong> Use <strong>QC &amp; Specimen Association</strong>.</li>
+<li><strong>Opening a plate from an order.</strong> In the Order Queue, click the plate and well link on the order's row. The plate opens; a plate that has been saved can be looked at but not edited.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>"This lab no longer runs this test in-house: send it out or cancel it."</strong> The test was changed after the order was placed. The row offers only <strong>Send out instead</strong> and <strong>Cancel order</strong>, and cannot be put on a plate. The queue is checked again every time you open it or assign.</li>
+<li><strong>"This lab no longer runs this test in-house: take it off the plate, then send it out or cancel it."</strong> The same problem on an order that is already on a plate. Take it off first with <strong>Take off plate</strong>.</li>
+<li><strong>"Choose the reference lab before this order is sent."</strong> A send-out order has no laboratory yet. Choose one in the list.</li>
+<li><strong>"Not enough free wells on that plate."</strong> The plate is too full for the number of orders ticked. Nothing was assigned: assigning is all or nothing. Tick fewer orders or choose another plate.</li>
+<li><strong>"Orders and plate must be for the same test."</strong> You ticked orders for a different test than the plate's. Choose a plate of the right test.</li>
+<li><strong>"That plate's worklist has been sent; it takes no more orders."</strong> Only a draft plate whose worklist has not been sent takes orders. Build a new plate.</li>
+<li><strong>"That order has moved on; the list is refreshed."</strong> Someone else changed the order while you worked. Check the new status and try again.</li>
+<li><strong>"You don't have permission for this."</strong> Your role cannot do that action. Assign and Take off plate, Cancel and Send out instead, and choosing a reference lab are three separate permissions. The buttons are greyed out when you do not have the permission.</li>
+<li><strong>A run result the plate cannot match.</strong> If the result for a well names a different specimen than the one the order is for, the result is not applied and the order stays Running with the note "The run's result for this well names another specimen: not applied. Check the plate." Check the plate for a swapped or mislabelled tube before doing anything else.</li>
+<li><strong>A blocked run.</strong> If a control failed, the batch shows a red banner. See <a href="/help/molecular/batch">Batch</a>. No order is filled into a report from a blocked run.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Cancelling an order</p>
+<p><strong>Cancel order</strong> cancels the order and also the add-on slide order it came from, and frees its well. It is a high-risk permission for that reason. Check the case and test on the row before you cancel.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>An order was put on the wrong plate.</strong> While the worklist has not been sent, select <strong>Take off plate</strong> on the order's row. You see "Taken off the plate and queued again." Then assign it again.</li>
+<li><strong>An order was cancelled by mistake.</strong> The Order Queue has no way to bring a cancelled order back. Ask the person who placed the add-on order to place it again.</li>
+<li><strong>A plate was built wrongly after the worklist was sent.</strong> Use Clone &amp; Supersede on the plate (<a href="/help/molecular/batch">Batch</a>); do not try to edit it.</li>
+<li><strong>The list looks out of date.</strong> Where live updates are switched on at your laboratory, the queue reads again by itself when an order changes elsewhere (for example a result arrives, or a colleague assigns an order). Otherwise it is read when you open the tab and after each of your own actions. If it looks wrong, switch to another tab and back.</li>
+</ol>
+<h2 id="results-and-the-report">Results and the report</h2>
+<p>When a run's results come back, PathScribe matches each order to the well that holds it and checks that the result names the same accession and specimen. It then decides whether the result is <strong>reportable</strong>: the plate's controls passed, the call is Positive or Negative, and the instrument did not flag the result. Only a reportable result can fill a report question.</p>
+<p>The note under each result in the Order Queue says what happened:</p>
+<table>
+<thead>
+<tr>
+<th>Note under the result</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report answered from this result.</td>
+<td>The matching synoptic question was empty and now holds the answer, marked as coming from this result.</td>
+</tr>
+<tr>
+<td>The report already had another answer: kept, with this result shown beside it.</td>
+<td>The pathologist had already answered the question differently. Nothing is overwritten. In the report the question shows a "Result differs" tag with the result and a <strong>Use result</strong> button.</td>
+</tr>
+<tr>
+<td>No report question takes this result.</td>
+<td>The test is not linked to any question in the case's template. The report is unchanged.</td>
+</tr>
+<tr>
+<td>Not reportable (invalid, indeterminate, flagged, or controls failed).</td>
+<td>The report is unchanged.</td>
+</tr>
+<tr>
+<td>Arrived after sign-out: report unchanged, addendum draft opened.</td>
+<td>The report was already signed out, so it was left alone and an addendum draft was opened for the case's pathologist.</td>
+</tr>
+<tr>
+<td>Arrived after sign-out: report unchanged, but no addendum draft could be opened — add one by hand.</td>
+<td>As above, but no draft could be opened (for example no pathologist is assigned). Add the addendum yourself.</td>
+</tr>
+<tr>
+<td>The reference lab sent a report with no coded result: enter the answer from it.</td>
+<td>A send-out laboratory sent a report document only.</td>
+</tr>
+<tr>
+<td>The run's result for this well names another specimen: not applied. Check the plate.</td>
+<td>An identity mismatch.</td>
+</tr>
+</tbody>
+</table>
+<p>A signed-out report is never changed by a result. At sign-out, if a question's answer differs from its molecular result, PathScribe asks "Sign out with your answer anyway?" and lists each difference. The pathologist's answer stays theirs. See <a href="/help/report">Report</a>.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Trying to find a send-out order on a plate.</strong> Send-out orders never have a tick box. They travel with the referral batch.</li>
+<li><strong>Looking for a draft plate that is already sent.</strong> Once a worklist is sent the plate takes no more orders. Build a new plate for late orders.</li>
+<li><strong>Expecting an accessioned HPV co-test to appear in the Order Queue tab.</strong> It does not. See "Related Features" below.</li>
+<li><strong>Ignoring the shaded instrument.</strong> The screen flags an instrument with a malfunction or overdue service but does not stop you. The check is yours.</li>
+<li><strong>Assigning more orders than free wells.</strong> The whole assignment is refused. The Plate list shows how many wells are free on each plate.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Tick all orders for one test and assign them in one go; one click puts every ticked order on the plate.</li>
+<li>Bookmark the tab you use most. The tab is part of the address.</li>
+<li>Use the plate link on an order to jump straight to its plate instead of searching the batch lists.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Start the day on <strong>Active Runs &amp; Batches</strong>, then check the <strong>Order Queue</strong> for new orders and the <strong>Worklist &amp; Plate Builder</strong> tab for plates still being built.</li>
+<li>Finish racking and placing the rack on the instrument before you send the worklist.</li>
+<li>Treat a blocked run, a result that names another specimen, and an addendum that could not be opened as items for the laboratory manager the same day.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/add-on-orders">Add-on Orders</a>: where an in-house molecular order is placed. A send-out line there always names its reference laboratory.</li>
+<li><a href="/help/accession">Accession</a>: the specimen is accessioned as any other. A protocol task marked to send an outbound order raises an order message that you can see on the <a href="/help/molecular/order-queue">Molecular Order Queue</a> demonstration page, not in this screen's Order Queue tab.</li>
+<li><a href="/help/pathology-workspace">Pathology Workspace</a>: the hub that holds the Molecular tile.</li>
+<li><a href="/help/molecular/control-rules">Control Rules</a>: which controls each test needs on a plate.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/molecular/batch">Batch</a>: build the plate, send the worklist and review the run.</li>
+<li><a href="/help/molecular/rack-board">Rack Board</a> and <a href="/help/molecular/rack">Rack</a>: the extraction racks that feed a plate.</li>
+<li><a href="/help/report">Report</a>: where a reportable result fills a synoptic question and where sign-out asks about a difference.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The Molecular tile is not in the Pathology Workspace.</td>
+<td>Your role does not have the Molecular screen.</td>
+</tr>
+<tr>
+<td>An order I placed is not in the Order Queue.</td>
+<td>It is a send-out order with no laboratory yet, or the add-on page told you "n molecular order didn't reach the Molecular Order Queue". Or it was a protocol-triggered order from accessioning (not shown in this tab).</td>
+</tr>
+<tr>
+<td>An order has no tick box.</td>
+<td>It is send-out, already on a plate, running, resulted, cancelled, or flagged to be re-routed.</td>
+</tr>
+<tr>
+<td>The tick boxes for some orders are greyed out.</td>
+<td>You already ticked an order for a different test.</td>
+</tr>
+<tr>
+<td>The Plate list says "No draft plate for this test".</td>
+<td>No draft plate exists for that test, or every one is full. Build a new plate.</td>
+</tr>
+<tr>
+<td>Assign to plate is greyed out.</td>
+<td>No order is ticked, no plate is chosen, or you do not have the permission.</td>
+</tr>
+<tr>
+<td>The batch is still under Worklist &amp; Plate Builder after I sent the worklist.</td>
+<td>See the note under Batch. The batch changes tabs when results arrive.</td>
+</tr>
+<tr>
+<td>Nothing happens after I send the worklist.</td>
+<td>Results come from the instrument. In the demonstration there is no instrument. See Resolution steps.</td>
+</tr>
+<tr>
+<td>A Demo button appears on a row.</td>
+<td>You are in a demonstration build. These stand in for the instrument or the reference laboratory.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message at the top of the Order Queue table. It names the cause in words.</li>
+<li>Check the order's status badge and the Performed column; the row only offers what that status allows.</li>
+<li>Reopen the Order Queue so it reads the orders fresh.</li>
+<li>Ask your administrator whether your role has the Molecular screen and the three order permissions.</li>
+<li>In the demonstration, use the Demo buttons on the row to stand in for the instrument or reference laboratory:<ul>
+<li><strong>Demo: run → positive</strong> and <strong>Demo: run → negative</strong> appear on a running in-house order. They send the run's results for every patient sample on the plate, with the controls as expected. You see "Demo run results received."</li>
+<li><strong>Demo: reference lab → positive</strong> and <strong>Demo: reference lab → negative</strong> appear on a send-out order awaiting the laboratory. A queued send-out order needs its laboratory chosen first ("Choose the order's reference lab first."). You see "Demo reference lab result received."
+These buttons exist only in demonstration builds and must never be expected in live use.</li>
+</ul>
+</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when an order is stuck in a status you cannot change, a result is marked as naming another specimen and the plate looks right, a signed-out report did not get its addendum, or the list does not refresh. Have the order number, the accession number and the time of the problem ready.</p>

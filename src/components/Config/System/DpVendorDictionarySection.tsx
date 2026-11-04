@@ -22,8 +22,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockDpVendorService } from '../../../services/digitalPathology/mockDpVendorService';
+
 import type { DpVendorEntry, NewDpVendorEntry } from '../../../services/digitalPathology/IDpVendorService';
+import { dpVendorService } from '@/services';
 
 type Draft = NewDpVendorEntry;
 
@@ -74,7 +75,7 @@ const DpVendorDictionarySection: React.FC = () => {
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: DpVendorEntry } | null>(null);
 
   const refresh = () => {
-    mockDpVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
+    dpVendorService.getAll().then(res => { if (res.ok) setEntries(res.data); });
   };
 
   useEffect(() => { refresh(); }, []);
@@ -83,17 +84,17 @@ const DpVendorDictionarySection: React.FC = () => {
 
   const handleSave = async (draft: Draft) => {
     if (modal?.mode === 'edit' && modal.entry) {
-      await mockDpVendorService.update(modal.entry.id, draft);
+      await dpVendorService.update(modal.entry.id, draft);
     } else {
-      await mockDpVendorService.add(draft);
+      await dpVendorService.add(draft);
     }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: DpVendorEntry) => {
-    if (e.active) await mockDpVendorService.deactivate(e.id);
-    else await mockDpVendorService.reactivate(e.id);
+    if (e.active) await dpVendorService.deactivate(e.id);
+    else await dpVendorService.reactivate(e.id);
     refresh();
   };
 

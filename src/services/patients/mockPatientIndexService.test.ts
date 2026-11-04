@@ -1,5 +1,11 @@
 // src/services/patients/mockPatientIndexService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 603: breakGlassRebind checks patient:break-glass:rebind; the test controls the decision directly.
+const { bgAllowed } = vi.hoisted(() => ({ bgAllowed: { current: true } }));
+vi.mock('../authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: vi.fn(async (capability: string) => ({ capability, allowed: bgAllowed.current, grantedBy: [], missingRequirements: [], context: {} })) },
+}));
+
 
 // Real, working in-memory localStorage stub — this test environment is
 // plain Node, no browser storage natively available.
@@ -810,6 +816,25 @@ describe('mockPatientIndexService.breakGlassRebind — Phase B, per direct confi
 
     const downtimeRecord = await mockPatientIndexService.getById(downtimeRes.patientId);
     expect(downtimeRecord?.mergedInto).toBe(confirmedRes.patientId);
+  });
+
+  it('without patient:break-glass:rebind it is refused and nothing is rebound (Batch 603)', async () => {
+    const downtimeRes = await mockPatientIndexService.resolveOrCreatePatient(
+      candidate({ mrn: 'DOE_JANE_77', firstName: 'JANE', lastName: 'DOE', isDowntimeRecord: true, downtimeReasonCode: 'EMERGENCY_TRAUMA' })
+    );
+    if (downtimeRes.outcome !== 'created') throw new Error('setup failed');
+    const confirmedRes = await mockPatientIndexService.resolveOrCreatePatient(candidate({ mrn: 'MRN-REAL-77', firstName: 'REAL77', lastName: 'PATIENT' }));
+    if (confirmedRes.outcome !== 'created') throw new Error('setup failed');
+    bgAllowed.current = false;
+    try {
+      const result = await mockPatientIndexService.breakGlassRebind({
+        downtimePatientId: downtimeRes.patientId, confirmedPatientId: confirmedRes.patientId,
+        reasonCode: 'EMERGENCY_TRAUMA', notes: 'Rebound per HIM Ticket #4091', performedBy: 'PATH-001',
+      });
+      expect(result.rebound).toBe(false);
+      expect(result.reason).toMatch(/permission/i);
+      expect((await mockPatientIndexService.getById(downtimeRes.patientId))?.mergedInto).toBeUndefined();
+    } finally { bgAllowed.current = true; }
   });
 
   it('a record NOT flagged isDowntimeRecord is refused — this is what makes the tool genuinely restricted, not a second way to run an ordinary merge', async () => {

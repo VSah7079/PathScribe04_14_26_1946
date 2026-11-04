@@ -1,50 +1,44 @@
 import { LoaderFunctionArgs, redirect } from "react-router";
-import { caseRouter } from "../services/cases/CaseRouter";
-import { getSessionUser } from "../services/auth/caseAccessControl";
-import { resolveCaseAccessGate } from "../services/auth/resolveCaseAccessGate";
+import { openCaseForViewDefault } from "../services/cases/defaultOpenCaseForView";
+import { caseAddresses } from "../services/caseAddresses/caseAddressesInstance";
+import { CASE_ADDRESS_VIEWS, type CaseView } from "../services/caseAddresses/caseAddresses";
 
-export async function synopticLoader({ params }: LoaderFunctionArgs) {
-  const caseId = params.caseId;
+/**
+ * Batch 564: the case loader for a view. An old accession address is redirected to the same view's
+ * address (it always went to the synoptic page before, so an old grossing link opened the report editor).
+ */
+export function caseViewLoader(view: Extract<CaseView, 'synoptic' | 'grossing'>) {
+  return (args: LoaderFunctionArgs) => loadCase(args, view);
+}
 
-  if (!caseId) {
+export const synopticLoader = caseViewLoader('synoptic');
+export const grossingLoader = caseViewLoader('grossing');
+
+async function loadCase({ params, request }: LoaderFunctionArgs, view: 'synoptic' | 'grossing') {
+  const param = params.caseId;
+
+  if (!param) {
     console.error("Missing caseId in route params");
     return redirect("/worklist");
   }
 
-  // caseRouter already handles both LIS (S26-) and Orchestrator (O26-)
-  // lookups internally — was previously two separate, manual calls to
-  // mockCaseService then mockOrchestratorCaseService, duplicating logic
-  // caseRouter has since consolidated.
-  const caseData = await caseRouter.getCase(caseId).catch(() => undefined);
-
-  if (!caseData) {
-    console.error(`Case not found in any service: ${caseId}`);
-    return redirect("/worklist");
+  // Batch 446: the address carries the case's support reference, never its
+  // accession. An old accession address is redirected to the reference
+  // before the page opens, so it never becomes the page's address.
+  const { caseId, legacy } = await caseAddresses.caseIdOf(param);
+  if (legacy) {
+    const address = caseId ? await caseAddresses.addressOf(caseId, view) : null;
+    return redirect(address ? `${address}${new URL(request.url).search}` : "/worklist");
   }
 
-  // Real, per direct investigation: this loader — the actual data-loading
-  // path every route to a case's report funnels through (also used by
-  // /report/:caseId, see FullReportPage.tsx) — previously performed no
-  // authorization check beyond "does this case exist." Pediatric and
-  // Orchestration access were only ever checked as UI-level convenience
-  // gates on the Worklist table's click handler and Search's display
-  // logic; a direct URL, bookmark, shared link, or browser-history entry
-  // bypassed both entirely. See caseAccessControl.ts's own header comment
-  // on resolvePediatricAccess/resolveOrchestrationAccess for the full
-  // reasoning — this is now the single, real enforcement point, and the
-  // UI-level checks call the same functions rather than their own
-  // separately-drifting logic.
-  //
-  // File-by-file cleanup sweep: the actual two-check sequence (was
-  // duplicated here and in FullReportPage.tsx's own useEffect) now lives
-  // once, in resolveCaseAccessGate.ts — both real case-view entry points
-  // call the same function instead of two independently-maintained copies.
-  const session = getSessionUser();
-  const gate = await resolveCaseAccessGate(session, caseData as any);
-  if (!gate.granted) {
-    console.warn(`${gate.reason === 'orchestration' ? 'Orchestration' : 'Pediatric'} access denied for case ${caseId}: ${gate.detail}`);
-    return redirect(`/worklist?accessDenied=${gate.reason}&caseId=${caseId}`);
-  }
-
+  // Batch 396 (Pete's privacy model): services/cases/openCaseForView.ts
+  // decides, the same as /report/:caseId. A case that is missing,
+  // elsewhere or restricted goes to the report page's neutral "no access"
+  // screen, identical for every reason. Before this, a missing case went
+  // silently to the Worklist and a restricted one to the Worklist with a
+  // toast naming the restriction, which told the reader the case existed.
+  // An unknown reference goes there too.
+  const { caseData } = caseId ? await openCaseForViewDefault(caseId) : { caseData: null };
+  if (!caseData) return redirect(CASE_ADDRESS_VIEWS.report(param));
   return caseData;
 }

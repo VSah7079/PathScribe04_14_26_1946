@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Step-by-step procedures: labels, billing and charge capture · PathScribe Administrator Guide</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html" aria-current=page>11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch11-labels">Part A: Labels</a></li><li class="l3"><a href="#ch11-lbl-open">Open the Label Designer and choose what to edit</a></li><li class="l3"><a href="#ch11-lbl-create">Create a layout from nothing</a></li><li class="l3"><a href="#ch11-lbl-edit">Edit an existing layout</a></li><li class="l3"><a href="#ch11-lbl-override">Make a facility override from the enterprise default (copy)</a></li><li class="l3"><a href="#ch11-lbl-condition">Show a field only when another field has a value</a></li><li class="l3"><a href="#ch11-lbl-history">Version history, restore, and reset</a></li><li class="l3"><a href="#ch11-lbl-export">Export printer code and test the label</a></li><li class="l3"><a href="#ch11-lbl-printer">Send labels to the right printer</a></li><li class="l3"><a href="#ch11-lbl-reprint">Reprint labels for many cases</a></li><li class="l3"><a href="#ch11-lbl-numbering">Choose letters or numbers for specimens, blocks and slides</a></li><li class="l2"><a href="#ch11-billing">Part B: Billing and charge capture</a></li><li class="l3"><a href="#ch11-bill-rvu-add">Add a code to the RVU Code Map</a></li><li class="l3"><a href="#ch11-bill-rvu-edit">Edit or bulk-load the RVU Code Map</a></li><li class="l3"><a href="#ch11-bill-mod">Edit or upload the CPT Modifier Dictionary</a></li><li class="l3"><a href="#ch11-bill-rule-new">Create a billing rule</a></li><li class="l3"><a href="#ch11-bill-rule-submit">Submit a rule for approval</a></li><li class="l3"><a href="#ch11-bill-rule-version">Change a rule: a new version</a></li><li class="l3"><a href="#ch11-bill-rule-dup">Copy a rule, or give one site its own rule</a></li><li class="l3"><a href="#ch11-bill-rule-retire">Retire a rule</a></li><li class="l3"><a href="#ch11-bill-approve">Approve or reject a change</a></li><li class="l3"><a href="#ch11-bill-ncci">Upload or edit NCCI bundling pairs</a></li><li class="l3"><a href="#ch11-bill-triggers">Set when each charge is created</a></li><li class="l3"><a href="#ch11-bill-release">Add, edit or remove a billing release (hold) rule</a></li><li class="l3"><a href="#ch11-bill-paytype">Add or change a payment type</a></li><li class="l3"><a href="#ch11-bill-mapping">Add or change a jurisdiction payment mapping</a></li><li class="l3"><a href="#ch11-bill-check">Check what a case would send, and read the financial log</a></li><li class="l3"><a href="#ch11-bill-registry">Choose and approve a cancer registry</a></li><li class="l3"><a href="#ch11-bill-notbuilt">Not built: fee schedules and quality reporting</a></li><li class="l2"><a href="#ch11-problems">Common problems</a></li></ul></aside><article><h1 id="ch11"><a class="anchor" href="#ch11" aria-label="Link to this section">#</a> Step-by-step procedures: labels, billing and charge capture</h1>
+<p>This chapter is a set of numbered procedures. The screen chapters (<a href="02-tier1-primary-prerequisites.html#ch2">Chapter 2</a> for labels and printers, <a href="08-tier7-billing-registry.html#ch8">Chapter 8</a> for billing and registries) say what each field means; this chapter says what to click, in what order, what you should see, and how to undo it. Each procedure names the screen it uses, so you can jump to the field reference when you need it.</p>
+<p>Read these four points first.</p>
+<ol>
+<li><strong>Status.</strong> Every screen used here is <strong>Built</strong> or <strong>Demonstration</strong> as its own chapter says. Today most data services are browser-held demonstration services; the production <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> is connected service by service. A step that works in the demonstration may not yet be backed by the production server.</li>
+<li><strong>Two people for billing tables.</strong> Billing rules, the <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map, the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> Modifier Dictionary and <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> Edit Rules never take effect on their own. Whoever saves a change submits it, and a different person with approval rights approves it on <a href="08-tier7-billing-registry.html#screen-pending_approvals">Pending Billing Rule Approvals</a>. On a one-person system nobody can approve, so plan for a second approver before you start (see <a href="#ch11-bill-approve">Approve or reject a change</a>).</li>
+<li><strong>Things that do not exist.</strong> There is no fee schedule or price field anywhere in the billing rules, no way to copy a label layout from one label type to another, and no <a class="term" href="99-glossary.html#g-mips" title="The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.">MIPS</a> or <a class="term" href="99-glossary.html#g-macra" title="The US Medicare Access and CHIP Reauthorization Act, which created the Quality Payment Program that includes MIPS.">MACRA</a> reporting. Each is marked <strong>Not built</strong> where it comes up, with the nearest thing that does exist.</li>
+<li><strong>Permissions.</strong> Each procedure lists the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> it needs. If a button is greyed out, you do not hold the capability. Who holds it by default is in the Permissions part of the screen's own section.</li>
+</ol>
+<h2 id="ch11-labels"><a class="anchor" href="#ch11-labels" aria-label="Link to this section">#</a> Part A: Labels</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p>PathScribe has nine label types: Requisition, Specimen (Container), Block (Cassette), Slide, Decant Container, Molecular Specimen, Molecular Plate, Molecular Rack and Molecular Deck Location. A <strong>layout</strong> is where each field sits on one label type, in millimetres, on a label of fixed size. The size cannot be changed.</p>
+<p>How a layout is used, so you know what you are changing:</p>
+<ul>
+<li>A layout is kept per label type. There is one <strong>Enterprise Default</strong> for each type. Only Requisition, Specimen and Decant Container also allow a <strong><a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override</strong>. Block, Slide and the four Molecular types show <strong>Enterprise Standard: Locked</strong> and can be edited only at the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default, because every site must print the same physical format for <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a>, slide and instrument hardware.</li>
+<li>When a label prints, PathScribe uses the facility override if one exists and is allowed, otherwise the Enterprise Default, otherwise the built-in layout. A saved layout with no fields placed counts as no layout, so the built-in layout is used.</li>
+<li>The print paths for all nine label types read the saved layout this way. Printing a label for a real <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> shows the layout you saved, not only the preview.</li>
+<li>The designer previews with sample values (for example patient name <code>Maria Garcia</code>, <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> <code>DVMC26-0001</code>). It is not a live case.</li>
+</ul>
+<p>Permission: opening the screen needs <code>screen:configuration:open</code>. Save, reset and restore need <code>config:label-layouts:manage</code> (high risk, audited). Reference: <a href="02-tier1-primary-prerequisites.html#screen-label_designer">Label Designer</a>.</p>
+<h3 id="ch11-lbl-open"><a class="anchor" href="#ch11-lbl-open" aria-label="Link to this section">#</a> Open the Label Designer and choose what to edit</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<ol>
+<li>Select <strong>Configuration</strong> from Home, then the <strong>System</strong> tab.</li>
+<li>In the group <strong>Workstation &amp; Hardware</strong>, select <strong>Label Designer</strong>.</li>
+<li>In <strong>Label Type</strong>, choose the label. The canvas resizes to that label's fixed size, and the caption under it shows the size, for example "50.8mm × 25.4mm — live preview using sample data".</li>
+<li>Look at the <strong>Scope</strong> control next to it.
+   - For Requisition, Specimen and Decant it offers <strong>Enterprise Default</strong> and one "(<a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> name) (override)" entry per active facility.
+   - For every other type it shows <strong>Enterprise Standard: Locked</strong> instead of a choice, and you edit the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default.</li>
+<li>Choose the scope you want to edit.</li>
+</ol>
+<p>Expected result: the canvas shows the saved layout for that type and scope, or is empty if none has been saved.</p>
+<p>Be careful: <strong>changing Label Type, or Scope, replaces what is on the canvas with the saved layout for the new choice, with no warning.</strong> Changing Label Type also puts Scope back to Enterprise Default. Save before you switch.</p>
+<h3 id="ch11-lbl-create"><a class="anchor" href="#ch11-lbl-create" aria-label="Link to this section">#</a> Create a layout from nothing</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p>Use this when a label type has no saved layout yet (the canvas is empty and <strong>Available Fields</strong> lists every field).</p>
+<ol>
+<li><a href="#ch11-lbl-open">Open the Label Designer</a> and choose the label type and scope.</li>
+<li>Under <strong>Available Fields</strong>, drag a field onto the canvas where you want it. Fields you have already placed disappear from the list, so a field cannot be placed twice. When none are left the list says "All fields placed."</li>
+<li>Drag a placed field to move it. It keeps the point where you grabbed it, and it stops at the label's edge.</li>
+<li>Click a placed field to select it. Eight handles appear on it (hover text "Drag to resize"). Drag a handle to resize. Handles show only on the selected field.</li>
+<li>For an exact position, use the <strong>Inspector</strong> panel on the right: <strong>X (mm)</strong>, <strong>Y (mm)</strong>, <strong>Width (mm)</strong>, <strong>Height (mm)</strong> and <strong>Font Size (mm)</strong>. Type a number and move out of the box. Values are kept inside the label.</li>
+<li>The barcode field draws a real sample barcode at the label type's symbology. If the sample cannot be drawn the field shows "barcode render failed" instead; the layout can still be saved.</li>
+<li>If any field goes past the label edge it is outlined, and a warning reads "N field(s) go past the edge of the label and would print off it." Select <strong>Fit to label</strong> to bring every field inside.</li>
+<li>Select <strong>Save Layout</strong>.</li>
+</ol>
+<p>Expected result: a message under the buttons. "Enterprise default saved." when you edited the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default, "Facility override saved." when you edited a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override. If a field is past the edge the message is "Not saved: a field goes past the edge of the label. Use “Fit to label”, or move or resize it." and nothing is saved.</p>
+<p>To undo: use <a href="#ch11-lbl-history">Version history</a> to restore an earlier version, or <a href="#ch11-lbl-history">Reset to Default</a> to remove the layout.</p>
+<h3 id="ch11-lbl-edit"><a class="anchor" href="#ch11-lbl-edit" aria-label="Link to this section">#</a> Edit an existing layout</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<ol>
+<li><a href="#ch11-lbl-open">Open the Label Designer</a> and choose the label type and scope you want to change. The saved layout loads.</li>
+<li>To change a field, click it on the canvas, then move it, resize it, or use the Inspector.</li>
+<li>To remove a field, select it and choose <strong>Remove Field</strong>. It returns to <strong>Available Fields</strong>.</li>
+<li>To add a field, drag it from <strong>Available Fields</strong>.</li>
+<li>Select <strong>Save Layout</strong>. Every save is kept as a new version, with who saved it and when.</li>
+</ol>
+<p>Expected result: "Enterprise default saved." or "Facility override saved." The next label printed for that type and <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> uses the new layout.</p>
+<p>To undo: <a href="#ch11-lbl-history">restore the previous version</a>.</p>
+<h3 id="ch11-lbl-override"><a class="anchor" href="#ch11-lbl-override" aria-label="Link to this section">#</a> Make a facility override from the enterprise default (copy)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p>This is the one way to copy a layout. It works only for Requisition, Specimen and Decant Container labels.</p>
+<ol>
+<li><a href="#ch11-lbl-open">Open the Label Designer</a> and choose one of those three label types.</li>
+<li>In <strong>Scope</strong>, choose the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>, shown as "(facility name) (override)".</li>
+<li>If that facility has no override yet, the canvas opens with the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default's layout. This is the starting copy.</li>
+<li>Change whatever the facility needs. Leave the rest alone.</li>
+<li>Select <strong>Save Layout</strong>. The message is "Facility override saved."</li>
+</ol>
+<p>Expected result: the facility now has its own layout, separate from the enterprise default. A later change to the enterprise default does not change it, and a facility with no override keeps following the enterprise default.</p>
+<p>To go back to following the enterprise default: choose that facility's scope and select <strong>Reset to Default</strong> (see <a href="#ch11-lbl-history">below</a>).</p>
+<p><strong>What cannot be copied.</strong> There is no copy between two facilities, no copy between two label types, and no export or import of a layout as a file. A layout belongs to one label type, and each type offers its own list of fields. To build a second facility's layout, start from the enterprise default as above, or place the fields again by hand. <strong>Not built:</strong> a facility-to-facility or type-to-type copy.</p>
+<h3 id="ch11-lbl-condition"><a class="anchor" href="#ch11-lbl-condition" aria-label="Link to this section">#</a> Show a field only when another field has a value</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p>Use this to hide a line when its data is missing, for example the referring provider on a label.</p>
+<ol>
+<li>Open the layout and click the field you want to make conditional.</li>
+<li>In the Inspector, find <strong>Show this field</strong>. It shows <strong>Always</strong>. Open it and choose the other field to test. The barcode and the field itself are not offered.</li>
+<li>A second choice appears. Choose one of:
+   - <strong>when that field has a value</strong>
+   - <strong>when that field is empty</strong>
+   - <strong>when that field equals</strong>, then type the <strong>Value to match</strong> (matching ignores upper and lower <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>).</li>
+<li>To see how the label prints when the tested field is empty, tick <strong>Preview with that field empty</strong>. This changes the preview only.</li>
+<li>Select <strong>Save Layout</strong>.</li>
+</ol>
+<p>To undo: set <strong>Show this field</strong> back to <strong>Always</strong>.</p>
+<h3 id="ch11-lbl-history"><a class="anchor" href="#ch11-lbl-history" aria-label="Link to this section">#</a> Version history, restore, and reset</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p><strong>See and restore a version.</strong></p>
+<ol>
+<li>Choose the label type and scope.</li>
+<li>Select <strong>Version history</strong>. The list is headed "Saved versions of this layout". Each row reads "Version N, saved (when) by (who)". A layout never saved shows "This layout has not been saved yet."</li>
+<li>Select <strong>Restore this version</strong> on the row you want.</li>
+</ol>
+<p>Expected result: "Version restored and saved as the newest version." The restore is itself a new version, so the old versions stay. The designer keeps the 20 most recent versions of each layout.</p>
+<p><strong>Reset to Default.</strong> Select <strong>Reset to Default</strong> to remove the saved layout for the chosen type and scope. The canvas clears and the message is "Layout reset to default." Printing then uses the next level: for a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override, the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default; for an enterprise default, the built-in layout. Reset needs <code>config:label-layouts:manage</code>.</p>
+<h3 id="ch11-lbl-export"><a class="anchor" href="#ch11-lbl-export" aria-label="Link to this section">#</a> Export printer code and test the label</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Label Designer"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Label Designer</span></nav>
+
+<p>Use this to check that a layout fits and scans before you trust it, without printing on a real label.</p>
+<ol>
+<li>Open the layout (saved or not). The export uses what is on the canvas, so you do not have to save first.</li>
+<li>Select <strong>Export <a class="term" href="99-glossary.html#g-zpl" title="Zebra Programming Language, the printer language that describes a label&#x27;s layout for Zebra-type label printers.">ZPL</a></strong>, <strong>Export EPL</strong> or <strong>Export DPL</strong>. A box appears headed <strong>Exported ZPL</strong>. It carries this heading for all three languages; read the note above the text to see which language it holds.</li>
+<li>Select the text and copy it.</li>
+<li>For ZPL, open the viewer named on the screen (<code>labelary.com/viewer.html</code>), set 203 dpi (8 dpmm) and the label size shown, and paste. Check that every field is on the label and the barcode scans.</li>
+<li>Or send the code to your own printer yourself.</li>
+</ol>
+<p>Things to know:</p>
+<ul>
+<li>ZPL is the language PathScribe sends to printers (through <a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a>). <strong>EPL and DPL are export text only.</strong> PathScribe never sends them to a printer; the screen says the text is a starting point and barcode commands differ a little between printer models.</li>
+<li>The barcode in the export is a sample value, not a real <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>'s barcode. The export confirms fit and general scannability, not the exact encoding of a real label (for example a real <a class="term" href="99-glossary.html#g-gs1" title="The standards organisation behind the barcode formats and the GTIN numbering used on cassette and slide labels.">GS1</a> <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, the number a GS1 barcode carries. Print Settings holds the facility&#x27;s GTIN.">GTIN</a> for cassettes and slides).</li>
+</ul>
+<h3 id="ch11-lbl-printer"><a class="anchor" href="#ch11-lbl-printer" aria-label="Link to this section">#</a> Send labels to the right printer</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Print Settings"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Workstation &amp; Hardware</span> <span aria-hidden="true">›</span> <span>Print Settings</span></nav>
+
+<p>A layout decides what is on the label. Printer settings decide where it prints. Set up the printer once, then test.</p>
+<ol>
+<li>Register the printer on <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printer Profiles</a>: select <strong>+ Add Printer Profile</strong>, enter the <strong>Printer ID</strong>, <strong>Model</strong>, <strong>Bridge Type</strong>, <strong>DPI</strong> and the other fields, and save. Only the <a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a> bridge sends labels directly today. Any other bridge falls back to the browser print dialog.</li>
+<li>Open <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Print Settings</a> (Configuration &gt; System &gt; Workstation &amp; Hardware &gt; Print Settings).</li>
+<li>To change one <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> only: in the facility selector, choose the facility, then select <strong>+ Create Facility Override</strong>. This copies the system default so the facility can differ. Until you do, the facility shows the default and is read-only.</li>
+<li>Under the <a class="term" href="99-glossary.html#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a> pickers, choose the profile for <strong>Container Label Printer Profile</strong>, <strong>Molecular Label Printer Profile</strong> and <strong>Requisition Label Printer Profile</strong>. Each control saves as you change it. With no profile chosen the label goes to the browser print dialog ("Use browser print dialog").</li>
+<li>For <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> and slide labels, set the label face (width, height, barcode module size, text height) and the <strong><a class="term" href="99-glossary.html#g-gs1" title="The standards organisation behind the barcode formats and the GTIN numbering used on cassette and slide labels.">GS1</a> <a class="term" href="99-glossary.html#g-gtin" title="Global Trade Item Number, the number a GS1 barcode carries. Print Settings holds the facility&#x27;s GTIN.">GTIN</a></strong>. Without a GTIN each real GS1 print is refused with an error. The fit check under each shows a warning when the barcode or text will not fit.</li>
+<li>Select <strong>Send Test Print</strong>, choose a profile, and hold the printed label against a real cassette, container or slide before use.</li>
+</ol>
+<p>Expected result: a test label prints through the chosen profile. If a field is cut off, adjust the layout in the Label Designer or the face size in Print Settings and test again.</p>
+<p>Permission: Print Settings changes need <code>config:print-settings:manage</code>; printer profiles need <code>config:printers:manage</code>.</p>
+<h3 id="ch11-lbl-reprint"><a class="anchor" href="#ch11-lbl-reprint" aria-label="Link to this section">#</a> Reprint labels for many cases</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Batch Management &gt; Label reprint"><span>Home</span> <span aria-hidden="true">›</span> <span>Batch Management</span> <span aria-hidden="true">›</span> <span>Label reprint</span></nav>
+
+<ol>
+<li>Open <strong>Batch Management</strong> from Home and select the <strong>Label reprint</strong> tile ("Reprint labels for many cases at once").</li>
+<li>Enter at least one of <strong>Accessioned from</strong>, <strong>Accessioned to</strong>, <strong>Accession number from</strong>, <strong>Accession number to</strong>. With all four empty, no cases are found ("No cases match. Enter a date range or an <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a> range.").</li>
+<li>Select <strong>Find cases</strong>. The list shows each <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, oldest first, with a <strong>Reprint</strong> tick box and its specimens ("N cases found; N selected").</li>
+<li>Under <strong>Labels</strong>, tick <strong>Cassettes</strong>, <strong>Specimen containers</strong> and/or <strong>Requisition</strong>.</li>
+<li>If you ticked Cassettes, choose the <strong>Cassette printer</strong>. Without one the screen says "Choose the <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> printer first."</li>
+<li>Select <strong>Reprint labels</strong>. Labels print one at a time, about a quarter of a second apart, with a "Printing N of M…" counter.</li>
+<li>When it ends, read the summary: "Printed N; failed N; blocked by the on-demand guardrail N." Select <strong>Retry N failed labels</strong> to try the failures again.</li>
+</ol>
+<p>Every label is audited. The permission is <code>label:batch:reprint</code> (Histotechnologist and Admin hold it by default). Without it the screen says "You don’t have permission to reprint labels in a batch." Reference: <a href="04-tier3-workflow-engines.html#screen-batch-management">Batch Management</a>.</p>
+<h3 id="ch11-lbl-numbering"><a class="anchor" href="#ch11-lbl-numbering" aria-label="Link to this section">#</a> Choose letters or numbers for specimens, blocks and slides</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Facility Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Facility Configuration</span></nav>
+
+<p>The Label Designer decides how a label looks. This setting decides what the <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> and slide labels say. It is set separately for <strong>Specimens</strong>, <strong>Blocks</strong> and <strong>Slides</strong>, each <strong>Letters</strong> or <strong>Numbers</strong>, on the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> as the default and, if a lab needs it, per lab.</p>
+<ol>
+<li>Open <strong>Configuration &gt; System &gt; Integrations &gt; Facility Configuration</strong> and edit the <strong>Enterprise</strong> <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> (the one with "This is a top-level Enterprise institution" ticked). On the <strong>General</strong> tab find <strong>Letters or numbers for labels</strong>.</li>
+<li>Set <strong>Specimens</strong>, <strong>Blocks</strong> and <strong>Slides</strong>. The line under the selectors shows the result, for example "Specimen A · Block 1 · Slide L1" and "Cassette A1 · slide label A1 L1". <strong>Preset</strong> sets Specimens and Blocks together to one of the two original pairs and leaves Slides alone.</li>
+<li>Save. Every lab under the enterprise follows these choices.</li>
+<li>To give one <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a> its own labels, edit that lab (<strong>Parent Enterprise</strong> set to the enterprise) and change only the selectors that differ. A selector left on <strong>Same as enterprise (value)</strong> keeps following the enterprise, and shows its current value in brackets.</li>
+</ol>
+<p>What each choice does:</p>
+<table>
+<thead>
+<tr>
+<th>Choice</th>
+<th>Letters</th>
+<th>Numbers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Specimens</td>
+<td>A, B, C... then AA, AB...</td>
+<td>1, 2, 3...</td>
+</tr>
+<tr>
+<td>Blocks</td>
+<td>A, B, C... (joined to the specimen: A<strong>A</strong>, 1<strong>A</strong>)</td>
+<td>1, 2, 3... (A<strong>1</strong>, A<strong>2</strong>)</td>
+</tr>
+<tr>
+<td>Slides</td>
+<td>The printed level reads La, Lb, Lc</td>
+<td>The printed level reads L1, L2, L3 (as before)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Slides change the printed text only.</strong> The code inside a slide's barcode and its slide ID stays L1, L2, L3 whichever you choose, so scanning, reprints and every existing slide keep working. Screens that list a slide's level (for example the Microtome Workstation) still show L1, L2.</li>
+<li><strong>New cases only.</strong> The choice in force when a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is accessioned is saved on the case. Specimens, blocks and slides added to that case later (Add Block at Grossing, Add Block on the report page, a specimen leaving a Biopsy Array) follow it, even if the facility changes afterwards. Nothing already printed, scanned or signed out is relabelled. There is no "Relabel existing" action: <strong>Not built</strong>. Relabelling would change <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> and slide barcodes that are already on tissue.</li>
+<li><strong>Same kind for Specimens and Blocks.</strong> You may choose letters for both or numbers for both. A label such as AA or 11 can then mean two things (specimen A block A, or a specimen past Z; specimen 1 block 1, or specimen 11). The screen says so; it does not stop you.</li>
+<li><strong>Existing facilities keep their labels.</strong> A facility that had the old single choice keeps it: it opens as the matching Specimens and Blocks choices, with Slides following the enterprise (numbers unless set).</li>
+<li>Each change is written to the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> ("Facility label style changed" or "Enterprise label style changed", with the old and new choice per level).</li>
+</ul>
+<p>Expected result: the next case accessioned for that lab shows specimens labelled in the chosen style, and Add Block at Grossing or on the report page continues the sequence.</p>
+<p>Permission: saving a facility needs <code>config:facilities:manage</code>. Reference: <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>.</p>
+<h2 id="ch11-billing"><a class="anchor" href="#ch11-billing" aria-label="Link to this section">#</a> Part B: Billing and charge capture</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<p>The order matters, because later screens read earlier ones. Work in this order the first time:</p>
+<ol>
+<li><a href="08-tier7-billing-registry.html#screen-rvu_code_map">RVU Code Map</a> and <a href="08-tier7-billing-registry.html#screen-modifier_dictionary">CPT Modifier Dictionary</a>: the lists the billing rules pick from.</li>
+<li><a href="08-tier7-billing-registry.html#screen-billing_dictionary">Billing Dictionary</a>: the billing rules.</li>
+<li><a href="08-tier7-billing-registry.html#screen-ncci_edit_rules">NCCI Edit Rules</a>: bundling pairs.</li>
+<li><a href="08-tier7-billing-registry.html#screen-pending_approvals">Pending Billing Rule Approvals</a>: a second person approves steps 1 to 3.</li>
+<li><a href="08-tier7-billing-registry.html#screen-billing_type_triggers">Charge Release Triggers</a> and <a href="08-tier7-billing-registry.html#screen-billing_release">Billing Release</a>: when a charge is created and when it is released.</li>
+<li><a href="08-tier7-billing-registry.html#screen-master_payment_types">Master Payment Type Dictionary</a> and <a href="08-tier7-billing-registry.html#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a>: who pays.</li>
+<li><a href="08-tier7-billing-registry.html#screen-dft_export_preview">Billing Export Preview</a>: check what a real <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> would send.</li>
+</ol>
+<p>All of these live under <strong>Configuration &gt; System</strong> and need <code>screen:configuration:open</code>; Billing Release is in the group <strong>Administration &amp; Compliance</strong>, the others in <strong>Financial &amp; Revenue Lookups</strong>.</p>
+<p><strong>What PathScribe does with a charge.</strong> At final sign-out it resolves each charge once into a fixed record: <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> or <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> code, relative value units (<a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a>) and <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a>. Later edits to a rule do not change a charge already made. <strong>Fee schedules: Not built.</strong> There is no price, dollar amount or payer rate field. Your billing system or the interface engine works out reimbursement. The nearest things are the RVU values on a rule and in the RVU Code Map.</p>
+<p><strong>Auto-coding is not set up on a screen.</strong> The suggested codes (special stains, immunohistochemistry, frozen sections) come from rules built into the product, and a person always confirms them. The only screen that touches the nearest setting is <a href="05-tier4-ai-framework.html#screen-smart_capture">Smart Capture</a>. Base <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> codes (88302, 88305, 88309) are not worked out automatically. See <a href="08-tier7-billing-registry.html#ch8-autocoding-holds">Auto-coding and billing hold rules</a>.</p>
+<h3 id="ch11-bill-rvu-add"><a class="anchor" href="#ch11-bill-rvu-add" aria-label="Link to this section">#</a> Add a code to the RVU Code Map</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; RVU Code Map"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map</span></nav>
+
+<p>Capability: <code>config:billing-rvu:manage</code>. Approval needs <code>config:billing-tables:approve</code>.</p>
+<ol>
+<li>Open <strong>RVU Code Map</strong>. The <strong>Active version</strong> table lists the codes; <strong>Search</strong> narrows it.</li>
+<li>Select <strong>+ Add Code</strong>. The window is headed "Add Code".</li>
+<li>Enter <strong>Code</strong> (for example <code>88305</code>) and <strong>Billing Code</strong> (<a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> "Often same as Code"). Both are required.</li>
+<li>Choose <strong>Level</strong> (Specimen, Block, Stain or Decant) and <strong>Component Type</strong> (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 26 or Global). The Component Type decides when the charge is created: TC at <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> complete, 26 and Global at <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> sign-out.</li>
+<li>Optionally enter <strong>Description</strong>, <strong><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> Code</strong> and the <strong>Work RVU</strong>, <strong>RVU — Practice Expense</strong> and <strong>RVU — Malpractice</strong> values. Leave <strong>Work RVU</strong> blank if you have not verified it; the row then shows <strong>Unverified</strong>. A Work RVU must be a positive number.</li>
+<li>Select <strong>Submit for Approval</strong>.</li>
+</ol>
+<p>Expected result: a message "(code) submitted for approval — see Pending Billing Rule Approvals." A code that already exists in the active version is refused ("Code (code) already exists in the active version."). The change does not apply until a second person <a href="#ch11-bill-approve">approves it</a>.</p>
+<p>To undo: before approval, the second person rejects it. After approval, edit the code and submit again.</p>
+<h3 id="ch11-bill-rvu-edit"><a class="anchor" href="#ch11-bill-rvu-edit" aria-label="Link to this section">#</a> Edit or bulk-load the RVU Code Map</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; RVU Code Map"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map</span></nav>
+
+<p><strong>Edit one code.</strong></p>
+<ol>
+<li>In the Active version table, select <strong>Edit</strong> on the row. The window is headed "Edit — (code)". <strong>Code</strong> and <strong>Billing Code</strong> are locked.</li>
+<li>Change the other fields and select <strong>Submit for Approval</strong>.</li>
+</ol>
+<p><strong>Load many codes from a file.</strong></p>
+<ol>
+<li>Select <strong>Download Template</strong>, fill it in a spreadsheet and save it as <code>.csv</code>. Columns are Code (or <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a>), Description and WorkRVU.</li>
+<li>Select <strong>Upload Spreadsheet</strong> and choose the file. A file that is not <code>.csv</code> is refused with a message telling you to save it as <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a>. A file with no usable rows says "No real rows found in this file - check it has Code and WorkRVU columns."</li>
+<li>The window <strong>Review before saving</strong> shows the codes found. Only payable codes load; the screen tells you how many non-payable or <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> rows it skipped.</li>
+<li>Enter a <strong>Version label</strong> and an <strong>Effective date</strong>.</li>
+<li>Select <strong>Submit for Approval (N codes)</strong>.</li>
+</ol>
+<p>Expected result: "(label) submitted for approval". The whole file becomes one pending version. Uploaded rows get their level guessed from the description (<a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> if unclear) and billing type Global; check them after approval. Older versions stay under the older-versions toggle with their status (Approved (superseded), Pending approval, Rejected).</p>
+<h3 id="ch11-bill-mod"><a class="anchor" href="#ch11-bill-mod" aria-label="Link to this section">#</a> Edit or upload the CPT Modifier Dictionary</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; CPT Modifier Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> Modifier Dictionary</span></nav>
+
+<p>Capability: <code>config:billing-modifiers:manage</code>. The dictionary is a reference list only. PathScribe sets the <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> from the billing type (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a> takes <code>-TC</code>, 26 takes <code>-26</code>, Global none). It does not check or add any other modifier.</p>
+<p><strong>Change one description.</strong></p>
+<ol>
+<li>Select <strong>Edit</strong> on a modifier row. The window is headed "Edit — (code)".</li>
+<li>Change the <strong>Description</strong> and select <strong>Submit for Approval</strong>.</li>
+</ol>
+<p><strong>Replace the list from a file.</strong></p>
+<ol>
+<li>Select <strong>Download Template</strong>, fill in Code and Description, save as <code>.csv</code>.</li>
+<li>Select <strong>Upload Spreadsheet</strong> and choose the file. The window "Import Modifier Dictionary — (file name)" shows the rows read.</li>
+<li>Enter a <strong>Version Label</strong> and <strong>Effective From</strong> (a valid date is required).</li>
+<li>Tick <strong>I confirm my organization holds a real, current <a class="term" href="99-glossary.html#g-ama" title="American Medical Association, the publisher and owner of the CPT code set.">AMA</a> license covering these modifier descriptions.</strong> The upload does not go ahead without it, and says "Confirm you hold a real, current AMA license for these modifier descriptions before importing."</li>
+<li>Select <strong>Submit for Approval</strong>.</li>
+</ol>
+<p>Expected result: a pending version waits for a second person. The shipped descriptions are placeholders (marked synthetic); the American Medical Association text is licensed, so only load your own text if you hold the licence.</p>
+<h3 id="ch11-bill-rule-new"><a class="anchor" href="#ch11-bill-rule-new" aria-label="Link to this section">#</a> Create a billing rule</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary</span></nav>
+
+<p>Capability: <code>config:billing-rules:manage</code>. Prerequisite: the <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code exists in the <a href="08-tier7-billing-registry.html#screen-rvu_code_map">RVU Code Map</a>. The CPT picker reads that map, and an empty map gives an empty picker.</p>
+<ol>
+<li>Open <strong>Billing Dictionary</strong>. The table lists each billing code's current rule for the scope in <strong>Viewing</strong>. <strong>Viewing</strong> starts on Enterprise-Wide; choose a site to see or add that site's rules.</li>
+<li>Select <strong>+ Add Billing Code</strong>. The window is headed "New Billing Code", with two tabs: <strong>Billing &amp; <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a></strong> and <strong>Coding Rules</strong>.</li>
+<li>On <strong>Billing &amp; RVU</strong>, enter <strong>Billing Code</strong> (for example <code>IHC-FIRST</code>), choose <strong>Scope</strong> (Enterprise or a site), and optionally <strong>Country</strong>.</li>
+<li>Choose the <strong>CPT Code</strong> by searching the RVU Code Map entries. Optionally search an <strong><a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a> Code</strong>.</li>
+<li>Choose <strong>Level</strong> (Specimen, Block, Stain or Decant) and <strong>Component Type</strong> (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>, 26 or Global). Enter <strong>Description</strong>. Enter the <strong>RVU — Work</strong>, <strong>RVU — Practice Expense</strong> and <strong>RVU — Malpractice</strong> values, or leave <strong>RVU — Work</strong> blank if unverified ("Never fabricated — leave blank if unverified.").</li>
+<li>Enter <strong>Effective From</strong>. Optionally add <strong>Notes</strong>.</li>
+<li>On the <strong>Coding Rules</strong> tab, add any reminders: <strong>Modifiers Commonly Associated</strong>, <strong>Quantity Rule</strong>, <strong>Bundling Rule</strong>, <strong>Documentation Requirements</strong>, <strong>Suppression Advisory</strong>. These are stored for audit and the billing system only. PathScribe never validates, enforces or suppresses a charge because of them.</li>
+<li>Select <strong>Create Billing Code</strong>.</li>
+</ol>
+<p>Expected result: the rule is saved as version 1 with status <strong>DRAFT</strong>. A DRAFT is not used. Continue with <a href="#ch11-bill-rule-submit">Submit a rule for approval</a>.</p>
+<h3 id="ch11-bill-rule-submit"><a class="anchor" href="#ch11-bill-rule-submit" aria-label="Link to this section">#</a> Submit a rule for approval</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary</span></nav>
+
+<ol>
+<li>On the rule's row, select <strong>History</strong>. The window is headed "Version History — (code) ((scope))" and lists every version with its status.</li>
+<li>On the DRAFT row, select <strong>Submit for Approval</strong>.</li>
+</ol>
+<p>Expected result: the status becomes <strong>PENDING_APPROVAL</strong>, and the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> records "Billing rule submitted for approval". The rule now waits on <a href="08-tier7-billing-registry.html#screen-pending_approvals">Pending Billing Rule Approvals</a>. The statuses a version can have are DRAFT, PENDING_APPROVAL, ACTIVE, REJECTED and RETIRED.</p>
+<h3 id="ch11-bill-rule-version"><a class="anchor" href="#ch11-bill-rule-version" aria-label="Link to this section">#</a> Change a rule: a new version</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary</span></nav>
+
+<p>Versions are only ever added; you never overwrite one.</p>
+<ol>
+<li>Make sure <strong>Viewing</strong> is the scope you want to change (Enterprise-Wide or a site).</li>
+<li>On the rule's row select <strong>New Version</strong>. The window is headed "New Version — (code) ((scope), v(N))" and is filled from the latest version. (A row marked <strong>Inherited</strong> has no rule of its own at that site; it shows no <strong>New Version</strong> button. Use <strong>Duplicate</strong> to give the site its own.)</li>
+<li>Change the fields. <strong>Change Reason</strong> is required when the scope already has versions.</li>
+<li>Select <strong>Create New Version</strong>. It saves as DRAFT.</li>
+<li><a href="#ch11-bill-rule-submit">Submit it for approval</a>.</li>
+</ol>
+<p>Expected result: when a second person approves it, the new version becomes ACTIVE and the version it replaces ends. Charges already created keep the values they were made with.</p>
+<h3 id="ch11-bill-rule-dup"><a class="anchor" href="#ch11-bill-rule-dup" aria-label="Link to this section">#</a> Copy a rule, or give one site its own rule</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary</span></nav>
+
+<p><strong>Duplicate</strong> copies a rule into a new billing code, a different site, or both. It is how you start from an existing rule.</p>
+<ol>
+<li>On the rule's row select <strong>Duplicate</strong>. (You can also select <strong>History</strong>, then <strong>Duplicate</strong> on a version row to copy an older version.) The window is headed "Duplicate — (code) ((scope), v(N))" and is filled from the rule.</li>
+<li>Change <strong>Billing Code</strong>, <strong>Scope</strong>, or both. To give a site its own version of an <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> rule, keep the code and choose the site as <strong>Scope</strong>. When the code or scope changes, the window explains "This will create a real, new, independent version 1 for this billing code + scope combination".</li>
+<li>Change any other fields, enter <strong>Effective From</strong> and <strong>Change Reason</strong> if asked.</li>
+<li>Select <strong>Save Duplicate</strong>. It saves as DRAFT.</li>
+<li><a href="#ch11-bill-rule-submit">Submit it for approval</a>.</li>
+</ol>
+<p>Expected result: at that site, the site rule replaces the enterprise rule (<strong>Scope</strong> on the row shows <strong>Site Override</strong> instead of <strong>Inherited</strong>).</p>
+<h3 id="ch11-bill-rule-retire"><a class="anchor" href="#ch11-bill-rule-retire" aria-label="Link to this section">#</a> Retire a rule</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Dictionary</span></nav>
+
+<ol>
+<li>On the rule's row select <strong>History</strong>.</li>
+<li>On the ACTIVE version, select <strong>Retire</strong>. There is no confirmation window.</li>
+</ol>
+<p>Expected result: the status changes to RETIRED. Retire is offered only on an ACTIVE version. If a site override is retired, that site goes back to the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> rule (shown as <strong>Inherited</strong>). To bring a retired rule back, create a new version or <a href="#ch11-bill-rule-dup">duplicate</a> it and approve it.</p>
+<h3 id="ch11-bill-approve"><a class="anchor" href="#ch11-bill-approve" aria-label="Link to this section">#</a> Approve or reject a change</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Pending Billing Rule Approvals"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Pending Billing Rule Approvals</span></nav>
+
+<p>Capability: <code>config:billing-tables:approve</code>. The person who drafted or submitted a change cannot approve it (Four-Eyes Principle). That includes you if you submitted it: the button is locked and the hint reads "You drafted or submitted this change — a different reviewer is required (Four-Eyes Principle)."</p>
+<ol>
+<li>A different approver opens <strong>Pending Billing Rule Approvals</strong>. Two tables can show. <strong>Pending Billing Rule Approvals</strong> lists billing rule versions (billing code, <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a>, <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> (Work), effective date, scope, drafted by, submitted by, change reason). <strong>Pending Dictionary Updates</strong> lists whole-table updates: <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> dictionary versions, <a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> imports, RVU Code Map versions and bulk code imports.</li>
+<li>Check the row. For a table update, the label tells you which upload it is.</li>
+<li>Select <strong>Approve</strong> to activate it, or <strong>Reject</strong>. <strong>Reject</strong> opens a box: enter a reason (required, "A real rejection reason is required.") and select <strong>Confirm Reject</strong>.</li>
+</ol>
+<p>Expected result: an approved item takes effect; a bulk code import applies the whole job. A rejected item ends, and its reason shows on the older-versions list of the screen it came from. Both decisions are audited.</p>
+<p>If nobody else can approve (a one-person system), the change stays pending. Grant <code>config:billing-tables:approve</code> to a second person in <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>.</p>
+<h3 id="ch11-bill-ncci"><a class="anchor" href="#ch11-bill-ncci" aria-label="Link to this section">#</a> Upload or edit NCCI bundling pairs</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; NCCI Edit Rules (Bundling)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-ncci" title="National Correct Coding Initiative, a set of US Medicare edits that say which code pairs cannot be billed together.">NCCI</a> Edit Rules (Bundling)</span></nav>
+
+<p>Capability: <code>config:billing-ncci:manage</code>. <strong>No real National Correct Coding Initiative data ships.</strong> The seed is one synthetic pair, and the screen warns while it is active. The holder of the licensed <a class="term" href="99-glossary.html#g-cms" title="The Centers for Medicare and Medicaid Services, the US agency that sets Medicare billing rules, including NCCI edits.">CMS</a> file loads it.</p>
+<ol>
+<li>Select <strong>Download Template</strong>, fill the columns Column 1, Column 2, Modifier Indicator (<code>0</code>, <code>1</code> or <code>9</code>), Effective Date and Deletion Date, and save as <code>.csv</code>.</li>
+<li>Select <strong>Upload Spreadsheet</strong> and choose the file. Rows with a problem are skipped and listed ("N rows skipped:" with the row and reason: a missing code, an indicator other than 0, 1 or 9, or a missing effective date).</li>
+<li>Enter the <strong>Quarter Version</strong> (for example <code>2026Q3</code>).</li>
+<li>Select <strong>Submit for Approval (N pairs)</strong>.</li>
+<li>To change one pair, select <strong>Edit</strong> on its row, change the <strong>Modifier Indicator</strong> or <strong>Deletion Date</strong>, and select <strong>Submit for Approval</strong>. An edit sends the whole table again as a new pending import.</li>
+</ol>
+<p>Expected result: a pending import waits for <a href="#ch11-bill-approve">approval</a>. Only pairs with indicator <code>0</code> raise a deficiency at sign-out; <code>1</code> and <code>9</code> do not.</p>
+<h3 id="ch11-bill-triggers"><a class="anchor" href="#ch11-bill-triggers" aria-label="Link to this section">#</a> Set when each charge is created</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Charge Release Triggers (TC/26/Global)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Charge Release Triggers (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>/26/Global)</span></nav>
+
+<p>Capability: <code>config:billing-triggers:manage</code>. Defaults: <strong>TC (Technical Component)</strong> at <strong>Specimen grossed</strong>; <strong>26 (Professional Component)</strong> and <strong>Global (Combined)</strong> at <strong>Case signed out</strong>.</p>
+<ol>
+<li>Open <strong>Charge Release Triggers</strong>. The selector shows "Viewing: Enterprise-Wide". To change one site only, choose "Viewing: (site name)". A site that already has an override is marked "(has override)".</li>
+<li>For each billing type, open the <strong>Releases At</strong> list and choose <strong>Specimen grossed</strong> or <strong>Case signed out</strong>. Each change saves at once, with "✓ Saved (scope)". There is no Save button.</li>
+<li>To undo, select <strong>Reset all to real default</strong> (<a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a>) or <strong>Reset (site) to Enterprise-Wide</strong> (a site). The button is greyed out when there is no override.</li>
+</ol>
+<p>Expected result: only charges created from then on follow the new setting. Charges already made are not changed. Each change and reset is audited ("Charge release trigger changed", "Charge release triggers reset to default").</p>
+<h3 id="ch11-bill-release"><a class="anchor" href="#ch11-bill-release" aria-label="Link to this section">#</a> Add, edit or remove a billing release (hold) rule</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Billing Release"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Billing Release</span></nav>
+
+<p>Capability: <code>config:billing-release:manage</code>. A release rule says what happens to a charge once it exists: release at once, hold it a set time, or release it in a scheduled batch. The most specific matching rule wins. When no rule matches, the charge is released at its milestone. PathScribe decides what and when; the interface engine moves the message.</p>
+<ol>
+<li>Open <strong>Billing Release</strong>. <strong>Rules for</strong> starts on <strong>Whole <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a></strong>; choose a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> to see its own rules. A facility with none shows "This facility has no rules of its own and follows the enterprise rules."</li>
+<li>Select <strong>Add a rule</strong>. The window is headed "Billing release rule: (scope)".</li>
+<li>Under <strong>Applies to</strong>, choose <strong>Billing type</strong> (Any billing type, Technical component (<a class="term" href="99-glossary.html#g-tc" title="Technical component, the part of a service that covers the laboratory&#x27;s work, billed apart from the professional component (code 26).">TC</a>), Professional component (-26), Global). Optionally enter <strong>Case types (<a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> categories)</strong> separated by commas (empty means every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>), choose an <strong>Ordering site</strong>, enter the <strong>Primary pathologist (ID)</strong>, and choose <strong>Amendment reports</strong> (Original or amended, Original reports only, Amended reports only).</li>
+<li>Under <strong>Release</strong>, choose <strong>Release mode</strong>:
+   - <strong>Release after a hold</strong>: enter <strong>Hold (minutes)</strong>. A technical charge is counted from <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a>, the others from final sign-out. <code>0</code> means at once. The limit is 30 days (43,200 minutes).
+   - <strong>Release in a batch</strong>: choose <strong>How often</strong> (daily or weekly), the <strong>Batch days</strong> for weekly, the <strong>Batch times</strong> (24-hour, comma separated; a charge goes in the first batch after its milestone) and the <strong>Time zone</strong>. The window shows the same schedule as a cron line.</li>
+<li>Tick or clear <strong>Release automatically when due</strong> (clear it to keep charges until a person releases them from the <a href="07-tier6-interface-engine.html#screen-outbound-queue">Outbound Queue</a>) and <strong>Park for review when the code is unmapped or the technical facility is missing</strong>.</li>
+<li>If the window shows a problem in red, fix it. <strong>Save rule</strong> stays greyed out until there are none. Possible problems: "Choose a billing type from the list.", "Choose a release mode.", "The hold must be a whole number of minutes, 0 or more, up to 30 days.", "A batch rule needs a batch schedule.", "Choose which reports the rule applies to.", "Case types can't be empty entries."</li>
+<li>Select <strong>Save rule</strong>. The screen shows "Saved." (or "Not saved." if it was refused).</li>
+</ol>
+<p>To change a rule select <strong>Edit</strong>; to delete one select <strong>Remove</strong> (no confirmation window). A charge from an amended report, a charge whose <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> is unmapped, and a split case with no technical facility are always parked for review, whatever the rules say.</p>
+<p><strong>Test a rule before you rely on it.</strong> Under <strong>Try a charge</strong>, enter the <strong>Billing type of the charge</strong>, <strong>Case type</strong>, <strong>Performing facility</strong>, <strong>Charge generated (<a class="term" href="99-glossary.html#g-utc" title="Coordinated Universal Time, the time standard in which audit entries are stored and shown.">UTC</a>)</strong>, and tick whichever apply (<strong>From an amended report</strong>, <strong>A delta charge of the amendment</strong>, <strong>The CPT code is mapped</strong>, <strong>The technical-component facility is missing</strong>, <strong>The case is finally signed out</strong>, with <strong>Final sign-out (UTC)</strong>). Set <strong>Check at (UTC)</strong> and select <strong>Check</strong>. The result is Released, Waits, Waits for a person or Parked for review, with the rule that matched.</p>
+<h3 id="ch11-bill-paytype"><a class="anchor" href="#ch11-bill-paytype" aria-label="Link to this section">#</a> Add or change a payment type</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Master Payment Type Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Master Payment Type Dictionary</span></nav>
+
+<p>Capability: <code>config:payment-types:manage</code>. A payment type is a category of payer (self pay, commercial insurance, national health service). Eleven are seeded.</p>
+<ol>
+<li>Open <strong>Master Payment Type Dictionary</strong>.</li>
+<li>To add one, select <strong>+ Add Payment Type</strong>. Enter <strong>Category ID</strong> (stored in capitals, spaces become underscores, for example <code>SELF_PAY</code>) and <strong>Display Name</strong>. Both are required, and a duplicate ID is refused (the <strong>Create</strong> button stays greyed out).</li>
+<li>Tick <strong>Requires Subscriber ID</strong> if staff must enter a policy number, and if so optionally enter its label (for example "NHS Number" or "Claim #"). Choose <strong>Requires Guarantor</strong> (Required, Optional or Not Required). Tick <strong>Supports Split Billing</strong> if technical and professional parts may go to different payers. Add <strong>Notes</strong> if you wish.</li>
+<li>Select <strong>Create</strong>.</li>
+<li>To edit, select <strong>Edit</strong> on a row, change the fields and select <strong>Save Changes</strong>. The <strong>Category ID</strong> is locked ("locked — referenced by Jurisdiction Mappings") because mappings point to it.</li>
+<li>To retire one, select <strong>Deactivate</strong>; to bring it back select <strong>Reactivate</strong>. <strong>Show inactive</strong> lists inactive rows too.</li>
+</ol>
+<p>Notes: there is no Duplicate button here. Deactivating a type is not checked against the mappings that use it, so check <a href="08-tier7-billing-registry.html#screen-jurisdiction_payment_mappings">Jurisdiction Payment Mapping</a> first.</p>
+<h3 id="ch11-bill-mapping"><a class="anchor" href="#ch11-bill-mapping" aria-label="Link to this section">#</a> Add or change a jurisdiction payment mapping</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Jurisdiction Payment Mapping"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Jurisdiction Payment Mapping</span></nav>
+
+<p>Capability: <code>config:payment-mappings:manage</code>. A mapping ties a local payer scheme to one payment type. The Primary Jurisdiction selector on the accessioning Outside Patient Data tab reads these.</p>
+<ol>
+<li>Open <strong>Jurisdiction Payment Mapping</strong>. Use the country filter and <strong>Show inactive</strong> to find rows.</li>
+<li>Select <strong>+ Add Mapping</strong>. Enter <strong>Country Code</strong> (for example <code>US</code>, <code>UK</code>, <code>DE</code>, <code>CA_ON</code>), <strong>Local Scheme Code</strong> (for example <code>DE_GKV</code>), <strong>Local Display Terminology</strong> (the local-language name), choose the <strong>Master Payment Type</strong> (only active types are offered), and enter <strong>Primary Outbound Format</strong>. All five are required. Add <strong>Notes</strong> if you wish.</li>
+<li>Select <strong>Create</strong>. Codes are stored in capitals.</li>
+<li>To change one, select <strong>Edit</strong>, change the fields and select <strong>Save Changes</strong>. To hide one from accessioning select <strong>Deactivate</strong>; to bring it back, <strong>Reactivate</strong>.</li>
+</ol>
+<p>Notes: nothing checks for a repeated country and scheme code. The <strong>Primary Outbound Format</strong> (for example <code>X12 837P</code>) is a label only. No file is generated; <a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P, KVDT and SESAM-Vitale output are Planned.</p>
+<h3 id="ch11-bill-check"><a class="anchor" href="#ch11-bill-check" aria-label="Link to this section">#</a> Check what a case would send, and read the financial log</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups &gt; Billing Export Preview"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span> <span aria-hidden="true">›</span> <span>Billing Export Preview</span></nav>
+
+<p><strong>Preview the charge payload.</strong> Capability <code>config:interface-preview:view</code>.</p>
+<ol>
+<li>Open <strong>Billing Export Preview</strong> and enter a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> id or <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>. The case must be finalised and have charges.</li>
+<li>Read the <strong><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> payload</strong>. This is what PathScribe sends: the charge lines (<a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> or <a class="term" href="99-glossary.html#g-hcpcs" title="Healthcare Common Procedure Coding System, the US code set that adds codes to CPT for supplies and services.">HCPCS</a>, <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a>, <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a>) and the financial class from the payment type and mapping. It carries no dollar amounts. The <strong><a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, the HL7 message that carries charges to a billing system.">DFT</a>^P03 preview</strong> beneath it is an illustration only; PathScribe does not build or send HL7.</li>
+<li>If the case has an open billing deficiency, the export is blocked until the deficiency is resolved. <strong>Send to billing engine</strong> goes to a simulated engine in the demonstration ("Simulated" badge).</li>
+</ol>
+<p><strong>Find a billing event in the log.</strong> Capability <code>screen:audit-log:open</code>.</p>
+<ol>
+<li>Open <strong>System Logs</strong> and select the <strong>Financial</strong> tab, sub-tab <strong>Billing Logs</strong>.</li>
+<li>Filter by <strong>Case Number</strong>, <strong>Patient ID (<a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a>/<a class="term" href="99-glossary.html#g-mpi" title="Master patient index, the record that links the different identifiers one patient has.">MPI</a>)</strong>, <strong>Type</strong> (Charge, Credit, Deficiency, Code Review, Dispatch, Amendment, Audit), <strong>Status</strong> and the date ranges. Select <strong>Search</strong>. At most 50 cases show; "Case limit reached" appears when more match.</li>
+<li>To export the result select <strong>Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></strong> (needs <code>audit:billing-log:export</code>).</li>
+</ol>
+<p><strong>Fix a charge that failed to send.</strong> On the <strong>Outbound <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></strong> sub-tab, find the case in the Failed table. If the error is <code>MISSING_ICD10</code> or <code>MISSING_PROVIDER_NPI</code>, use <strong>Fix &amp; Retry</strong> (<strong>Save &amp; Re-queue</strong> attaches the code or <a class="term" href="99-glossary.html#g-npi" title="National Provider Identifier, the ten-digit identifier of a US healthcare provider, needed on a charge.">NPI</a> to the case and re-queues it, and is audited). Use <strong>Retry Dispatch</strong> to try again, or <strong>Capture as <a class="term" href="99-glossary.html#g-capa" title="Corrective and preventive action. A tracked response to a quality problem, with an owner and a reason for opening or dismissing it.">CAPA</a></strong> to raise a deficiency. <strong>Simulate Timeout</strong> and <strong>Simulate Rejected</strong> are test buttons only. Real dispatch is not built.</p>
+<h3 id="ch11-bill-registry"><a class="anchor" href="#ch11-bill-registry" aria-label="Link to this section">#</a> Choose and approve a cancer registry</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Cancer Registry Reporting"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Cancer Registry Reporting</span></nav>
+
+<p>Capability: <code>config:cancer-registry:manage</code>. PathScribe builds one structured <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> payload for the chosen <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a>. It does not write <a class="term" href="99-glossary.html#g-naaccr" title="The North American Association of Central Cancer Registries, which sets data standards for cancer registry reporting in North America.">NAACCR</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a>, <a class="term" href="99-glossary.html#g-cosd" title="Cancer Outcomes and Services Dataset, the English national dataset for cancer registration.">COSD</a> XML or any other registry file format; the interface engine translates and sends. Every <a class="term" href="99-glossary.html#g-cancer-registry" title="A body that collects cancer diagnoses for a country or region, such as NAACCR registries in North America or the COSD collection in England.">cancer registry</a>'s specification is marked as not verified against the registry's own, so a person must confirm it. There is no Spain registry.</p>
+<p><strong>Choose the registry.</strong></p>
+<ol>
+<li>Open <strong>Cancer Registry Reporting</strong>.</li>
+<li>Set <strong>Enterprise Default registry</strong>. With none chosen, no cancer report is made.</li>
+<li>Optionally tick <strong>Honours opt-out</strong>. It is off by default; when off, a patient who opted out is still reported and the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> records it.</li>
+<li>Select <strong>Save</strong>.</li>
+<li>For one <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> that reports elsewhere, select <strong>+ Add Override</strong>, choose the <strong>Facility</strong> and <strong>Registry</strong>, and <strong>Save</strong>. <strong>Remove</strong> takes the override away.</li>
+</ol>
+<p><strong>Take a registry live.</strong></p>
+<ol>
+<li>In the <strong>Registry (go-live)</strong> panel, choose the registry. Enter the <strong>Agreement reference</strong> for the data-sharing agreement and select <strong>Record agreement</strong>.</li>
+<li>On a validation instance, select <strong>Run test suite</strong> (needs <code>registry:test-suite:run</code>), then <strong>Export validation record</strong>. On a production instance, import that record file under <strong>Validation record file</strong>.</li>
+<li>Tick <strong>Specification confirmed</strong> (required for registries whose specification is not verified) and, if you have it, enter the <strong>Registry test sign-off reference</strong>.</li>
+<li>Check the <strong>Go-live pre-checks</strong> list. Then select <strong>Request go-live</strong>.</li>
+<li>An approver (<code>registry:live-register:approve</code>) chooses <strong>I am approving as</strong>, selects <strong>Approve with my credentials</strong>, and re-enters their credentials. The number of approvals needed (1 to 3) and whether the requester may approve are settings on a production instance.</li>
+<li>To cancel a request select <strong>Withdraw request</strong>. To stop reporting select <strong>Stop live reporting</strong>.</li>
+</ol>
+<p>Expected result: a production instance sends real results only to a registry with a current approval; results for others are held. Each request, approval and stop appears in the <strong>Go-live history</strong>. The same panel appears on <a href="08-tier7-billing-registry.html#screen-cytology_registry">Cytology Registry Reporting</a>. Reference: <a href="08-tier7-billing-registry.html#screen-cancer_registry_settings">Cancer Registry Reporting</a>.</p>
+<h3 id="ch11-bill-notbuilt"><a class="anchor" href="#ch11-bill-notbuilt" aria-label="Link to this section">#</a> Not built: fee schedules and quality reporting</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Financial &amp; Revenue Lookups"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Financial &amp; Revenue Lookups</span></nav>
+
+<ul>
+<li><strong>Fee schedules: Not built.</strong> There is no screen, field or contract for a price or payer rate. Keep prices in your billing system.</li>
+<li><strong><a class="term" href="99-glossary.html#g-mips" title="The Merit-based Incentive Payment System, a US Medicare program that adjusts payment by reported quality measures.">MIPS</a> and <a class="term" href="99-glossary.html#g-macra" title="The US Medicare Access and CHIP Reauthorization Act, which created the Quality Payment Program that includes MIPS.">MACRA</a> quality reporting: Not built.</strong> See <a href="08-tier7-billing-registry.html#ch8-quality-reporting">Quality and public health reporting</a>. The nearest things are the reporting feed to a business intelligence tool and the <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> exports.</li>
+<li><strong>Auto-coding from the report text by AI: Not built.</strong> The rule-based code suggestions are described in <a href="08-tier7-billing-registry.html#ch8-autocoding-holds">Auto-coding and billing hold rules</a>.</li>
+<li><strong><a class="term" href="99-glossary.html#g-x12" title="The ANSI standard for electronic business transactions, including healthcare claims in the United States.">X12</a> 837P, KVDT and SESAM-Vitale output: Not built.</strong> The payload is <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> for the interface engine.</li>
+</ul>
+<h2 id="ch11-problems"><a class="anchor" href="#ch11-problems" aria-label="Link to this section">#</a> Common problems</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>What you see</th>
+<th>Likely cause</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A label type shows <strong>Enterprise Standard: Locked</strong> and no <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> choice</td>
+<td>Block, Slide and the four Molecular types allow only an <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> default</td>
+<td>Edit the enterprise default. A facility cannot override these types.</td>
+</tr>
+<tr>
+<td>"Not saved: a field goes past the edge of the label."</td>
+<td>A field is outside the label</td>
+<td>Select <strong>Fit to label</strong>, or move or resize the field, then save.</td>
+</tr>
+<tr>
+<td>The canvas changed and my edits are gone</td>
+<td>Changing Label Type or Scope reloads the saved layout without warning</td>
+<td>Save before you switch. Use <strong>Version history</strong> to recover a saved version.</td>
+</tr>
+<tr>
+<td>A saved layout does not appear on the printed label</td>
+<td>The layout has no fields (it counts as none), or a facility override is hiding the enterprise one</td>
+<td>Check the scope you saved to. For a facility, an override takes the place of the default.</td>
+</tr>
+<tr>
+<td>The text after <strong>Export EPL</strong> is headed "Exported <a class="term" href="99-glossary.html#g-zpl" title="Zebra Programming Language, the printer language that describes a label&#x27;s layout for Zebra-type label printers.">ZPL</a>"</td>
+<td>The heading does not change</td>
+<td>Read the note above the text; it says which language the text is in.</td>
+</tr>
+<tr>
+<td>Labels open the browser print dialog instead of printing</td>
+<td>The <a class="term" href="99-glossary.html#g-printer-profile" title="The saved settings for one model of printer, including its connection method (bridge).">printer profile</a> is not on the <a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a> bridge, or no profile is chosen</td>
+<td>Set the profile on <a href="02-tier1-primary-prerequisites.html#screen-printer_profiles">Printer Profiles</a> and choose it in <a href="02-tier1-primary-prerequisites.html#screen-print_settings">Print Settings</a>.</td>
+</tr>
+<tr>
+<td>"Choose the <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> printer first."</td>
+<td>Cassettes were ticked on Label reprint with no printer</td>
+<td>Choose the <strong>Cassette printer</strong>.</td>
+</tr>
+<tr>
+<td>The <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> search in a billing rule is empty</td>
+<td>The <a class="term" href="99-glossary.html#g-rvu" title="Relative value unit, the measure of the work and cost of a service used in Medicare payment and in productivity reports.">RVU</a> Code Map has no active codes</td>
+<td>Add codes and have them approved.</td>
+</tr>
+<tr>
+<td>A change never takes effect</td>
+<td>It is waiting for a second person, or it was rejected</td>
+<td>Open <strong>Pending Billing Rule Approvals</strong>; a different person approves.</td>
+</tr>
+<tr>
+<td><strong>Approve</strong> is locked</td>
+<td>You drafted or submitted the change</td>
+<td>Ask a different approver.</td>
+</tr>
+<tr>
+<td><strong>Retire</strong> is not offered</td>
+<td>Only an ACTIVE version can be retired</td>
+<td>Check the version's status in <strong>History</strong>.</td>
+</tr>
+<tr>
+<td>No <strong>New Version</strong> button on a row</td>
+<td>The row is <strong>Inherited</strong> from the enterprise</td>
+<td>Use <strong>Duplicate</strong> to give the site its own rule.</td>
+</tr>
+<tr>
+<td>"Code (code) already exists in the active version."</td>
+<td>The code is already in the RVU Code Map</td>
+<td>Edit it instead.</td>
+</tr>
+<tr>
+<td>The <a class="term" href="99-glossary.html#g-modifier" title="A short code added to a CPT code to say how a service was done, for example that only the technical component was provided.">modifier</a> upload does nothing</td>
+<td>The licence box is not ticked, or the effective date is blank</td>
+<td>Tick the licence confirmation and enter a valid date.</td>
+</tr>
+<tr>
+<td>A deficiency blocks the billing export</td>
+<td>An open billing deficiency exists on the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a></td>
+<td>Resolve it, then export again.</td>
+</tr>
+<tr>
+<td>Charges release too early or too late</td>
+<td>A trigger or a release rule differs from what you expect</td>
+<td>Check <a href="08-tier7-billing-registry.html#screen-billing_type_triggers">Charge Release Triggers</a>, then test with <strong>Try a charge</strong>.</td>
+</tr>
+<tr>
+<td>A payment type cannot be picked for a mapping</td>
+<td>The type is inactive</td>
+<td><strong>Reactivate</strong> it on the Master Payment Type Dictionary.</td>
+</tr>
+</tbody>
+</table></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

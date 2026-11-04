@@ -20,6 +20,11 @@
 // computePendingBatchQueue.ts — see that file's own header for why
 // Case.facilityId, not scan-derived locationHistory, is the correct
 // signal for these specific, never-yet-scanned items.
+//
+// Batch 407: the search and grouping by case moved to
+// services/batches/computePendingBatchQueue.ts; item ids and case accessions
+// are tagged data-phi; the scan-station service comes from @/services, so the
+// page is off the deployment baseline.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -27,9 +32,8 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { mockScanStationService } from '@/services/scanStations/mockScanStationService';
-import { facilityService } from '@/services';
-import { computePendingBatchQueue } from '@/services/batches/computePendingBatchQueue';
+import { facilityService, scanStationService } from '@/services';
+import { computePendingBatchQueue, filterPendingBatchQueue, groupPendingByCase } from '@/services/batches/computePendingBatchQueue';
 import type { PendingBatchQueueItem } from '@/services/batches/computePendingBatchQueue';
 
 // Real, label-key-map — keeps the real materialType value untouched.
@@ -63,7 +67,7 @@ const PendingBatchQueuePage: React.FC = () => {
   // record DisposalQueuePage.tsx already resolves this same way.
   useEffect(() => {
     if (!stationId) { setFacilityId(undefined); setFacilityName(null); return; }
-    mockScanStationService.getById(stationId).then(res => {
+    scanStationService.getById(stationId).then(res => {
       if (!res.ok) return;
       setFacilityId(res.data.facilityId);
       facilityService.getById(res.data.facilityId).then(fRes => {
@@ -81,30 +85,10 @@ const PendingBatchQueuePage: React.FC = () => {
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Real, case-insensitive substring match against every real field a
-  // tech might actually scan or type — a full displayId (what a real
-  // barcode encodes), or a partial case accession/specimen label (for
-  // a typed, narrower-than-one-item search across a real, mixed
-  // case's own several pending items).
-  const trimmedQuery = searchQuery.trim().toLowerCase();
-  const filteredQueue = trimmedQuery
-    ? queue.filter(item =>
-        item.displayId.toLowerCase().includes(trimmedQuery)
-        || item.caseAccession.toLowerCase().includes(trimmedQuery)
-        || item.specimenLabel.toLowerCase().includes(trimmedQuery)
-      )
-    : queue;
-
-  // Real, deliberate grouping by case accession — a tech collecting
-  // items to load is thinking "what's sitting out for case X," not
-  // scanning a single, undifferentiated list; same real grouping
-  // instinct BatchDetailView.tsx's own manifest already uses for a
-  // batch's real, mixed contents.
-  const byCase = new Map<string, PendingBatchQueueItem[]>();
-  for (const item of filteredQueue) {
-    if (!byCase.has(item.caseAccession)) byCase.set(item.caseAccession, []);
-    byCase.get(item.caseAccession)!.push(item);
-  }
+  // Search and grouping by case: services/batches/computePendingBatchQueue.ts (Batch 407).
+  const filteredQueue = filterPendingBatchQueue(queue, searchQuery);
+  const byCase = groupPendingByCase(filteredQueue);
+  const searching = searchQuery.trim() !== '';
 
   return (
     <div className="ps-batch-page">
@@ -123,7 +107,7 @@ const PendingBatchQueuePage: React.FC = () => {
           </div>
 
           <div className="ps-batch-toolbar">
-            <input
+            <input aria-label={t('pendingBatchQueue.searchPlaceholder')}
               className="ps-batch-lookup-input"
               type="text"
               placeholder={t('pendingBatchQueue.searchPlaceholder')}
@@ -141,7 +125,7 @@ const PendingBatchQueuePage: React.FC = () => {
           </div>
 
           <div className="ps-batch-section-label">
-            {trimmedQuery
+            {searching
               ? t('pendingBatchQueue.sectionLabelFiltered', { count: filteredQueue.length, total: queue.length })
               : t('pendingBatchQueue.sectionLabel', { count: filteredQueue.length })}
           </div>
@@ -149,20 +133,20 @@ const PendingBatchQueuePage: React.FC = () => {
             <div className="ps-batch-empty">{t('pendingBatchQueue.computing')}</div>
           ) : filteredQueue.length === 0 ? (
             <div className="ps-batch-empty">
-              {trimmedQuery
+              {searching
                 ? t('pendingBatchQueue.noMatch', { query: searchQuery.trim() })
                 : t('pendingBatchQueue.emptyAll')}
             </div>
           ) : (
-            Array.from(byCase.entries()).map(([caseAccession, items]) => (
+            byCase.map(([caseAccession, items]) => (
               <div key={caseAccession} className="ps-batch-pending-case-group">
-                <div className="ps-batch-manifest-added ps-batch-pending-case-heading">
-                  {caseAccession} — {t('batchManagement.itemCount', { count: items.length })}
+                <div className="ps-batch-manifest-added ps-batch-pending-case-heading" data-phi="accession">
+                  {t('pendingBatchQueue.caseHeading', { accession: caseAccession, items: t('batchManagement.itemCount', { count: items.length }) })}
                 </div>
                 <div className="ps-batch-manifest">
                   {items.map(item => (
                     <div key={item.key} className="ps-batch-manifest-row">
-                      <span className="ps-batch-manifest-id">{item.displayId}</span>
+                      <span className="ps-batch-manifest-id" data-phi="accession">{item.displayId}</span>
                       <span className="ps-batch-manifest-type">{t(MATERIAL_TYPE_LABEL_KEY[item.materialType])}</span>
                       <span className="ps-batch-manifest-added">{t('pendingBatchQueue.specimenLabel', { label: item.specimenLabel })}</span>
                     </div>

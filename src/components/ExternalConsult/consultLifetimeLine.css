@@ -1,0 +1,2 @@
+/* Batch 669 (access-11): the lifetime line under a consult link. Kept out of pathscribe.css, which may not grow. */
+.ps-consult-lifetime-line { font-size: 11px; color: var(--ps-text-dim); margin-top: 2px; }

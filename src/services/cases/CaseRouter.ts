@@ -36,17 +36,19 @@ import type { ICaseService, CaseFilterParams } from './ICaseService';
 import type { ServiceResult }                                 from '../types';
 import { AuditLogger }                                        from './AuditLogger';
 import { ConcurrencyConflictError }                            from './ConcurrencyConflictError';
-import { mockCaseService }             from './mockCaseService';
+import { caseService } from './caseServiceInstance';
 import { mockOrchestratorCaseService } from './mockOrchestratorCaseService';
 import { readSessionProfile } from '../auth/sessionProfile';
 import { getSessionUser, canAccessCaseWithPools, filterAccessibleCasesWithPools, deriveEligibleFinalizerIds, isCrossTenantSupportAccess, type CaseAccessSubspecialty } from '../auth/caseAccessControl';
-import { mockSubspecialtyService as subspecialtyService } from '../subspecialties/mockSubspecialtyService';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+import { subspecialtyService } from '../subspecialties/subspecialtyServiceInstance';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import type { Facility } from '../facilities/IFacilityService';
 import { getParticipationTypeLookup } from '../../utils/participationTypeLookup';
 import { isOrchCaseId } from './reportingModeRouting';
 import { mergeDualSourcePages } from './caseFilterUtils';
+import { caseByAccessionNumber } from './caseByAccession';
 import { getEffectiveScanStationId } from '../../utils/effectiveScanStation';
+import { selectLinkableAccessions } from '../messages/linkableCaseAccessions';
 
 // Real dimension-3 (pool/subspecialty) enforcement needs a lookup of every
 // subspecialty by id to check isWorkgroupEnabled/userIds against a case's
@@ -101,7 +103,7 @@ function sessionAgent(session: NonNullable<ReturnType<typeof getSessionUser>>) {
 
 async function getEnterpriseFacilityLookup(): Promise<Facility[]> {
   if (!enterpriseFacilityLookupPromise) {
-    enterpriseFacilityLookupPromise = mockFacilityService.getAll()
+    enterpriseFacilityLookupPromise = facilityService.getAll()
       .then(res => (res.ok ? res.data.filter(f => f.isEnterprise) : []))
       .catch(() => []);
     enterpriseFacilityLookupPromise.catch(() => { enterpriseFacilityLookupPromise = null; });
@@ -153,7 +155,8 @@ class CaseRouter implements ICaseService {
       : [this.lisService,  this.lisAudit];
 
     try {
-      const c = await service.getCase(caseId);
+      // Batch 756: a label carries the accession number (S26-0001), not the id of a case made on Accession (O26-0031).
+      const c = (await service.getCase(caseId)) ?? await this.caseWithAccessionNumber(caseId);
       if (!c) {
         audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
         return undefined;
@@ -173,7 +176,7 @@ class CaseRouter implements ICaseService {
       // (services/supportAccess/). Imported here, not at the top, to keep
       // those services (which read the role and staff services) out of this
       // module's load order.
-      if (isCrossTenantSupportAccess(session, c as any, enterpriseFacilities)) {
+      if (session && isCrossTenantSupportAccess(session, c as any, enterpriseFacilities)) { // false for no session anyway
         const gate = await supportGate();
         const allowed = await gate.gateCaseOpen(sessionAgent(session), c as any, enterpriseFacilities, 'open', gate.supportAccessService);
         if (!allowed.allowed) {
@@ -193,6 +196,13 @@ class CaseRouter implements ICaseService {
       audit.log({ eventType: 'case.read', caseId, userId, outcome: 'failure' });
       return undefined;
     }
+  }
+
+  /** Batch 756: the case, in either store, whose accession number is the entry. Access is checked by getCase. */
+  private async caseWithAccessionNumber(accession: string): Promise<Case | undefined> {
+    const [lis, orch] = await Promise.all([this.lisService.getAll(), this.orchService.getAll()]);
+    const all = [...(lis.ok ? lis.data : []), ...(orch.ok ? orch.data : [])] as Case[];
+    return caseByAccessionNumber(all, accession) ?? undefined;
   }
 
   // ── getAll ───────────────────────────────────────────────────────────────────
@@ -332,6 +342,30 @@ class CaseRouter implements ICaseService {
     return { ok: true, data: merged.data as any, meta: merged.meta } as ServiceResult<Case[]>;
   }
 
+  // ── listLinkableAccessions ──────────────────────────────────────────────────
+  // Batch 396 (Pete's privacy model, rule 4): the accession numbers a message
+  // may turn into links for the signed-in reader, only cases the reader can
+  // open. Returns numbers, not cases. Unlike getAll, a superadmin session
+  // gets only its own organisation's cases here, so no support access is
+  // used or recorded just to decorate a message
+  // (services/messages/linkableCaseAccessions.ts).
+  async listLinkableAccessions(): Promise<string[]> {
+    const session = getSessionUser();
+    if (!session) return [];
+    const res = await this.lisService.getAll()
+      .then(r => { this.lisAudit.log({ eventType: 'case.search', userId: session.id, outcome: 'success' }); return r; })
+      .catch((): ServiceResult<Case[]> => { this.lisAudit.log({ eventType: 'case.search', userId: session.id, outcome: 'failure' }); return { ok: false, data: [] } as any; });
+    if (!res.ok) return [];
+    const [subspecialties, enterpriseFacilities, allFacilities] = await Promise.all([
+      getSubspecialtyLookup(),
+      getEnterpriseFacilityLookup(),
+      facilityService.getAll().then(r => (r.ok ? r.data : [])).catch(() => [] as Facility[]),
+    ]);
+    const accessible = filterAccessibleCasesWithPools(session, res.data as any, subspecialties, enterpriseFacilities) as unknown as Case[];
+    const facilitiesById = new Map(allFacilities.map(f => [f.id, f as any]));
+    return selectLinkableAccessions(session, accessible as any, enterpriseFacilities, facilitiesById);
+  }
+
   // ── listCasesForUser ─────────────────────────────────────────────────────────
   // Queries both services independently so each access is separately audited.
   // June 2026: results filtered through filterAccessibleCasesWithPools() too, same as getAll()
@@ -382,7 +416,8 @@ class CaseRouter implements ICaseService {
   // trail (DSPT/UK GDPR/HIPAA-style requirements exist specifically to
   // attribute actions to a real, identifiable individual). Now resolves
   // the actual session user the same way getCase/getAll already do.
-  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion?: number): Promise<void> {
+  // PS-71 (Batch 458): the expected version is required: no case save without one.
+  async updateCase(caseId: string, updates: Partial<Case>, expectedVersion: number): Promise<void> {
     // Real, automatic denormalization for dimension-4 server-side
     // enforcement (see Case.eligibleFinalizerIds's own doc comment and
     // deriveEligibleFinalizerIds() in caseAccessControl.ts for the full
@@ -485,4 +520,4 @@ class CaseRouter implements ICaseService {
 //   import { fhirCaseService }      from './FHIRCaseService';
 //   import { firestoreCaseService } from './FirestoreCaseService';
 //   export const caseRouter = new CaseRouter(fhirCaseService, firestoreCaseService);
-export const caseRouter = new CaseRouter(mockCaseService, mockOrchestratorCaseService);
+export const caseRouter = new CaseRouter(caseService, mockOrchestratorCaseService);

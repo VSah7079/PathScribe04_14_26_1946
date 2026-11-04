@@ -37,6 +37,8 @@ import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { amendmentService } from '@/services';
 import type { AmendmentRecord } from '@/types/reports/AmendmentRecord';
+import { useRevisionReleaseAvailability } from '../hooks/useRevisionReleaseAvailability';
+import { revisionEntryDisabledTitle } from '@/services/reports/revisionReleaseCapability';
 
 const formatDateTime = (iso?: string) => iso ? new Date(iso).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }) : '';
 
@@ -56,6 +58,7 @@ export const AmendmentDraftBanner: React.FC<{
     if (value === undefined || value === null || value === '') return t('amendmentModal.delta.emptyValue');
     return String(value);
   };
+  const { availability } = useRevisionReleaseAvailability(caseData);
   const [record, setRecord] = useState<AmendmentRecord | undefined>(undefined);
   const [changedItemsOpen, setChangedItemsOpen] = useState(false);
 
@@ -87,7 +90,7 @@ export const AmendmentDraftBanner: React.FC<{
             {record?.type === 'correction' ? t('amendmentDraftBanner.correctionTitle') : t('amendmentDraftBanner.amendmentTitle')}
           </div>
           {onEdit && (
-            <button type="button" className="ps-amendment-draft-banner-edit" onClick={onEdit}>✏️ {t('common.edit')}</button>
+            <button type="button" className="ps-amendment-draft-banner-edit" onClick={onEdit} disabled={!availability.any} title={revisionEntryDisabledTitle(availability)}>✏️ {t('common.edit')}</button>
           )}
         </div>
 

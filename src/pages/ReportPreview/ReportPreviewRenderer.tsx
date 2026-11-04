@@ -7,13 +7,27 @@
 
 import React, { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { sexAtBirthEnglish, sexAtBirthLabelKey } from '@/services/patients/patientSexAtBirth';
 import { labelStyleVars } from '@/utils/labelStyleVars';
+import { unitsOf } from '@/services/reportAppearance/fontUnits';
+import { previewPageVars } from '@/services/reportAppearance/previewPage';
+import { renderPageSetup } from '@/services/reportAppearance/pageSetup';
+import type { FontUnits } from '@/types/template';
+import { formatDateTime } from '@/utils/formatDate';
+import type { ReportRevisionStatus } from '@/services/reports/resolveReportRevisionStatus';
+import { buildReportDocumentReference } from '@/services/printing/buildReportDocumentReference';
 import type { OrchestratorSection } from '@/pages/SynopticReportPage/components/OrchestratorSectionEditor';
 import type { Case } from '@/types/case/Case';
 import type { BodyPartAssembly, StructuredContext } from '@/orchestrator/contextBuilder';
 import type {
   TemplateNode, SectionNode, ConditionalExpression, ExpressionClause, LabelConfig,
 } from '@/types/template';
+import { escapeHtml, sanitizeRichHtml, sanitizeSvgMarkup } from '@/services/security/sanitizeHtml';
+import { ageFromDateOfBirth } from '@/utils/ageFromDateOfBirth';
+import { pressable } from '@/utils/a11y/pressable';
+import { layoutSectionIds, placementsAtReportEnd, placementsInSection } from '@/services/caseAttachments/attachmentCatalog';
+import { useReportPlacements } from '@/hooks/useReportPlacements';
+import { PlacedImages } from '@/components/CaseAttachments/PlacedImages';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Generic node-tree rendering — added alongside the existing AI-section
@@ -109,6 +123,9 @@ export function evalCondition(cond: ConditionalExpression | undefined, scope: an
   return cond.logic === 'OR' ? results.some(Boolean) : results.every(Boolean);
 }
 
+// Batch 612: the template's font units, for a field label that sets a size but not its own units.
+const FontUnitsContext = React.createContext<FontUnits | undefined>(undefined);
+
 const FieldRow: React.FC<{
   label: string;
   value: React.ReactNode;
@@ -117,12 +134,13 @@ const FieldRow: React.FC<{
   nodeKey: string;
 }> = ({ label, value, labelConfig, defaultPosition, nodeKey }) => {
   const position = labelConfig?.position ?? defaultPosition;
+  const templateUnits = React.useContext(FontUnitsContext);
   if (position === 'none') {
     return <div key={nodeKey} className="rp-node-value-only">{value}</div>;
   }
   return (
     <div key={nodeKey} className={`rp-node-field rp-node-field--${position}`}>
-      <span className="rp-node-label" style={labelStyleVars(labelConfig, 'rp-label')}>{label}</span>
+      <span className="rp-node-label" style={labelStyleVars(labelConfig, 'rp-label', templateUnits)}>{label}</span>
       <span className="rp-node-value">{value}</span>
     </div>
   );
@@ -130,23 +148,10 @@ const FieldRow: React.FC<{
 
 /** Computes whole-years age as of today from an ISO date string. Returns undefined on anything unparseable rather than a wrong number. */
 function computeAge(dateOfBirth: string | undefined): number | undefined {
-  if (!dateOfBirth) return undefined;
-  const dob = new Date(dateOfBirth);
-  if (Number.isNaN(dob.getTime())) return undefined;
-  const now = new Date();
-  // eslint-disable-next-line no-restricted-properties -- Real, honest justification: age-from-DOB compares two dates (now, dob) in the same, consistent local time - inherently viewer-relative, not a real, stored-event facility-timezone concern.
-  let age = now.getFullYear() - dob.getFullYear();
-  // Real, honest justification for both lines below: age-from-DOB
-  // compares two dates (now, dob) in the same, consistent local time -
-  // inherently viewer-relative, not a real, stored-event
-  // facility-timezone concern.
-  const hasNotHadBirthdayYet =
-    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
-    now.getMonth() < dob.getMonth() ||
-    // eslint-disable-next-line no-restricted-properties -- see real, honest justification above hasNotHadBirthdayYet
-    (now.getMonth() === dob.getMonth() && now.getDate() < dob.getDate());
-  if (hasNotHadBirthdayYet) age -= 1;
-  return age >= 0 ? age : undefined;
+  // Batch 504: from the calendar date written in the date of birth (utils/ageFromDateOfBirth.ts).
+  // The old local-time reading made the age go up a day early in the Americas.
+  const age = ageFromDateOfBirth(dateOfBirth);
+  return age !== undefined && age >= 0 ? age : undefined;
 }
 
 /** Builds the base data scope body Part templates resolve {{paths}} against — the live Case, not StructuredContext. See header comment above for why. */
@@ -163,7 +168,9 @@ export function buildRenderScope(caseData: Case | null): Record<string, any> {
       dob:  patient?.dateOfBirth
         ? new Date(patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
         : undefined,
-      sex: patient?.sex,
+      sex: patient?.sex, // the stored code; templates written as patient.sex == 'M' keep working
+      sexAtBirth: sexAtBirthEnglish(patient?.sex), // Batch 662: the word printed on the report
+      nhsNumber: patient?.nationalIdentifiers?.find((i: { system: string; value: string }) => i.system === 'mrn_nhs')?.value,
       mrn: patient?.mrn,
       age: computeAge(patient?.dateOfBirth),
     },
@@ -197,6 +204,9 @@ export function buildRenderScope(caseData: Case | null): Record<string, any> {
   };
 }
 
+import { RelatedCaseList } from '@/components/RelatedCases/RelatedCaseList';
+import type { RelatedCaseSnapshot } from '@/services/relatedCases/relatedCaseTypes';
+
 interface Props {
   sections:    OrchestratorSection[];
   /** Every enabled body-role Part, full node tree, assembly order — drives
@@ -222,11 +232,23 @@ interface Props {
    *  each section's own container and left to cascade via ordinary CSS
    *  inheritance. */
   documentStyle?: { header?: LabelConfig; body?: LabelConfig; footer?: LabelConfig };
+  /** Batch 612: the template's font size units. A template in points is drawn at the paper's real
+   *  width and margins, text in CSS points, so the screen matches what prints. */
+  fontUnits?: FontUnits;
   // ── Cross-pane sync (three-column layout) ──────────────────────────────────
   // Clicking a section heading here notifies the parent, which updates the
   // shared activeSectionId — the right-hand editor then scrolls to match.
   activeSectionId?:       string | null;
   onSectionClick?:        (id: string) => void;
+  /** Batch 495 (PS-283 §4.2.2): the report's revision status (from
+   *  useReportRevisionStatus), drawn as a header banner with the original
+   *  sign-out date and the latest revision date. Part of the document
+   *  itself, so it prints from every path that prints this page. */
+  revisionStatus?: ReportRevisionStatus | null;
+  /** Batch 613: the case's intraoperative (frozen section) diagnosis. Part of the case report, like an addendum. */
+  intraoperativeDiagnosis?: string | null;
+  /** Batch 613: related released cases the signer attached. Drawn after the body, exactly as signed. */
+  relatedCases?: readonly RelatedCaseSnapshot[];
 }
 
 // ── Institution data (mirrors OrchestratorReportPanel logic) ─────────────────
@@ -256,12 +278,25 @@ export function getInstitution(originHospitalId?: string) {
 }
 
 const ReportPreviewRenderer: React.FC<Props> = ({
-  sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle,
+  sections, bodyAssembly = [], headerAssembly = [], footerAssembly = [], structuredContext = null, caseData, templateName, resolvedBy, activeSectionId, onSectionClick, documentStyle, fontUnits,
+  revisionStatus = null, intraoperativeDiagnosis = null, relatedCases = [],
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Batch 495 (PS-283 §4.2.3): the scan-and-correlate footer (Code 128 of the
+  // accession, which the scanner already opens, plus the record version).
+  const caseAccessionKey = caseData?.accession?.fullAccession ?? caseData?.accession?.accessionNumber ?? '';
+  const caseVersion = caseData?.version ?? null;
+  const documentReference = useMemo(
+    () => buildReportDocumentReference(caseAccessionKey ? { version: caseVersion, accession: { fullAccession: caseAccessionKey } } : null),
+    [caseAccessionKey, caseVersion],
+  );
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const sectionsById = useMemo(() => new Map(sections.map(s => [s.id, s] as const)), [sections]);
   const baseScope = useMemo(() => buildRenderScope(caseData), [caseData]);
+  // Batch 742: the images placed in sections print there, and at the end of the text (functions/main.py does the same).
+  const placements = useReportPlacements(caseData?.id, caseAccessionKey || undefined);
+  const endPlacements = useMemo(() => placementsAtReportEnd(placements, layoutSectionIds(bodyAssembly)), [placements, bodyAssembly]);
+  const placedIn = (sectionId: string) => <PlacedImages placements={placementsInSection(placements, sectionId)} />;
 
   // Auto-scroll to follow activeSectionId when it changes from elsewhere
   // (navigator click, or editing in the right-hand section editor)
@@ -279,7 +314,8 @@ const ReportPreviewRenderer: React.FC<Props> = ({
   const mrn        = caseData?.patient?.mrn ?? '';
   const dob        = caseData?.patient?.dateOfBirth
     ? new Date(caseData.patient.dateOfBirth).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : '';
-  const sex        = caseData?.patient?.sex ?? '';
+  const sexKey     = sexAtBirthLabelKey(caseData?.patient?.sex);
+  const sex        = sexKey ? t(sexKey) : '';
   const priority   = (caseData?.order as any)?.priority ?? '';
   const referring  = caseData?.order?.facilityName ?? '';
   const clinician  = caseData?.order?.requestingProvider ?? '';
@@ -317,6 +353,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         <div key={node.id} id={`rp-section-${node.id}`} className="rp-section">
           <div className="rp-section-heading">{label}</div>
           <div className="rp-section-empty">{t('reportPreviewRenderer.notYetGenerated')}</div>
+          {placedIn(node.id)}
         </div>
       );
     }
@@ -326,7 +363,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         id={`rp-section-${s.id}`}
         ref={el => { sectionRefs.current[s.id] = el; }}
         className={`rp-section${activeSectionId === s.id ? ' rp-section--active' : ''}`}
-        onClick={() => onSectionClick?.(s.id)}
+        {...pressable(() => onSectionClick?.(s.id))}
       >
         <div className={`rp-section-heading${s.committed ? ' rp-section-heading--accepted' : s.userEdited ? ' rp-section-heading--edited' : ''}`}>
           {s.label}
@@ -335,12 +372,13 @@ const ReportPreviewRenderer: React.FC<Props> = ({
           {!s.committed && !s.userEdited && s.aiGenerated && <span className="rp-section-badge rp-section-badge--ai">{t('reportPreviewRenderer.badgeAiDraft')}</span>}
         </div>
         {s.text ? (
-          <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: s.text }} />
+          <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(s.text) }} />
         ) : (
           <div className="rp-section-empty">
             {s.required ? t('reportPreviewRenderer.requiredNotCompleted') : t('reportPreviewRenderer.noContent')}
           </div>
         )}
+        {placedIn(s.id)}
       </div>
     );
   };
@@ -397,7 +435,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         if (node.hideIfEmpty && !html) return null;
         return (
           <FieldRow key={key} nodeKey={key} label={node.label} labelConfig={node.labelConfig} defaultPosition="above"
-            value={<span dangerouslySetInnerHTML={{ __html: html || `<span class="rp-node-empty">${node.placeholder ?? '—'}</span>` }} />} />
+            value={<span dangerouslySetInnerHTML={{ __html: html ? sanitizeRichHtml(html) : `<span class="rp-node-empty">${escapeHtml(node.placeholder ?? '—')}</span>` }} />} />
         );
       }
 
@@ -463,6 +501,7 @@ const ReportPreviewRenderer: React.FC<Props> = ({
               <div className="rp-node-section-heading" style={labelStyleVars(node.labelConfig, 'rp-heading')}>{node.printHeading}</div>
             )}
             {node.children.map((c, i) => renderNode(c, scope, `${key}-${i}`))}
+            {placedIn(node.id)}
           </div>
         );
 
@@ -554,11 +593,16 @@ const ReportPreviewRenderer: React.FC<Props> = ({
     }
   };
 
+  // Batch 612: a template in points is drawn at the paper's real width and side margins.
+  const trueSize = unitsOf(documentStyle?.body, fontUnits) === 'pt';
+  const pageVars = trueSize ? previewPageVars(renderPageSetup()) : {};
+
   return (
-    <div className="rp-page" style={labelStyleVars(documentStyle?.body, 'rp-body')}>
+    <FontUnitsContext.Provider value={fontUnits}>
+    <div className={`rp-page${trueSize ? ' rp-page--true-size' : ''}`} style={labelStyleVars(documentStyle?.body, 'rp-body', fontUnits, pageVars)}>
 
       {/* ── Institution header ────────────────────────────────────────── */}
-      <div className="rp-doc-header" style={labelStyleVars(documentStyle?.header, 'rp-header')}>
+      <div className="rp-doc-header" style={labelStyleVars(documentStyle?.header, 'rp-header', fontUnits)}>
         {headerAssembly.length > 0 ? (
           headerAssembly.map(part => (
             <React.Fragment key={part.slotId}>
@@ -580,6 +624,26 @@ const ReportPreviewRenderer: React.FC<Props> = ({
           </div>
         )}
       </div>
+
+      {/* ── Revision status (Batch 495, PS-283 §4.2.2) ───────────────────── */}
+      {revisionStatus && (
+        <div className="rp-revision-banner" role="note">
+          <div className="rp-revision-flag">
+            {t(`reportRevision.flag.${revisionStatus.latestType}`)}
+            {revisionStatus.revisionCount > 1 && (
+              <span className="rp-revision-count">{t('reportRevision.revisionCount', { count: revisionStatus.revisionCount })}</span>
+            )}
+          </div>
+          <div className="rp-revision-dates">
+            {revisionStatus.originalSignOutAt
+              ? t('reportRevision.datesWithOriginal', {
+                  original: formatDateTime(revisionStatus.originalSignOutAt, i18n.language),
+                  latest: formatDateTime(revisionStatus.latestRevisionAt, i18n.language),
+                })
+              : t('reportRevision.datesLatestOnly', { latest: formatDateTime(revisionStatus.latestRevisionAt, i18n.language) })}
+          </div>
+        </div>
+      )}
 
       {/* ── Patient / case header ─────────────────────────────────────── */}
       <div className="rp-case-header">
@@ -613,6 +677,13 @@ const ReportPreviewRenderer: React.FC<Props> = ({
         <div className="rp-case-rule" />
       </div>
 
+      {intraoperativeDiagnosis && (
+        <div className="ps-related-card__row rp-intraop" data-phi="diagnosis">
+          <span className="ps-related-card__label">{t('surgicalReportPdf.intraopDiagnosis')}</span>
+          <span className="ps-related-card__multiline">{intraoperativeDiagnosis}</span>
+        </div>
+      )}
+
       {/* ── Narrative + structural body content ─────────────────────────── */}
       <div className="rp-body">
         {bodyAssembly.length === 0 && sections.length === 0 ? (
@@ -635,14 +706,23 @@ const ReportPreviewRenderer: React.FC<Props> = ({
           sections.map(s => (
             <div key={s.id} id={`rp-section-${s.id}`} className="rp-section">
               <div className="rp-section-heading">{s.label}</div>
-              {s.text ? <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: s.text }} /> : <div className="rp-section-empty">{t('reportPreviewRenderer.noContent')}</div>}
+              {s.text ? <div className="rp-section-body" dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(s.text) }} /> : <div className="rp-section-empty">{t('reportPreviewRenderer.noContent')}</div>}
             </div>
           ))
         )}
+        <PlacedImages placements={endPlacements} heading />
       </div>
 
+      {relatedCases.length > 0 && (
+        <section className="rp-related-cases">
+          <h3>{t('surgicalReportPdf.relatedCasesTitle')}</h3>
+          <p>{t('surgicalReportPdf.relatedCasesNotice')}</p>
+          <RelatedCaseList cases={relatedCases} />
+        </section>
+      )}
+
       {/* ── Report footer ─────────────────────────────────────────────── */}
-      <div className="rp-doc-footer" style={labelStyleVars(documentStyle?.footer, 'rp-footer')}>
+      <div className="rp-doc-footer" style={labelStyleVars(documentStyle?.footer, 'rp-footer', fontUnits)}>
         {footerAssembly.length > 0 ? (
           footerAssembly.map(part => (
             <React.Fragment key={part.slotId}>
@@ -658,9 +738,22 @@ const ReportPreviewRenderer: React.FC<Props> = ({
             <div className="rp-footer-right">{inst.name}</div>
           </div>
         )}
+        {documentReference && (
+          <div className="rp-doc-reference">
+            {documentReference.barcodeSvg && (
+              <span className="rp-doc-reference-barcode" data-phi="accession" dangerouslySetInnerHTML={{ __html: sanitizeSvgMarkup(documentReference.barcodeSvg) }} />
+            )}
+            <span className="rp-doc-reference-text" data-phi="accession">
+              {documentReference.version !== null
+                ? t('reportPrint.documentReference', { accession: documentReference.accession, version: documentReference.version })
+                : t('reportPrint.documentReferenceNoVersion', { accession: documentReference.accession })}
+            </span>
+          </div>
+        )}
       </div>
 
     </div>
+    </FontUnitsContext.Provider>
   );
 };
 

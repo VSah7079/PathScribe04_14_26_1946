@@ -1,5 +1,10 @@
 // src/services/billing/jsonWebhookBuilder.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 
 // Real, working in-memory localStorage stub, same established pattern
 // as mockPatientIndexService.test.ts - this test environment is plain
@@ -259,6 +264,21 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
     expect(payload.performingFacility?.facilityId).toBe('c-fenwick-general');
   });
 
+  it('Batch 605: the facility Place of Service code and its dictionary name are in the payload; absent when not set', async () => {
+    const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
+    const caseData = {
+      id: 'CASE-FACILITY-POS', patient: undefined as any, participants: [], specimens: [],
+      order: { icd10Codes: [], facilityId: 'c-fenwick-general' } as any,
+    };
+    await mockFacilityService.update('c-fenwick-general', { placeOfServiceCodeId: '81' });
+    const withPos = await buildJsonWebhookPayload(caseData as any, []);
+    expect(withPos.performingFacility?.placeOfServiceCode).toBe('81');
+    expect(typeof withPos.performingFacility?.placeOfServiceName).toBe('string');
+    await mockFacilityService.update('c-fenwick-general', { placeOfServiceCodeId: '' });
+    const without = await buildJsonWebhookPayload(caseData as any, []);
+    expect(without.performingFacility?.placeOfServiceCode).toBeUndefined();
+  });
+
   it('a real, admin-set cliaOrIsoNumber is genuinely reflected in the payload', async () => {
     const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
     await mockFacilityService.update('c-fenwick-general', { cliaOrIsoNumber: '05D1234567' });
@@ -282,10 +302,11 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
   it('performingFacility is genuinely undefined when the ordering facility holds no performing_lab role and no override', async () => {
     const caseData = {
       id: 'CASE-FACILITY-4', patient: undefined as any, participants: [], specimens: [],
-      // c1 (Metro General) is external_ordering_client only - no
-      // performing_lab role, no performingLabFacilityId override, so
-      // resolvePerformingLabFacilityId() correctly returns undefined.
-      order: { icd10Codes: [], facilityId: 'c1' } as any,
+      // c-auto-000001 (Fairview Family Practice) is external_ordering_client
+      // only - no performing_lab role, no performingLabFacilityId override,
+      // so resolvePerformingLabFacilityId() correctly returns undefined.
+      // (Batch 441: c1 now names Desert Valley as its performing lab.)
+      order: { icd10Codes: [], facilityId: 'c-auto-000001' } as any,
     };
     const payload = await buildJsonWebhookPayload(caseData as any, []);
     expect(payload.performingFacility).toBeUndefined();
@@ -301,5 +322,31 @@ describe('buildJsonWebhookPayload — real, per direct follow-up: performingFaci
     const payload = await buildJsonWebhookPayload(caseData as any, []);
     expect(payload.performingFacility?.facilityId).toBe('c-fenwick-womens');
     expect(payload.performingFacility?.cliaOrIsoNumber).toBeUndefined();
+  });
+});
+
+describe('buildJsonWebhookPayload — Batch 618 (PS-336): a second facility for the technical component', () => {
+  const caseWith = (technicalComponentFacilityId?: string) => ({
+    id: 'CASE-SPLIT', patient: undefined as any, participants: [], specimens: [],
+    order: { icd10Codes: [], facilityId: 'c-fenwick-general', technicalComponentFacilityId } as any,
+  });
+  const charges = [baseCharge({ id: 'tc', billingType: 'TC' }), baseCharge({ id: 'pro', billingType: '26' })];
+
+  it('sends the technical charge to the technical lab and the professional charge to the reporting lab', async () => {
+    const { mockFacilityService } = await import('@/services/facilities/mockFacilityService');
+    const all = await mockFacilityService.getAll();
+    const other = (all as any).data.find((f: any) => f.id !== 'c-fenwick-general' && !f.isEnterprise && f.roles.includes('performing_lab'));
+    const payload = await buildJsonWebhookPayload(caseWith(other.id) as any, charges);
+    expect(payload.technicalComponentFacility?.facilityId).toBe(other.id);
+    expect(payload.charges.find(c => c.transactionId === 'tc')?.performingFacilityId).toBe(other.id);
+    expect(payload.charges.find(c => c.transactionId === 'pro')?.performingFacilityId).toBe('c-fenwick-general');
+  });
+
+  it('is unchanged for a single-facility case, or when the same lab is named twice', async () => {
+    for (const technical of [undefined, 'c-fenwick-general']) {
+      const payload = await buildJsonWebhookPayload(caseWith(technical) as any, charges);
+      expect(payload.technicalComponentFacility).toBeUndefined();
+      expect(payload.charges.every(c => c.performingFacilityId === 'c-fenwick-general')).toBe(true);
+    }
   });
 });

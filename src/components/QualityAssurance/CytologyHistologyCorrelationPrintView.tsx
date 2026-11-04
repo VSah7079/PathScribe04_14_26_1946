@@ -22,13 +22,14 @@
 // should read identically. "CYT-QA-04" is this app's own internal QA
 // metric identifier and stays literal, like other internal
 // ticket/rule references elsewhere in the app. `r.cytoDiagnosis`/
-// `r.histDiagnosis` (real diagnosis text) and every id/MRN/date value
+// `r.histDiagnosis` (real diagnosis text) and every accession/date value (no MRN: a printout leaves access controls, same rule as the download)
 // are real data, left as-is.
 
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { CytologyHistologyCorrelationReport } from '@/services/cytology/resolveCytologyHistologyCorrelationReport';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
 
 const pct = (n: number) => `${n.toFixed(1)}%`;
 
@@ -50,7 +51,11 @@ export const CytologyHistologyCorrelationPrintView: React.FC<{ report: CytologyH
             <div className="ps-cyto-histo-print-scope">{t('cytologyHistologyCorrelationPrintView.scopeLine', { scope: scopeLabel, date: new Date().toLocaleString() })}</div>
           </div>
           <div className="ps-cyto-histo-print-header-actions">
-            <button className="ps-btn-small" onClick={() => window.print()}>🖨️ {t('cytologyQaTab.histologyTable.printButton')}</button>
+            <button className="ps-btn-small" onClick={() => {
+              // PS-282 (Batch 437): audited.
+              void recordDocumentOutput({ action: 'print', document: 'qa-cytology-histology-correlation', destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+              window.print();
+            }}>🖨️ {t('cytologyQaTab.histologyTable.printButton')}</button>
             <button className="ps-btn-small" onClick={onClose}>{t('common.close')}</button>
           </div>
         </div>
@@ -65,7 +70,6 @@ export const CytologyHistologyCorrelationPrintView: React.FC<{ report: CytologyH
         <table className="ps-cyto-histo-print-table">
           <thead>
             <tr>
-              <th>{t('cytologyQaTab.histologyTable.patientMrn')}</th>
               <th>{t('cytologyQaTab.histologyTable.cytoAccession')}</th>
               <th>{t('cytologyQaTab.histologyTable.cytoDate')}</th>
               <th>{t('cytologyQaTab.histologyTable.cytoDiagnosis')}</th>
@@ -79,7 +83,6 @@ export const CytologyHistologyCorrelationPrintView: React.FC<{ report: CytologyH
           <tbody>
             {report.rows.map((r, i) => (
               <tr key={i}>
-                <td data-phi="mrn">{r.patientMrn ?? '—'}</td>
                 <td>{r.cytoAccessionId ?? '—'}</td>
                 <td>{r.cytoDate ? new Date(r.cytoDate).toLocaleDateString() : '—'}</td>
                 <td>{r.cytoDiagnosis}</td>
@@ -91,7 +94,7 @@ export const CytologyHistologyCorrelationPrintView: React.FC<{ report: CytologyH
               </tr>
             ))}
             {report.rows.length === 0 && (
-              <tr><td className="ps-cyto-histo-print-empty-row" colSpan={9}>{t('cytologyQaTab.histologyTable.noCorrelationsYet')}</td></tr>
+              <tr><td className="ps-cyto-histo-print-empty-row" colSpan={8}>{t('cytologyQaTab.histologyTable.noCorrelationsYet')}</td></tr>
             )}
           </tbody>
         </table>

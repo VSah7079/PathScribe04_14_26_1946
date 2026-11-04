@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  PathScribe demonstration slide page (Batch 750, Pete's seed row S10). Not part of PathScribe: PathScribe has no slide
+  viewer. This page stands in for a laboratory's own digital pathology application in the demonstration, so that
+  selecting a slide's reference preview in PathScribe opens something. It is hosted on its own (for example Cloudflare
+  R2) and PathScribe reaches it through the viewer address template, e.g.
+  https://<host>/viewer/index.html?slide={{slideId}}
+  Demonstration only. Not for diagnosis. See docs/product/SLIDE_IMAGE_DEMO.md.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Demonstration slide page</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- OpenSeadragon, pinned. Draws the Deep Zoom tiles of the demonstration images. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/openseadragon/4.1.0/openseadragon.min.js" defer></script>
+  <script src="viewer.js" defer></script>
+</head>
+<body>
+  <header class="banner" role="note">
+    <strong>Demonstration only. Not for diagnosis.</strong>
+    <span>A sample page standing in for a laboratory's digital pathology application. Openly licensed research images, not patient slides.</span>
+  </header>
+  <main>
+    <h1 id="slide-title">Demonstration slide</h1>
+    <p id="slide-id" class="slide-id"></p>
+    <p id="message" class="message" role="status"></p>
+    <div id="viewer" class="viewer" aria-label="Demonstration slide image"></div>
+    <section class="credit" aria-label="Image source and licence">
+      <h2>Image source and licence</h2>
+      <p id="credit-source"></p>
+      <p id="credit-licence"></p>
+      <p id="credit-note"></p>
+    </section>
+  </main>
+</body>
+</html>

@@ -16,17 +16,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockAssistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES } from '@/services/assistPolling/mockAssistPollingService';
+
 import { runAssistPollNow, ingestLisMessageNow, retryFailedLisEventsNow } from '@/services/assistPolling/assistPollingRuntime';
+import { isConfigRefusal } from '@/services/authorization/guardConfigWrites';
 import { assistSettingsChanged, summarizeRun } from '@/services/assistPolling/assistMilestoneRules';
 import { ASSIST_MILESTONES, type AssistMilestone, type AssistPollingSettings, type AssistPollingState, type AssistPollRun } from '@/services/assistPolling/types';
-import { mockLisStagingQueueService } from '@/services/lisIngestion/mockLisStagingQueueService';
+
 import { recentEvents, countByState } from '@/services/lisIngestion/stagingRules';
 import { isAdapterError, type StagedLisEvent } from '@/services/lisIngestion/types';
 import { EXAMPLE_HL7_STATUS_MESSAGE } from '@/services/lisIngestion/adapters/hl7v2StatusAdapter';
 import { EXAMPLE_WEBHOOK_BODY } from '@/services/lisIngestion/adapters/webhookJsonAdapter';
 import { useConfigDirtyGuard } from '../configDirtyGuardContext';
 import { formatDateTime } from '@/utils/formatDate';
+import { assistPollingService, MIN_INTERVAL_MINUTES, MAX_INTERVAL_MINUTES, lisStagingQueueService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { scheduleStatus, scheduleStartedAt, SIMULATED_SCHEDULE_TICK_MS } from '@/services/assistPolling/simulatedAssistSchedule';
+import { dataMayPersistInBrowser } from '@/services/browserData/browserDataPolicy';
 
 type PushKind = 'hl7v2' | 'webhook';
 const EXAMPLES: Record<PushKind, string> = { hl7v2: EXAMPLE_HL7_STATUS_MESSAGE, webhook: EXAMPLE_WEBHOOK_BODY };
@@ -46,25 +51,31 @@ const AssistLisPollingSection: React.FC = () => {
   const [pushResult, setPushResult] = useState<AssistPollRun | null>(null);
 
   const load = useCallback(async () => {
-    const [s, q] = await Promise.all([mockAssistPollingService.getState(), mockLisStagingQueueService.load()]);
+    const [s, q] = await Promise.all([assistPollingService.getState(), lisStagingQueueService.load()]);
     setState(s);
     setDraft(s.settings);
     setQueue(q);
   }, []);
   useEffect(() => { load(); }, [load]);
+  // Batch 605: while the demo's simulated schedule runs, keep the last and next run times fresh.
+  useEffect(() => {
+    if (!dataMayPersistInBrowser()) return;
+    const id = setInterval(() => { void load(); }, SIMULATED_SCHEDULE_TICK_MS);
+    return () => clearInterval(id);
+  }, [load]);
 
   const changed = !!state && !!draft && assistSettingsChanged(state.settings, draft);
   useEffect(() => { setDirty(changed); }, [changed, setDirty]);
   useEffect(() => () => setDirty(false), [setDirty]);
 
-  if (!state || !draft) return <div className="ps-conf-loading">{t('assistLisPolling.loading')}</div>;
+  if (!state || !draft) return <LoadingState label={t('assistLisPolling.loading')} />;
 
   const set = <K extends keyof AssistPollingSettings>(k: K, v: AssistPollingSettings[K]) => { setDraft({ ...draft, [k]: v }); setSaved(false); };
   const setRow = (i: number, patch: Partial<AssistPollingSettings['statusCrosswalk'][number]>) =>
     set('statusCrosswalk', draft.statusCrosswalk.map((r, j) => (j === i ? { ...r, ...patch } : r)));
 
   const handleSave = async () => {
-    const res = await mockAssistPollingService.saveSettings(draft);
+    const res = await assistPollingService.saveSettings(draft);
     if (res.ok === false) { setErrorCode(res.error); return; }
     setErrorCode(null);
     setSaved(true);
@@ -73,7 +84,8 @@ const AssistLisPollingSection: React.FC = () => {
 
   const runAction = async (action: () => Promise<unknown>) => {
     setBusy(true);
-    try { await action(); } finally { setBusy(false); await load(); }
+    // Batch 428: a refusal (no assist:lis-message:ingest) is shown by the Configuration page.
+    try { await action(); } catch (e) { if (!isConfigRefusal(e)) throw e; } finally { setBusy(false); await load(); }
   };
 
   const handleSendMessage = () => runAction(async () => setPushResult(await ingestLisMessageNow(pushKind, pushText)));
@@ -92,6 +104,17 @@ const AssistLisPollingSection: React.FC = () => {
       {/* ── Settings ── */}
       <div className="ps-conf-card ps-conf-card--spaced">
         <div className="ps-conf-card-title">{t('assistLisPolling.settingsCard.title')}</div>
+        {dataMayPersistInBrowser() && (() => {
+          const sch = scheduleStatus(state, scheduleStartedAt());
+          return (
+            <p className="ps-conf-hint" data-testid="assist-simulated-schedule">
+              <span className="ps-conf-badge">{t('assistLisPolling.simulatedSchedule.badge')}</span>{' '}
+              {t('assistLisPolling.simulatedSchedule.explain')}{' '}
+              {t('assistLisPolling.simulatedSchedule.last', { when: sch.lastRunAt ? formatDateTime(sch.lastRunAt, i18n.language) : t('assistLisPolling.simulatedSchedule.never') })}{' '}
+              {t('assistLisPolling.simulatedSchedule.next', { when: sch.nextRunAt ? formatDateTime(sch.nextRunAt, i18n.language) : t('assistLisPolling.simulatedSchedule.off') })}
+            </p>
+          );
+        })()}
         <div className="ps-conf-toggle-row">
           <div
             role="switch"

@@ -68,3 +68,19 @@ describe('mockCytologySignOutRecordService — real, "always written" sign-out h
     expect(res.data.length).toBe(2);
   });
 });
+
+describe('Batch 534: a record recalled within the release delay', () => {
+  it('is marked recalled (never deleted or edited) and left out of the results; kept for audit', async () => {
+    const created = await mockCytologySignOutRecordService.create(draft());
+    if (!created.ok) throw new Error('not created');
+    const res = await mockCytologySignOutRecordService.markRecalled(created.data.id, { userId: 'PATH-002', userName: 'Dr. Second' }, '2026-10-12T18:00:00.000Z');
+    expect(res.ok && res.data.recalled).toEqual({ at: '2026-10-12T18:00:00.000Z', by: { userId: 'PATH-002', userName: 'Dr. Second' } });
+    expect(res.ok && res.data.reportContent).toEqual(REPORT_CONTENT);
+    expect((await mockCytologySignOutRecordService.getByCaseId('S26-5002-CYT-001')).ok && (await mockCytologySignOutRecordService.getByCaseId('S26-5002-CYT-001') as any).data).toEqual([]);
+    expect((await mockCytologySignOutRecordService.getBySpecimenId('S26-5002-SP-1') as any).data).toEqual([]);
+    expect((await mockCytologySignOutRecordService.getByCaseIdIncludingRecalled('S26-5002-CYT-001') as any).data.map((r: any) => r.id)).toEqual([created.data.id]);
+  });
+  it('an unknown record is refused', async () => {
+    expect((await mockCytologySignOutRecordService.markRecalled('nope', { userId: 'x', userName: 'x' }, 't')).ok).toBe(false);
+  });
+});

@@ -21,6 +21,13 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import type { ResolvedAnswer } from '@/orchestrator/contextBuilder';
+import { recordDocumentOutput, planReportPrint, releaseHoldPolicyFor, checkReportPrint, reportReleaseService, DOCUMENT_DESTINATION, type PrintPlan } from '@/services';
+import { resolveReportWatermarkText } from '@/services/reports/resolveReportWatermark';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { useReportRevisionStatus } from '@/hooks/useReportRevisionStatus';
+import { formatDateTime as formatLocaleDateTime } from '@/utils/formatDate';
+import ReportPrintPromptModal from './ReportPrintPromptModal';
+import { escapeHtml } from '@/services/security/sanitizeHtml';
 
 // Real, persisted notification-method enum values stay as data; only the
 // displayed label is translated (this sweep's usual LABEL_KEY pattern).
@@ -70,10 +77,16 @@ interface Props {
   patient: string;
   mrn: string;
   instances: CopilotReportInstance[];
+  /** PS-282 (Batch 437): the case, so the print is audited (print or
+   *  reprint, with a reason when the lab requires one). */
+  caseRecord?: { id: string; status?: string; version?: number; originHospitalId?: string | null; order?: { facilityId?: string | null } | null; finalizedAt?: string | null } | null;
 }
 
-export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accession, patient, mrn, instances }) => {
-  const { t } = useTranslation();
+export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accession, patient, mrn, instances, caseRecord }) => {
+  const { t, i18n } = useTranslation();
+  const [printPlan, setPrintPlan] = React.useState<PrintPlan | null>(null);
+  // Batch 495 (PS-283 §4.2.2): revision status for the printed header.
+  const revisionStatus = useReportRevisionStatus(show ? caseRecord : null);
   // Default every instance to its most recent version.
   const [selectedVersion, setSelectedVersion] = React.useState<Record<string, number>>({});
   const [activeInstanceId, setActiveInstanceId] = React.useState<string | null>(null);
@@ -92,7 +105,26 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
 
   if (!show) return null;
 
-  const handlePrint = () => {
+  // PS-282 (Batch 437): plan first (a reprint may need a reason), then print
+  // and record it. Pending Release is confirmed before this view opens
+  // (BottomActionBar), so it isn't asked again here.
+  const handlePrint = async () => {
+    if (!caseRecord) { void printNow(null, ''); return; }
+    // Batch 495 (PS-283 §4.2.4): printing a case report needs
+    // report:case-report:print for the case's facility.
+    const check = await checkReportPrint({ caseId: caseRecord.id, facilityId: caseRecord.order?.facilityId ?? null });
+    if (check !== 'allowed') {
+      alert(t(`reportPrint.${check}`));
+      return;
+    }
+    const plan = await planReportPrint({ document: 'report', caseId: caseRecord.id, caseRecord, releaseHoldPolicy: await releaseHoldPolicyFor(caseRecord) });
+    // Batch 654: the Release Hold Print Policy may forbid printing while the report is held.
+    if (plan.blocked) { alert(t('reportPrint.heldBlocked')); return; }
+    if (plan.askReason || plan.warnPendingRelease || plan.askOverrideReason) { setPrintPlan(plan); return; }
+    void printNow(plan, '');
+  };
+
+  const printNow = async (plan: PrintPlan | null, reason: string) => {
     // ROOT FIX for the persistent blank-print issue — every previous fix
     // patched one more ancestor in the ps-overlay/ps-synrp-root/ps-app-root
     // chain, and each time revealed another one Chrome's actual print
@@ -106,15 +138,27 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
     // no modal, no overlay, no app shell, nothing to escape or clip.
     const printArea = document.getElementById('ps-copilot-print-area');
     if (!printArea) return;
+    // Opened before any await, so the browser still treats it as the click's own window.
     const printWindow = window.open('', '_blank', 'width=900,height=1000');
     if (!printWindow) {
       alert(t('copilotReportViewModal.popupBlockedAlert'));
       return;
     }
+    if (caseRecord) {
+      void recordDocumentOutput({
+        action: plan?.action ?? 'print', document: 'report', documentId: caseRecord.id, version: caseRecord.version ?? null,
+        caseId: accession || caseRecord.id, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', reason, format: 'html',
+      });
+    }
+    // Batch 516 (PS-283): an unsigned case prints "PRELIMINARY — SUBJECT TO CHANGE".
+    const watermark = await resolveReportWatermarkText(
+      { status: caseRecord?.status, purpose: 'print' },
+      { releaseBufferText: async () => { const cfg = await reportReleaseService.getOrgDefault(); return cfg.ok ? cfg.data.watermarkText : undefined; }, t },
+    );
     printWindow.document.write(`<!DOCTYPE html>
-<html>
+<html lang="${escapeHtml(i18n.language)}">
 <head>
-<title>${t('copilotReportViewModal.printWindowTitle', { accession })}</title>
+<title>${escapeHtml(t('copilotReportViewModal.printWindowTitle', { accession }))}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #000; padding: 32px; }
   .ps-copilot-report-header { display: flex; gap: 24px; font-size: 12pt; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #ccc; }
@@ -125,16 +169,19 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
   .ps-copilot-report-field-label { padding: 6px 12px 6px 0; color: #444; width: 45%; vertical-align: top; }
   .ps-copilot-report-field-value { padding: 6px 0; color: #000; font-weight: 500; }
   .ps-copilot-report-section-row td { font-size: 9pt; font-weight: 800; color: #000; letter-spacing: 0.08em; text-transform: uppercase; padding-top: 14px; padding-bottom: 5px; border-bottom: 1px solid #999; }
+  .ps-copilot-report-revision { border: 1px solid #d97706; border-radius: 6px; padding: 6px 12px; margin-bottom: 14px; font-size: 10.5pt; }
   .ps-copilot-report-amendment-narrative { background: #fff7ed; border: 1px solid #d97706; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 10.5pt; line-height: 1.6; }
   .ps-copilot-report-amendment-flag { font-size: 9pt; font-weight: 800; color: #d97706; letter-spacing: 0.08em; margin-bottom: 4px; }
   .ps-copilot-report-diff-table { margin-bottom: 14px; }
   .ps-copilot-report-diff-table th { text-align: left; font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 0.06em; padding-bottom: 6px; border-bottom: 1px solid #ccc; }
   .ps-copilot-report-diff-previous { color: #666; text-decoration: line-through; }
   .ps-copilot-report-diff-current { color: #000; font-weight: 600; }
+  .ps-copilot-print-watermark { position: fixed; top: 45%; left: 0; right: 0; text-align: center; transform: rotate(-30deg);
+    font-size: 34pt; font-weight: 700; color: rgba(180, 83, 9, 0.18); pointer-events: none; z-index: 10; }
   @media print { @page { margin: 18mm 20mm; } }
 </style>
 </head>
-<body>${printArea.innerHTML}</body>
+<body>${watermark ? `<div class="ps-copilot-print-watermark">${escapeHtml(watermark)}</div>` : ''}${printArea.innerHTML}</body>
 </html>`);
     printWindow.document.close();
     printWindow.focus();
@@ -144,7 +191,8 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
     setTimeout(() => { printWindow.print(); }, 250);
   };
 
-  const formatDateTime = (iso?: string) => iso ? new Date(iso).toLocaleString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  // Batch 516: in the user's format (was always en-US).
+  const formatDateTime = (iso?: string) => iso ? formatLocaleDateTime(iso, i18n.language) : '';
 
   // Group instances by specimen for the left panel, numbered in order
   // of first appearance — mirrors how the case's specimens are ordered.
@@ -169,7 +217,16 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
         <div className="ps-copilot-report-view-toolbar" data-print-hide="true">
           <span className="ps-copilot-report-view-title">{t('copilotReportViewModal.toolbarTitle')}</span>
           <div>
-            <button className="ps-btn-ghost-dark" onClick={handlePrint}>🖨 {t('copilotReportViewModal.printButton')}</button>
+            {caseRecord ? (
+              <CapabilityButton
+                capability="report:case-report:print"
+                context={{ caseId: caseRecord.id, facilityId: caseRecord.order?.facilityId ?? null }}
+                className="ps-btn-ghost-dark"
+                onClick={() => { void handlePrint(); }}
+              >🖨 {t('copilotReportViewModal.printButton')}</CapabilityButton>
+            ) : (
+              <button className="ps-btn-ghost-dark" onClick={() => { void handlePrint(); }}>🖨 {t('copilotReportViewModal.printButton')}</button>
+            )}
             <button className="ps-btn-ghost-dark" onClick={onClose}>{t('common.close')}</button>
           </div>
         </div>
@@ -208,7 +265,7 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
                           >
                             <span className="ps-copilot-report-version-badge">V.{v.versionNumber}</span>
                             <span className="ps-copilot-report-version-label">{v.label}</span>
-                            <span className="ps-copilot-report-version-meta">{formatDateTime(v.releasedAt)} — {v.createdByName}</span>
+                            <span className="ps-copilot-report-version-meta">{t('copilotReportViewModal.versionMeta', { date: formatDateTime(v.releasedAt), name: v.createdByName })}</span>
                           </button>
                         ))}
                       </div>
@@ -230,6 +287,19 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
                 <div data-phi="name"><strong>{t('copilotReportViewModal.patientLabel')}</strong> {patient}</div>
                 <div data-phi="mrn"><strong>{t('copilotReportViewModal.mrnLabel')}</strong> {mrn}</div>
               </div>
+              {/* Batch 495 (PS-283 §4.2.2): revision status in the printed header —
+                  original sign-out date vs. the latest revision date. */}
+              {revisionStatus && (
+                <div className="ps-copilot-report-revision">
+                  <strong>{t(`reportRevision.flag.${revisionStatus.latestType}`)}</strong>{' '}
+                  {revisionStatus.originalSignOutAt
+                    ? t('reportRevision.datesWithOriginal', {
+                        original: formatLocaleDateTime(revisionStatus.originalSignOutAt, i18n.language),
+                        latest: formatLocaleDateTime(revisionStatus.latestRevisionAt, i18n.language),
+                      })
+                    : t('reportRevision.datesLatestOnly', { latest: formatLocaleDateTime(revisionStatus.latestRevisionAt, i18n.language) })}
+                </div>
+              )}
 
               {instances.length === 0 && (
                 <p className="ps-copilot-report-empty">{t('copilotReportViewModal.noDataAvailable')}</p>
@@ -253,7 +323,7 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
                         <div className="ps-copilot-report-amendment-flag">{t('copilotReportViewModal.amendedFlag')}</div>
                         <p><strong>{t('copilotReportViewModal.reasonForAmendmentLabel')}</strong> {activeVersion.explanationOfChange}</p>
                         {activeVersion.notification && (
-                          <p><strong>{t('copilotReportViewModal.clinicianNotifiedLabel')}</strong> {activeVersion.notification.clinicianName} — {NOTIFICATION_METHOD_LABEL_KEY[activeVersion.notification.method] ? t(NOTIFICATION_METHOD_LABEL_KEY[activeVersion.notification.method]) : activeVersion.notification.method}, {formatDateTime(activeVersion.notification.notifiedAt)}</p>
+                          <p><strong>{t('copilotReportViewModal.clinicianNotifiedLabel')}</strong> {t('copilotReportViewModal.clinicianNotifiedDetail', { name: activeVersion.notification.clinicianName, method: NOTIFICATION_METHOD_LABEL_KEY[activeVersion.notification.method] ? t(NOTIFICATION_METHOD_LABEL_KEY[activeVersion.notification.method]) : activeVersion.notification.method, date: formatDateTime(activeVersion.notification.notifiedAt) })}</p>
                         )}
                       </div>
                     )}
@@ -318,6 +388,13 @@ export const CopilotReportViewModal: React.FC<Props> = ({ show, onClose, accessi
           </div>
         </div>
       </div>
+      {printPlan && (
+        <ReportPrintPromptModal
+          plan={printPlan}
+          onCancel={() => setPrintPlan(null)}
+          onPrint={(reason) => { const plan = printPlan; setPrintPlan(null); void printNow(plan, reason); }}
+        />
+      )}
     </div>
   );
 };

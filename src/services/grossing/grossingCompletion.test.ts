@@ -131,3 +131,29 @@ describe('The protocol rule, switchable per organisation (Batch 379)', () => {
     expect(missingGrossingItems(kase(), resolveFieldRequirements('grossing', { blocks: false }))).toEqual([]);
   });
 });
+
+// Batch 397 (PS-359): matrix blocks count as blocks for the per-block rules,
+// and a block's piece description can be required.
+import { blockGrossingFieldsMissing, grossingBlocks } from './grossingCompletion';
+describe('Matrix blocks and piece descriptions (Batch 397)', () => {
+  const withMatrix = () => kase({ matrixBlocks: [{ id: 'm1', label: 'MB1', participants: [], slides: [], status: 'Grossed' }] });
+  it('lists every block, the matrix blocks after each specimen\'s own', () => {
+    expect(grossingBlocks(withMatrix()).map(b => b.label)).toEqual(['A1', 'A2', 'MB1']);
+  });
+  it('a required piece count names the matrix block that lacks one', () => {
+    const r = resolveFieldRequirements('grossing', { pieceCount: true, blocks: false });
+    const item = missingGrossingItems(withMatrix(), r).find(i => i.fieldId === 'pieceCount');
+    expect(item?.where).toEqual(['A2', 'MB1']);
+  });
+  it('the piece description is off by default and, switched on, is checked on every block', () => {
+    expect(missingGrossingItems(withMatrix(), resolveFieldRequirements('grossing', { blocks: false })).map(i => i.fieldId)).not.toContain('pieceDescription');
+    const r = resolveFieldRequirements('grossing', { pieceDescription: true, blocks: false });
+    expect(missingGrossingItems(withMatrix(), r).find(i => i.fieldId === 'pieceDescription')?.where).toEqual(['A1', 'A2', 'MB1']);
+  });
+  it('one block\'s missing grossing fields, for the block editors', () => {
+    const r = resolveFieldRequirements('grossing', { pieceCount: true, pieceDescription: true });
+    expect(blockGrossingFieldsMissing({}, r)).toEqual(['pieceCount', 'pieceDescription']);
+    expect(blockGrossingFieldsMissing({ pieceCount: 3, pieceDescription: ' 3 cores ' }, r)).toEqual([]);
+    expect(blockGrossingFieldsMissing({}, resolveFieldRequirements('grossing'))).toEqual([]);
+  });
+});

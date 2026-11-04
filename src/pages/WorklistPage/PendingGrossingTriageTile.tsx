@@ -17,12 +17,13 @@
 // prop and filters it client-side, rather than issuing a second,
 // redundant fetch for data the page already has.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
 import type { Case } from '@/types/case/Case';
 import type { SpecimenTriage } from '@/types/case/Specimen';
+import { isTriagePending } from '@/services/grossing/triageReleaseGate';
 
 interface PendingTriageItem {
   caseId: string;
@@ -32,20 +33,11 @@ interface PendingTriageItem {
   totalCount: number;
 }
 
-/** Real, pure — a specimen is genuinely pending exactly when it has a
- *  SpecimenTriage record, no override reason was recorded, and at
- *  least one checklist item is still unconfirmed. Exported for direct
- *  unit testing, same real reasoning as every other pure predicate
- *  extracted elsewhere in this app. */
-export function isTriagePending(triage: SpecimenTriage | undefined): boolean {
-  if (!triage) return false;
-  if (triage.overrideReason) return false;
-  return !triage.checklistItems.every(ci => ci.confirmed);
-}
+export { isTriagePending };
 
 export const PendingGrossingTriageTile: React.FC<{ cases: Case[] }> = ({ cases }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [expanded, setExpanded] = useState(true);
 
   const items: PendingTriageItem[] = [];
@@ -76,7 +68,7 @@ export const PendingGrossingTriageTile: React.FC<{ cases: Case[] }> = ({ cases }
             <button
               key={`${item.caseId}-${item.specimenLabel}-${i}`}
               className="ps-triage-tile-row"
-              onClick={() => navigate(`/case/${item.caseId}/synoptic`)}
+              onClick={() => void openCasePage(item.caseId, 'synoptic')}
             >
               <span className="ps-triage-tile-badge ps-triage-tile-badge--pending_triage">{t('pendingTriageTile.badge')}</span>
               <span className="ps-triage-tile-case" data-phi="accession">{item.accession}</span>

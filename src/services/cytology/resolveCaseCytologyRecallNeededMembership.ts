@@ -40,6 +40,8 @@ export function resolveCaseCytologyRecallNeededMembership(
     if (!entry || !isCytologySpecimenType(entry.type)) return false;
     const destination = resolveCytologyWorklistRouting(resolveSpecimenEntryMatchesCategory(entry, ['GYN_CYTOLOGY']), nonGynRoutingSetting);
     if (destination !== 'cytology_worklist') return false;
-    return resolveCytologyTriageState(screeningStrategy, sp.cytologyScreening?.hpvResult, entry.isSelfCollected === true) === 'reflex_requires_new_specimen';
+    const state = resolveCytologyTriageState(screeningStrategy, sp.cytologyScreening?.hpvResult, entry.isSelfCollected === true);
+    // Batch 631: a self-collected specimen whose result was Invalid also needs the patient recalled (a repeat collection).
+    return state === 'reflex_requires_new_specimen' || state === 'repeat_collection_required';
   });
 }

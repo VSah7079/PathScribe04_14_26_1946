@@ -25,7 +25,8 @@ export interface AllCassetteLabelRequests {
 }
 
 export function getAllCassetteLabelRequests(caseData: Case): AllCassetteLabelRequests {
-  const fullAccession = caseData.accession.fullAccession;
+  // Same fallback the scan resolver matches on (resolveMaterialFromScan.ts).
+  const fullAccession = caseData.accession.fullAccession ?? caseData.id;
   const ordinary: CassetteLabelDispatchRequest[] = [];
   for (const specimen of caseData.specimens ?? []) {
     for (const block of specimen.blocks ?? []) {
@@ -34,6 +35,7 @@ export function getAllCassetteLabelRequests(caseData: Case): AllCassetteLabelReq
         specimenLabel: specimen.label,
         blockLabel: block.label,
         cassetteId: cassetteIdentifier(fullAccession, specimen.label, block.label),
+        ...(block.blockType && block.blockType !== 'standard' ? { blockType: block.blockType } : {}),
       });
     }
   }

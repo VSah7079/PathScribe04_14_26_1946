@@ -6,7 +6,7 @@
 // hard block with real resolution paths, not a dismissible warning).
 //
 // Grouped by real batch, not by individual stain — the confirmation
-// itself (mockBatchService.confirmQcVisualRead()) is a real, batch-
+// itself (batchService.confirmQcVisualRead()) is a real, batch-
 // level action, so multiple blocking stains sharing the same real
 // batch resolve together with one real confirmation, not N separate
 // ones for the same physical run.
@@ -31,8 +31,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockBatchService } from '@/services/batches/mockBatchService';
+
 import type { StainQcGateBlockingItem } from '../hooks/checkStainQcGate';
+import { batchService } from '@/services';
 
 interface Props {
   blocking: StainQcGateBlockingItem[];
@@ -56,7 +57,7 @@ export const StainQcGateModal: React.FC<Props> = ({ blocking, signingUserId, sig
 
   const handleConfirm = async (batchId: string) => {
     setConfirming(batchId);
-    const res = await mockBatchService.confirmQcVisualRead(batchId, signingUserId, signingUserName);
+    const res = await batchService.confirmQcVisualRead(batchId, signingUserId, signingUserName);
     setConfirming(null);
     if (res.ok) setConfirmedBatchIds(prev => new Set(prev).add(batchId));
   };

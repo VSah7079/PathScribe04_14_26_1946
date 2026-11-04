@@ -1,0 +1,6 @@
+/* src/pages/SynopticReportPage/components/BottomActionBar.css */
+/* Batch 649: Claim, Release preliminary, Sign out and Finalize, now CapabilityButtons (their capability greys them). */
+.ps-bab-action-btn--claim { --ps-hue: #6366f1; --bab-hover: #4f46e5; }
+.ps-bab-action-btn--prelim { --ps-hue: #c026d3; }
+.ps-bab-action-btn--sign-out { --ps-hue: #047857; --bab-hover: #065f46; }
+.ps-bab-action-btn--finalize { --ps-hue: #34d399; }

@@ -21,13 +21,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import {
-  supportAccessService, minutesLeft, isLiveGrant, supportRequestQueues, supportWindowParts, SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS,
+  supportAccessService, minutesLeft, isLiveGrant, effectiveSupportStatus, supportRequestQueues, supportWindowParts, SUPPORT_ACCESS_POLICIES, SUPPORT_WINDOW_OPTIONS, SUPPORT_AUDIT_COLUMNS,
   type SupportAccessPolicy, type SupportAccessRequest, type SupportAccessSettings, type SupportAuditEntry, type ChainCheck,
 } from '@/services';
 import { useAuth } from '@/contexts/AuthContext';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
 import { formatDateTime } from '@/utils/formatDate';
 import { downloadText } from '@/utils/downloadText';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { draftDiffers } from '@/services/configDirty/configDirtyRegistry';
+import { recordExport } from '@/services';
 
 type Org = { id: string; name: string };
 
@@ -46,6 +49,8 @@ const SupportAccessSection: React.FC = () => {
   const [chain, setChain] = useState<ChainCheck | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [form, setForm] = useState({ tenantId: '', ticketId: '', reason: '' });
+  // PS-128 (Batch 437): a changed policy, or an access request being typed.
+  useReportConfigDirty((!!settings && !!draft && draftDiffers(settings, draft)) || form.ticketId.trim() !== '' || form.reason.trim() !== '');
   const [now, setNow] = useState(() => new Date());
 
   const orgName = (id: string) => orgs.find(o => o.id === id)?.name ?? id;
@@ -89,11 +94,26 @@ const SupportAccessSection: React.FC = () => {
     await done(r.ok === false ? `supportAccess.refusals.${r.reason}` : 'supportAccess.messages.requested');
   };
   const end = async (id: string) => { await supportAccessService.endAccess(id); await done('supportAccess.messages.ended'); };
+  const closeTicket = async (ticketId: string) => {
+    const r = await supportAccessService.closeTicket(ticketId);
+    await done(r.ok === false ? `supportAccess.refusals.${r.reason}` : 'supportAccess.messages.ticketClosed');
+  };
+  const exportAuditPdf = async () => {
+    if (!myTenant) return;
+    const r = await supportAccessService.exportAuditPdf(myTenant);
+    if (r.ok === false) { await done(`supportAccess.refusals.${r.reason}`); return; }
+    void recordExport('support-access-audit', { filename: r.filename, rowCount: 1, format: 'pdf' });
+    const url = URL.createObjectURL(new Blob([r.bytes as BlobPart], { type: 'application/pdf' }));
+    const a = document.createElement('a'); a.href = url; a.download = r.filename; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    await load();
+  };
   const exportAudit = async (format: 'csv' | 'json') => {
     if (!myTenant) return;
     const columns = Object.fromEntries(SUPPORT_AUDIT_COLUMNS.map(c => [c, t(`supportAccess.audit.columns.${c}`)])) as Record<(typeof SUPPORT_AUDIT_COLUMNS)[number], string>;
     const r = await supportAccessService.exportAudit(myTenant, format, columns);
     if (r.ok === false) { await done(`supportAccess.refusals.${r.reason}`); return; }
+    // PS-282 (Batch 437): also in the main audit log (the support stream records it too).
+    void recordExport('support-access-audit', { filename: r.filename, rowCount: 1, format });
     downloadText(r.filename, r.content, r.mime);
     await load();
   };
@@ -192,6 +212,7 @@ const SupportAccessSection: React.FC = () => {
             <span className="ps-supacc-audit-exports">
               <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAudit('csv'); }}>{t('supportAccess.audit.exportCsv')}</CapabilityButton>
               <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAudit('json'); }}>{t('supportAccess.audit.exportJson')}</CapabilityButton>
+              <CapabilityButton capability="config:support-audit:view" className="ps-conf-btn-secondary" onClick={() => { void exportAuditPdf(); }}>{t('supportAccess.audit.exportPdf')}</CapabilityButton>
             </span>
           </div>
           <p className="ps-supacc-hint">{t('supportAccess.audit.hint')}</p>
@@ -245,9 +266,10 @@ const SupportAccessSection: React.FC = () => {
                 return (
                   <tr key={r.id}>
                     <td className="ps-conf-td">{orgName(r.tenantId)}</td><td className="ps-conf-td">{r.ticketId}</td>
-                    <td className="ps-conf-td"><span className={`ps-supacc-status ps-supacc-status--${r.status}`}>{t(`supportAccess.status.${r.status}`)}</span></td>
+                    <td className="ps-conf-td"><span className={`ps-supacc-status ps-supacc-status--${effectiveSupportStatus(r, now)}`}>{t(`supportAccess.status.${effectiveSupportStatus(r, now)}`)}</span></td>
                     <td className="ps-conf-td">{live ? t('supportAccess.active.minutesLeft', { count: minutesLeft(r.expiresAt, now) }) : '—'}</td>
-                    <td className="ps-conf-td"><div className="ps-supacc-row-actions">{live && <button className="ps-conf-btn-secondary" onClick={() => { void end(r.id); }}>{t('supportAccess.support.end')}</button>}</div></td>
+                    <td className="ps-conf-td"><div className="ps-supacc-row-actions">{live && <button className="ps-conf-btn-secondary" onClick={() => { void end(r.id); }}>{t('supportAccess.support.end')}</button>}
+                      {live && <button className="ps-conf-btn-secondary" title={t('supportAccess.support.ticketClosedHint')} data-testid={`supacc-close-ticket-${r.id}`} onClick={() => { void closeTicket(r.ticketId); }}>{t('supportAccess.support.ticketClosed')}</button>}</div></td>
                   </tr>
                 );
               })}</tbody>

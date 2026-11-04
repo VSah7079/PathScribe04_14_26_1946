@@ -23,7 +23,7 @@ This file documents what this folder's own files actually are.
 - **`IClinicalHistoryDictionaryService.ts` / `mockClinicalHistoryDictionaryService.ts`**
   — the real, admin-editable dictionary (`add`/`update`/`deactivate`/
   `reactivate`/`remove`, matching this app's own established dictionary
-  pattern). 21 real entries across the spec's own six categories (SCR,
+  pattern). 22 seeded entries across the spec's own six categories (SCR,
   SYM, RAD_LAB, PRIOR_PATH, MAL_STAGE, HIGH_RISK), each grounded in real
   research (RSNA's 2026 oncologic-imaging-requisition parameters, a
   real published pathology requisition form, standard oncology
@@ -40,6 +40,8 @@ This file documents what this folder's own files actually are.
   (`types/events/`), same "PathScribe ingests its own specification;
   the real interface engine owns HL7/FHIR parsing" split already
   proven for HPV results and molecular batch results.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the seed has 22 entries, not 21.*
 
 ## Real data model, split across two layers deliberately
 
@@ -62,6 +64,30 @@ review — showing the combined picture while reviewing one specific
 specimen's slides in `CytologyScreeningPage.tsx` — is separate, later
 work, stated directly at the time rather than assumed covered.
 
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+The inbound accession event rebuilds the order from the newest case.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 528: clinical history an organisation requires (PS-359)
+
+`clinicalHistoryRequirementChecks.ts`: `missingClinicalHistory(requirements, caseEntries, specimenEntries, applies)` returns the required clinical-history fields with nothing recorded (Field Requirements page `clinicalHistory`). It applies only to cytology and FNA cases. All three fields are optional by default:
+- a case entry;
+- an entry on every specimen (with one specimen, a case entry counts);
+- coded entries only (no unmapped free text).
+
+Accession blocks moving on from Case & Patient until they are met. The per-code metadata check (`resolveAccessionValidation`) is unchanged: it still marks the case Deficient rather than blocking.
+
+## Batch 530 (Pete, Oct 11, 2026)
+
+- **Flag, not block:** Accession shows missing clinical history as a note and accessions the case (Batch 528's block removed).
+- **Added later:** `recordClinicalHistoryAfterAccession.ts` (pure core with dependencies) and `clinicalHistoryAfterAccessionService.ts` (browser wiring). The case-level coded entries, any specialty, until sign-out (refused `signedOut` after). Needs `case:clinical-history:record` (Pathologist, Fellow, Resident, PA); saved with `updateCaseWithRetry`; audited `CLINICAL_HISTORY_UPDATED` with the codes added and removed (never free text or metadata).
+
+## Batch 617 (part A): server versions (PS-514)
+
+`clinicalHistoryDictionaryService` now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/CONFIG_SERVICES_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).

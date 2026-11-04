@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 623 — Licensed terminologies (SNOMED CT, ICD-O-3) recorded by the customer; real codes on abnormal-result rules used only while the licence is on and unexpired (PS-130)",
+    "description": "Vitest, 2026-10-19: full suite 1664 files (1658 passed, 4 skipped, 2 failed before the fix); 14,081 tests passed. The one real failure (file-size ratchet baseline for two files that shrank) was fixed and the styleRules suite re-run green (22 tests). firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: native-speaker review of the AI-made fr/de/nl/ko/es text."
+  },
+  "tests": [
+    {
+      "testKey": "PS-819",
+      "start": "2026-10-19T18:46:00Z",
+      "finish": "2026-10-19T19:05:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/terminologyLicence/terminologyLicence.test.ts\nPASSED: src/components/Config/System/TerminologyLicencesCard.test.tsx\nPASSED: src/services/abnormalDetection/abnormalTriggerRuleService.test.ts\nPASSED: src/services/systemConfig/systemConfigChangeChecks.test.ts\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts (after lowering two baselines)\nNot tested: real codes for AI-narrative findings, per-facility licences, sending codes to registries (not built)."
+    }
+  ]
+}

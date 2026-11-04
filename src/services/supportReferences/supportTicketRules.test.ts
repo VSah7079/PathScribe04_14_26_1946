@@ -23,8 +23,9 @@ describe('supportPageOf', () => {
   it('an unknown address is reported as "(other page)", not echoed', () => {
     expect(supportPageOf('/whatever/S26-4403')).toEqual({ pattern: '(other page)' });
   });
-  it('knows every route in App.tsx', () => {
-    const app = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../../App.tsx'), 'utf8');
+  it('knows every route in App.tsx and SignedInApp.tsx (Batch 527)', () => {
+    const app = ['../../App.tsx', '../../SignedInApp.tsx']
+      .map(f => readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), f), 'utf8')).join('\n');
     const routes = [...app.matchAll(/path="([^"]+)"/g)].map(m => m[1]).filter(p => p !== '*');
     expect(routes.filter(r => !SUPPORT_ROUTE_PATTERNS.includes(r))).toEqual([]);
   });
@@ -47,5 +48,18 @@ describe('findIdentifiersInText', () => {
   it('replaceIdentifiers swaps each identifier for its replacement, whole words only', () => {
     expect(replaceIdentifiers('Case S26-4403 and s26-4403, not S26-44031.', new Map([['S26-4403', 'SR-7K2Q-9MXD']])))
       .toBe('Case SR-7K2Q-9MXD and SR-7K2Q-9MXD, not S26-44031.');
+  });
+});
+
+import { findPatientNameInText } from './supportTicketRules';
+describe('Batch 604 patient name in a ticket', () => {
+  it('finds a surname or given name of the open case, any case, whole words only', () => {
+    const f = findPatientNameInText('Report for SMITH looks wrong; also Maria?', ['Maria', 'Smith']);
+    expect(f.map(x => x.kind)).toEqual(['patientName', 'patientName']);
+    expect(findPatientNameInText('smithson is a different word', ['Smith'])).toEqual([]);
+  });
+  it('ignores very short name parts and handles double surnames and apostrophes', () => {
+    expect(findPatientNameInText('Li went to the lab', ['Li'])).toEqual([]);
+    expect(findPatientNameInText("Mr O'Connor asked", ["O'Connor"]).length).toBe(1);
   });
 });

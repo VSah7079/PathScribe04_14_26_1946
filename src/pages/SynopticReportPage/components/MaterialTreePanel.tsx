@@ -12,12 +12,16 @@
 // HistologyBlock/StainOrder before that was caught; this component reuses
 // them directly rather than re-flattening its own copy.
 // ─────────────────────────────────────────────────────────────────────────────
+import type { HistologyBlock } from '@/types/case/Specimen';
+import { slideLevelOf } from '@/services/material/slideLevels';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { formatDate, formatDateTime } from '@/utils/formatDate';
 import '../../../pathscribe.css';
 import MaterialTrackingHistoryModal from '../modals/MaterialTrackingHistoryModal';
 import GrossingReleasePanel from './GrossingReleasePanel';
-import { mockCassetteColorService } from '@/services/cassetteColors/mockCassetteColorService';
+
 import type { CassetteColorDefinition } from '@/services/cassetteColors/ICassetteColorService';
 import { classifyGrossingComplexity } from '@/utils/classifyGrossingComplexity';
 import { resolveSpecimenDisplayId, resolveBlockDisplayId, resolveSlideDisplayId, resolveDecantDisplayId, resolveDecantSlideDisplayId } from '@/utils/materialDisplayId';
@@ -26,6 +30,8 @@ import type { BlockStatus, StainOrderStatus } from '@/types/case/Specimen';
 import BiopsyArrayDiagram, { type BiopsyArrayPosition } from './BiopsyArrayDiagram';
 import { isExhausted, isLost, isDamaged, isEntirelySubmitted, entirelySubmittedBlockRangeText } from '@/utils/blockExceptionStates';
 import type { MaterialLocation } from '@/types/case/Material';
+import { cassetteColorService } from '@/services';
+import { pressable } from '@/utils/a11y/pressable';
 
 /**
  * Real fix, per direct report with screenshots in hand: "how come the
@@ -62,6 +68,8 @@ const BLOCK_STATUS_LABEL_KEY: Record<BlockStatus, string> = {
   Cancelled: 'materialTreePanel.blockStatus.cancelled',
   Lost: 'materialTreePanel.blockStatus.lost',
   Damaged: 'materialTreePanel.blockStatus.damaged',
+  Deleted: 'materialTreePanel.blockStatus.deleted',
+  Invalidated: 'materialTreePanel.blockStatus.invalidated',
 };
 const STAIN_STATUS_LABEL_KEY: Record<StainOrderStatus, string> = {
   'Pending Cut': 'materialTreePanel.stainStatus.pendingCut',
@@ -71,6 +79,7 @@ const STAIN_STATUS_LABEL_KEY: Record<StainOrderStatus, string> = {
   'Ready for Review': 'materialTreePanel.stainStatus.readyForReview',
   'Recut Requested': 'materialTreePanel.stainStatus.recutRequested',
   'QC Failed': 'materialTreePanel.stainStatus.qcFailed',
+  'QC Pending': 'materialTreePanel.stainStatus.qcPending', // Batch 763
   Cancelled: 'materialTreePanel.stainStatus.cancelled',
 };
 
@@ -135,7 +144,11 @@ interface MaterialTreePanelProps {
   onConfirmTriageChecklistItem: (specimenId: string, itemIndex: number, confirmed: boolean) => void;
   onOverrideTriage: (specimenId: string, reason: string) => void;
   onRemovePendingBlock: (specimenId: string, blockId: string) => void;
-  onAddDecant: (specimenId: string, decantType: 'residual_fluid' | 'cell_block') => void;
+  /** Batch 452: parentDecantId makes a decant split from another one
+   *  (e.g. a cell block from a residual fluid decant). */
+  onAddDecant: (specimenId: string, decantType: 'residual_fluid' | 'cell_block', parentDecantId?: string) => void;
+  /** Batch 452: removing a decant (case:decant:delete, checked in the save). */
+  onDeleteDecant?: (decantId: string) => void;
   /** Real fix: opens the real AddCodeModal, pre-targeted at this
    *  specific specimen and landed directly on the CPT tab - the
    *  "contextual entry point" that puts base-code assignment right
@@ -214,7 +227,7 @@ const DecantIcon: React.FC<{ label: string }> = ({ label }) => (
 );
 
 const SlideChip: React.FC<{ level: string; stainName: string; status: string; onClick: () => void; displayId?: string; locationHistory?: MaterialLocation[]; isHighlighted?: boolean }> = ({ level, stainName, status, onClick, displayId, locationHistory, isHighlighted }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   // 'Pending Cut' / 'Cut & Placed' / 'Staining' — the stain is real and
   // known, it just hasn't produced a finished, reviewable slide yet.
   // The dashed visual reflects that in-progress state; it never hides
@@ -229,8 +242,8 @@ const SlideChip: React.FC<{ level: string; stainName: string; status: string; on
   return (
     <div
       className="ps-material-tree-slide-chip"
-      onClick={onClick}
-      title={loc ? `${baseTitle} · 📍 ${loc.location} (${new Date(loc.at).toLocaleString('en-US')})` : baseTitle}
+      {...pressable(onClick)}
+      title={loc ? `${baseTitle} · 📍 ${loc.location} (${formatDateTime(loc.at, i18n.language)})` : baseTitle}
     >
       <div className={bodyClass.join(' ')}>
         {/* Real feature, per direct follow-up: "put a green dot in
@@ -270,8 +283,8 @@ const SlideChip: React.FC<{ level: string; stainName: string; status: string; on
   );
 };
 
-const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeSpecimenId, highlightedStainId, onOpenBlockEditor, onOpenMatrixBlockEditor, onAddSpecimen, onAddBlock, onUpdateBlock, onReleaseGrossingBlocks, onConfirmTriageChecklistItem, onOverrideTriage, onRemovePendingBlock, onAddDecant, onAssignBaseCode, onCreateBiopsyArray, onEditBiopsyArray, pendingCassetteVerification, isOrchestrationMode }) => {
-  const { t } = useTranslation();
+const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeSpecimenId, highlightedStainId, onOpenBlockEditor, onOpenMatrixBlockEditor, onAddSpecimen, onAddBlock, onUpdateBlock, onReleaseGrossingBlocks, onConfirmTriageChecklistItem, onOverrideTriage, onRemovePendingBlock, onAddDecant, onDeleteDecant, onAssignBaseCode, onCreateBiopsyArray, onEditBiopsyArray, pendingCassetteVerification, isOrchestrationMode }) => {
+  const { t, i18n } = useTranslation();
   const [showTrackingHistory, setShowTrackingHistory] = useState(false);
   // Real fix, per direct follow-up: "the highlighting in the Material
   // tree isn't working - or its too subtle." Confirmed both were real:
@@ -296,7 +309,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
   // cassetteColors, not passed in as a prop.
   const [cassetteColors, setCassetteColors] = useState<CassetteColorDefinition[]>([]);
   useEffect(() => {
-    mockCassetteColorService.getAll().then(res => { if (res.ok) setCassetteColors(res.data); });
+    cassetteColorService.getAll().then(res => { if (res.ok) setCassetteColors(res.data); });
   }, []);
   const specimens = caseData?.specimens ?? [];
   // Real feature, per direct follow-up: "resolveBlockDisplayId() etc.
@@ -443,7 +456,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                     return loc && (
                       <span
                         className="ps-material-location-badge"
-                        title={t('materialTreePanel.locationBadgeTooltip', { source: loc.source, date: new Date(loc.at).toLocaleString('en-US') })}
+                        title={t('materialTreePanel.locationBadgeTooltip', { source: loc.source, date: formatDateTime(loc.at, i18n.language) })}
                       >
                         📍 {loc.location}
                       </span>
@@ -541,10 +554,14 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                       the block's own children, not crammed onto the
                       same line as its badges. */}
                   <div className="ps-material-tree-block-header">
+                    {/* Batch 516 (PS-72): the tooltip shows the block id, which carries the accession. */}
                     <div
-                      onClick={() => onOpenBlockEditor(block.id)}
+                      data-phi="accession"
+                      {...pressable(() => onOpenBlockEditor(block.id))}
                       className="ps-material-tree-block-clickable"
-                      title={`${resolvedBlockId} · ${blockStatusLabel}${isCancelled && block.cancelReason ? ` — ${block.cancelReason}` : ''}`}
+                      title={isCancelled && block.cancelReason
+                        ? t('materialTreePanel.blockTooltipCancelled', { id: resolvedBlockId, status: blockStatusLabel, reason: block.cancelReason })
+                        : t('materialTreePanel.blockTooltip', { id: resolvedBlockId, status: blockStatusLabel })}
                     >
                       <BlockIcon label={`${sp.label}${block.label}`} />
                     </div>
@@ -597,6 +614,22 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                           {t('materialTreePanel.cancelledBadge')}
                         </span>
                       )}
+                      {/* Batch 610 (#11): a deleted or invalidated block stays in the list with why, who and when. */}
+                      {block.deletion && (
+                        <span className="ps-material-tree-cancelled-text ps-material-tree-deleted-note" data-testid={`block-deletion-${block.id}`}>
+                          {t(block.status === 'Invalidated' ? 'materialTreePanel.invalidatedNote' : 'materialTreePanel.deletedNote', {
+                            reason: t(`blockDeletion.reasons.${block.deletion.reasonCode}`, { defaultValue: block.deletion.reasonCode }),
+                            who: block.deletion.deletedByName,
+                            when: formatDateTime(block.deletion.deletedAt, i18n.language),
+                          })}
+                        </span>
+                      )}
+                      {block.amendmentFlag && (
+                        <span className="ps-material-exception-badge ps-material-exception-badge--discrepancy" data-testid={`block-amendment-flag-${block.id}`}
+                          title={t('materialTreePanel.amendmentFlagTooltip', { reason: t(`blockDeletion.flagReasons.${block.amendmentFlag.reasonCode}`, { defaultValue: block.amendmentFlag.reasonCode }), who: block.amendmentFlag.flaggedByName, when: formatDateTime(block.amendmentFlag.flaggedAt, i18n.language) })}>
+                          {t(`materialTreePanel.amendmentFlag.${block.amendmentFlag.kind}`)}
+                        </span>
+                      )}
                       {/* Real feature, per direct follow-up: "Lets add
                           the exhausted badges for specimen and block in
                           the Material view as well." Same shared helper
@@ -615,7 +648,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                       {isLost(block) && (
                         <span
                           className="ps-material-exception-badge ps-material-exception-badge--lost"
-                          title={`${t('materialTreePanel.lostTooltipPrefix')}${block.exceptionReportedAt ? ` ${new Date(block.exceptionReportedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}` : ''}${block.exceptionNote ? ` — ${block.exceptionNote}` : ''}. ${t('materialTreePanel.notAvailableUntilLocated')}`}
+                          title={`${t('materialTreePanel.lostTooltipPrefix')}${block.exceptionReportedAt ? ` ${formatDate(block.exceptionReportedAt, i18n.language)}` : ''}${block.exceptionNote ? ` — ${block.exceptionNote}` : ''}. ${t('materialTreePanel.notAvailableUntilLocated')}`}
                         >
                           ⚠️ {t('materialTreePanel.lostBadge')}
                         </span>
@@ -623,7 +656,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                       {isDamaged(block) && (
                         <span
                           className="ps-material-exception-badge ps-material-exception-badge--damaged"
-                          title={`${t('materialTreePanel.damagedTooltipPrefix')}${block.exceptionReportedAt ? ` ${new Date(block.exceptionReportedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })}` : ''}${block.exceptionNote ? ` — ${block.exceptionNote}` : ''}. ${t('materialTreePanel.reEmbeddingRequired')}`}
+                          title={`${t('materialTreePanel.damagedTooltipPrefix')}${block.exceptionReportedAt ? ` ${formatDate(block.exceptionReportedAt, i18n.language)}` : ''}${block.exceptionNote ? ` — ${block.exceptionNote}` : ''}. ${t('materialTreePanel.reEmbeddingRequired')}`}
                         >
                           🛠️ {t('materialTreePanel.damagedBadge')}
                         </span>
@@ -633,7 +666,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                         return loc && (
                           <span
                             className="ps-material-location-badge"
-                            title={t('materialTreePanel.locationBadgeTooltip', { source: loc.source, date: new Date(loc.at).toLocaleString('en-US') })}
+                            title={t('materialTreePanel.locationBadgeTooltip', { source: loc.source, date: formatDateTime(loc.at, i18n.language) })}
                           >
                             📍 {loc.location}
                           </span>
@@ -678,11 +711,11 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                     {(block.stains ?? []).map((stain: any, i: number) => (
                       <SlideChip
                         key={stain.id}
-                        level={`L${i + 1}`}
+                        level={slideLevelOf(stain, i)}
                         stainName={stain.stainName}
                         status={stain.status}
                         onClick={() => onOpenBlockEditor(block.id)}
-                        displayId={resolveSlideDisplayId(fullAccession, sp.label, block.label, `L${i + 1}`, stain)}
+                        displayId={resolveSlideDisplayId(fullAccession, sp.label, block.label, slideLevelOf(stain, i), stain)}
                         locationHistory={stain.locationHistory}
                         isHighlighted={!!highlightedStainId && stain.id === highlightedStainId}
                       />
@@ -707,7 +740,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
               return (
                 <div
                   key={matrixBlockId}
-                  onClick={() => onOpenMatrixBlockEditor(matrixBlockId)}
+                  {...pressable(() => onOpenMatrixBlockEditor(matrixBlockId))}
                   className="ps-material-tree-matrix-link"
                 >
                   🧩 {t('materialTreePanel.partOfBiopsyArray', { label: mb.label, position: participant?.positionInBlock })}
@@ -733,12 +766,12 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                     themselves a real, clickable entry point, matching
                     the matrix block row's own "click to open" pattern
                     immediately above in this file. */}
-                <div title={`${resolvedDecantId} · ${decant.decantType}`} onClick={() => onOpenBlockEditor(decant.id)} className="ps-material-tree-decant-clickable">
+                <div data-phi="accession" title={t('materialTreePanel.decantTooltip', { id: resolvedDecantId, type: decant.decantType })} {...pressable(() => onOpenBlockEditor(decant.id))} className="ps-material-tree-decant-clickable">
                   <DecantIcon label={`${sp.label}${decant.label}`} />
                 </div>
                 <div className="ps-material-tree-decant-info">
                   <span
-                    onClick={() => onOpenBlockEditor(decant.id)}
+                    {...pressable(() => onOpenBlockEditor(decant.id))}
                     className="ps-material-tree-decant-id"
                     data-phi="accession"
                   >
@@ -746,7 +779,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                   </span>
                   {decant.stains.length === 0 && (
                     <div
-                      onClick={() => onOpenBlockEditor(decant.id)}
+                      {...pressable(() => onOpenBlockEditor(decant.id))}
                       className="ps-material-tree-decant-empty-link"
                     >
                       {t('materialTreePanel.noSlidesYetClickToEdit')}
@@ -755,15 +788,29 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                   {decant.stains.map((stain: any, i: number) => (
                     <SlideChip
                       key={stain.id}
-                      level={`L${i + 1}`}
+                      level={slideLevelOf(stain, i)}
                       stainName={stain.stainName}
                       status={stain.status}
                       onClick={() => onOpenBlockEditor(decant.id)}
-                      displayId={resolveDecantSlideDisplayId(fullAccession, sp.label, decant.label, `L${i + 1}`, stain)}
+                      displayId={resolveDecantSlideDisplayId(fullAccession, sp.label, decant.label, slideLevelOf(stain, i), stain)}
                       locationHistory={stain.locationHistory}
                       isHighlighted={!!highlightedStainId && stain.id === highlightedStainId}
                     />
                   ))}
+                  {/* Batch 452: split a cell block from this decant, or remove it. */}
+                  <div className="ps-material-tree-decant-actions">
+                    {decant.decantType === 'residual_fluid' && (
+                      <button type="button" className="ps-material-tree-decant-action" onClick={() => onAddDecant(sp.id, 'cell_block', decant.id)}>
+                        + {t('materialTreePanel.decant.cellBlockFrom', { label: decant.label })}
+                      </button>
+                    )}
+                    {onDeleteDecant && !decants.some((d: any) => d.parentDecantId === decant.id) && (
+                      <CapabilityButton capability="case:decant:delete" className="ps-material-tree-decant-action ps-material-tree-decant-action--danger"
+                        onClick={() => { if (window.confirm(t('materialTreePanel.decant.removeConfirm', { label: `${sp.label}${decant.label}` }))) onDeleteDecant(decant.id); }}>
+                        {t('materialTreePanel.decant.remove')}
+                      </CapabilityButton>
+                    )}
+                  </div>
                 </div>
               </div>
               );
@@ -778,7 +825,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                 specimen with no such blocks. */}
             <GrossingReleasePanel
               specimenLabel={sp.label}
-              pendingBlocks={(sp.blocks ?? []).filter(b => b.status === 'Pending' && b.cassetteColorId)}
+              pendingBlocks={(sp.blocks ?? []).filter((b: HistologyBlock) => b.status === 'Pending' && b.cassetteColorId)}
               cassetteColors={cassetteColors}
               onOverrideColor={(blockId, colorId) => onUpdateBlock(sp.id, blockId, { cassetteColorId: colorId, cassetteColorOverridden: true })}
               onRemove={blockId => onRemovePendingBlock(sp.id, blockId)}
@@ -793,7 +840,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
                 blocks, a cytology one doesn't suddenly grow a block. */}
             {decants.length === 0 && (
               <div
-                onClick={() => onAddBlock(sp.id)}
+                {...pressable(() => onAddBlock(sp.id))}
                 className="ps-material-tree-add-block-link"
               >
                 + {t('materialTreePanel.requestBlockRecut')}
@@ -809,7 +856,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
             {blocks.length === 0 && (
               <div className="ps-material-tree-add-decant-wrap">
                 <div
-                  onClick={() => setOpenDecantMenuFor(v => v === sp.id ? null : sp.id)}
+                  {...pressable(() => setOpenDecantMenuFor(v => v === sp.id ? null : sp.id))}
                   className="ps-material-tree-add-decant-link"
                 >
                   + {t('materialTreePanel.addDecantFluid')} {openDecantMenuFor === sp.id ? '▴' : '▾'}
@@ -864,7 +911,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
 
       {isOrchestrationMode ? (
         <div
-          onClick={onAddSpecimen}
+          {...pressable(onAddSpecimen)}
           className="ps-material-tree-add-specimen-link"
         >
           + {t('materialTreePanel.addSpecimen')}
@@ -883,7 +930,7 @@ const MaterialTreePanel: React.FC<MaterialTreePanelProps> = ({ caseData, activeS
           multi-specimen concept. */}
       {specimens.length >= 2 && (
         <div
-          onClick={onCreateBiopsyArray}
+          {...pressable(onCreateBiopsyArray)}
           className="ps-material-tree-add-array-link"
         >
           + {t('materialTreePanel.createBiopsyArray')}

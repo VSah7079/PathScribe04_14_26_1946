@@ -11,21 +11,30 @@
 // pattern exactly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { rackRunState } from '@/services/batches/rackRuns';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentScanStation } from '@/hooks/useCurrentScanStation';
-import { batchService, hardwareContainerRegistryService } from '@/services';
+import { batchService, hardwareContainerRegistryService, actionRegistryService, printSettingsService, scanStationService } from '@/services';
+import { isCarrierBarcode, nodesForStationStage, type CarrierPrefixes } from '@/services/batches/stationCarrierRules';
+import type { ScanStation } from '@/services/scanStations/IScanStationService';
+import { VOICE_CONTEXT } from '@/constants/systemActions';
 import { playScanBeep, playScanErrorTone } from '@/utils/playScanBeep';
 import type { ScanEvent } from '@/contexts/ScannerProvider';
 import type { Batch, BatchProcessingNode } from '@/services/batches/IBatchService';
 import { BATCH_PROCESSING_NODES } from '@/services/batches/IBatchService';
+import { openBatches, closedBatches, openCountByNode } from '@/services/batches/batchListView';
+import { formatDateTime } from '@/utils/formatDate';
 import NewContainerModal from './NewContainerModal';
 import BatchDetailView from './BatchDetailView';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { StationScanField } from '@/components/Workstation/StationScanField';
 
 const STATUS_COLOR: Record<Batch['status'], string> = {
   active: '#38bdf8', reconciling: '#f59e0b', complete: '#34d399', aborted: '#f87171',
@@ -46,16 +55,18 @@ const NODE_COLOR: Record<BatchProcessingNode, string> = {
   // reasoning.
   'Cytology Processing': '#0EA5E9', 'Cytology Staining': '#D946EF', 'Cytology Imaging': '#84CC16',
 };
-function formatTimestamp(iso: string): string {
-  try { return new Date(iso).toLocaleString('en-US', { month: '2-digit', day: '2-digit', hour: 'numeric', minute: '2-digit' }); }
-  catch { return iso; }
-}
 
 const BatchManagementPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { pushCrumb } = useBreadcrumb();
   useEffect(() => { pushCrumb(t('batchManagement.pageTitle'), '/batch-management'); }, [pushCrumb, t]);
+
+  // Batch 404: this page has its own voice/keyboard context ("create container").
+  useEffect(() => {
+    actionRegistryService.setCurrentContext(VOICE_CONTEXT.BATCH_MANAGEMENT);
+    return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+  }, []);
   const { user } = useAuth();
   const { stationId } = useCurrentScanStation();
 
@@ -63,11 +74,30 @@ const BatchManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [lookupValue, setLookupValue] = useState('');
   const [stageFilter, setStageFilter] = useState<BatchProcessingNode | null>(null);
-  const lookupRef = useRef<HTMLInputElement>(null);
 
   const [prefillRackId, setPrefillRackId] = useState<string | null>(null);
+
+  // Batch 726 (Lab Workflow & Batch spec, Decision 1): station-aware opening. With a station set, the list opens on
+  // that station's step; a carrier with no Target Workstation scanned here records this station. With no station
+  // set, the all-steps view, as before (the spec allows it: "open the carrier in the all-nodes view").
+  const [searchParams] = useSearchParams();
+  const [station, setStation] = useState<ScanStation | null>(null);
+  const [prefixes, setPrefixes] = useState<CarrierPrefixes>({});
+  const stationNodes = nodesForStationStage(station?.workflowStage);
+  const stageDefaulted = useRef(false);
+  useEffect(() => {
+    printSettingsService.get().then(res => { if (res.ok === true) setPrefixes({ disposable: res.data.disposableBarcodePrefix, rack: res.data.rackBarcodePrefix }); });
+  }, []);
+  useEffect(() => {
+    if (!stationId) { setStation(null); return; }
+    scanStationService.getById(stationId).then(res => {
+      const st = res.ok === true ? res.data : null;
+      setStation(st);
+      const nodes = nodesForStationStage(st?.workflowStage);
+      if (!stageDefaulted.current && nodes.length === 1) { stageDefaulted.current = true; setStageFilter(nodes[0]); }
+    });
+  }, [stationId]);
 
   const refresh = useCallback(async () => {
     const res = await batchService.getAll();
@@ -93,15 +123,24 @@ const BatchManagementPage: React.FC = () => {
     const value = raw.trim();
     if (!value) return;
     const batchRes = await batchService.getByMasterBarcode(value);
-    if ('ok' in batchRes && batchRes.ok) {
-      setSelectedBatchId(batchRes.data.id);
-      setLookupValue('');
+    // Batch 761: a reusable rack's last run is closed: the scan starts a new run on it (below), not the old run again.
+    const lastRun = 'ok' in batchRes && batchRes.ok ? rackRunState(batchRes.data) : 'none';
+    if ('ok' in batchRes && batchRes.ok && !(lastRun === 'closed' && batchRes.data.identifierMode === 'semi_permanent')) {
+      // Batch 761: a rack whose last run was sealed or put on the stainer but never closed opens with a warning.
+      if (lastRun === 'notClosed' && batchRes.data.identifierMode === 'semi_permanent') toast.warning(t('batchManagement.rackLastRunNotClosed', { value: batchRes.data.masterBarcode }));
+      let opened = batchRes.data;
+      // Batch 726: an open carrier with no Target Workstation records this station when it is scanned here.
+      if (stationId && !opened.stationId && (opened.status === 'active' || opened.status === 'reconciling')) {
+        const rec = await batchService.recordCarrierScan(opened.id, stationId, user?.id ?? 'unknown', user?.name ?? 'Unknown User', 'ok');
+        if (rec.ok === true) opened = rec.data;
+      }
+      setBatches(prev => prev.some(b => b.id === opened.id) ? prev.map(b => b.id === opened.id ? opened : b) : [...prev, opened]);
+      setSelectedBatchId(opened.id);
       playScanBeep();
       return;
     }
     const rackRes = await hardwareContainerRegistryService.getByRackId(value);
     if ('ok' in rackRes && rackRes.ok && rackRes.data.status === 'Available') {
-      setLookupValue('');
       playScanBeep();
       setPrefillRackId(rackRes.data.rackId);
       setShowCreate(true);
@@ -113,7 +152,16 @@ const BatchManagementPage: React.FC = () => {
     } else {
       toast.error(t('batchManagement.notFoundError', { value }));
     }
-  }, [t]);
+  }, [t, stationId, user?.id, user?.name]);
+
+  // Batch 726: /batch-management?carrier=<barcode> (the workstations' "Open in Batch Management") opens that carrier.
+  const carrierParam = searchParams.get('carrier');
+  const carrierParamHandled = useRef(false);
+  useEffect(() => {
+    if (!carrierParam || carrierParamHandled.current || loading) return;
+    carrierParamHandled.current = true;
+    void handleLookup(carrierParam);
+  }, [carrierParam, loading, handleLookup]);
 
   // Real feature, per the spec's own "Master Barcode Lookup: Scanning a
   // master batch barcode on any workstation displays its active
@@ -131,13 +179,14 @@ const BatchManagementPage: React.FC = () => {
     const listener = (e: Event) => {
       const scanEvent = (e as CustomEvent<ScanEvent>).detail;
       const upper = scanEvent?.raw?.trim().toUpperCase();
-      if (upper?.startsWith('CONT-') || upper?.startsWith('RACK-')) {
+      // Batch 726: the configured prefixes (Print Settings), not fixed text.
+      if (upper && isCarrierBarcode(upper, prefixes)) {
         handleLookup(scanEvent.raw);
       }
     };
     window.addEventListener('PATHSCRIBE_SCAN', listener);
     return () => window.removeEventListener('PATHSCRIBE_SCAN', listener);
-  }, [selectedBatchId, handleLookup]);
+  }, [selectedBatchId, handleLookup, prefixes]);
 
   if (selectedBatch) {
     return (
@@ -149,16 +198,15 @@ const BatchManagementPage: React.FC = () => {
         userName={user?.name ?? 'Unknown User'}
         stationId={stationId}
         allBatches={batches}
+        stationName={station?.name}
+        stationNodes={stationNodes}
       />
     );
   }
 
-  const activeBatches = batches
-    .filter(b => b.status === 'active' || b.status === 'reconciling')
-    .filter(b => !stageFilter || b.processingNode === stageFilter);
-  const closedBatches = batches.filter(b => b.status === 'complete' || b.status === 'aborted');
-  const activeCountByNode = (node: BatchProcessingNode) =>
-    batches.filter(b => (b.status === 'active' || b.status === 'reconciling') && b.processingNode === node).length;
+  // Batch 408: services/batches/batchListView.ts.
+  const activeBatches = openBatches(batches, stageFilter);
+  const closedList = closedBatches(batches);
 
   return (
     <div className="ps-batch-page">
@@ -183,23 +231,25 @@ const BatchManagementPage: React.FC = () => {
           <div className="ps-batch-stage-tiles">
             {BATCH_PROCESSING_NODES.map(node => {
               const isActive = stageFilter === node;
-              const count = activeCountByNode(node);
+              const count = openCountByNode(batches, node);
               const color = NODE_COLOR[node];
               return (
                 <button
                   key={node}
+                  type="button"
+                  aria-pressed={isActive}
                   className={`ps-wl-filter-tile ps-wl-filter-tile--hued${isActive ? ' ps-wl-filter-tile--hued-active' : ''}`}
                   title={isActive ? t('batchManagement.filterTileTitleActive', { node: t(`batchManagement.nodes.${node}`) }) : t('batchManagement.filterTileTitle', { node: t(`batchManagement.nodes.${node}`) })}
                   onClick={() => setStageFilter(isActive ? null : node)}
                   style={{ '--ps-hue': color } as React.CSSProperties}
                 >
-                  <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? color : '#8899aa' } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__label">
                     {t(`batchManagement.nodeTileLabel.${node}`)}
                   </div>
-                  <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': color } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__count">
                     {count}
                   </div>
-                  <div className="ps-wl-filter-tile__sublabel" style={{ '--tile-count-color': color } as React.CSSProperties}>
+                  <div className="ps-wl-filter-tile__sublabel">
                     {'\u00A0'}
                   </div>
                 </button>
@@ -215,6 +265,7 @@ const BatchManagementPage: React.FC = () => {
                 longer runs through the batch/container model at all
                 (see IBatchService.ts's own header for why). */}
             <button
+              type="button"
               className="ps-wl-filter-tile ps-batch-tile--disposal"
               title={t('batchManagement.disposalTitle')}
               onClick={() => navigate('/batch-management/disposal')}
@@ -222,7 +273,7 @@ const BatchManagementPage: React.FC = () => {
               <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
                 {t('batchManagement.disposalTile')}
               </div>
-              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal">
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal" aria-hidden="true">
                 🗑️
               </div>
               <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal">
@@ -236,6 +287,7 @@ const BatchManagementPage: React.FC = () => {
                 items (DisposalReportPage.tsx), never the disposal
                 action itself. */}
             <button
+              type="button"
               className="ps-wl-filter-tile ps-batch-tile--disposal-report"
               title={t('batchManagement.disposalReportTitle')}
               onClick={() => navigate('/batch-management/disposal-report')}
@@ -243,11 +295,28 @@ const BatchManagementPage: React.FC = () => {
               <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
                 {t('batchManagement.disposalReportTile')}
               </div>
-              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report">
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report" aria-hidden="true">
                 📊
               </div>
               <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal-report">
                 {' '}
+              </div>
+            </button>
+            {/* Batch 610 (#12): every active retention hold, with release and CSV export. */}
+            <button
+              type="button"
+              className="ps-wl-filter-tile ps-batch-tile--disposal-report"
+              title={t('batchManagement.retentionHoldsTitle')}
+              onClick={() => navigate('/batch-management/retention-holds')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.retentionHoldsTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--disposal-report" aria-hidden="true">
+                🔒
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--disposal-report">
+                {' '}
               </div>
             </button>
             {/* Real feature, per direct follow-up: "the pending batch
@@ -276,6 +345,38 @@ const BatchManagementPage: React.FC = () => {
                 {'\u00A0'}
               </div>
             </button>
+            {/* Batch 518 (PS-123): reprint labels for many cases at once. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--label-reprint"
+              title={t('batchManagement.labelReprintTitle')}
+              onClick={() => navigate('/batch-management/label-reprint')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.labelReprintTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--label-reprint">
+                🏷️
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--label-reprint">
+                {'\u00A0'}
+              </div>
+            </button>
+            {/* Batch 434: WSI scan batches (the scanning queue, load, send, unload). */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--wsi-scan"
+              title={t('batchManagement.wsiScanTitle')}
+              onClick={() => navigate('/batch-management/wsi-scan')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.wsiScanTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--wsi-scan">
+                🔬
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--wsi-scan">
+                {'\u00A0'}
+              </div>
+            </button>
             {/* Real feature, per direct guidance's own confirmed
                 architectural verdict on the Engraver Monitor
                 requirement (Option 3: thin, read-only status surface).
@@ -296,23 +397,48 @@ const BatchManagementPage: React.FC = () => {
                 {'\u00A0'}
               </div>
             </button>
+            {/* Batch 429 (Pete): the bench staff record equipment maintenance and calibration. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--equipment-log"
+              title={t('batchManagement.equipmentLogTitle')}
+              onClick={() => navigate('/batch-management/equipment-log')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('batchManagement.equipmentLogTile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--engraver-monitor">
+                🔧
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--engraver-monitor">
+                {'\u00A0'}
+              </div>
+            </button>
+            {/* Batch 730 (Lab Workflow spec §9): the built-in lab workflow reports. */}
+            <button
+              className="ps-wl-filter-tile ps-batch-tile--equipment-log"
+              title={t('labWorkflowReports.tileTitle')}
+              onClick={() => navigate('/batch-management/workflow-reports')}
+            >
+              <div className="ps-wl-filter-tile__label ps-batch-tile-label--muted">
+                {t('labWorkflowReports.tile')}
+              </div>
+              <div className="ps-wl-filter-tile__count ps-batch-tile-count--engraver-monitor">
+                📊
+              </div>
+              <div className="ps-wl-filter-tile__sublabel ps-batch-tile-count--engraver-monitor">
+                {'\u00A0'}
+              </div>
+            </button>
           </div>
 
           <div className="ps-batch-toolbar">
-            <input
-              ref={lookupRef}
-              className="ps-batch-lookup-input"
-              type="text"
-              placeholder={t('batchManagement.lookupPlaceholder')}
-              value={lookupValue}
-              onChange={e => setLookupValue(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleLookup(lookupValue); }}
-            />
+            {/* Touch spec T1 (Batch 735): the shared scan field (no on-screen keyboard, focus kept). */}
+            <StationScanField onScan={handleLookup} placeholder={t('batchManagement.lookupPlaceholder')} submitLabel={t('batchManagement.lookupButton')} />
             <button className="ps-btn-primary" onClick={() => setShowCreate(true)}>🖨️ {t('batchManagement.newContainer')}</button>
           </div>
 
           {loading ? (
-            <div className="ps-batch-empty">{t('batchManagement.loading')}</div>
+            <LoadingState variant="inline" className="ps-batch-empty" label={t('batchManagement.loading')} />
           ) : (
             <>
               <div className="ps-batch-section-label">{t('batchManagement.activeSectionLabel', { count: activeBatches.length })}</div>
@@ -321,7 +447,7 @@ const BatchManagementPage: React.FC = () => {
               ) : (
                 <div className="ps-batch-list">
                   {activeBatches.map(b => (
-                    <div key={b.id} className="ps-batch-row" onClick={() => setSelectedBatchId(b.id)}>
+                    <div key={b.id} className="ps-batch-row" {...pressable(() => setSelectedBatchId(b.id))}>
                       <span className="ps-batch-row-status ps-batch-row-status--hued" style={{ '--ps-hue': STATUS_COLOR[b.status] } as React.CSSProperties}>
                         {t(`batchManagement.status.${b.status}`)}
                       </span>
@@ -330,18 +456,18 @@ const BatchManagementPage: React.FC = () => {
                       <span className="ps-batch-row-protocol">{b.protocol}</span>
                       {b.priority === 'STAT' && <span className="ps-batch-row-stat">{t('newContainerModal.stat')}</span>}
                       <span className="ps-batch-row-count">{t('batchManagement.itemCount', { count: b.items.length })}</span>
-                      <span className="ps-batch-row-time">{formatTimestamp(b.createdAt)}</span>
+                      <span className="ps-batch-row-time">{formatDateTime(b.createdAt, i18n.language)}</span>
                     </div>
                   ))}
                 </div>
               )}
 
-              {closedBatches.length > 0 && (
+              {closedList.length > 0 && (
                 <>
-                  <div className="ps-batch-section-label">{t('batchManagement.closedSectionLabel', { count: closedBatches.length })}</div>
+                  <div className="ps-batch-section-label">{t('batchManagement.closedSectionLabel', { count: closedList.length })}</div>
                   <div className="ps-batch-list">
-                    {closedBatches.map(b => (
-                      <div key={b.id} className="ps-batch-row ps-batch-row--closed" onClick={() => setSelectedBatchId(b.id)}>
+                    {closedList.map(b => (
+                      <div key={b.id} className="ps-batch-row ps-batch-row--closed" {...pressable(() => setSelectedBatchId(b.id))}>
                         <span className="ps-batch-row-status ps-batch-row-status--hued" style={{ '--ps-hue': STATUS_COLOR[b.status] } as React.CSSProperties}>
                           {t(`batchManagement.status.${b.status}`)}
                         </span>
@@ -349,7 +475,7 @@ const BatchManagementPage: React.FC = () => {
                         <span className="ps-batch-row-node">{t(`batchManagement.nodes.${b.processingNode}`)}</span>
                         <span className="ps-batch-row-protocol">{b.protocol}</span>
                         <span className="ps-batch-row-count">{t('batchManagement.itemCount', { count: b.items.length })}</span>
-                        <span className="ps-batch-row-time">{formatTimestamp(b.completedAt ?? b.abortedAt ?? b.createdAt)}</span>
+                        <span className="ps-batch-row-time">{formatDateTime(b.completedAt ?? b.abortedAt ?? b.createdAt, i18n.language)}</span>
                       </div>
                     ))}
                   </div>

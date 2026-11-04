@@ -1,3 +1,9 @@
+**Batch 755b (part 1):** PATH-UK-001 is the fictional Dr. Imogen Hartley (no licence number); Paul Carter has his own record, UK-ADV-001, with no credentials and no clinical role (USERS_VERSION 13).
+
+**Batch 738:** ADM-001 Jordan Ellis (Admin only, fictional); home benches (`defaultScanStationId`) for PA-001 (Grossing Station 1) and HT-001 (Microtome — Bench 1).
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/users/
 
 Staff user directory — the full user profile (name, roles, NPI, license, department, voice profile) underlying login/staff assignment.
@@ -28,6 +34,27 @@ New seed staff record `PATH-SJ-001` (Dr. Sarah Johnson, Pathologist, ORG-DVMC). 
 
 Staff records for the four bench demo users (ACC-001, HT-001, CT-001, MT-001) and for Michelle Nimmo (PATH-MN-001, Pathologist + Admin). Michelle's sign-in had no staff record, so she held no role. `USERS_VERSION` is 11.
 
+## Batch 431
+
+Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
+
+## Batch 443
+
+A demo Lab Director: **Dr. Rachel Okafor** (`LD-001`, MD FCAP, Desert Valley, role Lab Director only). She's in `LATER_SEED_USERS` and is added to a browser's stored staff list when missing (`withMissingSeedRecords`), so existing staff edits are kept (no `USERS_VERSION` bump). She opens Quality Assurance and Configuration, sees and decides Discordance Patterns, and sets the trend policy (PS-147). **No sign-in yet** (Pete's choice): add a `demoAccounts.ts` entry with a hash from `scripts/auth/hash-demo-password.mjs` when wanted.
+
+## Batch 448
+
+The demo Lab Director (LD-001) can now be given a sign-in from Staff → edit → Sign-in password. Her Lab Director role gives her app access.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+- `USERS_VERSION` is 12. Priya Desai (CT-001), Sarah Johnson, Michelle Nimmo and Rossana Babakhani get `canViewOrchestration`, and James Okafor gets his demo email.
+- `LATER_SEED_USERS` adds FEL-001, CT-002, TA-001, TAP-001 and QA-001, and (Batch 697) DOC-001 Helen Schollars and DOC-002 Shelly Krill, the technical writers, who hold Admin and Pathologist together.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+- Batch 608: `StaffUser.qcReviewerRoles` (also in `types/index.ts`).
+
+
+Batch 616: server version in `httpUserService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `userServiceInstance.ts`. Contract: `docs/architecture/STAFF_ADMIN_API.md`.

@@ -1,0 +1,64 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 655 — Decision-list rulings: failed QA saves reported as failed, live-update sign-in, dictionary fingerprint, intraoperative block, critical-finding confidence floor",
+    "description": "Vitest, 2026-10-23: 5 test files, 42 tests, all passed. Type-check clean. Tests are created by this import (testInfo): no Jira Test keys assigned yet. Full suite: 14,823 passed, 5 failed (since fixed, affected files re-run), one environment error (Firestore emulator not running)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "A Quality deficiency change the store reports as failed, throws on, or an Engine endpoint rejects is returned as failed and writes no audit entry",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/deficiencies/qaDeficiencyActions.test.ts (6)\nNot tested or not built: The page's window still closes on a failure (finding 12 in docs/user-guide/FINDINGS.md)."
+    },
+    {
+      "testInfo": {
+        "summary": "The live-update connection uses the session cookie and never a token in the address",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/liveUpdates/hubConnectionOptions.test.ts (3)\nNot tested or not built: The terminal device-token exchange is server work, not built."
+    },
+    {
+      "testInfo": {
+        "summary": "The personal dictionary audit entry carries the word's length and a fingerprint, not the word",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/spellcheck/customDictionary.test.ts (5)\nNot tested or not built: Encrypted word storage is Planned."
+    },
+    {
+      "testInfo": {
+        "summary": "Carried intraoperative findings appear in a labelled block and never change the final diagnosis",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/fullPatientReportRows.test.ts (10)\nNot tested or not built: Browser display not captured."
+    },
+    {
+      "testInfo": {
+        "summary": "Low-confidence 'Abnormal' critical findings are set aside; 'Critical' and 'Malignant' are never dropped",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/clinical/detectCriticalFindings.test.ts (18)\nNot tested or not built: The floor (50) is a code constant, not a setting."
+    }
+  ]
+}

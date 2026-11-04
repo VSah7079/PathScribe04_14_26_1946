@@ -31,12 +31,6 @@ interface ProtocolChangeModalProps {
   onCancel:   () => void;
 }
 
-// ── Confidence colour ─────────────────────────────────────────────────────────
-
-function confColor(c: number): string {
-  return c >= 85 ? '#34d399' : c >= 70 ? '#fbbf24' : '#f87171';
-}
-
 // ── Change row ────────────────────────────────────────────────────────────────
 
 const ChangeRow: React.FC<{
@@ -46,54 +40,49 @@ const ChangeRow: React.FC<{
 }> = ({ change, selected, onToggle }) => {
   const { t } = useTranslation();
   return (
-    <div
+    // Batch 567 (axe nested-interactive): the row was a button holding a checkbox. It is now the checkbox's label,
+    // so clicking anywhere on it ticks the box, and keyboard and screen-reader users have the one checkbox.
+    <label
       className={`ps-proto-change-row${selected ? ' ps-proto-change-row--selected' : ''}`}
-      onClick={onToggle}
     >
       <input
         type="checkbox"
         checked={selected}
         onChange={onToggle}
-        onClick={e => e.stopPropagation()}
         className="ps-proto-change-checkbox"
+        // Named by the specimen and the proposed template, described by the reason (not the whole row read out).
+        aria-labelledby={`ps-proto-${change.id}-specimen ps-proto-${change.id}-proposed`}
+        aria-describedby={`ps-proto-${change.id}-reason`}
       />
 
-      <div className="ps-proto-change-body">
+      <span className="ps-proto-change-body">
         {/* Specimen label */}
-        <div className="ps-proto-change-specimen">
+        <span className="ps-proto-change-specimen" id={`ps-proto-${change.id}-specimen`}>
           <span className="ps-proto-change-specimen-badge">{change.specimenLabel}</span>
           <span className="ps-proto-change-specimen-desc">{change.specimenDesc}</span>
-        </div>
+        </span>
 
         {/* Protocol diff — 'add' has no current template, 'remove' has no proposed one */}
-        <div className="ps-proto-change-diff">
-          <div className="ps-proto-change-current">
+        <span className="ps-proto-change-diff">
+          <span className="ps-proto-change-current">
             <span className="ps-proto-change-diff-label">{t('protocolChangeModal.currentLabel')}</span>
             <span className="ps-proto-change-diff-name ps-proto-change-diff-name--current">
               {change.currentTemplateName ?? t('protocolChangeModal.noneAssigned')}
             </span>
-          </div>
+          </span>
           <span className="ps-proto-change-arrow">→</span>
-          <div className="ps-proto-change-proposed">
+          <span className="ps-proto-change-proposed">
             <span className="ps-proto-change-diff-label">{t('protocolChangeModal.proposedLabel')}</span>
-            <span className="ps-proto-change-diff-name ps-proto-change-diff-name--proposed">
+            <span className="ps-proto-change-diff-name ps-proto-change-diff-name--proposed" id={`ps-proto-${change.id}-proposed`}>
               {change.proposedTemplateName ?? t('protocolChangeModal.removeNoLongerNeeded')}
             </span>
-          </div>
-        </div>
+          </span>
+        </span>
 
         {/* AI reason */}
-        <p className="ps-proto-change-reason">{t('protocolChangeModal.reasonQuoted', { reason: change.reason })}</p>
-
-        {/* Confidence */}
-        <span
-          className="ps-proto-change-confidence"
-          style={{ '--ps-hue': confColor(change.confidence) } as React.CSSProperties}
-        >
-          ✦ {t('protocolChangeModal.confidencePercent', { percent: change.confidence })}
-        </span>
-      </div>
-    </div>
+        <span className="ps-proto-change-reason" id={`ps-proto-${change.id}-reason`}>{t('protocolChangeModal.reasonQuoted', { reason: change.reason })}</span>
+      </span>
+    </label>
   );
 };
 
@@ -146,16 +135,16 @@ export const ProtocolChangeModal: React.FC<ProtocolChangeModalProps> = ({
               {t('protocolChangeModal.subtitle', { count: changes.length })}
             </p>
           </div>
-          <button onClick={onCancel} className="ps-modal-close">×</button>
+          <button type="button" onClick={onCancel} className="ps-modal-close" aria-label={t('common.close')} title={t('common.close')}>×</button>
         </div>
 
         {/* Select all */}
-        <div className="ps-proto-select-all" onClick={toggleAll}>
+        {/* Batch 567: the checkbox's label (was a button holding the checkbox). */}
+        <label className="ps-proto-select-all">
           <input
             type="checkbox"
             checked={allSelected}
             onChange={toggleAll}
-            onClick={e => e.stopPropagation()}
             ref={el => { if (el) el.indeterminate = !allSelected && !noneSelected; }}
             className="ps-proto-change-checkbox"
           />
@@ -165,7 +154,7 @@ export const ProtocolChangeModal: React.FC<ProtocolChangeModalProps> = ({
           <span className="ps-proto-select-all-count">
             {t('protocolChangeModal.selectedCount', { selected: selected.size, total: changes.length })}
           </span>
-        </div>
+        </label>
 
         {/* Change list */}
         <div className="ps-proto-modal-list">

@@ -129,7 +129,7 @@ export interface IAIIntegrationService {
    * same as every other AI suggestion in this system; this method only
    * proposes.
    *
-   * NOTE — this interface method is satisfied by MockAIIntegrationService
+   * NOTE — this interface method is satisfied by PathScribeAIService
    * for completeness, but the REAL implementation does NOT live here.
    * Confirmed (June 2026): the actual app calls AI through plain functions
    * that call callAi() directly (see generateAiSuggestionsForReport in

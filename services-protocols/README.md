@@ -1,5 +1,7 @@
 # services/protocols/
 
+*Batch 496 README audit (Oct 9, 2026): this root-level `services-protocols/` folder is a stale Sep 18, 2026 copy of `src/services/protocols/` (its `IProtocolService.ts` is identical to the live one; this README lacks the live one's Batch 428 section). Read and update `src/services/protocols/README.md` instead.*
+
 Standalone processing-protocol dictionary (e.g. 'Standard Small Biopsy — 1 block, 1 H&E') — deliberately NOT embedded per specimen type.
 
 **Pattern:** Standard interface/mock/firestore pattern.

@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/lisIngestion/
 
 **The vendor-agnostic LIS ingestion layer (PS-87, Batch 323)**, built to Pete's design:
@@ -38,9 +40,23 @@ Both push adapters come with an example message for the admin screen's **Test an
 
 ## Open
 
-- **Real endpoints.** In production, an inbound HTTPS endpoint (HL7 over HTTP from the interface engine, or the JSON webhook) and a scheduled poll job both call the entry points in `services/assistPolling/assistPollingRuntime.ts`. They belong beside `api/webhooks/engine/`, which isn't in this working copy.
+- **Real endpoints.** In production, an inbound HTTPS endpoint (HL7 over HTTP from the interface engine, or the JSON webhook) and a scheduled poll job both call the entry points in `services/assistPolling/assistPollingRuntime.ts`. They belong beside `api/webhooks/engine/` (at the repo root), which does not have them yet.
 - **The real poll source** depends on each site's LIS (FHIR `_lastUpdated`, an HL7 query, or a vendor API) and needs that LIS's integration guide.
 - **Authentication** of inbound messages (webhook signing, engine credentials) is part of building those endpoints.
 
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `api/webhooks/engine/` is in this working copy; the ingestion endpoints are what is missing.*
+
+## Batch 426
+
+`NormalizedLisUpdate` gains `placerOrderNumber` and `fillerOrderNumber`:
+- the webhook JSON takes them as optional fields;
+- the HL7 reader takes ORC-2/ORC-3, or OBR-2/OBR-3 if those are missing.
+
+They are echoed on the structured synoptic result.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 616 (part E) — server version
+
+API-server version of `LisStagingQueue` (`httpLisStagingQueueService.ts`, contract `LIS_INGESTION_API.md`), picked by `lisStagingQueueServiceInstance.ts` (and the others beside it) when an API address is configured; the mock stays the default in the demo. See `docs/architecture/HTTP_SERVICES_PATTERN.md`.

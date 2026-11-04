@@ -9,6 +9,8 @@
 //   en-US / en-GB / en-AU / en-CA — SCOWL-based (MIT AND BSD)
 //   fr-FR — Dicollecte (MPL-2.0)      nl-NL — OpenTaal (BSD-3 or CC-BY-3.0)
 //   ko-KR — hunspell-dict-ko (used under MPL-1.1)
+//   es-ES — RLA-ES (dictionary-es, used under MPL-1.1; Batch 622). The MedLexSp
+//           medical lexicon is non-commercial and is not used.
 //   de-DE — igerman98 (GPL-2.0 or GPL-3.0). Per Pete (Sep 26, 2026) it is
 //           used under the GPL: shipped byte-for-byte unmodified as a
 //           separate data file loaded at run time, with the full licence
@@ -20,7 +22,7 @@
 
 import type { Jurisdiction } from '@/types/systemConfig';
 
-export type SpellingLocale = 'en-US' | 'en-GB' | 'en-AU' | 'en-CA' | 'fr-FR' | 'nl-NL' | 'ko-KR' | 'de-DE';
+export type SpellingLocale = 'en-US' | 'en-GB' | 'en-AU' | 'en-CA' | 'fr-FR' | 'nl-NL' | 'ko-KR' | 'de-DE' | 'es-ES';
 
 /** English spelling convention: 'US' (hemorrhage), 'GB' (haemorrhage) or
  *  'both' (Canada, where medical usage mixes the two). Undefined for
@@ -49,10 +51,11 @@ export const SPELLING_LOCALES: Record<SpellingLocale, SpellingLocaleInfo> = {
   'nl-NL': { locale: 'nl-NL', available: true, script: 'latin' },
   'ko-KR': { locale: 'ko-KR', available: true, script: 'hangul', latinFallback: 'en-US' },
   'de-DE': { locale: 'de-DE', available: true, script: 'latin' },
+  'es-ES': { locale: 'es-ES', available: true, script: 'latin' },
 };
 
 /** Order the language picker shows them in. */
-export const SPELLING_LOCALE_ORDER: readonly SpellingLocale[] = ['en-US', 'en-GB', 'en-AU', 'en-CA', 'fr-FR', 'nl-NL', 'de-DE', 'ko-KR'];
+export const SPELLING_LOCALE_ORDER: readonly SpellingLocale[] = ['en-US', 'en-GB', 'en-AU', 'en-CA', 'fr-FR', 'nl-NL', 'de-DE', 'es-ES', 'ko-KR'];
 
 /**
  * The default spelling language for each jurisdiction. Ireland and the
@@ -65,7 +68,7 @@ export const JURISDICTION_SPELLING_LOCALE: Record<Jurisdiction, SpellingLocale> 
   US: 'en-US', CA: 'en-CA',
   GB_EW: 'en-GB', GB_SCT: 'en-GB', GB_NIR: 'en-GB', IE: 'en-GB',
   AU: 'en-AU', NZ: 'en-AU',
-  KR: 'ko-KR', BE: 'nl-NL', NL: 'nl-NL', DE: 'de-DE', FR: 'fr-FR',
+  KR: 'ko-KR', BE: 'nl-NL', NL: 'nl-NL', DE: 'de-DE', FR: 'fr-FR', ES: 'es-ES',
 };
 
 export const DEFAULT_SPELLING_LOCALE: SpellingLocale = 'en-US';

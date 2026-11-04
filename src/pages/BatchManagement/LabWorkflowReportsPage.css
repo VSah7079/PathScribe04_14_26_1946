@@ -1,0 +1,14 @@
+/* Batch 730: Lab Workflow Reports (LabWorkflowReportsPage.tsx). Logical properties only. */
+.ps-lwr-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 8px; }
+.ps-lwr-tab { padding-block: 6px; padding-inline: 12px; border-radius: 999px; border: 1px solid rgba(148, 163, 184, 0.35); background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
+.ps-lwr-tab--active { background: rgba(56, 189, 248, 0.18); border-color: rgba(56, 189, 248, 0.6); font-weight: 600; }
+.ps-lwr-tab:disabled { opacity: 0.45; cursor: not-allowed; }
+.ps-lwr-tab:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+.ps-lwr-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; margin-block: 8px; }
+.ps-lwr-field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.ps-lwr-field--small input { inline-size: 90px; }
+.ps-lwr-export { margin-inline-start: auto; }
+.ps-lwr-targets { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 8px; padding-block: 8px; padding-inline: 12px; border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; }
+.ps-lwr-targets legend { font-size: 13px; font-weight: 600; padding-inline: 4px; }
+.ps-lwr-note { margin-block: 6px; font-size: 13px; color: var(--ps-text-dim); }
+.ps-lwr-error { margin-block: 6px; font-size: 13px; color: #f87171; }

@@ -1,0 +1,2327 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tier 6: Interface Engine and External System Integrations · PathScribe Administrator Guide (ForMedrixAI internal edition)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html" aria-current=page>7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch7-order">The setup order for Tier 6</a></li><li class="l2"><a href="#ch7-status">What this tier does and does not contain</a></li><li class="l2"><a href="#ch7-architecture">How the interface engine fits</a></li><li class="l3"><a href="#ch7-pie-term">The term &quot;PathScribe Interface Engine&quot;</a></li><li class="l3"><a href="#ch7-hosting">Where the engine runs</a></li><li class="l3"><a href="#ch7-today">What runs today and what is Planned</a></li><li class="l3"><a href="#ch7-facility-settings">Facility interface settings that are stored but not used</a></li><li class="l2"><a href="#ch7-hl7">Inbound and outbound HL7 v2.x</a></li><li class="l3"><a href="#ch7-hl7-types">Message types</a></li><li class="l3"><a href="#screen-crosswalk">Specimen Code Map</a></li><li class="l3"><a href="#screen-assist_lis_polling">Assist LIS Ingestion</a></li><li class="l3"><a href="#screen-outbound_message_preview">Outbound Interface Message Preview</a></li><li class="l3"><a href="#screen-interface_dictionary">[FORMEDRIXAI INTERNAL ONLY] Interface Dictionary</a></li><li class="l2"><a href="#ch7-fhir">FHIR R4 endpoint and OAuth2 client credentials</a></li><li class="l2"><a href="#ch7-ehr">EHR integration: Epic, Cerner, MEDITECH and AthenaHealth</a></li><li class="l3"><a href="#screen-mock-emr">Mock EMR</a></li><li class="l2"><a href="#ch7-reflab">Reference laboratory interfaces</a></li><li class="l2"><a href="#ch7-monitoring">Interface monitoring, error queues and reprocessing</a></li><li class="l3"><a href="#ch7-reprocessing">Reprocessing rules at a glance</a></li><li class="l3"><a href="#screen-audit-interfaces">System Logs: interfaces</a></li><li class="l3"><a href="#screen-interface-engines">Interface Engines</a></li><li class="l3"><a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a></li><li class="l3"><a href="#screen-outbound-dispatches">Outbound Dispatches</a></li><li class="l3"><a href="#screen-outbound-queue">Outbound Queue</a></li><li class="l2"><a href="#ch7-other">Other integrations and test tools</a></li><li class="l3"><a href="#screen-bi_feed">Reporting feed (Power BI)</a></li><li class="l3"><a href="#screen-migration_field_mappings">Migration Field Mappings</a></li><li class="l3"><a href="#screen-migration-jobs">Historical Data Migration Jobs</a></li><li class="l3"><a href="#screen-simulated_mail">Simulated mail outbox</a></li><li class="l3"><a href="#screen-mock-interface-engine">Mock Interface Engine</a></li></ul></aside><article><h1 id="ch7"><a class="anchor" href="#ch7" aria-label="Link to this section">#</a> Tier 6: Interface Engine and External System Integrations</h1>
+<p>This chapter covers how PathScribe exchanges messages with other systems: the hospital's electronic health record (EHR), a laboratory information system (<a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a>), reference laboratories, billing systems, registries and reporting tools. It also covers the screens an administrator uses to watch those exchanges and to deal with the ones that fail.</p>
+<p>Read the status of each part before you plan a project around it. Much of this tier is a contract that is written and a browser side that is built, while the server and the interface engine on the other end are not yet connected. Where something is not built, the section says <strong>Not built</strong> or <strong>Planned</strong> and names the nearest thing that does exist.</p>
+<p><strong>The rule of this chapter.</strong> PathScribe decides what is sent and when. The interface engine decides how: the <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> text, the connection, the retries on the wire and the vendor's own wording. PathScribe never translates a vendor's field names or codes, and it does not claim to be a certified connector for any EHR.</p>
+<h2 id="ch7-order"><a class="anchor" href="#ch7-order" aria-label="Link to this section">#</a> The setup order for Tier 6</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p>Tier 6 is mostly optional. A laboratory that runs PathScribe on its own, with no <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a>, no <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> feed and no reporting tool, can skip all of it. Do the steps below only for the integrations you use, in this order. Each step names the screens that must be configured first (Tiers 1 to 5), and the same information appears in the "Setup sequence" box on each screen.</p>
+<ol>
+<li><a href="#screen-crosswalk">Specimen Code Map</a>: map each sending <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> codes to your Specimen Dictionary, so inbound orders resolve. Needs the Facility Dictionary and the Specimen Dictionary.</li>
+<li><a href="#screen-interface_dictionary">Interface Dictionary</a> (ForMedrixAI staff only): describe a vendor's own fields. Customers do not do this step; it is listed so the numbering is complete.</li>
+<li><a href="#screen-assist_lis_polling">Assist LIS Ingestion</a>: for a laboratory whose LIS owns the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> and PathScribe assists with AI drafts. Needs AI Behavior and the Synoptic Library.</li>
+<li><a href="#screen-bi_feed">Reporting feed (Power BI)</a>: let a reporting tool read PathScribe data. Needs the performing-lab facilities in the Facility Dictionary.</li>
+<li><a href="#screen-migration_field_mappings">Migration Field Mappings</a>: map a legacy system's field names, before any historical import.</li>
+<li><a href="#screen-migration-jobs">Historical Data Migration Jobs</a>: import a legacy file and check the job. Needs step 5.</li>
+</ol>
+<p>The monitoring screens (<a href="#screen-audit-interfaces">System Logs: interfaces</a>, <a href="#screen-interface-engines">Interface Engines</a>, <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a>, <a href="#screen-outbound-dispatches">Outbound Dispatches</a> and the <a href="#screen-outbound-queue">Outbound Queue</a>) and the test tools (<a href="#screen-outbound_message_preview">Outbound Interface Message Preview</a>, <a href="#screen-simulated_mail">Simulated mail outbox</a>, <a href="#screen-mock-interface-engine">Mock Interface Engine</a> and <a href="#screen-mock-emr">Mock EMR</a>) are not setup steps. Each says <code>Reference, not part of setup</code> and lists what must exist for it to show data.</p>
+<h2 id="ch7-status"><a class="anchor" href="#ch7-status" aria-label="Link to this section">#</a> What this tier does and does not contain</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Part of the outline</th>
+<th>Status</th>
+<th>What exists today</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interface engine architecture</td>
+<td>Partial</td>
+<td>The message contract and the browser side are built. The engine (BridgeLink) and the server endpoints it needs are Planned. See <a href="#ch7-architecture">How the interface engine fits</a>.</td>
+</tr>
+<tr>
+<td>Outbound <a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a>.x (<a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>, <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>, <a class="term" href="99-glossary.html#g-orm" title="The HL7 general order message type (ORM^O01).">ORM</a>)</td>
+<td>Partial</td>
+<td>PathScribe sends a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> message for the engine to turn into <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a>, except three messages it builds as HL7 text itself. See <a href="#ch7-hl7-types">Message types</a>.</td>
+</tr>
+<tr>
+<td>Inbound HL7 v2.x</td>
+<td>Partial</td>
+<td>The processors exist, and you can test them with pasted messages. No listener receives a live HL7 message yet.</td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> R4 endpoint and OAuth2 client credentials</td>
+<td>Not built</td>
+<td>No endpoint and no setup screen. See <a href="#ch7-fhir">FHIR R4 and OAuth2</a>.</td>
+</tr>
+<tr>
+<td>EHR integration (Epic, Cerner, MEDITECH, AthenaHealth)</td>
+<td>Not built</td>
+<td>No vendor connector, certified or not. See <a href="#ch7-ehr">EHR integration</a>.</td>
+</tr>
+<tr>
+<td>Reference laboratory send-out and receive-back</td>
+<td>Partial</td>
+<td>Referral manifests are sent and a result payload is processed. No inbound endpoint receives a result yet. See <a href="#ch7-reflab">Reference laboratory interfaces</a>.</td>
+</tr>
+<tr>
+<td>Interface monitoring, error queues and reprocessing</td>
+<td>Built (browser side)</td>
+<td>The screens and their capabilities work. The engine heartbeat and engine-side retries are Planned. See <a href="#ch7-monitoring">Monitoring</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch7-architecture"><a class="anchor" href="#ch7-architecture" aria-label="Link to this section">#</a> How the interface engine fits</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<h3 id="ch7-pie-term"><a class="anchor" href="#ch7-pie-term" aria-label="Link to this section">#</a> The term "PathScribe Interface Engine"</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p>The outline for this guide calls the interface layer the PathScribe Interface Engine (PIE). That name does not appear in the product, its screens or its design documents, and this guide does not invent a product name. What the product has is two things that together do the work the outline describes:</p>
+<ul>
+<li><strong>The PathScribe side.</strong> Services in the application decide what to send and when, build the <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> message, queue it, record the outcome and let an administrator resend, hold or release it. Everything in this chapter that you can click is on this side.</li>
+<li><strong>The interface engine.</strong> The design uses BridgeLink, an open-source fork of Mirth Connect, as the engine. It turns PathScribe's JSON into <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> (or another format), holds its own message store, sends to the receiving system, and receives replies. BridgeLink is the working name in the design documents (<code>INTERFACE_ENGINE_EDGE.md</code>). Its channel templates are Planned, not built.</li>
+</ul>
+<h3 id="ch7-hosting"><a class="anchor" href="#ch7-hosting" aria-label="Link to this section">#</a> Where the engine runs</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p>The engine is one container image used in two places, chosen per hospital (decision D6). ForMedrixAI can host it in the <a class="term" href="99-glossary.html#g-tenant" title="One customer organisation&#x27;s separate space within a shared PathScribe service.">tenant</a>'s region, or it can be installed on a virtual machine inside the hospital. The <a href="#screen-interface-engines">Interface Engines</a> screen shows which of the two each engine is (<strong>Hosted</strong> or <strong>On site</strong>). The image, its channel templates and its health endpoints are Planned, with the server team.</p>
+<p><a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> messages do not travel on the SQL Server message bus (decision D1). The <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server hands a message to the engine as a job of kind <code>interface.dispatch</code>, and the engine keeps HL7 in its own message store.</p>
+<h3 id="ch7-today"><a class="anchor" href="#ch7-today" aria-label="Link to this section">#</a> What runs today and what is Planned</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Piece</th>
+<th>Status</th>
+<th>What it means for you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outbound messages, <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> envelope</td>
+<td>Built (browser side)</td>
+<td>The browser posts <code>{queueEntryId, transactionType, dispatchedAt, payload}</code> to the address in the build setting <code>VITE_INTERFACE_RECEIVER_ENDPOINT</code>. In a production build the address must be <code>https</code>; a missing or plain-HTTP address is refused before anything is sent. The wait is 15 seconds.</td>
+</tr>
+<tr>
+<td>What counts as sent</td>
+<td>Built (browser side)</td>
+<td>Any 2xx answer marks the message sent. There is no <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> acknowledgement (<a class="term" href="99-glossary.html#g-ack" title="In HL7, the acknowledgement message a receiving system returns to say it accepted, or refused, a message.">ACK</a>) yet. A timeout, an unreachable engine and a rejection are three different errors on the screens.</td>
+</tr>
+<tr>
+<td>Demonstration build</td>
+<td>Demonstration</td>
+<td>With no engine address set, a simulated engine receives every message and keeps it in a list. See <a href="#screen-mock-interface-engine">Mock Interface Engine</a>.</td>
+</tr>
+<tr>
+<td>Inbound events from instruments</td>
+<td>Built (browser side)</td>
+<td>Four webhooks exist for the Cassette Engine: <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> exception, <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> dispatch outcome, material location and engraver status. They use a shared secret in the <code>X-API-Key</code> header, with an optional HMAC signature.</td>
+</tr>
+<tr>
+<td>Inbound HL7 messages</td>
+<td>Not built</td>
+<td>The <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a> and patient-management processors exist and are tested, but nothing receives a live HL7 message and calls them.</td>
+</tr>
+<tr>
+<td>Server endpoints for the engine (<code>POST /api/interface/inbound</code>, <code>POST /api/interface/outbound-acks</code>, <code>POST /api/interface/heartbeat</code>, <code>GET /api/interface/engines</code>)</td>
+<td>Planned</td>
+<td>Written as a contract (phase 2e). They add hand-over, acknowledgement-settled outcomes, retry windows, dead letters and engine status.</td>
+</tr>
+<tr>
+<td>Per-tenant engine credentials</td>
+<td>Planned</td>
+<td>OAuth2 client credentials or mutual <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, the encryption that protects a web connection and shows as https.">TLS</a> per <a class="term" href="99-glossary.html#g-tenant" title="One customer organisation&#x27;s separate space within a shared PathScribe service.">tenant</a> engine. See <a href="#ch7-fhir">FHIR R4 and OAuth2</a>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Planned retry windows.</strong> The contract says inbound messages wait 10 seconds, 30 seconds, 1 minute, 5 minutes, then 15 minutes, with a <a class="term" href="99-glossary.html#g-dead-letter" title="A message or job that failed every automatic retry and now waits for a person to resend or discard it.">dead letter</a> after 24 hours. Outbound messages are resent at 1, 5, 15 and 60 minutes, then hourly, for 24 hours. Registry submissions are kept for 72 hours. An acknowledgement of AA is sent; CA is sent or awaiting the application acknowledgement; AR and CE are retried within the window; AE and CR fail at once. A dead-lettered result holds later messages for the same <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>. None of this runs yet. Today a failed send waits for an administrator to resend it.</p>
+<h3 id="ch7-facility-settings"><a class="anchor" href="#ch7-facility-settings" aria-label="Link to this section">#</a> Facility interface settings that are stored but not used</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p>The Facility Editor (Tier 1, <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>) has a <strong><a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> Integration</strong> tab. It stores an engine address, <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> version, authentication type (none, basic, OAuth2 or <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> key), a <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> that says whether a credential has been provisioned, whether the LIS owns <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> statuses, whether PathScribe allows post-final actions, and the routing identifiers for the sending and receiving <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> and an outbound channel override. These settings are saved with the facility. No send path reads them today. A message goes to the one deployment-level address above. The credential is never stored: only a Yes/No flag is.</p>
+<h2 id="ch7-hl7"><a class="anchor" href="#ch7-hl7" aria-label="Link to this section">#</a> Inbound and outbound HL7 v2.x</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<h3 id="ch7-hl7-types"><a class="anchor" href="#ch7-hl7-types" aria-label="Link to this section">#</a> Message types</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p>There is no screen that switches message types on or off. The types below are fixed by the product. This part lists only what the code supports. Anything not listed is not supported.</p>
+<p><strong>Outbound.</strong> PathScribe queues these transaction types. The engine builds the <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> for all of them except the three marked "PathScribe builds HL7".</p>
+<table>
+<thead>
+<tr>
+<th>Transaction type</th>
+<th>What it carries</th>
+<th>HL7 form</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>A08</code></td>
+<td>Patient demographic update</td>
+<td>Engine builds <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>^A08</td>
+</tr>
+<tr>
+<td><code>A40</code></td>
+<td>Patient merge</td>
+<td>Engine builds ADT^A40</td>
+</tr>
+<tr>
+<td><code>A47</code></td>
+<td>Patient identifier change</td>
+<td>Engine builds ADT^A47</td>
+</tr>
+<tr>
+<td><code>ORU_R01</code></td>
+<td>Final, amended or corrected pathology result</td>
+<td>Engine builds <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01. For US electronic pathology (Tier 7), PathScribe builds an ORU^R01 v2.5.1 itself.</td>
+</tr>
+<tr>
+<td><code>LIS_SYNC</code></td>
+<td>Case data and an Assist <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>'s <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> result, for the <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a></td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>ORDER_CREATED</code></td>
+<td>A new order</td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>ACCESSION_EVENT</code></td>
+<td>An order accessioned, or an <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> deficiency</td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>REGISTRY_REPORT</code>, <code>CANCER_REGISTRY_REPORT</code></td>
+<td>Registry submissions (Tier 7)</td>
+<td>Engine builds it. Acknowledgements come back.</td>
+</tr>
+<tr>
+<td><code>REPORT_DELIVERY</code></td>
+<td>A signed report <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> for e-fax or file drop</td>
+<td>Engine or delivery service</td>
+</tr>
+<tr>
+<td><code>PRINT_JOB</code></td>
+<td>A report PDF for the engine to print</td>
+<td>Engine</td>
+</tr>
+<tr>
+<td><code>REFERRAL_MANIFEST</code></td>
+<td>A referral batch's manifest for a <a class="term" href="99-glossary.html#g-reference-lab" title="A laboratory to which testing is sent out. A facility is given the Reference Lab role.">reference lab</a></td>
+<td>Engine builds it. Results come back.</td>
+</tr>
+<tr>
+<td><code>MOLECULAR_ORDER</code></td>
+<td>A molecular assay order or an instrument order</td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>WSI_SCAN_MANIFEST</code></td>
+<td>The slides loaded in a whole-slide scan batch</td>
+<td>Engine builds it. Slide scan status comes back.</td>
+</tr>
+<tr>
+<td><code>BLOCK_ORDER</code></td>
+<td>One <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a>'s <a class="term" href="99-glossary.html#g-stain" title="A dye or antibody applied to a slide so a feature of the tissue can be seen.">stain</a> orders for an <a class="term" href="99-glossary.html#g-embedding" title="The step where processed tissue is set in wax in a cassette to make a block.">embedding</a> or staining instrument</td>
+<td>PathScribe builds HL7: <a class="term" href="99-glossary.html#g-orm" title="The HL7 general order message type (ORM^O01).">ORM</a>^O01</td>
+</tr>
+<tr>
+<td><code>SLIDE_ORDER</code>, <code>SPECIMEN_LABEL</code></td>
+<td>A slide order; a <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> container label</td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>MATERIAL_SCAN_EVENT</code></td>
+<td>A barcode scan of a <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> or slide</td>
+<td>Engine builds it</td>
+</tr>
+<tr>
+<td><code>CHARGE_DFT</code></td>
+<td>A charge for the billing system</td>
+<td>PathScribe builds HL7: <a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, the HL7 message that carries charges to a billing system.">DFT</a>^P03</td>
+</tr>
+<tr>
+<td><code>CHARGE_JSON</code></td>
+<td>A charge as a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> billing <a class="term" href="99-glossary.html#g-webhook" title="A web address that one system calls to push an update to another, such as an LIS sending a status change as JSON.">webhook</a></td>
+<td>JSON, no HL7</td>
+</tr>
+<tr>
+<td><code>FINANCIAL_CLASS</code></td>
+<td>Financial-class payload for a billing engine</td>
+<td>A preview payload until the formats exist</td>
+</tr>
+<tr>
+<td><code>CRITICAL_ALERT</code></td>
+<td>Post-launch critical alert channels</td>
+<td>Not wired. Nothing produces it today.</td>
+</tr>
+</tbody>
+</table>
+<p>The "ORM" in the outline is therefore the ORM^O01 that PathScribe builds for block orders to an instrument. PathScribe itself builds no ORM for an EHR or a LIS. The engine decides what HL7 an order-created message becomes, and there is no screen to add a message type.</p>
+<p><strong>Inbound.</strong> These processors exist in the application. None is connected to a live listener except the instrument webhooks above. You can run a pasted message through them with the <a href="#screen-mock-interface-engine">Mock Interface Engine</a> in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Messages</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Admit, discharge and transfer (<code>adtParser.ts</code>)</td>
+<td>A01, A03, A04, A08, A02, A09, A10, A05, A06, A07, A11, A12, A13, A31</td>
+<td>Processor built; no listener</td>
+</tr>
+<tr>
+<td>Patient management (<code>patientManagementParser.ts</code>)</td>
+<td>A40 merge, A24 link, A47 identifier change, A43 move</td>
+<td>Processor built; no listener. A message that cannot be matched is queued as an interface exception, never guessed.</td>
+</tr>
+<tr>
+<td>Visit changes (<code>processVisitMessage.ts</code>)</td>
+<td>A45, A50, A34</td>
+<td>Processor built; no listener</td>
+</tr>
+<tr>
+<td>LIS order status (the Assist adapter)</td>
+<td>ORU^R01, ORM^O01, <a class="term" href="99-glossary.html#g-oml" title="The HL7 laboratory order message type (OML^O21).">OML</a>^O21</td>
+<td>Status only. You can paste one into <a href="#screen-assist_lis_polling">Assist LIS Ingestion</a>.</td>
+</tr>
+<tr>
+<td>JSON events</td>
+<td><a class="term" href="99-glossary.html#g-hpv" title="Human papillomavirus. A high-risk HPV (hrHPV) result is used with cervical cytology.">HPV</a> result, block exception, material location, referral result, molecular run results, whole-slide scan status</td>
+<td>Processors built; the instrument webhooks are the only live route</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Inbound orders are not parsed from HL7.</strong> The order-intake service takes a structured order, not an ORM message, so a live HL7 order from an EHR is not accepted today. The <a href="#screen-crosswalk">Specimen Code Map</a> resolves an order's codes once an order reaches the service.</p>
+<p><strong>Vendor adapters.</strong> Adapters for Cerebro and Vantage are deliberately stubs that do nothing.</p>
+<h3 id="screen-crosswalk"><a class="anchor" href="#screen-crosswalk" aria-label="Link to this section">#</a> Specimen Code Map</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Order Types &amp; Inbound Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Order Types &amp; Inbound Rules</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Order Types &amp; Inbound Rules (the menu name). The title on the screen is <strong>Specimen Code Map</strong>.</p>
+<p><strong>3. Business purpose and scope.</strong> A sending system uses its own codes for specimens, and the same code can mean different things at different sending systems. This screen maps each sending <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s code to one Specimen Dictionary entry. Every incoming order is checked against this table. When no entry matches, PathScribe does not <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> the order. It creates an entry marked <strong>Auto-learned: pending review</strong>, creates a pending Specimen Dictionary entry so the order can flow, and queues an interface exception of type <code>unmapped_order_code</code> for a person to resolve. You review the auto-learned entries here, or add a real entry ahead of time so a known code never has to be learned.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The <strong>Facility</strong> list is the Facility Dictionary and the <strong>Resolves to</strong> list is the Specimen Dictionary, so both are set up first. Skip them and the lists are empty, and a mapping cannot be saved because facility, external code and <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> type are all required.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 1</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimen Dictionary</a></dd><dt>This unlocks</dt><dd><a href="#screen-audit-interfaces">System Logs: interfaces</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-crosswalk.webp" alt="Specimen Code Map list with the Add Mapping, Import Spreadsheet and Export buttons" loading="lazy"><figcaption>Specimen Code Map list with the Add Mapping, Import Spreadsheet and Export buttons</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>The list.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-facility"><td>Facility</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The sending facility the code comes from.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-external-code"><td>External Code</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The sending system's own specimen code.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-resolves-to"><td>Resolves To</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The Specimen Dictionary entry the code maps to.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-source"><td>Source</td>
+<td><strong>Admin-confirmed</strong> or <strong>Auto-learned: pending review</strong></td>
+<td>Not applicable</td>
+<td><strong>Auto-learned</strong> entries were created by the system when no entry matched. A count banner above the list says how many are waiting for review.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-pending-review-banner"><td>Pending Review banner</td>
+<td>Count and link</td>
+<td>Not applicable</td>
+<td>Shown when unmapped order-code exceptions are pending. The link <strong>View Unmapped Stubs in Audit Queue</strong> opens System Logs, Interfaces, filtered to <code>unmapped_order_code</code>.</td>
+<td>Hidden when the count is 0</td>
+</tr>
+<tr id="f-crosswalk-add-mapping"><td>Add Mapping</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the Add a mapping panel.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-import-spreadsheet"><td>Import Spreadsheet</td>
+<td>Button, <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> file</td>
+<td>Not applicable</td>
+<td>Reads a CSV with the columns Facility, ExternalCode and ResolvesTo and shows a preview before anything is saved.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-export"><td>Export</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Downloads <code>SpecimenCodeCrosswalk.csv</code> with the columns Facility, ExternalCode, ResolvesTo and Source. The export is recorded in the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The Add a mapping panel.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-facility"><td>Facility</td>
+<td>Picklist from the <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></td>
+<td>Required</td>
+<td>The sending facility. The same code at two different facilities is allowed.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-crosswalk-external-code"><td>External code</td>
+<td>Text</td>
+<td>Required</td>
+<td>The code exactly as the sender uses it. Matching ignores upper and lower <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>. The <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> shows <code>TISSUE-01</code>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-crosswalk-site-optional"><td>Site (optional)</td>
+<td>Picklist of sites, or <strong>All sites</strong></td>
+<td>Optional</td>
+<td>Limits the mapping to one site. A new mapping saved without a site applies to all sites.</td>
+<td>All sites</td>
+</tr>
+<tr id="f-crosswalk-resolves-to-specimen-type"><td>Resolves to specimen type</td>
+<td>Searchable picklist from the <a href="03-tier2-master-dictionaries.html#screen-specimens">Specimen Dictionary</a>, searching names and synonyms</td>
+<td>Required</td>
+<td>The entry an order with this code becomes.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-crosswalk-save-mapping"><td>Save Mapping</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused with a message if the same facility, code and site already map to an entry ("Facility already maps external code to entry").</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The spreadsheet preview.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-crosswalk-summary-line"><td>Summary line</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>Rows ready, how many update an existing mapping, how many are new, and how many are skipped with errors.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-row-errors"><td>Row errors</td>
+<td>Text list</td>
+<td>Not applicable</td>
+<td>A facility name that matches no facility, a blank external code, or a specimen name that matches no Specimen Dictionary entry. Names are matched by name, ignoring case. A row with an error is skipped, never guessed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-crosswalk-apply-import"><td>Apply Import</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Saves every row without an error. A row whose facility and code already exist updates that mapping's specimen type. Imported rows have no site.</td>
+<td>Disabled when every row has an error</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Add, import and update mappings: <code>config:crosswalk:manage</code> (high risk). Admin and Lab Director hold it by default; Superadmin holds every <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>. Without it the screen is view only. Resolving an unmapped-code exception from the review window creates the same entry.</p>
+<p><strong>Known limits.</strong> The menu name (<strong>Order Types &amp; Inbound Rules</strong>) differs from the title on the screen (<strong>Specimen Code Map</strong>); both are the same screen. There is no edit or delete on the list, only add and spreadsheet update. A live <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> order is not received by any listener yet, so entries are used when an order reaches the order-intake service, not from a wire message.</p>
+<h3 id="screen-assist_lis_polling"><a class="anchor" href="#screen-assist_lis_polling" aria-label="Link to this section">#</a> Assist LIS Ingestion</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Assist LIS Ingestion"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Assist <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> Ingestion</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Assist LIS Ingestion</p>
+<p><strong>3. Business purpose and scope.</strong> In Assist mode the external LIS owns the <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>. Its updates reach PathScribe three ways, by polling, by an <a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a> message or by a <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> <a class="term" href="99-glossary.html#g-webhook" title="A web address that one system calls to push an update to another, such as an LIS sending a status change as JSON.">webhook</a>, and all three go through one staging queue. When the LIS reports Gross Complete, the AI picks the <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> templates and drafts the fields it can from the gross text. When the LIS reports Microscopic/Diagnosis Complete, it drafts the rest from the diagnosis. This screen holds the settings, a test box for pasted messages, the staging queue and the run log.</p>
+<p><strong>What is built and what is not.</strong> Built: the settings, the status mapping, the test box, the staging queue with its retries, the run log and the AI drafting rules. Simulated in the demonstration: the schedule (the app polls at the saved interval while it is open and polling is on, and the screen shows a <strong>Simulated schedule</strong> note with the last and next run) and the LIS that <strong>Poll now</strong> asks. Not built: a live listener for <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> or webhook messages, and a field for the address of the LIS to poll. The screen has no such field.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The AI step uses the AI Behavior switches and the synoptic templates. If <strong>AI turned off in AI Behavior</strong> applies, an update changes the case text only and no draft is made. Only a case in Assist mode is processed; a case that is not Assist mode is skipped with the result <strong>Not an Assist case</strong>.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 3</p><dl><dt>Configure first</dt><dd><a href="05-tier4-ai-framework.html#screen-tab-ai">AI Behavior</a>, <a href="06-tier5-reporting-synoptic-scheduler.html#screen-tab-protocols">Synoptic Library</a></dd><dt>This unlocks</dt><dd><a href="#screen-audit-interfaces">System Logs: interfaces</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-assist_lis_polling.webp" alt="Assist LIS Ingestion with Polling, status mapping, test box, staging queue and activity" loading="lazy"><figcaption>Assist LIS Ingestion with Polling, status mapping, test box, staging queue and activity</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Polling and status mapping.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-poll-the-lis-on-a-schedule"><td>Poll the LIS on a schedule</td>
+<td>Yes/No switch. The label reads <strong>Scheduled polling on</strong> or <strong>Scheduled polling off</strong>.</td>
+<td>Optional</td>
+<td>Turns the scheduled poll on. On the production server the schedule runs on the PathScribe server. <strong>Poll now</strong> works whether this is on or off.</td>
+<td>Off</td>
+</tr>
+<tr id="f-assist_lis_polling-poll-every-minutes"><td>Poll every (minutes)</td>
+<td>Whole number from 1 to 1440</td>
+<td>Required</td>
+<td>The gap between scheduled polls. A value outside the range or a fraction is refused with "The interval must be a whole number of minutes from 1 to 1440."</td>
+<td>5</td>
+</tr>
+<tr id="f-assist_lis_polling-lis-status-each-row"><td>LIS status (each row)</td>
+<td>Text</td>
+<td>Required</td>
+<td>One of your LIS's own status words, for example <code>GROSSED</code>. Matching ignores spaces at the ends and upper and lower case. A blank status is refused. The same status cannot be listed twice.</td>
+<td>Four rows, below</td>
+</tr>
+<tr id="f-assist_lis_polling-milestone-each-row"><td>Milestone (each row)</td>
+<td>Choice of <strong>Gross Complete</strong> or <strong>Microscopic/Diagnosis Complete</strong></td>
+<td>Required</td>
+<td>What the status means. Gross Complete triggers a gross-stage draft. Microscopic/Diagnosis Complete triggers a full draft. A status not in the list triggers nothing.</td>
+<td>Gross Complete on a new row</td>
+</tr>
+<tr id="f-assist_lis_polling-remove"><td>Remove</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Removes the row. With no rows, the screen says "No LIS statuses mapped. Nothing will trigger an AI draft."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-add-status"><td>+ Add status</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Adds an empty row.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-discard-changes-save"><td>Discard changes, Save</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Both stay disabled until something changes. Leaving the screen with unsaved changes asks first.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The four default rows are <code>GROSS_COMPLETE</code> and <code>GROSSED</code> (Gross Complete), and <code>MICRO_COMPLETE</code> and <code>DX_COMPLETE</code> (Microscopic/Diagnosis Complete).</p>
+<p>Test an inbound message.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-message-format"><td>Message format</td>
+<td>Choice of <strong>HL7 v2 message</strong> or <strong>JSON webhook</strong></td>
+<td>Required</td>
+<td>Which adapter reads the pasted text.</td>
+<td>HL7 v2 message</td>
+</tr>
+<tr id="f-assist_lis_polling-load-example"><td>Load example</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Fills the box with a sample for the chosen format.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-inbound-message"><td>Inbound message</td>
+<td>Free text</td>
+<td>Required</td>
+<td>The message as the LIS would send it. It goes through the same adapter and staging queue as a real one and is handled straight away. A message that cannot be read shows a reason, for example "This isn't an HL7 v2 message (it must start with an <a class="term" href="99-glossary.html#g-msh" title="The first segment of an HL7 v2 message. It names the sender, receiver, message type and version.">MSH</a> segment)."</td>
+<td>Blank</td>
+</tr>
+<tr id="f-assist_lis_polling-send-to-staging-queue"><td>Send to staging queue</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows "Staged: n, Handled now: n" or the reason.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>What the adapters read. An HL7 message must be an <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01, <a class="term" href="99-glossary.html#g-orm" title="The HL7 general order message type (ORM^O01).">ORM</a>^O01 or <a class="term" href="99-glossary.html#g-oml" title="The HL7 laboratory order message type (OML^O21).">OML</a>^O21; any other type is refused. One update is made per OBR segment. The <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> is OBR-3, else OBR-2, else ORC-3. The status is ORC-5, else OBR-25. The time is OBR-22, else MSH-7, and a time with no offset is read as <a class="term" href="99-glossary.html#g-utc" title="Coordinated Universal Time, the time standard in which audit entries are stored and shown.">UTC</a>, so ask the LIS to send an offset. The text comes from OBX-5 by the <a class="term" href="99-glossary.html#g-loinc" title="Logical Observation Identifiers Names and Codes, a code set for laboratory tests and observations.">LOINC</a> code in OBX-3: <code>22634-0</code> gross, <code>22635-7</code> microscopic and <code>22637-3</code> final diagnosis. A JSON body is one object or a list, with <code>accession</code>, <code>status</code> and <code>updatedAt</code> (ISO 8601) required, and <code>grossText</code>, <code>microscopicText</code>, <code>diagnosisText</code>, <code>placerOrderNumber</code> and <code>fillerOrderNumber</code> optional. The order numbers are echoed on the synoptic result.</p>
+<p>Staging queue.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-counts-line"><td>Counts line</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>Waiting, Failed and Handled counts.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-retry-failed"><td>Retry failed</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Retries every failed entry that has had fewer than 5 attempts. Disabled when none failed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-received-source-accession-lis-status-state-result-attempts"><td>Received, Source, Accession, LIS status, State, Result, Attempts</td>
+<td>Read-only columns</td>
+<td>Not applicable</td>
+<td>Source is <strong>Poll</strong>, <strong>HL7 v2 message</strong> or <strong>JSON webhook</strong>. State is <strong>Waiting</strong>, <strong>Failed</strong> or <strong>Handled</strong>. Result is the outcome or the error. The accession is tagged as patient data for redaction. The list shows the newest 25 rows. An entry stops being retried after 5 attempts. The newest 200 handled events are kept.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Activity.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-assist_lis_polling-poll-now"><td>Poll now</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Asks the LIS for changes immediately.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-cursor-line"><td>Cursor line</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>"Changes up to (time) have been handled" or "The LIS hasn't been polled yet."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-run-table"><td>Run table</td>
+<td>Read-only columns: Time, Trigger, From LIS, New in queue, AI drafts, Text only, Skipped, Failed</td>
+<td>Not applicable</td>
+<td>Trigger is <strong>Poll now</strong>, <strong>Schedule</strong>, <strong>Inbound message</strong> or <strong>Retry</strong>. The log keeps the last 20 runs.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-assist_lis_polling-latest-poll"><td>Latest poll</td>
+<td>Read-only columns: Accession, LIS status, Milestone, Result, Details</td>
+<td>Not applicable</td>
+<td>One row per case in the newest run. A result is one of: AI draft prepared; No change since the last draft; Case not in PathScribe; Already signed out; Failed (will retry); Status not mapped; Not an Assist case; Text updated, AI turned off in AI Behavior; Text updated, draft already completed. Details give new drafts, fields suggested and template changes to review.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Save settings: <code>config:assist-polling:manage</code> (high risk). Poll now, test message and Retry failed: <code>assist:lis-message:ingest</code> (high risk, audited); the scheduled poll is the system's and is not checked. Admin and Lab Director hold both by default.</p>
+<p><strong>Known limits.</strong> The poll source and the schedule are simulated in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a>, and no listener receives an HL7 or webhook message from a real LIS. The HL7 adapter reads the status from ORC-5, then OBR-25, and the source describes this as a per-site setting, but the screen has no control for it. A signed-out case is never changed. A late or amended gross after the full draft only updates the text.</p>
+<h3 id="screen-outbound_message_preview"><a class="anchor" href="#screen-outbound_message_preview" aria-label="Link to this section">#</a> Outbound Interface Message Preview</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Outbound Interface Message Preview"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Outbound Interface Message Preview</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Outbound Interface Message Preview</p>
+<p><strong>3. Business purpose and scope.</strong> A check tool. It builds the <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> message PathScribe would queue for the interface engine for one real patient or <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, shows it, and lets you download it as a file. Use it to give an interface analyst a real example to build from, or to check what the engine will receive before a channel is built. It sends nothing and queues nothing. It previews four message types only: <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>^A08, ADT^A40, ADT^A47 and <a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> There is nothing to configure first. It needs an existing patient record (for the ADT types) or a case with a finalized <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> report (for the result). Without one the screen says the patient was not found or the payload builder returned nothing.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-outbound_message_preview.webp" alt="Message type picker, id fields and the JSON output" loading="lazy"><figcaption>Message type picker, id fields and the JSON output</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound_message_preview-message-type"><td>Message type</td>
+<td>Choice of ADT^A08 Demographic Update, ADT^A40 Merge Patient, ADT^A47 Change Identifier, ORU^R01 Pathology Result</td>
+<td>Required</td>
+<td>Decides which fields appear below. Changing it clears the output.</td>
+<td>ADT^A08</td>
+</tr>
+<tr id="f-outbound_message_preview-patient-id-a08"><td>Patient ID (A08)</td>
+<td>Text, a patient record id</td>
+<td>Required for A08</td>
+<td>The patient whose demographic update is built. Tagged as patient data.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-prior-merged-away-patient-id-a40"><td>Prior (merged-away) Patient ID (A40)</td>
+<td>Text</td>
+<td>Required for A40</td>
+<td>The record that was merged away.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-surviving-patient-id-a40"><td>Surviving Patient ID (A40)</td>
+<td>Text</td>
+<td>Required for A40</td>
+<td>The record that remains.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-downtime-temporary-patient-id-a47"><td>Downtime/Temporary Patient ID (A47)</td>
+<td>Text</td>
+<td>Required for A47</td>
+<td>The temporary record whose identifier is corrected.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-confirmed-patient-id-a47"><td>Confirmed Patient ID (A47)</td>
+<td>Text</td>
+<td>Required for A47</td>
+<td>The confirmed record.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-reason-code-a47"><td>Reason Code (A47)</td>
+<td>Text</td>
+<td>Required for A47</td>
+<td>Why the identifier changes.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-notes-a47"><td>Notes (A47)</td>
+<td>Text</td>
+<td>Required for A47</td>
+<td>A free-text note.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-case-id-oru-r01"><td>Case ID (ORU^R01)</td>
+<td>Text</td>
+<td>Required for ORU</td>
+<td>The case. Tagged as an <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-synoptic-instance-id-oru-r01"><td>Synoptic Instance ID (ORU^R01)</td>
+<td>Text</td>
+<td>Required for ORU</td>
+<td>A finalized synoptic report on that case.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound_message_preview-result-state-oru-r01"><td>Result state (ORU^R01)</td>
+<td>Choice of <strong>Final</strong>, <strong>Corrected</strong>, <strong>Addendum</strong></td>
+<td>Required for ORU</td>
+<td>The state of the result being previewed.</td>
+<td>Final</td>
+</tr>
+<tr id="f-outbound_message_preview-preview-payload"><td>Preview Payload</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Builds and shows the JSON. Disabled until the required fields for the chosen type are filled.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound_message_preview-download-json"><td>Download JSON</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Saves the shown message as <code>&lt;type&gt;_&lt;time&gt;.json</code>. The download is recorded in the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Two warnings appear on the screen and are true. For A40 and A47 the counts of cases and encounters re-pointed show as 0, because the preview does not perform the merge. For ORU^R01 the report <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> and report narrative text show as absent, because they need the report-rendering pipeline that this screen does not have. Every other field has the shape the engine would receive. The ORU preview also needs the case to be in the orchestrator reporting mode, and a missing PDF is reported as "The report PDF isn't available for this result".</p>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:configuration:open</code>. Build a preview and download it: <code>config:interface-preview:view</code> (high risk). Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> The screen's own subtitle says "PathScribe never builds or sends <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> itself". That is not exactly true: PathScribe builds HL7 for <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> orders (<a class="term" href="99-glossary.html#g-orm" title="The HL7 general order message type (ORM^O01).">ORM</a>^O01), charges (<a class="term" href="99-glossary.html#g-dft" title="Detailed Financial Transaction, the HL7 message that carries charges to a billing system.">DFT</a>^P03) and US electronic-pathology results. This screen previews the JSON only. The four types are the only ones it can preview; the other transaction types in <a href="#ch7-hl7-types">Message types</a> cannot be previewed here. The sent message can be seen after the fact on <a href="#screen-outbound-dispatches">Outbound Dispatches</a> for order-creation events.</p>
+<h3 id="screen-interface_dictionary"><a class="anchor" href="#screen-interface_dictionary" aria-label="Link to this section">#</a> [FORMEDRIXAI INTERNAL ONLY] Interface Dictionary</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Interface Dictionary"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Interface Dictionary</span></nav>
+
+<blockquote class="internal">
+<p>🔒 <strong>ForMedrixAI Internal Restricted Setting</strong>
+<strong>Scope:</strong> Internal Service &amp; Deployment Personnel Only.
+<strong>Explanation:</strong> A vendor profile decides which fields of a vendor's own <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a>, <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> or <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> message are copied onto a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> as extension fields. A profile that is wrong, or changed without a test, would put the wrong value on a case or drop a required one, and the case record is a medical record. Only ForMedrixAI staff build and publish profiles, so each one is tested against a real sample and versioned. The three capabilities that guard it are platform-only, held by the Superadmin <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> and not assignable by a hospital. The section is not visible to anyone without them.</p>
+</blockquote>
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Interface Dictionary</p>
+<p><strong>3. Business purpose and scope.</strong> The Interface Dictionary holds vendor profiles. A profile says, for one vendor or device and one message type, where each of the vendor's fields is in the message and which extension field (<code>ext.name</code>) on the case it becomes, with an optional conversion, a default, a code translation and a required <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>. A profile goes through a fixed life: draft, test, publish, and later roll back or switch off. The same mapping engine is meant to read live messages, so a profile can add vendor fields without a code release.</p>
+<p><strong>Built and not built.</strong> Built: creating profiles, editing mappings, the test with a sample message, publish, roll back, switch off and the scope guard. Simulated: the <strong>Apply to a case</strong> panel, which applies a pasted message to a case so the Vendor fields panel can be seen. A banner says "Nothing is received from a vendor in this build." No vendor profiles are seeded, so the list starts empty. A profile can only fill an extension field. Anything else needs a code release (see the scope table below).</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None in this guide. A vendor's sample message is needed to test.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 2</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-interface_dictionary.webp" alt="Vendor profiles list, mappings editor, test panel and versions" loading="lazy"><figcaption>Vendor profiles list, mappings editor, test panel and versions</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>New vendor profile.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-interface_dictionary-vendor-or-device"><td>Vendor or device</td>
+<td>Text</td>
+<td>Required</td>
+<td>The vendor's name. A name already in use is refused.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-message-format"><td>Message format</td>
+<td>Choice of <strong><a class="term" href="99-glossary.html#g-hl7-v2" title="The widely used HL7 message format made of lines of pipe-separated fields, each message starting with an MSH segment.">HL7 v2</a></strong>, <strong>JSON</strong>, <strong>FHIR</strong></td>
+<td>Required</td>
+<td>Decides the syntax of the location in each mapping.</td>
+<td>HL7 v2</td>
+</tr>
+<tr id="f-interface_dictionary-message-type"><td>Message type</td>
+<td>Text. Placeholders: <code>ORU^R01</code> (HL7), <code>Observation</code> (FHIR), optional for JSON</td>
+<td>Required for HL7 and FHIR</td>
+<td>An HL7 profile needs a type such as <code>ORU^R01</code>. A FHIR profile needs a resource type such as <code>Observation</code>. A message of another type is refused.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-create-profile"><td>Create profile</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Creates the profile with no live version.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>A mapping (one row each in the working copy, titled <strong>Mapping n</strong>).</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-interface_dictionary-where-in-the-message"><td>Where in the message</td>
+<td>Text, in the form the format uses: <code>ZAB-3</code> or <code>OBX[2]-5.1</code> (HL7), <code>result.lotNumber</code> (JSON), <code>Observation.component[0].valueString</code> (FHIR)</td>
+<td>Required</td>
+<td>The location of the value. A location not written in the format's form is refused. A location that ends on a group, not a value, fails the test. A chip <strong>Vendor segment (Z)</strong> shows when an HL7 location is in a Z-segment.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-extension-field"><td>Extension field</td>
+<td>Text: <code>ext.</code> then a name that starts with a lower-case letter, letters and digits only, up to 40 characters</td>
+<td>Required</td>
+<td>The field on the case that receives the value. A part of the case's own structure is refused ("needs a code release"). Two mappings cannot fill the same field.</td>
+<td><code>ext.</code></td>
+</tr>
+<tr id="f-interface_dictionary-name-shown-on-the-case"><td>Name shown on the case</td>
+<td>Text</td>
+<td>Required</td>
+<td>The label a user sees in the Vendor fields panel.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-type"><td>Type</td>
+<td>Choice of Text, Number, Date, Date and time, Yes / no, Code</td>
+<td>Required</td>
+<td>The value is checked against the type in the test.</td>
+<td>Text</td>
+</tr>
+<tr id="f-interface_dictionary-convert"><td>Convert</td>
+<td>Choice of None, Trim spaces, Lower case, Upper case, HL7 date to ISO, HL7 date and time to ISO</td>
+<td>Optional</td>
+<td>The date conversions need the Date or Date and time type.</td>
+<td>None</td>
+</tr>
+<tr id="f-interface_dictionary-default-if-missing"><td>Default if missing</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Used when the message has no value. It must suit the type.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-code-translation"><td>Code translation</td>
+<td>Text: <code>vendor value = shown value</code>, separated by commas. Example <code>F=Female, M=Male</code></td>
+<td>Optional</td>
+<td>Each entry needs both sides. A value with no translation shows <strong>no translation for this value</strong> in the test.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-required-the-test-fails-without-it"><td>Required (the test fails without it)</td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>A message with no value for a required mapping fails the test.</td>
+<td>Off</td>
+</tr>
+<tr id="f-interface_dictionary-add-a-mapping-remove-save-mappings"><td>Add a mapping, Remove, Save mappings</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Edits apply to the working copy only. Save before testing or publishing.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Test, publish and versions.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-interface_dictionary-sample-message"><td>Sample message</td>
+<td>Free text (tagged as patient data)</td>
+<td>Required to test</td>
+<td>A sample from the vendor. It is not saved; only the counts are kept.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-interface_dictionary-run-test"><td>Run test</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows each mapping's extension field, value and result: <strong>Mapped</strong>, <strong>Default used</strong>, <strong>Not in message</strong>, <strong>Required value missing</strong> or <strong>Problem</strong>. The summary reads "Mapped n, required missing n, problems n."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-publish"><td>Publish</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Needs a saved working copy with at least one mapping, no mapping problems and a passing test that is newer than the last change. The live version becomes the previous version.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-versions-table"><td>Versions table</td>
+<td>Read-only: Version, Status, When, By</td>
+<td>Not applicable</td>
+<td>Status is <strong>Draft</strong>, <strong>Tested</strong>, <strong>Live</strong>, <strong>Replaced</strong> or <strong>Switched off</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-start-a-new-draft"><td>Start a new draft</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Copies the live version into a new working copy. Only one working copy can be open per vendor.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-roll-back"><td>Roll back</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Publishes the earlier version as a new version.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-switch-off"><td>Switch off</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Retires the profile so no version is live.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface_dictionary-case-apply-to-a-case"><td>Case (Apply to a case)</td>
+<td>Text, a case id (<a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>)</td>
+<td>Required</td>
+<td>The case to receive the fields from the pasted message, read with the live version. Demo only, labelled <strong>Simulated</strong>.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p>The scope table on the screen lists what mapping can handle (the vendor's codes, date and time formats, names shown on the case, extra JSON or FHIR elements, required values and defaults, testing and versioning, a vendor's own HL7 Z-segments) and what needs a code release (patient identity, order and accession details, specimens and blocks and slides, diagnosis and report content, sign-out and amendment, billing and charge rules, workflow and routing rules, and a new kind of message).</p>
+<p><strong>7. Permissions.</strong> All three are platform-only: <code>platform:interface-dictionary:manage</code> (create, edit, test, switch off, roll back), <code>platform:interface-dictionary:publish</code> (publish; needs manage) and <code>platform:interface-dictionary:simulate</code> (apply to a case in the demonstration; needs manage). Only the Superadmin role holds them. A hospital cannot grant them to its own roles. Without manage the section is hidden. A refused change says "Only ForMedrixAI staff can change vendor profiles."</p>
+<p><strong>Known limits.</strong> No vendor profile is seeded and no live message is read through a profile yet. The section header in the code calls this a Message Mapper; there is no such menu name.</p>
+<h2 id="ch7-fhir"><a class="anchor" href="#ch7-fhir" aria-label="Link to this section">#</a> FHIR R4 endpoint and OAuth2 client credentials</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Not built</p>
+<p>PathScribe has no <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> R4 endpoint. It does not publish a FHIR server, does not accept a FHIR resource from another system, and has no screen to configure a FHIR base address, a client id, a client secret or a token address. There is no OAuth2 client credentials setup screen either. Do not plan a go-live that depends on either.</p>
+<p>What exists nearest to it, so you know what a question might be about:</p>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>What it is</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case service for a FHIR source (<code>FHIRCaseService.ts</code>)</td>
+<td>Scaffolding for reading cases from a FHIR server. The base address is a <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> and the function that gets an access token throws. It is not wired to any screen or setting.</td>
+<td>Not built</td>
+</tr>
+<tr>
+<td>FHIR as a message format in the <a href="#screen-interface_dictionary">Interface Dictionary</a></td>
+<td>A vendor profile can be written for a FHIR resource such as <code>Observation</code>, and the test reads a pasted sample. Nothing receives a FHIR message from a vendor.</td>
+<td>Partial, ForMedrixAI only</td>
+</tr>
+<tr>
+<td>Authentication type in the Facility Editor</td>
+<td>The <strong><a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> Integration</strong> tab lets you choose <code>OAuth2</code> as an authentication type for a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s engine connection. It is a stored choice. No code reads it.</td>
+<td>Stored only</td>
+</tr>
+<tr>
+<td>OAuth2 client credentials, or mutual <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, the encryption that protects a web connection and shows as https.">TLS</a>, for each <a class="term" href="99-glossary.html#g-tenant" title="One customer organisation&#x27;s separate space within a shared PathScribe service.">tenant</a>'s engine</td>
+<td>The contract for how the engine proves itself to the PathScribe <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> (<code>INTERFACE_ENGINE_EDGE.md</code>).</td>
+<td>Planned</td>
+</tr>
+<tr>
+<td>Staff sign-in by OpenID Connect (<a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, the sign-in standard PathScribe uses for single sign-on.">OIDC</a>)</td>
+<td>Single sign-on for people, not for system-to-system messages. Covered in Tier 1.</td>
+<td>Built (browser side)</td>
+</tr>
+<tr>
+<td>Tokens for the <a href="#screen-bi_feed">Reporting feed (Power BI)</a></td>
+<td>Bearer tokens that PathScribe issues, shows once and keeps only as a fingerprint. They are not OAuth2.</td>
+<td>Partial</td>
+</tr>
+</tbody>
+</table>
+<p>The <a href="#screen-mock-emr">Mock EMR</a> page contains the note "Production uses FHIR R4 API to sync with LIS". Nothing in the code backs that sentence. Treat it as a design intention.</p>
+<h2 id="ch7-ehr"><a class="anchor" href="#ch7-ehr" aria-label="Link to this section">#</a> EHR integration: Epic, Cerner, MEDITECH and AthenaHealth</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Not built</p>
+<p>PathScribe has no connector for any EHR, certified or not. It is not listed in any vendor's marketplace and has not passed any vendor's validation by this guide's evidence. Whatever an EHR sends or receives goes through the interface engine, which the hospital's interface team configures, and PathScribe sees only the messages in <a href="#ch7-hl7-types">Message types</a>. Do not describe PathScribe to a customer as "Epic certified", "Cerner certified" or the like.</p>
+<table>
+<thead>
+<tr>
+<th>EHR</th>
+<th>What exists in PathScribe</th>
+<th>What does not exist</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Epic</td>
+<td>An identifier-format preset named <strong>Epic Beaker</strong> (<a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a> and a 2D slide barcode pattern). Set on the Identifier Formats tab of the Facility Editor, Tier 1.</td>
+<td>A connector, an Epic-specific message profile, a certification, a <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> app registration.</td>
+</tr>
+<tr>
+<td>Cerner</td>
+<td>An identifier-format preset named <strong>Cerner PathNet</strong>.</td>
+<td>The same.</td>
+</tr>
+<tr>
+<td>MEDITECH</td>
+<td>An identifier-format preset named <strong>MEDITECH</strong>.</td>
+<td>The same.</td>
+</tr>
+<tr>
+<td>AthenaHealth</td>
+<td>Nothing. The name does not appear in the code, the screens or the design documents.</td>
+<td>Everything.</td>
+</tr>
+</tbody>
+</table>
+<p>The same preset list also holds Generic, CoPath, Sunquest and Custom. A preset only decides which <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> and barcode patterns the scan box recognises. It does not exchange a message with anything.</p>
+<p><strong>What an EHR integration looks like today.</strong> An EHR can reach PathScribe only through the engine, as the outbound messages in <a href="#ch7-hl7-types">Message types</a> (results, patient updates, order events, accession events) and as inbound processors that are not yet connected to a live listener. The <a href="#screen-interface_dictionary">Interface Dictionary</a> has no seeded vendor profile for any EHR. The <a href="#screen-crosswalk">Specimen Code Map</a> maps an EHR's <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> codes once an order reaches the order-intake service. The EHR keeps authority over patient identity: an A40, A24, A47 or A43 message that cannot be matched is queued as an interface exception for a person, never guessed. See <a href="#screen-audit-interfaces">System Logs: interfaces</a>.</p>
+<h3 id="screen-mock-emr"><a class="anchor" href="#screen-mock-emr" aria-label="Link to this section">#</a> Mock EMR</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Mock EMR"><span>Home</span> <span aria-hidden="true">›</span> <span>Mock <a class="term" href="99-glossary.html#g-emr" title="Electronic medical record, the hospital system that holds the patient&#x27;s chart and sends orders.">EMR</a></span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> A window opened from a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a>, at the address <code>/mock-emr?case=&lt;reference&gt;</code>. It is built only when the demonstration tools are on (<code>__DEMO_TOOLS__</code>); a build that talks to an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server does not include it.
+<strong>2. Maintenance item:</strong> Mock EMR</p>
+<p><strong>3. Business purpose and scope.</strong> A stand-in for an EHR's patient view, so a demonstration can show the EMR companion window next to a case. It looks up the case's patient by record number in the demonstration cases and shows a fixed clinical summary. It reads no real EHR and is labelled <strong>DEMO: SYNTHETIC DATA</strong>. If the record number matches no patient, it says <strong>No Patient Found</strong> rather than showing a wrong patient.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. It needs a case with a patient in the demonstration data.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-mock-emr.webp" alt="Mock EMR patient view with the demo badge" loading="lazy"><figcaption>Mock EMR patient view with the demo badge</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> A read-only page. Nothing on it can be changed.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-emr-patient-name-mrn-date-of-birth-gender"><td>Patient name, <a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a>, date of birth, gender</td>
+<td>Text (read-only, tagged as patient data)</td>
+<td>Not applicable</td>
+<td>From the matched demonstration case. Date of birth reads "not recorded" when absent. An NHS badge shows when an <a class="term" href="99-glossary.html#g-nhs-number" title="The ten-digit patient identifier used in the NHS in England and Wales. The last digit is a check digit.">NHS number</a> is verified.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-mock-emr-encounter-status-ward"><td>Encounter, Status, Ward</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>Fixed demonstration values (Admitted, ward 4B Urology).</td>
+<td>Fixed</td>
+</tr>
+<tr id="f-mock-emr-clinical-summary-active-problems-medications"><td>Clinical Summary: Active Problems, Medications</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>Fixed demonstration text, not taken from the patient.</td>
+<td>Fixed</td>
+</tr>
+<tr id="f-mock-emr-integration-note"><td>Integration Note</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The sentence about <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> R4. See the note under <a href="#ch7-fhir">FHIR R4 and OAuth2</a>.</td>
+<td>Fixed</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> There is no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> and the route has no screen gate. The page exists only in a demonstration build.</p>
+<p><strong>Known limits.</strong> Synthetic data only, and the clinical summary is the same for every patient. It is not an integration.</p>
+<h2 id="ch7-reflab"><a class="anchor" href="#ch7-reflab" aria-label="Link to this section">#</a> Reference laboratory interfaces</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p>A reference laboratory is a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> you send specimens to for outsourced testing, for example molecular or send-out immunohistochemistry. PathScribe supports the send-out with a manifest and the receive-back with a result message. The outbound side is built; the inbound side has a processor but no endpoint.</p>
+<p>There is no screen called "<a class="term" href="99-glossary.html#g-reference-lab" title="A laboratory to which testing is sent out. A facility is given the Reference Lab role.">reference lab</a> interface". The setup is split across screens you already have:</p>
+<ol>
+<li><strong>Make the lab a facility.</strong> In the <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, add the laboratory and give it the <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a> <strong>Reference Lab (Outbound Referral Destination)</strong>. That role makes it selectable as the destination of a referral batch. Only an active facility with the role is offered.</li>
+<li><strong>Link it to the tests it performs.</strong> In the <a href="03-tier2-master-dictionaries.html#screen-stains">Diagnostic Catalog</a>, a <strong>Molecular</strong> test lists the reference labs approved to perform it and which one is the default. The default must be one of the approved labs. The link is kept only for the Molecular category, and an add-on order for that test fills in the default and offers only the approved labs.</li>
+<li><strong>Send.</strong> Referral batches are made in <a href="04-tier3-workflow-engines.html#screen-batch-management">Batch Management</a> with the processing node <strong>External Referral</strong> and a destination facility. When the batch completes reconciliation, PathScribe queues a <code>REFERRAL_MANIFEST</code> message and creates the tracking record automatically. A failure here never blocks the batch's own completion. The manifest carries the batch id, the master barcode, the destination facility, the test requested, the priority (<strong><a class="term" href="99-glossary.html#g-stat" title="Urgent, to be done at once.">STAT</a></strong> or <strong>Routine</strong>), the items (display id, material type, <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> and <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> label) and any send-out molecular orders. PathScribe decides what and when; the engine decides the transport.</li>
+<li><strong>Watch the send.</strong> The message appears in the <a href="#screen-outbound-queue">Outbound Queue</a> under the feed <strong>Referrals</strong>, and in the <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a> under the queue <strong>Referral Manifest</strong>, where a failed one is resent.</li>
+<li><strong>Receive back.</strong> A result message (<code>ReferralResultEventPayload</code>) carries the batch id and either a <strong>discrete</strong> result (text) or a <strong>pdf_attachment</strong> (a link to a <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a>), never both, and optionally the results for each send-out molecular order. The processor checks the shape, finds the batch, records the result and marks the batch <strong>result_received</strong>, then applies coded results to the molecular orders. The status of a batch moves only forward: dispatched, in transit, delivered, result received. A person can set in transit and delivered by hand; result received is set only when a result arrives.</li>
+</ol>
+<p><strong>What is not built.</strong> No endpoint receives a result message, so no result arrives from a reference lab on its own. The processor remembers the message ids it has handled only in memory, so a restart forgets them. It returns one of four answers: applied, already applied, tracking not found, or invalid payload. There is no test sample for a referral result in the <a href="#screen-mock-interface-engine">Mock Interface Engine</a>. A reference lab's own wording (its test names and result codes) is not translated by PathScribe; the engine owns that.</p>
+<h2 id="ch7-monitoring"><a class="anchor" href="#ch7-monitoring" aria-label="Link to this section">#</a> Interface monitoring, error queues and reprocessing</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span></nav>
+
+<p><strong>Status:</strong> Built (browser side)</p>
+<p>Everything an administrator needs to see what failed, and to resend, hold or release it, is on the screens in this part. They work today against the demonstration data and against the services for the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server. What the engine adds when it is connected (a heartbeat, acknowledgement-settled outcomes and automatic retry windows) is Planned. See <a href="#ch7-today">What runs today and what is Planned</a>.</p>
+<h3 id="ch7-reprocessing"><a class="anchor" href="#ch7-reprocessing" aria-label="Link to this section">#</a> Reprocessing rules at a glance</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span></nav>
+
+<p>A failed message is never discarded, and nothing is resent without a person pressing a button today. The rules below are what the code enforces.</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Where it appears</th>
+<th>What you can do</th>
+<th>Capability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>An inbound patient message could not be matched (A40, A24, A47, A43)</td>
+<td><a href="#screen-audit-interfaces">System Logs: interfaces</a>, Interface Exceptions</td>
+<td>Review it, bind the patients by hand or move cases, or dismiss it. The message is never guessed.</td>
+<td>None dedicated. See the known limits there.</td>
+</tr>
+<tr>
+<td>An inbound order code has no Specimen Dictionary match</td>
+<td>Interface Exceptions, type <code>unmapped_order_code</code></td>
+<td><strong>Map &amp; Link</strong> creates the <a href="#screen-crosswalk">Specimen Code Map</a> entry, or dismiss.</td>
+<td><code>config:crosswalk:manage</code> for the entry</td>
+</tr>
+<tr>
+<td>An outbound message failed to send</td>
+<td><a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a>, and the <a href="#screen-outbound-queue">Outbound Queue</a> as <strong>Failed</strong></td>
+<td><strong>Retry Dispatch</strong> or <strong>Dispatch Now</strong> sends it to the engine again.</td>
+<td><code>interface:outbound:resend</code></td>
+</tr>
+<tr>
+<td>A message should not go yet</td>
+<td>Outbound Queue, <strong>Waiting</strong> or <strong>Failed</strong></td>
+<td><strong>Hold</strong> it with a reason, then <strong>Release</strong> it. A held message is not sent by any other action: retry says "Held on the Outbound Queue screen: release it there first."</td>
+<td><code>interface:outbound:hold</code>, <code>interface:outbound:release</code></td>
+</tr>
+<tr>
+<td>A message failed past its automatic retries</td>
+<td>Outbound Queue, <strong>Dead-lettered</strong></td>
+<td><strong>Retry</strong>, or <strong>Retract charge</strong> for a billing item.</td>
+<td><code>interface:outbound:resend</code>, <code>interface:outbound:retract</code></td>
+</tr>
+<tr>
+<td>A <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> rejected a submission</td>
+<td>Outbound Queue, <strong>Rejected</strong></td>
+<td><strong>Retry</strong> (resubmit) with a reason, or <strong>Mark not reportable</strong> with a reason.</td>
+<td><code>interface:outbound:resend</code>, <code>interface:outbound:mark-not-reportable</code></td>
+</tr>
+<tr>
+<td>A charge should leave early or be cancelled</td>
+<td>Outbound Queue, billing items</td>
+<td><strong>Release now</strong> or <strong>Retract charge</strong>.</td>
+<td><code>interface:outbound:override-release</code>, <code>interface:outbound:retract</code></td>
+</tr>
+<tr>
+<td>A report print, fax or file drop failed after its retries</td>
+<td>Delivery exceptions, at the top of the Outbound Interface <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></td>
+<td>Resend from its own queue (the Print Queue, or Report Delivery). It leaves the list when it goes through.</td>
+<td><code>interface:outbound:resend</code> for report delivery</td>
+</tr>
+<tr>
+<td>A queued charge failed</td>
+<td>The Outbound DLQ sub-tab of System Logs, Financial (Tier 7)</td>
+<td>See <a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>.</td>
+<td>See that screen</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The built-in roles.</strong> Admin holds all of the <code>interface:outbound:*</code> capabilities, <code>interface:engine-status:view</code> and <code>jobs:server-job:view</code>. Lab Director holds none of them and does not have the Outbound Queue screen. <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer opens the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> screen and the exports only. Superadmin holds every <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>. There is no built-in Interface Analyst <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>: a hospital creates one and grants it the capabilities it wants (the seed file says so).</p>
+<p><strong>What a resend does.</strong> A resend builds the message again from the record and posts it. If the record it refers to no longer exists, nothing is sent and the screen says "Not sent: the message couldn't be built". A result with no report <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> yet is held, not sent, and goes with the PDF on a later retry. Every action that changes a message is recorded in the audit log, one entry per message, and the audit text never carries a patient name. The wire-level retry (the engine retrying a connection) is the engine's, not PathScribe's.</p>
+<h3 id="screen-audit-interfaces"><a class="anchor" href="#screen-audit-interfaces" aria-label="Link to this section">#</a> System Logs: interfaces</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; System Logs &gt; Interface Log"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Interface Log</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Home &gt; <strong>Quality &amp; Compliance</strong> &gt; <strong>System Logs</strong> &gt; tab <strong>Interface Log</strong> (the tab name on the screen), at <code>/audit?tab=interfaces</code>.
+<strong>2. Maintenance item:</strong> System Logs: interfaces</p>
+<p><strong>3. Business purpose and scope.</strong> The one place to see what went wrong at the boundary with other systems. It has five sub-tabs: <strong>Interface Exceptions</strong> (inbound messages that could not be processed), <strong>Outbound Interface <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></strong> (outbound messages that failed or are waiting), <strong>Outbound Dispatches</strong> (the trail of order-creation events), <strong>Print Queue</strong> and <strong>Engines</strong> (interface engine status, shown only with <code>interface:engine-status:view</code>). A line above the sub-tabs summarises the engines and opens <strong>Engines</strong> in one click. The tab shows a badge with the number of pending exceptions.</p>
+<p>This chapter documents Interface Exceptions here and the other four sub-tabs on their own screens: <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a>, <a href="#screen-outbound-dispatches">Outbound Dispatches</a> and <a href="#screen-interface-engines">Interface Engines</a>. The Print Queue sub-tab is not documented in this guide; see the open questions.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Nothing is configured here. The list fills when an interface exception is raised. Unmapped order-code exceptions appear when the <a href="#screen-crosswalk">Specimen Code Map</a> has no entry for a code.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-crosswalk">Specimen Code Map</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-audit-interfaces.webp" alt="Interface Log tab with Interface Exceptions sub-tab, status pills and search" loading="lazy"><figcaption>Interface Log tab with Interface Exceptions sub-tab, status pills and search</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Interface Exceptions sub-tab.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-interfaces-status-pills"><td>Status pills</td>
+<td>Choice of <strong>All</strong>, <strong>Pending</strong>, <strong>Resolved</strong>, <strong>Dismissed</strong>, each with a count</td>
+<td>Optional</td>
+<td>Filters the list.</td>
+<td>All</td>
+</tr>
+<tr id="f-audit-interfaces-search"><td>Search</td>
+<td>Text, <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> "Search event type, reason..."</td>
+<td>Optional</td>
+<td>Matches the event type and the reason. The Specimen Code Map link opens this tab searched for <code>unmapped_order_code</code>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-interfaces-export-csv"><td>Export <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Downloads the filtered list. No patient name, record number or date of birth is included. Audited.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-map-patient"><td>Map Patient</td>
+<td>Button, shown when the user belongs to an organisation</td>
+<td>Not applicable</td>
+<td>Opens the <a class="term" href="99-glossary.html#g-break-glass" title="A restricted action that overrides a normal safeguard and always needs a reason and a written justification. The patient rebind on System Logs is an example.">break-glass</a> tool to rebind a downtime patient identity. A rare, restricted action.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-timestamp"><td>Timestamp</td>
+<td>Date and time (read-only)</td>
+<td>Not applicable</td>
+<td>When the exception was raised.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-event-type"><td>Event Type</td>
+<td>Text badge (read-only), for example <code>A40</code>, <code>A24</code>, <code>A47</code>, <code>A43</code>, <code>unmapped_order_code</code></td>
+<td>Not applicable</td>
+<td>The kind of message. A <a class="term" href="99-glossary.html#g-support-reference" title="A random, non-identifying code of the form `SR-XXXX-XXXX` that staff quote to support in place of a case number.">support reference</a> chip sits beside it.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-reason"><td>Reason</td>
+<td>Text (read-only, tagged as patient data)</td>
+<td>Not applicable</td>
+<td>The exact reason it could not be processed, for example "MRG-5 does not match any known Encounter."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-source-patient-target-patient"><td>Source Patient, Target Patient</td>
+<td>Text (read-only, tagged as a record number)</td>
+<td>Not applicable</td>
+<td>The identifiers extracted before the failure. A dash when none could be read.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-status"><td>Status</td>
+<td><strong>Review</strong> button while pending; <strong>Resolved</strong> or <strong>Dismissed</strong> badge after</td>
+<td>Not applicable</td>
+<td><strong>Review</strong> opens the window below.</td>
+<td>Pending</td>
+</tr>
+<tr id="f-audit-interfaces-footer"><td>Footer</td>
+<td>"Showing n of n interface exceptions"</td>
+<td>Not applicable</td>
+<td>The shown and total counts.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4>Review Interface Exception window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; System Logs &gt; Interface Log &gt; Review Interface Exception"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Interface Log</span> <span aria-hidden="true">›</span> <span>Review Interface Exception</span></nav>
+
+<p>What the window offers depends on the event type. Dismiss is available for every type.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-audit-interfaces-source-patient-target-patient"><td>Source Patient, Target Patient</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The two patients the message named. "Patient identity could not be resolved" appears with the raw identifier when matching failed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-source-patient-s-active-cases-a43-only"><td>Source patient's active cases (A43 only)</td>
+<td>Checkbox list of cases with <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>, <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> and status</td>
+<td>Optional</td>
+<td>Choose which cases, if any, move to the target patient.</td>
+<td>None selected</td>
+</tr>
+<tr id="f-audit-interfaces-move-selected-cases-a43-only"><td>Move Selected Cases (A43 only)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Moves each selected <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> and records the exception as resolved with a note of how many moved and any failures. Disabled until a case is selected and both patients are known.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-search-and-patient-picklists-a40-a24-a47"><td>Search and patient picklists (A40, A24, A47)</td>
+<td>Search box and picklist, one for each side. A47 has only the source side, "Patient whose identifier is corrected". A40 shows "Prior patient (merged away)" and "Surviving patient". A24 shows "First patient record" and "Second patient record".</td>
+<td>Required</td>
+<td>Choose the record(s) the message meant. "Nothing is guessed."</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-interfaces-apply-a40-a24-a47"><td>Apply (A40, A24, A47)</td>
+<td>Button, "Apply A40" and so on</td>
+<td>Not applicable</td>
+<td>Applies the message by hand to the patients you chose.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-raw-order-code-normalized-coding-system-unmapped-order-code"><td>Raw order code, Normalized, Coding system (<code>unmapped_order_code</code>)</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>What came in and how it was normalised.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-map-to-specimen-dictionary-entry-unmapped-order-code"><td>Map to Specimen Dictionary entry (<code>unmapped_order_code</code>)</td>
+<td>Searchable picklist</td>
+<td>Required to map</td>
+<td>The entry this code should resolve to.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-audit-interfaces-map-amp-link-unmapped-order-code"><td>Map &amp; Link (<code>unmapped_order_code</code>)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Creates the <a href="#screen-crosswalk">Specimen Code Map</a> entry directly, so later orders with this exact code resolve and do not repeat the exception. An exception raised before facility tracking existed cannot be mapped here; add the entry on the Specimen Code Map, then dismiss.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-audit-interfaces-dismiss-no-action-needed"><td>Dismiss: No Action Needed</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Closes the exception with no change. Use it once the correct identity has been confirmed upstream, for example by a corrected re-send from the EHR.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the screen: <code>screen:audit-log:open</code>. Export the list: <code>audit:interface-log:export</code> (high risk). Map Patient: <code>patient:break-glass:rebind</code> (high risk; Admin holds it by default). Admin, Lab Director and <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer open the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> screen by default. See <a href="#ch7-reprocessing">Reprocessing rules at a glance</a> for the other sub-tabs.</p>
+<p><strong>Known limits.</strong> Resolving, dismissing and binding an interface exception has no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> of its own: anyone who can open the screen can do them. The exception from an inbound <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> message can only appear when the message is processed, and no live listener exists yet, so in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> exceptions come from the <a href="#screen-mock-interface-engine">Mock Interface Engine</a> simulator. Review for an event type other than the five above offers Dismiss only.</p>
+<h3 id="screen-interface-engines"><a class="anchor" href="#screen-interface-engines" aria-label="Link to this section">#</a> Interface Engines</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; System Logs &gt; Interface Log &gt; Engines"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Interface Log</span> <span aria-hidden="true">›</span> <span>Engines</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> System Logs, tab <strong>Interface Log</strong>, sub-tab <strong>Engines</strong>. The sub-tab appears only for people with <code>interface:engine-status:view</code>.
+<strong>2. Maintenance item:</strong> Interface engines (the on-screen title)</p>
+<p><strong>3. Business purpose and scope.</strong> One list of each hospital's interface engine, saying whether its listeners are up, what is waiting and what failed. It refreshes every minute and has a <strong>Refresh</strong> button. It is read only: channels are started and stopped on the engine itself, and failed outbound messages are resent from the <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a> (the <strong>Open Outbound</strong> button goes there).</p>
+<p><strong>What is built and what is Planned.</strong> The screen and the status rules are built. The data comes from the engine's heartbeat, which the engine posts every 60 seconds to an endpoint that is Planned (<code>POST /api/interface/heartbeat</code>; the list is <code>GET /api/interface/engines</code>). Until then the demonstration shows four sample engines, one for each status, with a <strong>Simulated</strong> badge, and says "There is no interface engine in the demo." With no engine registered, the list says "No interface engine has been registered yet."</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Nothing is configured here. An engine must be installed and registered by ForMedrixAI; that is Planned.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-interface-engines.webp" alt="Interface engines with status, channels, queued and dead letters" loading="lazy"><figcaption>Interface engines with status, channels, queued and dead letters</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> A read-only page.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-interface-engines-summary-line"><td>Summary line</td>
+<td>Text, "Interface engines: ..."</td>
+<td>Not applicable</td>
+<td>Counts: online, degraded, offline, needing attention, listeners down, messages waiting.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-status"><td>Status</td>
+<td><strong>Online</strong>, <strong>Degraded</strong>, <strong>Offline</strong>, <strong>Needs attention</strong> (read-only)</td>
+<td>Not applicable</td>
+<td>Offline: no heartbeat for 180 seconds, by the server's clock. Degraded: PathScribe cannot be reached from the engine, the certificate expires in under 14 days, free disk is under 15 percent, a channel is in error, paused or stopped, or a message has waited more than 15 minutes. Needs attention: otherwise healthy but a channel has dead letters. Online: none of these.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-hosting"><td>Hosting</td>
+<td><strong>Hosted</strong> or <strong>On site</strong></td>
+<td>Not applicable</td>
+<td>Where the engine runs (decision D6).</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-version-last-check-in"><td>Version, Last check-in</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>The engine version, and "Never checked in" when none.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-reaches-pathscribe"><td>Reaches PathScribe</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td><strong>Reaches PathScribe</strong>, or "Can't reach PathScribe: storing messages to forward".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-disk-free-certificate-expires"><td>Disk free, Certificate expires</td>
+<td>Percent, date</td>
+<td>Not applicable</td>
+<td>The two health inputs above.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-channel"><td>Channel</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>The engine's channel.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-direction"><td>Direction</td>
+<td><strong>Inbound (listener)</strong> or <strong>Outbound</strong></td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-state"><td>State</td>
+<td><strong>Started</strong>, <strong>Paused</strong>, <strong>Stopped</strong>, <strong>Error</strong></td>
+<td>Not applicable</td>
+<td>A channel problem line explains: Waiting more than n minutes; Dead letters to resolve; In error; Paused, queue kept; Stopped.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-waiting-oldest-waiting-dead-letters"><td>Waiting, Oldest waiting, Dead letters</td>
+<td>Number, minutes, number</td>
+<td>Not applicable</td>
+<td>Queue depth, age of the oldest waiting message and the count of dead-lettered messages.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-totals"><td>Totals</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>Messages waiting, dead letters and listeners down across engines.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-interface-engines-refresh-open-outbound"><td>Refresh, Open Outbound</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> <code>interface:engine-status:view</code> (standard risk; needs <code>screen:audit-log:open</code>). Admin holds it by default; a hospital can grant it to its interface analysts. A person without it does not see the sub-tab, and a refused read says "You don't have permission to see the interface engines."</p>
+<p><strong>Known limits.</strong> No engine reports yet, so the real list is empty until the heartbeat endpoint and the engine image exist (Planned, phase 2e). The health limits are fixed in code and have no setting.</p>
+<h3 id="screen-outbound-interface-dlq"><a class="anchor" href="#screen-outbound-interface-dlq" aria-label="Link to this section">#</a> Outbound Interface DLQ</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; System Logs &gt; Interface Log &gt; Outbound Interface DLQ"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Interface Log</span> <span aria-hidden="true">›</span> <span>Outbound Interface <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a></span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> System Logs, tab <strong>Interface Log</strong>, sub-tab <strong>Outbound Interface DLQ</strong>.
+<strong>2. Maintenance item:</strong> Outbound Interface DLQ</p>
+<p><strong>3. Business purpose and scope.</strong> A dead-letter queue (DLQ) is the list of messages that could not be sent. This screen shows failed and waiting outbound interface messages for one queue at a time and lets you send them again. <strong>Dispatch Now</strong> and <strong>Retry</strong> send the message to the interface engine. The <strong>Simulate</strong> buttons are a testing aid and never send. A failed charge is in the separate financial DLQ (<a href="08-tier7-billing-registry.html#screen-audit-financial">System Logs: financial</a>). The delivery exceptions panel (below) sits at the top.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Nothing is configured here. A message appears after an outbound send fails. If <code>VITE_INTERFACE_RECEIVER_ENDPOINT</code> is unset the demonstration engine accepts or rejects according to its response mode (see <a href="#screen-mock-interface-engine">Mock Interface Engine</a>).</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-outbound-interface-dlq.webp" alt="Outbound Interface DLQ with queue picker, failed rows and delivery exceptions" loading="lazy"><figcaption>Outbound Interface DLQ with queue picker, failed rows and delivery exceptions</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-interface-dlq-queue"><td>Queue</td>
+<td>Choice of eight queues: Pathology Result (<a class="term" href="99-glossary.html#g-oru" title="The HL7 unsolicited observation result message type. ORU^R01 carries a result.">ORU</a>^R01); Cytology Result (ORU^R01); Patient <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a> (A08/A40/A47); Assist-Mode <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> Sync; Accession events (accessioned / deficiency); Report Delivery (E-fax, File Drop); Referral Manifest; Molecular / Instrument Order</td>
+<td>Required</td>
+<td>Selects the queue. The first two identifier and kind columns change with it (for example Case and Result State; Source Patient and Event Type; Batch barcode and Priority; Specimen or barcode and Assay; Accession and Channel and report). Changing the queue clears the outcome messages.</td>
+<td>Pathology Result</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-identifier-kind"><td>Failed: identifier, kind</td>
+<td>Text (read-only, tagged as patient data)</td>
+<td>Not applicable</td>
+<td>The record and its kind.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-error"><td>Failed: Error</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>One of <strong>Dispatch rejected</strong>, <strong>Dispatch timeout</strong>, <strong>Engine unreachable</strong> or <strong>Unknown</strong>, with the message below it.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-retries"><td>Failed: Retries</td>
+<td>Number</td>
+<td>Not applicable</td>
+<td>How many times it was resent. "(max exceeded)" shows when the entry carries that <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>. The browser's own dispatch never sets the flag today.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-retry-dispatch"><td>Failed: Retry Dispatch</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Resends. The answer shows beside it: "Sent and accepted by the interface engine"; "Not sent: the reason is in the Error column"; "Held: the report <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> isn't available yet"; "Not sent: the message couldn't be built"; "That message is no longer in the queue"; "Held on the Outbound Queue screen: release it there first"; or "You don't have permission to resend interface messages."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-failed-capture-as-capa"><td>Failed: Capture as <a class="term" href="99-glossary.html#g-capa" title="Corrective and preventive action. A tracked response to a quality problem, with an owner and a reason for opening or dismissing it.">CAPA</a></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Records the failure as a corrective and preventive action (CAPA) item. The row then shows <strong>Captured</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-identifier-kind-queued-at"><td>Queued: identifier, kind, Queued At</td>
+<td>Read-only</td>
+<td>Not applicable</td>
+<td>Messages waiting to go.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-dispatch-now"><td>Queued: Dispatch Now</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Sends the message now.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-queued-simulate-rejected-simulate-timeout-simulate-unreachable"><td>Queued: Simulate Rejected, Simulate Timeout, Simulate Unreachable</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Fabricate a failure of that kind for testing. They never reflect a real send.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-interface-dlq-delivery-exceptions-n"><td>Delivery exceptions (n)</td>
+<td>Read-only list: Case, Channel, Attempts, Last error, Fallback, Gave up</td>
+<td>Not applicable</td>
+<td>Prints, faxes and file drops that still failed after their automatic retries. A rule's fallback channels show as "Sent by ...". Admin and Lab Director are sent a message when one is added. A delivery that goes through on resend leaves the list at the next sweep. "No delivery exceptions." when empty.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:audit-log:open</code>. Dispatch Now, Retry Dispatch and the Simulate buttons: <code>interface:outbound:resend</code> (high risk, audited). Admin holds it by default. A hospital can grant it to its own interface analyst <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>. Capture as CAPA has no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> of its own.</p>
+<p><strong>Known limits.</strong> The subtitle says "seven queues" but the screen offers eight. There is no automatic retry in the browser: a failed message waits for a person. The planned retry windows are in <a href="#ch7-today">What runs today and what is Planned</a>.</p>
+<h3 id="screen-outbound-dispatches"><a class="anchor" href="#screen-outbound-dispatches" aria-label="Link to this section">#</a> Outbound Dispatches</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; System Logs &gt; Interface Log &gt; Outbound Dispatches"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>System Logs</span> <span aria-hidden="true">›</span> <span>Interface Log</span> <span aria-hidden="true">›</span> <span>Outbound Dispatches</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> System Logs, tab <strong>Interface Log</strong>, sub-tab <strong>Outbound Dispatches</strong>.
+<strong>2. Maintenance item:</strong> Outbound Dispatches</p>
+<p><strong>3. Business purpose and scope.</strong> The trail of every order-creation event PathScribe sent to the interface engine (Category E), with its outcome. It is a record, not a failure queue. Failed sends of results and patient updates are in the <a href="#screen-outbound-interface-dlq">Outbound Interface DLQ</a>. Open a row to see the exact <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> that was sent. PathScribe sends JSON; the engine builds the <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> message from it.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Nothing is configured here. Rows appear when an order-created message is sent.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-outbound-dispatches.webp" alt="Outbound Dispatches table and payload drawer" loading="lazy"><figcaption>Outbound Dispatches table and payload drawer</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-dispatches-status-filter"><td>Status filter</td>
+<td>Choice of <strong>All</strong>, <strong>Delivered</strong>, <strong>Failed</strong>, <strong>Outcome unknown</strong></td>
+<td>Optional</td>
+<td>Filters the table. Outcome unknown means the message was recorded but no outcome came back.</td>
+<td>All</td>
+</tr>
+<tr id="f-outbound-dispatches-search"><td>Search</td>
+<td>Text, "Search message ID or <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>..."</td>
+<td>Optional</td>
+<td>Matches message id and accession.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound-dispatches-timestamp"><td>Timestamp</td>
+<td>Date and time (read-only)</td>
+<td>Not applicable</td>
+<td>When it was sent.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-message-id"><td>Message ID</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The message's id.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-accession"><td>Accession</td>
+<td>Text (read-only, tagged as patient data)</td>
+<td>Not applicable</td>
+<td>The <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-category"><td>Category</td>
+<td>Text, <strong>E: Order</strong></td>
+<td>Not applicable</td>
+<td>The category of the transaction.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-message-type"><td>Message Type</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The transaction type.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-ordering-facility"><td>Ordering Facility</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> the order came from.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-status"><td>Status</td>
+<td><strong>Delivered</strong>, <strong>Failed</strong>, <strong>Outcome unknown</strong>, with "n attempts"</td>
+<td>Not applicable</td>
+<td>The outcome.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-outbound-payload-drawer"><td>Outbound Payload drawer</td>
+<td>Read-only JSON with <strong>Copy Payload</strong></td>
+<td>Not applicable</td>
+<td>The exact JSON sent, and the error if it failed. Copy puts it on the clipboard.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-dispatches-footer"><td>Footer</td>
+<td>"Showing n of n outbound dispatches"</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:audit-log:open</code>. There is no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> on the table or the copy button. Admin, Lab Director and <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer open the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a> screen by default.</p>
+<p><strong>Known limits.</strong> Only order-creation events are in this trail. Other transaction types are in the <a class="term" href="99-glossary.html#g-dlq" title="Dead-letter queue, the list of messages that failed every retry. System Logs has one for outbound interface messages and one for charges.">DLQ</a> while they fail and in the <a href="#screen-outbound-queue">Outbound Queue</a>.</p>
+<h3 id="screen-outbound-queue"><a class="anchor" href="#screen-outbound-queue" aria-label="Link to this section">#</a> Outbound Queue</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Quality &amp; Compliance &gt; Outbound Queue"><span>Home</span> <span aria-hidden="true">›</span> <span>Quality &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Outbound Queue</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Home &gt; <strong>Quality &amp; Compliance</strong> &gt; <strong>Outbound Queue</strong>, at <code>/outbound-queue</code>.
+<strong>2. Maintenance item:</strong> Outbound Queue</p>
+<p><strong>3. Business purpose and scope.</strong> Every outbound message in one place: hold, release or retry it, and fix what a <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> rejected. It brings together ten feeds (Results, Patient <a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>, Accession, <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> sync, Billing, Report delivery, Cytology results, Referrals, Molecular orders, Registry) and shows each message's destination (Interface engine, Billing system, LIS partner, Delivery service or Registry), the transport the engine uses (REST + mTLS, <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a>, Portal upload, <a class="term" href="99-glossary.html#g-phin-ms" title="The Public Health Information Network Messaging System, a US transport for sending public health reports.">PHIN-MS</a>, Direct TCP or HTTPS <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a>, which are shown as part of the destination label only) and its state. PathScribe decides what is released and when; the engine does the transport.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The queue reads when a message goes, and its reporting deadline, from the <a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Delivery Schedules</a>: the performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own schedule, else the <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a>'s, else the feed's default. Without a schedule a message follows the feed's default. Billing items also follow the billing release settings, and registry items the registry settings, both in Tier 7.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="06-tier5-reporting-synoptic-scheduler.html#screen-delivery_schedules">Delivery Schedules</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-outbound-queue.webp" alt="Outbound Queue with feed filters, deadline tiles, state column and action bar" loading="lazy"><figcaption>Outbound Queue with feed filters, deadline tiles, state column and action bar</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Filters and tiles.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-filter-by-feed"><td>Filter by feed</td>
+<td>Ten toggle chips</td>
+<td>Optional</td>
+<td>Shows only the chosen feeds.</td>
+<td>All feeds</td>
+</tr>
+<tr id="f-outbound-queue-facility"><td>Facility</td>
+<td>Picklist, <strong>All facilities</strong> or one facility</td>
+<td>Optional</td>
+<td>Limits to a facility.</td>
+<td>All facilities</td>
+</tr>
+<tr id="f-outbound-queue-search-by-accession-number"><td>Search by <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a></td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches the <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-outbound-queue-needs-review-tile"><td>Needs review tile</td>
+<td>Toggle with count</td>
+<td>Optional</td>
+<td>Shows billing items parked for a person (<strong>Needs review: unmapped <a class="term" href="99-glossary.html#g-cpt" title="Current Procedural Terminology, the AMA&#x27;s code set for medical and laboratory procedures, used for billing in the United States.">CPT</a> code</strong>, <strong>no technical-component facility</strong>, <strong>delta charge from an amended <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a></strong>) and registry items that need review (a required field empty, no performing facility, no state profile, a state rule such as "No ICD-O-3 code on the case").</td>
+<td>Off</td>
+</tr>
+<tr id="f-outbound-queue-amendment-deltas-tile"><td>Amendment deltas tile</td>
+<td>Count</td>
+<td>Not applicable</td>
+<td>Charges from amended cases.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-reporting-deadlines-tiles"><td>Reporting deadlines tiles</td>
+<td>Counts, <strong>Overdue</strong> and <strong>Due soon</strong></td>
+<td>Not applicable</td>
+<td>Registry reporting deadlines.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-sort-by-direction"><td>Sort by, direction</td>
+<td>Choice of Feed, State, Queued time, Scheduled time, Attempts, Reporting deadline; ascending or descending</td>
+<td>Optional</td>
+<td>The default order puts rejected first, then dead-lettered, failed, held, waiting, sent, acknowledged, not reportable, retracted.</td>
+<td>State order</td>
+</tr>
+</tbody>
+</table>
+<p>The list.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-select-row-and-select-all"><td>Select (row and select all)</td>
+<td>Checkbox</td>
+<td>Optional</td>
+<td>Chooses messages for a bulk action. The count reads "Selected: n".</td>
+<td>None</td>
+</tr>
+<tr id="f-outbound-queue-feed-accession-destination"><td>Feed, Accession, Destination</td>
+<td>Text (read-only)</td>
+<td>Not applicable</td>
+<td>The feed, the case and the destination with its transport.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-state"><td>State</td>
+<td>One of <strong>Waiting</strong>, <strong>Held</strong>, <strong>Sent</strong>, <strong>Acknowledged</strong>, <strong>Failed</strong>, <strong>Dead-lettered</strong>, <strong>Rejected</strong>, <strong>Not reportable</strong>, <strong>Retracted</strong></td>
+<td>Not applicable</td>
+<td>Waiting: queued, goes at its time. Held: a person stopped it. Sent: the engine has it. Acknowledged: the receiver confirmed. Failed: a send failed. Dead-lettered: failed past its automatic retries. Rejected: a registry returned it with errors. Not reportable and Retracted are closed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-attempts-scheduled-deadline-detail"><td>Attempts, Scheduled, Deadline, Detail</td>
+<td>Read-only</td>
+<td>Not applicable</td>
+<td>Detail carries the hold reason ("Held: ..."), the error, a scheduled release date, a correction due date, "Released ahead of schedule (user id)", "Amends an earlier message", or the registry's reason.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Actions, which apply to the selected messages and check the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> once for the selection. Each message gets its own result; a refusal for one does not stop the rest.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-outbound-queue-hold"><td>Hold</td>
+<td>Button, then a panel</td>
+<td>Required reason</td>
+<td>Allowed for Waiting and Failed. Reason: Receiver downtime, Receiver maintenance, Checking the data, Billing review, Possible duplicate or Other. An optional note up to 200 characters, with the <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> "No patient details".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-release"><td>Release</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Allowed for Held. Returns it to the queue.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-retry"><td>Retry</td>
+<td>Button, then a panel for a rejected one</td>
+<td>Required reason when rejected</td>
+<td>Allowed for Failed, Dead-lettered and Rejected. A rejected message needs the reason it was fixed: Data corrected, Coding corrected, Pathologist corrected or Other.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-mark-not-reportable"><td>Mark not reportable</td>
+<td>Button, then a panel</td>
+<td>Required reason</td>
+<td>Allowed for Rejected. Reason: Not a reportable condition, Outside the registry's <a class="term" href="99-glossary.html#g-jurisdiction" title="A country or national health system whose rules PathScribe applies, such as the United States, England and Wales or Germany. It sets code systems, signing rules, retention floors and formats.">jurisdiction</a>, Already reported or Other. Nothing more is sent.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-retract-charge"><td>Retract charge</td>
+<td>Button, then a panel</td>
+<td>Required reason</td>
+<td>Billing items only; allowed for Waiting, Held, Failed and Dead-lettered. Reason: Case amended, Case retracted, Duplicate charge or Other. Terminal.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-outbound-queue-release-now"><td>Release now</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Billing items only; allowed for Waiting and Held. Sends ahead of the schedule and records the user's id.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>A refusal is reported as a count: not permitted, no longer in the queue, not holdable, not held, not retryable, not rejected, not retractable, not releasable, reason required, or not sent (see the Detail column). The summary says "Changed: n" and "Not applicable to the state: n."</p>
+<p><strong>7. Permissions.</strong> Open: <code>screen:outbound-queue:open</code>. Retry: <code>interface:outbound:resend</code>. Hold: <code>interface:outbound:hold</code>. Release: <code>interface:outbound:release</code>. Mark not reportable: <code>interface:outbound:mark-not-reportable</code>. Retract charge: <code>interface:outbound:retract</code>. Release now: <code>interface:outbound:override-release</code>. All are high risk and audited. Each of the five besides resend needs the screen capability. Admin holds all of them and the screen by default. Lab Director and <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> Reviewer do not have the screen. Hold and release are checked once for a bulk selection.</p>
+<p><strong>Known limits.</strong> The queue holds the messages the PathScribe side knows about. Whether a message reached its receiver depends on the engine's acknowledgement, which is Planned: today any 2xx answer counts as sent. Acknowledged appears only for feeds that carry an acknowledgement (registry). The transport named in the destination is a label, because the engine owns the transport.</p>
+<h2 id="ch7-other"><a class="anchor" href="#ch7-other" aria-label="Link to this section">#</a> Other integrations and test tools</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p>These screens belong to Tier 6 but are not about the interface engine: a reporting feed for analytics tools, the import of a legacy system's history, and the demonstration tools that stand in for systems that are not connected.</p>
+<h3 id="screen-bi_feed"><a class="anchor" href="#screen-bi_feed" aria-label="Link to this section">#</a> Reporting feed (Power BI)</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Reporting feed (Power BI)"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Reporting feed (Power BI)</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Reporting feed (Power BI)</p>
+<p><strong>3. Business purpose and scope.</strong> Lets Power BI, Excel, Tableau or a script read PathScribe data through a reporting <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> on the API server. They never connect to the database. You choose what the feed offers (datasets and performing-lab facilities), issue one token for each tool, and keep identifying data out unless a named person has approved it. By default a token is de-identified: names, record numbers, birth dates and free text are removed, dates are reduced to the month, and ages of 90 and over show as 90+.</p>
+<p><strong>What is built and what is not.</strong> Built: the settings, the approval record, token creation, replacement and revocation, the field catalogue and the pull test. A token is shown once; PathScribe keeps only a fingerprint and cannot show it again. Not connected: the feed itself. The reading call, <code>GET /api/bi/v1/{dataset}</code> with <code>Authorization: Bearer psbi_...</code>, is a written contract and the server work item PS-787. In the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> the settings and tokens are kept in the browser, and <strong>Test a pull</strong> only simulates how the server would answer (it returns no rows). A banner says so.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A token can only be limited to facilities that have the performing-lab <a class="term" href="99-glossary.html#g-role" title="A named set of capabilities given to staff, such as Admin or Pathologist. A person can hold several roles.">role</a>, so those facilities come first. Skip them and the screen says "No performing-lab facilities are set up", and a token cannot be created because at least one <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> must be offered.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 4</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-bi_feed.webp" alt="Reporting feed settings, identified-token approval, token list, pull test and field catalogue" loading="lazy"><figcaption>Reporting feed settings, identified-token approval, token list, pull test and field catalogue</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>What the feed offers.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-reporting-feed-is-on"><td>Reporting feed is on</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>While it is off, every token is refused and new tokens cannot be created.</td>
+<td>Off</td>
+</tr>
+<tr id="f-bi_feed-datasets"><td>Datasets</td>
+<td>Checkboxes: Audit summaries, Billing events, Cases and turnaround, Quality and <a class="term" href="99-glossary.html#g-discordance" title="A difference between two reads of the same material, such as a preliminary and a final diagnosis, or a first and a second pathologist.">discordance</a>, Specimens, Workload and productivity. The ones that can identify a patient are tagged "can identify a patient" (cases, specimens, billing, quality).</td>
+<td>Optional</td>
+<td>The datasets any token may read. Audit summaries are daily counts with no user or patient detail. Workload has no patient data.</td>
+<td>None ticked</td>
+</tr>
+<tr id="f-bi_feed-performing-lab-facilities"><td>Performing-lab facilities</td>
+<td>Checkboxes</td>
+<td>Optional</td>
+<td>The facilities the feed offers. A token can be limited to some of them and can never reach one that is not ticked.</td>
+<td>None ticked</td>
+</tr>
+<tr id="f-bi_feed-discard-changes-save-settings"><td>Discard changes, Save settings</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Disabled until something changes.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Identified tokens.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-approved-by"><td>Approved by</td>
+<td>Text, up to 80 characters</td>
+<td>Required to record</td>
+<td>The named person who approved identified data.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-bi_feed-reason"><td>Reason</td>
+<td>Text, up to 500 characters</td>
+<td>Required to record</td>
+<td>Why identified data is needed.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-bi_feed-record-approval"><td>Record approval</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Records the approval, with who recorded it and when. Identified tokens can then be created.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bi_feed-withdraw-approval"><td>Withdraw approval</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Removes it. An identified token then gets nothing identifying until a new approval is recorded. Refused with "There is no approval on record to withdraw" when none.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>A new token.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-name"><td>Name</td>
+<td>Text, up to 60 characters. Placeholder "Quality dashboard".</td>
+<td>Required</td>
+<td>Unique among active tokens at the facility ("Another active <a class="term" href="99-glossary.html#g-workstation" title="A registered computer at a facility, with its discipline, area and bound printers.">workstation</a> at this facility has that name" is the wording the screen shows).</td>
+<td>Blank</td>
+</tr>
+<tr id="f-bi_feed-what-the-token-receives"><td>What the token receives</td>
+<td>Choice of <strong>De-identified</strong> or <strong>Identified</strong></td>
+<td>Required</td>
+<td>Identified is locked until an approval is on record. Identified matters only for the cases, specimens, billing and quality datasets; for other datasets it is refused.</td>
+<td>De-identified</td>
+</tr>
+<tr id="f-bi_feed-datasets-this-token-may-read"><td>Datasets this token may read</td>
+<td>Checkboxes of the datasets the feed offers</td>
+<td>Required (at least one)</td>
+<td>A dataset the feed does not offer is refused.</td>
+<td>None</td>
+</tr>
+<tr id="f-bi_feed-facilities-this-token-may-read"><td>Facilities this token may read</td>
+<td>Checkboxes of the facilities the feed offers</td>
+<td>Optional</td>
+<td>Tick none for every facility the feed offers.</td>
+<td>None</td>
+</tr>
+<tr id="f-bi_feed-create-token"><td>Create token</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows the token once with Copy. The wording "Copy this token now ... It is shown only once." A token starts <code>psbi_</code> and lasts 365 days.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The token list and pull test.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-bi_feed-name-datasets-facilities-mode-token-last-pulled-status"><td>Name, Datasets, Facilities, Mode, Token, Last pulled, Status</td>
+<td>Read-only columns</td>
+<td>Not applicable</td>
+<td>Token shows the last four characters and the expiry date. Status is <strong>Active</strong>, <strong>Expires soon</strong> (within 30 days), <strong>Token expired</strong> or <strong>Revoked</strong>. Last pulled shows the dataset, rows and time.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bi_feed-new-token-replace"><td>New token (replace)</td>
+<td>Button on a row</td>
+<td>Not applicable</td>
+<td>Issues a replacement. The previous token keeps working for 24 hours so the tool can be updated.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bi_feed-revoke"><td>Revoke</td>
+<td>Button, then Reason and Note</td>
+<td>Required reason</td>
+<td>Reasons: May be compromised, Enrolled by mistake, Moved to another site, Machine replaced, Machine retired, Other. A note is required for Other and optional otherwise. <strong>Revoke now</strong> confirms. A revoked token stops working at once.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bi_feed-token-test-a-pull"><td>Token (Test a pull)</td>
+<td>Text</td>
+<td>Required</td>
+<td>A pasted token.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-bi_feed-dataset-test-a-pull"><td>Dataset (Test a pull)</td>
+<td>Choice of datasets</td>
+<td>Required</td>
+<td>The dataset to ask for.</td>
+<td>First dataset</td>
+</tr>
+<tr id="f-bi_feed-pull"><td>Pull</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows how the server would answer: Accepted (rows and fields, and the mode), or Refused because it is not shaped like a feed token, no token matches, it is revoked, it is expired, the dataset is not allowed, the feed is off, an identified token has no approval, or the token has pulled 60 times in the last minute.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-bi_feed-field-catalogue"><td>Field catalogue</td>
+<td>Read-only table: Field, Type, De-identified feed</td>
+<td>Not applicable</td>
+<td>Every field of each dataset as an analyst sees the column. The last column shows <strong>Kept</strong>, <strong>Removed</strong> or <strong>Reduced to the month</strong>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The reading API returns 1,000 rows a page by default and at most 10,000.</p>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Settings: <code>config:bi-feed:manage</code>. Create, replace and revoke tokens and Test a pull: <code>config:bi-feed-tokens:manage</code>. Record and withdraw the identified approval: <code>config:bi-feed-identified:approve</code>. All three are high risk. Admin and Lab Director hold them by default, so the person who creates an identified token and the person who approves it can be the same person unless a hospital separates them in the Role Dictionary.</p>
+<p><strong>Known limits.</strong> The feed is not served yet; in the demonstration build only the settings and tokens work. While the data loads, and in some problem messages, the screen says "workstation" where it means a feed token (a wording slip in the text). The token's limit of 60 pulls a minute and the 365-day lifetime are fixed in code.</p>
+<h3 id="screen-migration_field_mappings"><a class="anchor" href="#screen-migration_field_mappings" aria-label="Link to this section">#</a> Migration Field Mappings</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Lab Materials &amp; Workflows &gt; Migration Field Mappings"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Lab Materials &amp; Workflows</span> <span aria-hidden="true">›</span> <span>Migration Field Mappings</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Lab Materials &amp; Workflows</strong>
+<strong>2. Maintenance item:</strong> Migration Field Mappings</p>
+<p><strong>3. Business purpose and scope.</strong> Maps a legacy <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a>'s own source field names to PathScribe's migration target fields, for each source system. A customer with several institutions may migrate from more than one legacy system, so each mapping belongs to one source system. The import of historical records reads these mappings. A source field with no mapping is reported at import and not copied.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> There is nothing to configure first. The import in <a href="#screen-migration-jobs">Historical Data Migration Jobs</a> needs at least one active mapping for the source system. Skip this and the import says "This source system has no active field mappings."</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 5</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-migration-jobs">Historical Data Migration Jobs</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-migration_field_mappings.webp" alt="Migration Field Mappings list with source system filter and Add Mapping" loading="lazy"><figcaption>Migration Field Mappings list with source system filter and Add Mapping</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration_field_mappings-source-system-filter"><td>Source system filter</td>
+<td>Picklist, <strong>All source systems</strong> or one system</td>
+<td>Optional</td>
+<td>Filters the list.</td>
+<td>All source systems</td>
+</tr>
+<tr id="f-migration_field_mappings-list-row"><td>List row</td>
+<td>Read-only: source field, target field, category, and <strong>Inactive</strong> when switched off</td>
+<td>Not applicable</td>
+<td>One mapping per row, with <strong>Edit</strong>. "No field mappings on file." when empty.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration_field_mappings-legacy-source-system"><td>Legacy Source System</td>
+<td>Text, <a class="term" href="99-glossary.html#g-placeholder" title="A record made for a lockbox barcode that has no order yet. It holds the receipt and is linked to an order later; it never gets an accession number.">placeholder</a> <code>LegacyLIS-Cerner</code></td>
+<td>Required</td>
+<td>The name of the legacy system. The import's source-system list is built from these names.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-migration_field_mappings-category"><td>Category</td>
+<td>Choice of Demographics, Accession Detail, Gross/Micro Text, SNOMED/<a class="term" href="99-glossary.html#g-icd-o" title="International Classification of Diseases for Oncology, which codes tumour site and type (morphology). The third edition is ICD-O-3, with codes such as 8500/3.">ICD-O</a> Coding, Slide/Block Inventory, <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> Report Archive, Discrete Synoptic Field</td>
+<td>Required</td>
+<td>Decides which target fields are offered.</td>
+<td>First category</td>
+</tr>
+<tr id="f-migration_field_mappings-source-field-name"><td>Source Field Name</td>
+<td>Text, placeholder <code>PT_FNAME</code></td>
+<td>Required</td>
+<td>The legacy field or column name, as it appears in the file header or <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-migration_field_mappings-target-field"><td>Target Field</td>
+<td>Picklist of the fields for the category</td>
+<td>Required</td>
+<td>Demographics: first name, last name, date of birth, <a class="term" href="99-glossary.html#g-mrn" title="Medical record number, the identifier a facility gives a patient.">MRN</a>, sex. Accession detail: legacy <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>, <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> date, ordering physician name, <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> name, <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> description. Gross/micro text: gross description, microscopic description, final diagnosis. Coding: SNOMED codes, ICD-O codes. Slide/<a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> inventory: block ids, slide ids. PDF archive: archived report URL. Synoptic field: <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> fields.</td>
+<td>None selected</td>
+</tr>
+<tr id="f-migration_field_mappings-transform-note-optional"><td>Transform Note (optional)</td>
+<td>Text, placeholder "e.g. convert MM/DD/YYYY to ISO"</td>
+<td>Optional</td>
+<td>A note for the person who reads the mapping.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-migration_field_mappings-add-mapping-edit-save-cancel"><td>Add Mapping, Edit, Save, Cancel</td>
+<td>Buttons and window</td>
+<td>Not applicable</td>
+<td>A second active mapping for the same source system and source field is refused: "A mapping for (field) already exists for (system)."</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add and edit: <code>config:migration-mappings:manage</code> (high risk). Admin and Lab Director hold it by default. The same <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> guards running an import.</p>
+<p><strong>Known limits.</strong> The Transform Note is a comment only: no code applies it, so a date in another format is not converted by writing a note. The active <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a> on a mapping is stored and respected by the import, but the window has no switch to change it, so a new mapping is always active. There is no delete button.</p>
+<h3 id="screen-migration-jobs"><a class="anchor" href="#screen-migration-jobs" aria-label="Link to this section">#</a> Historical Data Migration Jobs</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Migration Jobs"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Migration Jobs</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> The address <code>/migration-jobs</code>, available to anyone who has the Configuration screen. There is no menu entry that opens it, so give your administrators the address.
+<strong>2. Maintenance item:</strong> Historical Data Migration Jobs</p>
+<p><strong>3. Business purpose and scope.</strong> Status and cross-validation reporting for legacy <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> migration jobs, and the <strong>Import legacy file</strong> window that starts one. A job reports how many records succeeded, failed or need review, and reconciles the count against the count the source system claimed. Ambiguous patient matches found during import are sent to the existing Patient Match Review queue and are not tracked separately here.</p>
+<p><strong>What is built and what is Simulated.</strong> Built: reading a file, applying the mappings, validating, matching to patients, recording the job and its per-record results, and the reconciliation. Simulated: the import runs in the browser, and the draft cases it creates are marked <strong>Simulated</strong>. A banner says a server-side bulk import replaces it. The file itself is not kept.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The source system must have active field mappings, so <a href="#screen-migration_field_mappings">Migration Field Mappings</a> comes first. Skip it and the system list in the window is empty ("No source system has active field mappings yet").</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 6, step 6</p><dl><dt>Configure first</dt><dd><a href="#screen-migration_field_mappings">Migration Field Mappings</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-migration-jobs.webp" alt="Migration jobs list with status tags and the Import legacy file button" loading="lazy"><figcaption>Migration jobs list with status tags and the Import legacy file button</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>The list and detail.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration-jobs-import-legacy-file"><td>Import legacy file</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the import window. Greyed out without the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration-jobs-job-row"><td>Job row</td>
+<td>Read-only: source system, status tag, <strong>Simulated</strong> tag, <strong>Cross-validation discrepancy</strong> badge, counts "n ok, n failed, n review"</td>
+<td>Not applicable</td>
+<td>Click to open the detail. Status is <strong>Pending</strong>, <strong>Running</strong>, <strong>Completed</strong>, <strong>Completed with Errors</strong> or <strong>Failed</strong>. "No migration jobs on file." when empty.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration-jobs-cross-validation"><td>Cross-validation</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td><strong>Reconciled</strong> (processed of claimed), <strong>Discrepancy</strong> (claimed, processed and how many missing or extra), or "No claimed source count on file, cannot reconcile".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration-jobs-counts"><td>Counts</td>
+<td>Text</td>
+<td>Not applicable</td>
+<td>Succeeded, failed, need review, of the total processed.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration-jobs-records-needing-attention"><td>Records needing attention</td>
+<td>List: draft <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> or error message</td>
+<td>Not applicable</td>
+<td>Failed records show the error; ambiguous matches show <strong>Needs <a class="term" href="99-glossary.html#g-mpi" title="Master patient index, the record that links the different identifiers one patient has.">MPI</a> review</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-migration-jobs-records"><td>Records</td>
+<td>List of every record result, with <strong>Succeeded</strong>, <strong>Failed</strong> or <strong>Needs MPI review</strong></td>
+<td>Not applicable</td>
+<td>The outcome of each record and its draft case id.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>The Import legacy file window.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-migration-jobs-source-system"><td>Source system</td>
+<td>Picklist of systems with active mappings</td>
+<td>Required</td>
+<td>"Choose a source system."</td>
+<td>None</td>
+</tr>
+<tr id="f-migration-jobs-legacy-file-csv-or-json"><td>Legacy file (<a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, a plain-text spreadsheet format. PathScribe&#x27;s exports are CSV files.">CSV</a> or <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>)</td>
+<td>File, <code>.csv</code>, <code>.tsv</code>, <code>.txt</code> or <code>.json</code>, up to 2,000 records</td>
+<td>Required</td>
+<td>A CSV needs a header row with the legacy field names. JSON is a list of records, or an object with a <code>records</code> list. Nested values are left out and counted. Over 2,000 records is refused.</td>
+<td>None</td>
+</tr>
+<tr id="f-migration-jobs-record-count-claimed-by-the-source-system-optional"><td>Record count claimed by the source system (optional)</td>
+<td>Whole number</td>
+<td>Optional</td>
+<td>If you know it, the job reconciles it against the records processed.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-migration-jobs-create-draft-cases-from-succeeded-records"><td>Create draft cases from succeeded records</td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>Creates a draft case marked <strong>Simulated</strong> for each record that succeeds, skipping a legacy <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a> that was already imported ("Already imported" fails that record).</td>
+<td>On</td>
+</tr>
+<tr id="f-migration-jobs-run-import"><td>Run import</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Runs and shows: counts, records skipped because already imported, draft cases created (Simulated), and source fields no mapping covers. A <strong>View job</strong> button opens the job.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p>Other refusals: the file is empty or not valid JSON, the first row has no field names, the file has no records, and "You do not have permission to import legacy records."</p>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code> (the route is gated by the Configuration screen). Import: <code>config:migration-mappings:manage</code> (high risk, audited). Admin and Lab Director hold it by default.</p>
+<p><strong>Known limits.</strong> The route has no navigation entry. The import is Simulated in the browser; large or production imports wait for the server-side bulk import. The 2,000-record cap is fixed in code.</p>
+<h3 id="screen-simulated_mail"><a class="anchor" href="#screen-simulated_mail" aria-label="Link to this section">#</a> Simulated mail outbox</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Integrations &gt; Simulated mail outbox"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Integrations</span> <span aria-hidden="true">›</span> <span>Simulated mail outbox</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Integrations</strong>
+<strong>2. Maintenance item:</strong> Simulated mail outbox</p>
+<p><strong>3. Business purpose and scope.</strong> No mail service is connected in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a>. Every e-mail the system would have sent (a follow-up, a <a class="term" href="99-glossary.html#g-tumor-board" title="A multidisciplinary meeting to discuss cancer cases. Also called an MDT.">tumor board</a> invite, a template review event, a support ticket) is kept here, labelled <strong>Simulated</strong>, so you can see what would have been sent. Nothing leaves the browser. A toast says "Simulated e-mail recorded, not sent" and points here.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. Items appear when a feature sends e-mail.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-simulated_mail.webp" alt="Simulated mail outbox list and an opened message" loading="lazy"><figcaption>Simulated mail outbox list and an opened message</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-simulated_mail-count"><td>Count</td>
+<td>Text, "n simulated e-mail(s)"</td>
+<td>Not applicable</td>
+<td>The kept items. The outbox keeps the newest 200.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-simulated_mail-recorded-type-to-subject"><td>Recorded, Type, To, Subject</td>
+<td>Read-only columns</td>
+<td>Not applicable</td>
+<td>Type is <strong>E-mail</strong> or <strong>Template event</strong>. A recipient the server would choose shows "(chosen by the server)".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-simulated_mail-open"><td>Open</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows To, Cc, Subject, body and Attachments, with the note "Simulated: this message was not sent to anyone."</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-simulated_mail-clear-outbox"><td>Clear outbox</td>
+<td>Button, with a confirmation</td>
+<td>Not applicable</td>
+<td>Removes every simulated e-mail from this browser.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. The section shows as editable to anyone holding <code>config:vendor-integrations:manage</code>; there is no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> on the Clear button.</p>
+<p><strong>Known limits.</strong> Demonstration only. A <a class="term" href="99-glossary.html#g-server-build" title="A build of PathScribe for a real deployment, with no demonstration accounts, that signs in through the identity provider and talks to the API server.">server build</a> sends real e-mail through its mail service and keeps no simulated list.</p>
+<h3 id="screen-mock-interface-engine"><a class="anchor" href="#screen-mock-interface-engine" aria-label="Link to this section">#</a> Mock Interface Engine</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Mock Interface Engine"><span>Home</span> <span aria-hidden="true">›</span> <span>Mock Interface Engine</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> The address <code>/dev/mock-interface-engine</code>, in the <a class="term" href="99-glossary.html#g-demonstration-build" title="A build of PathScribe that holds its data in the browser and carries demonstration accounts. It never connects to a real API server.">demonstration build</a> only (<code>__DEMO_TOOLS__</code>). A build that talks to an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server does not include it. The page has no menu entry.
+<strong>2. Maintenance item:</strong> Mock Interface Engine (PS-239)</p>
+<p><strong>3. Business purpose and scope.</strong> A developer and demonstration tool. It answers in place of systems that do not exist yet, so you can dispatch a molecular worklist, send a whole-slide scan batch or any other interface message and see a realistic response: success, a specific rejection, or a hung connection. The page opens with the warning "Developer tool, not real functionality." It has four parts: the response settings, an inbound message simulator, a log of what the simulated engine received, and a <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> answer simulator.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. It needs the demonstration build.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-mock-interface-engine.webp" alt="Mock Interface Engine settings, inbound simulator, engine log and registry answer simulator" loading="lazy"><figcaption>Mock Interface Engine settings, inbound simulator, engine log and registry answer simulator</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Response settings.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-interface-engine-enabled-switch-and-status"><td>Enabled switch and status</td>
+<td>Button, with the status "intercepting real dispatch calls", "starting" or "not intercepting"</td>
+<td>Optional</td>
+<td>Starts or stops the in-browser interceptor for the molecular worklist call.</td>
+<td>Off</td>
+</tr>
+<tr id="f-mock-interface-engine-response-mode"><td>Response Mode</td>
+<td>Choice of <strong>Always Succeed</strong>, <strong>Always Fail</strong>, <strong>Timeout</strong></td>
+<td>Required</td>
+<td>Succeed answers HTTP 200. Fail answers the status below. Timeout never answers, so the dispatch stays "Dispatching...".</td>
+<td>Always Succeed</td>
+</tr>
+<tr id="f-mock-interface-engine-failure-http-status"><td>Failure HTTP Status</td>
+<td>Whole number</td>
+<td>Optional</td>
+<td>Shown for Always Fail. An empty or zero value returns to 500.</td>
+<td>500</td>
+</tr>
+<tr id="f-mock-interface-engine-answer-for-the-slide-scanner"><td>Answer for the slide scanner</td>
+<td>Yes/No checkbox</td>
+<td>Optional</td>
+<td>After a scan batch is accepted, reports each slide as scanning and then scanned, so slide scanning can be shown end to end.</td>
+<td>On</td>
+</tr>
+<tr id="f-mock-interface-engine-molecular-instrument-results"><td>Molecular instrument results</td>
+<td>Choice of <strong>Positive</strong>, <strong>Negative</strong>, <strong>No results</strong></td>
+<td>Optional</td>
+<td>After a molecular worklist is accepted, reports that call for every patient sample, with controls as expected.</td>
+<td>No results</td>
+</tr>
+</tbody>
+</table>
+<p>The three panels.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-mock-interface-engine-inbound-message-simulator-sample-message"><td>Inbound message simulator: Sample message</td>
+<td>Picklist of 14 samples: A01 admit; A01 admit with verified <a class="term" href="99-glossary.html#g-nhs-number" title="The ten-digit patient identifier used in the NHS in England and Wales. The last digit is a check digit.">NHS number</a>; A08 update; A24 link; A34 merge (older form); A40 merge; A40 with unknown patients (goes to the exception queue); A43 move a visit; A45 move a visit (visit level); A47 change identifier; A50 change visit number; and three events (<a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> damaged or lost, <a class="term" href="99-glossary.html#g-hpv" title="Human papillomavirus. A high-risk HPV (hrHPV) result is used with cervical cytology.">HPV</a> result received, material moved to storage)</td>
+<td>Optional</td>
+<td><strong>Load sample</strong> fills the box.</td>
+<td>None</td>
+</tr>
+<tr id="f-mock-interface-engine-inbound-message-simulator-message-hl7-or-json-event"><td>Inbound message simulator: Message (<a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a> or <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a> event)</td>
+<td>Free text, tagged as patient data</td>
+<td>Required</td>
+<td>A message or event to run through the same processors a live listener would use.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-mock-interface-engine-inbound-message-simulator-process-message"><td>Inbound message simulator: Process message</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows <strong>Processed</strong> or <strong>Not applied</strong>. A message that cannot be matched is queued as an interface exception: "Open Audit, Error Log, Interfaces to bind it by hand." Labelled <strong>Simulated</strong>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-mock-interface-engine-received-by-the-simulated-interface-engine"><td>Received by the simulated interface engine</td>
+<td>Read-only list: When, Message type, Outcome (<strong>Accepted</strong>, <strong>Rejected</strong>, <strong>Timed out</strong>), Open</td>
+<td>Not applicable</td>
+<td>With no engine address set, every outbound message ends up here instead of leaving the browser. <strong>Open</strong> shows the message; <strong>Clear list</strong> empties it.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-mock-interface-engine-receive-a-registry-acknowledgement-registry-status-answer"><td>Receive a registry acknowledgement: Registry, Status, Answer</td>
+<td>Picklists</td>
+<td>Required</td>
+<td>Pick what the registry would say for a sent submission: Accepted, Accepted with warnings, Rejected (can be corrected), Rejected (fatal) or No answer. <strong>Receive</strong> runs it through the function the real inbound endpoint will use. With No answer the submission stays awaiting an answer.</td>
+<td>None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> The route is gated by the Configuration screen (<code>screen:configuration:open</code>). There is no <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> on the controls.</p>
+<p><strong>Known limits.</strong> Demonstration only. Its settings are kept in the browser and are not shared. The Always Fail and Timeout modes affect the molecular worklist call that the interceptor handles; the simulated engine in the log follows the same response mode for other messages. It has no sample for a referral result, so the reference-lab receive-back cannot be shown here.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

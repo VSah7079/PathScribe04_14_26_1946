@@ -1,0 +1,16 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 647 — Administrator Guide in six languages, all screenshots captured, language-aware Help button and Help on more screens",
+  "description": "Vitest, 2026-10-21: full suite 1709 files, 14,390 passed and 18 failed on the first run (ConfigurationPage tests mock react-i18next without an i18n object and the Help button read i18n.language); fixed with a null-safe read, the 39 tests in ConfigurationPage, config help and services/help re-run clean. Type-check clean. scripts/admin-guide/build.py: six languages, 0 errors, 0 missing captures."
+ },
+ "tests": [
+  {
+   "testKey": "PS-864",
+   "start": "2026-10-21T19:00:00Z",
+   "finish": "2026-10-21T23:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED: scripts/admin-guide/parity.py fr, de, nl, ko, es (0 problems each: same heading ids, links, table shapes, status words, capability keys and placeholders as the English)\nPASSED: scripts/admin-guide/build.py (en, fr, de, nl, ko, es; 0 errors; 0 missing captures)\nPASSED: src/services/help/adminGuideLinks.test.ts (language URLs, route mapping), adminGuideAnchors.guard.test.ts (every language has the same screen anchors as English)\nPASSED: src/components/Config/help/RouteHelpButton.test.tsx, AdminGuideHelpButton.test.tsx\nPASSED: logicalCss, fileSize, localeParity, uiText, inlineCss, phiTagging, capabilities guards\nNot tested or not built: native-speaker review of the fr, de, nl, ko and es guide (machine translated); screenshots show the English interface; Korean page rendered in one browser only; synoptic editor and reviewer pages have no Help button."
+  }
+ ]
+}

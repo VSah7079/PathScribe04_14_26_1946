@@ -44,11 +44,13 @@ import { getLabelSizePreset, DEFAULT_REQUISITION_LABEL_PRESET_ID, DEFAULT_CONTAI
 // Real, deliberate direct import — see printMolecularLabels.ts's own
 // identical header comment for the real, empirically-measured reason
 // (importing the full '@/services/index' barrel costs 2+ seconds).
-import { mockPrintSettingsService as printSettingsService } from '@/services/printSettings/mockPrintSettingsService';
-import { mockPrinterProfileService as printerProfileService } from '@/services/printerProfiles/mockPrinterProfileService';
+import { printSettingsService } from '@/services/printSettings/printSettingsServiceInstance';
+import { printerProfileService } from '@/services/printerProfiles/printerProfileServiceInstance';
 import { buildSimpleZplLabel } from './simpleZplTemplate';
 import { buildRequisitionStickerSheetZpl } from './buildRequisitionStickerSheetZpl';
-import { dispatchZplLabel } from './dispatchZplLabel';
+import { applySavedLayout, applySavedLayoutHtml, labelValues } from '@/services/labelDesigner/savedLayoutRegistry';
+import { dispatchZplLabel, bridgeDispatchesZpl } from './dispatchZplLabel';
+import { reportLabelBridgeFailure } from './labelBridgeNotice';
 
 async function resolveContainerPreset() {
   const res = await printSettingsService.get();
@@ -76,16 +78,19 @@ async function tryDispatchContainerLabelViaHardwareBridge(data: ContainerLabelDa
   const profileRes = await printerProfileService.getById(profileId);
   if (!profileRes.ok || !profileRes.data) return false;
   const printer = profileRes.data;
-  if (printer.bridgeType !== 'qz_tray') return false;
+  if (!bridgeDispatchesZpl(printer)) return false;
 
   const preset = await resolveContainerPreset();
-  const zpl = buildSimpleZplLabel({
+  const builtInZpl = buildSimpleZplLabel({
     barcodePayload: barcodePayloadForContainer(data),
     symbology: preset.defaultBarcodeSymbology,
     textLines: [data.patientName, data.mrn, `${data.fullAccession}-${data.specimenLabel}`],
     dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm,
   });
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  // Batch 606 (PS-26): a layout saved in the label designer replaces the built-in one.
+  const zpl = applySavedLayout('specimen', labelValues(data, barcodePayloadForContainer(data)), printer.dpi, builtInZpl);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'container-label', documentId: `${data.fullAccession}-${data.specimenLabel}`, caseId: data.fullAccession });
+  if (!result.ok) reportLabelBridgeFailure();
   return result.ok;
 }
 
@@ -110,10 +115,12 @@ async function tryDispatchRequisitionSheetViaHardwareBridge(data: RequisitionSti
   const profileRes = await printerProfileService.getById(profileId);
   if (!profileRes.ok || !profileRes.data) return false;
   const printer = profileRes.data;
-  if (printer.bridgeType !== 'qz_tray') return false;
+  if (!bridgeDispatchesZpl(printer)) return false;
 
-  const zpl = buildRequisitionStickerSheetZpl(data, preset.widthMm, preset.heightMm, printer.dpi);
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const builtInZpl = buildRequisitionStickerSheetZpl(data, preset.widthMm, preset.heightMm, printer.dpi);
+  const zpl = applySavedLayout('requisition', labelValues(data, data.fullAccession), printer.dpi, builtInZpl);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'requisition-label', documentId: data.fullAccession, caseId: data.fullAccession });
+  if (!result.ok) reportLabelBridgeFailure();
   return result.ok;
 }
 
@@ -121,16 +128,16 @@ export async function printRequisitionLabel(caseData: Case): Promise<boolean> {
   const preset = await resolveRequisitionPreset();
   const data: RequisitionStickerSheetData = { ...buildRequisitionLabelData(caseData), ...DEFAULT_REQUISITION_STICKER_COUNTS };
   if (await tryDispatchRequisitionSheetViaHardwareBridge(data, preset)) return true;
-  const html = buildRequisitionStickerSheetHtml(data, preset);
-  return printLabels([html], preset, `Requisition — ${caseData.accession.fullAccession}`);
+  const html = applySavedLayoutHtml('requisition', labelValues(data, data.fullAccession), buildRequisitionStickerSheetHtml(data, preset));
+  return printLabels([html], preset, `Requisition — ${caseData.accession.fullAccession}`, { document: 'requisition-label', documentId: caseData.accession.fullAccession, caseId: caseData.accession.fullAccession });
 }
 
 export async function printContainerLabel(caseData: Case, specimen: Pick<Specimen, 'label' | 'description' | 'blocks'>): Promise<boolean> {
   const data = buildContainerLabelData(caseData, specimen);
   if (await tryDispatchContainerLabelViaHardwareBridge(data)) return true;
   const preset = await resolveContainerPreset();
-  const html = buildContainerLabelHtml(data, preset);
-  return printLabels([html], preset, `Container Label — ${caseData.accession.fullAccession}-${specimen.label}`);
+  const html = applySavedLayoutHtml('specimen', labelValues(data, barcodePayloadForContainer(data)), buildContainerLabelHtml(data, preset));
+  return printLabels([html], preset, `Container Label — ${caseData.accession.fullAccession}-${specimen.label}`, { document: 'container-label', documentId: `${caseData.accession.fullAccession}-${specimen.label}`, caseId: caseData.accession.fullAccession });
 }
 
 export async function printAllContainerLabels(caseData: Case, specimens: Pick<Specimen, 'label' | 'description' | 'blocks'>[]): Promise<boolean> {
@@ -146,8 +153,8 @@ export async function printAllContainerLabels(caseData: Case, specimens: Pick<Sp
     if (results.every(Boolean)) return true;
   }
   const preset = await resolveContainerPreset();
-  const htmlFragments = allData.map(d => buildContainerLabelHtml(d, preset));
-  return printLabels(htmlFragments, preset, `Container Labels — ${caseData.accession.fullAccession}`);
+  const htmlFragments = allData.map(d => applySavedLayoutHtml('specimen', labelValues(d, barcodePayloadForContainer(d)), buildContainerLabelHtml(d, preset)));
+  return printLabels(htmlFragments, preset, `Container Labels — ${caseData.accession.fullAccession}`, { document: 'container-label', documentId: caseData.accession.fullAccession, caseId: caseData.accession.fullAccession });
 }
 
 /** Real, direct fix, per direct follow-up ("Why is the decant label
@@ -173,16 +180,18 @@ async function tryDispatchDecantContainerLabelViaHardwareBridge(data: DecantCont
   const profileRes = await printerProfileService.getById(profileId);
   if (!profileRes.ok || !profileRes.data) return false;
   const printer = profileRes.data;
-  if (printer.bridgeType !== 'qz_tray') return false;
+  if (!bridgeDispatchesZpl(printer)) return false;
 
   const preset = await resolveContainerPreset();
-  const zpl = buildSimpleZplLabel({
+  const builtInZpl = buildSimpleZplLabel({
     barcodePayload: barcodePayloadForDecantContainer(data),
     symbology: preset.defaultBarcodeSymbology,
     textLines: [data.patientName, data.mrn, `${data.fullAccession}-${data.specimenLabel}${data.decantLabel}`],
     dpi: printer.dpi, widthMm: preset.widthMm, heightMm: preset.heightMm,
   });
-  const result = await dispatchZplLabel(printer, zpl, 1);
+  const zpl = applySavedLayout('decant', labelValues(data, barcodePayloadForDecantContainer(data)), printer.dpi, builtInZpl);
+  const result = await dispatchZplLabel(printer, zpl, 1, undefined, { document: 'decant-container-label', documentId: `${data.fullAccession}-${data.specimenLabel}${data.decantLabel}`, caseId: data.fullAccession });
+  if (!result.ok) reportLabelBridgeFailure();
   return result.ok;
 }
 
@@ -202,6 +211,6 @@ export async function printDecantContainerLabel(
   const data = buildDecantContainerLabelData(caseData, specimenLabel, specimenDesc, decant);
   if (await tryDispatchDecantContainerLabelViaHardwareBridge(data)) return true;
   const preset = await resolveContainerPreset();
-  const html = buildDecantContainerLabelHtml(data, preset);
-  return printLabels([html], preset, `Decant Container Label — ${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`);
+  const html = applySavedLayoutHtml('decant', labelValues(data, barcodePayloadForDecantContainer(data)), buildDecantContainerLabelHtml(data, preset));
+  return printLabels([html], preset, `Decant Container Label — ${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`, { document: 'decant-container-label', documentId: `${caseData.accession.fullAccession}-${specimenLabel}${decant.label}`, caseId: caseData.accession.fullAccession });
 }

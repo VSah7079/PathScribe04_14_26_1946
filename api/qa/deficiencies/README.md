@@ -32,7 +32,9 @@ None of these four endpoints verify caller identity at all. `resolvedBy`/`verifi
 
 **Explicitly considered and declined**: a shared secret like the Engine webhooks use. That mechanism's real security property depends on the secret never leaving a server — the Engine holds it, a browser never does. These endpoints' only real caller *is* a browser, so any secret protecting them would have to ship inside the public JS bundle, readable by anyone via devtools. That's the appearance of security, not the real thing, and shipping it would risk someone treating these endpoints as genuinely gated when they aren't.
 
-The real fix is the same one already identified as this app's single largest outstanding gap: real Firebase Authentication (or an equivalent server-verifiable session), so a real ID token can be verified server-side here the way `verifyEngineAuth.ts` verifies a shared secret. Not built yet — blocked, at last check, on confirming whether a real Firebase project even exists for this app at all.
+The real fix is a server-verifiable session, so the caller's token can be verified server-side the way `verifyEngineAuth.ts` verifies a shared secret. The browser side exists since Batch 343 (PS-60): staff sign in through the hospital's OpenID Connect provider (`services/auth/`, `docs/architecture/AUTHENTICATION_OIDC.md`), and the API server is to validate those tokens. That API server is ASP.NET Core over SQL Server (not Firebase) and is not built yet (PS-358); it is expected to replace these Firestore-backed endpoints rather than add token checks to them.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the fix was described as Firebase Authentication, blocked on a Firebase project; production is now SQL Server behind an ASP.NET Core API, with OIDC sign-in.*
 
 ## Testing
 

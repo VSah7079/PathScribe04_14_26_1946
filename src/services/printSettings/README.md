@@ -1,3 +1,9 @@
+**Batch 758:** `PrintSettingsConfig.microtomePrintBehavior` (On-Demand, Block, Batch; `MICROTOME_PRINT_BEHAVIORS`) and `microtomePrintMode.ts` (new): the Microtome's mode, apart from Grossing's `defaultPrintBehavior`; settings saved before this batch follow Grossing's.
+
+**Batch 738:** the demo (`mockPrintSettingsService.ts`) starts with `DEMO_RESTRICTED_CIRCULATION_GTIN` (0299990000101, GS1 prefix 02, internal use only) so labels print; the product default (`DEFAULT_PRINT_SETTINGS_CONFIG.gs1Gtin`) stays empty.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # services/printSettings/
 
 Admin-configurable, lab-wide default print behavior for the
@@ -29,19 +35,20 @@ touched by Tier 2.
   documented defaults. `defaultPrintBehavior` defaults to
   `'on_demand'`, matching the researched patient-safety
   recommendation (print as each cassette is logged, not deferred to a
-  batch at the end). **New (PS-284, Microtomy Workstation):**
+  batch at the end). **New (PS-284, Microtome Workstation):**
   `SlideLabelLayoutConfig` interface + `DEFAULT_SLIDE_LABEL_LAYOUT`
   (`faceWidthMm: 20.0, faceHeightMm: 8.0, moduleSizeMm: 0.2,
   fontHeightMm: 1.2`), and `PrintSettingsConfig.slideLabelLayout` —
   mirrors the existing `CassetteLabelLayoutConfig` shape for the new
-  microtomy slide-label print path. **Honest gap:** this config is not
-  yet wired into `buildSlideZplTemplate.ts`'s actual ZPL dot
+  microtome slide-label print path. **Honest gap:** this config is not
+  yet wired into `buildSlideZplTemplate()`'s (in `utils/labels/zplTemplates.ts`) actual ZPL dot
   coordinates, which remain hardcoded literals verified against
   Labelary at a fixed 1.0"×0.25"/300dpi scale — re-verifying that
   template against a configurable layout was out of scope for this
   pass. There is also no admin editor UI for this field yet (unlike
   `CassetteLabelLayoutConfig`, which `LabelDesignerPage/` already
   covers) — both are real, tracked gaps, not silent placeholders.
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): `buildSlideZplTemplate` is a function in `utils/labels/zplTemplates.ts`, not its own file; both gaps re-checked and still open.*
 - **`mockPrintSettingsService.ts`** — the real, active Tier 1 implementation.
 - **`IFacilityPrintSettingsService.ts`** / **`mockFacilityPrintSettingsService.ts`**
   (+ `.test.ts`) — **New (Workstation & Hardware redesign).** Real Tier 2:
@@ -77,6 +84,25 @@ override exists, the form becomes editable again, now writing to that
 facility's own record, with a "Revert to System Default" action that
 deletes it outright (not a soft-disable flag).
 
+## Batch 428: Configuration permissions
+
+- `mockPrintSettingsService`: `update`, `reset` need `config:print-settings:manage`.
+- `mockFacilityPrintSettingsService`: `create`, `update`, `remove` need `config:print-settings:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 437 (PS-282)
+
+`requireReprintReason` (optional, off by default; facility overrides apply): when a report that was printed before is printed again, the person gives a reason, which is kept in the audit entry. It is set in Configuration → System → Print Settings.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`printSettingsForm.ts`: Print Settings' preset list, save routing (global or facility) and read-only rule (PS-233).
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part B): server version (PS-514)
+
+The print settings and facility print settings services now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELIVERY_PRINTING_API.md`.

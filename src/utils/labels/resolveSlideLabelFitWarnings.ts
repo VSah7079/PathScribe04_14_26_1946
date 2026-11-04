@@ -1,6 +1,6 @@
 // src/utils/labels/resolveSlideLabelFitWarnings.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, per PS-284 (Microtomy Workstation)'s own suggestion: "a
+// Real, per PS-284 (Microtome Workstation)'s own suggestion: "a
 // slide-label equivalent [of resolveCassetteLabelFitWarning.ts] may
 // be worth the same treatment." Same real, pure safety check, same
 // honest limits — see that file's own header for the full reasoning
@@ -30,8 +30,13 @@ export const CONSERVATIVE_SLIDE_DATAMATRIX_MODULE_COUNT = 26;
 export const SLIDE_LABEL_TEXT_LINE_COUNT = 2;
 
 export interface SlideLabelFitWarning {
+  /** English text for logs and tests. The screen shows `microtomyWorkstation.hardware.fit.<kind>` with the two numbers below (Batch 389). */
   message: string;
   kind: 'height_overflow' | 'width_overflow';
+  /** What the label needs, in mm, to one decimal place (a string so it prints as computed). */
+  requiredMm: string;
+  /** The configured face size in that direction, in mm. */
+  faceMm: number;
 }
 
 /**
@@ -49,6 +54,8 @@ export function resolveSlideLabelFitWarnings(config: SlideLabelLayoutConfig): Sl
   if (requiredHeightMm > config.faceHeightMm) {
     warnings.push({
       kind: 'height_overflow',
+      requiredMm: requiredHeightMm.toFixed(1),
+      faceMm: config.faceHeightMm,
       message: `At this module size and font height, the slide label needs about ${requiredHeightMm.toFixed(1)}mm of height, but the configured face is only ${config.faceHeightMm}mm tall. Content will print past the real edge of the glass slide's frosted area.`,
     });
   }
@@ -57,6 +64,8 @@ export function resolveSlideLabelFitWarnings(config: SlideLabelLayoutConfig): Sl
   if (barcodeWidthMm > config.faceWidthMm) {
     warnings.push({
       kind: 'width_overflow',
+      requiredMm: barcodeWidthMm.toFixed(1),
+      faceMm: config.faceWidthMm,
       message: `At this module size, the barcode alone needs about ${barcodeWidthMm.toFixed(1)}mm of width, but the configured face is only ${config.faceWidthMm}mm wide, leaving no room for any text.`,
     });
   }

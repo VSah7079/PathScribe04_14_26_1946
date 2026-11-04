@@ -42,18 +42,24 @@
 // for the day a real Interface Engine exists to call it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
 import { buildGs1DataMatrix, validateGs1Fields } from './gs1DataMatrix';
 import type { Gs1LabelFields } from './gs1DataMatrix';
 import type { PrinterProfile } from '@/services/printerProfiles/IPrinterProfileService';
 import type {
   NetworkPrintPayload, NetworkPrintLabelData,
 } from '@/types/printing/NetworkPrintPayload';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { auditService } from '@/services/auditlog/auditServiceInstance';
 import i18n from '@/i18n/config';
 
 const TEMPLATE_VERSION = 'ZPL-CASSETTE-V3'; // Section 5.1's own example value — the real, current template's own identifier.
 /** Batch 347 (PS-54): the slide label's template identifier. */
 const SLIDE_TEMPLATE_VERSION = 'ZPL-SLIDE-V1';
+/** Batch 732: a large-format (megablock) slide's label template. */
+const SLIDE_TEMPLATE_LF_VERSION = 'ZPL-SLIDE-LF-V1';
+/** Batch 615 (PS-360): vial and rack/batch label template identifiers. */
+export const VIAL_TEMPLATE_VERSION = 'ZPL-VIAL-V1';
+export const RACK_TEMPLATE_VERSION = 'ZPL-RACK-V1';
 
 /** Where the interface engine reports back. The API server owns the real
  *  address and replaces this with its own absolute URL when it forwards the
@@ -82,7 +88,10 @@ export interface BuildNetworkPrintPayloadInput {
   callbackUrl?: string;
   /** Batch 347 (PS-54): a slide label's level and stain. Present → a SLIDE
    *  payload; absent → a cassette, as before. */
-  slide?: { level: string; stainName: string };
+  slide?: { level: string; stainName: string; slideSize?: 'standard' | 'large_format' };
+  /** Batch 737 (spec §11.1): a cassette's label template (the block type's, e.g. ZPL-CASSETTE-MEGA-V1 for a
+   *  megablock); none: the standard cassette template. */
+  cassetteTemplate?: string;
 }
 
 export interface BuildNetworkPrintPayloadResult {
@@ -144,7 +153,7 @@ export function buildNetworkPrintPayload(input: BuildNetworkPrintPayloadInput): 
     blockId: input.blockId,
     patientName: input.patientName,
     gs1DataMatrix: gs1.raw,
-    ...(input.slide ? { labelType: 'SLIDE' as const, slide: { level: input.slide.level, stainName: input.slide.stainName } } : { labelType: 'CASSETTE' as const }),
+    ...(input.slide ? { labelType: 'SLIDE' as const, slide: { level: input.slide.level, stainName: input.slide.stainName, ...(input.slide.slideSize === 'large_format' ? { slideSize: 'large_format' as const } : {}) } } : { labelType: 'CASSETTE' as const }),
   };
 
   const eventId = newNetworkPrintJobId(input.caseId);
@@ -154,7 +163,8 @@ export function buildNetworkPrintPayload(input: BuildNetworkPrintPayloadInput): 
     idempotencyKey: eventId,
     action: 'PRINT_NETWORK_LABEL',
     timestamp: new Date().toISOString(),
-    templateVersion: input.slide ? SLIDE_TEMPLATE_VERSION : TEMPLATE_VERSION,
+    // Batch 732 (spec §11.7): a large-format slide asks the printer for the large-format slide template.
+    templateVersion: input.slide ? (input.slide.slideSize === 'large_format' ? SLIDE_TEMPLATE_LF_VERSION : SLIDE_TEMPLATE_VERSION) : (input.cassetteTemplate ?? TEMPLATE_VERSION),
     callbackUrl: input.callbackUrl ?? NETWORK_PRINT_CALLBACK_PATH,
     targetPrinter: {
       printerId: input.printer.printerId,
@@ -167,6 +177,53 @@ export function buildNetworkPrintPayload(input: BuildNetworkPrintPayloadInput): 
     attempt: 1,
   };
 
+  return { ok: true, payload };
+}
+
+export interface BuildVialRackPayloadInput {
+  /** The case, when the vial belongs to one (a rack or batch has none). */
+  caseId?: string;
+  accessionNumber?: string;
+  /** 'VIAL' or 'RACK'. */
+  labelType: 'VIAL' | 'RACK';
+  barcode: string;
+  rackKind?: 'staining_rack' | 'molecular_plate' | 'molecular_rack' | 'wsi_batch';
+  lines: string[];
+  zpl: string;
+  printer: PrinterProfile;
+  copies?: number;
+  callbackUrl?: string;
+}
+
+/** Batch 615 (PS-360): the engine payload for a vial or a rack/batch label. No GS1 is involved (plain Code 128),
+ *  so the only pre-flight check is that the printer is active. */
+export function buildVialRackNetworkPrintPayload(input: BuildVialRackPayloadInput): BuildNetworkPrintPayloadResult | BuildNetworkPrintPayloadError {
+  if (!input.printer.active) return { ok: false, errors: [i18n.t('networkPrint.payload.printerInactive', { printer: input.printer.printerId })] };
+  const eventId = newNetworkPrintJobId(input.caseId ?? input.barcode);
+  const payload: NetworkPrintPayload = {
+    eventId,
+    idempotencyKey: eventId,
+    action: 'PRINT_NETWORK_LABEL',
+    timestamp: new Date().toISOString(),
+    templateVersion: input.labelType === 'VIAL' ? VIAL_TEMPLATE_VERSION : RACK_TEMPLATE_VERSION,
+    callbackUrl: input.callbackUrl ?? NETWORK_PRINT_CALLBACK_PATH,
+    targetPrinter: {
+      printerId: input.printer.printerId,
+      ipAddress: input.printer.ipAddress ?? '',
+      port: input.printer.port ?? 9100,
+      vendor: input.printer.vendor,
+    },
+    labelData: {
+      labelType: input.labelType,
+      accessionNumber: input.accessionNumber ?? '',
+      specimenDesignator: '',
+      blockId: input.barcode,
+      patientName: '',
+      vialRack: { barcode: input.barcode, ...(input.rackKind ? { rackKind: input.rackKind } : {}), lines: input.lines, zpl: input.zpl },
+    },
+    copies: input.copies ?? 1,
+    attempt: 1,
+  };
   return { ok: true, payload };
 }
 
@@ -201,7 +258,7 @@ export async function dispatchNetworkPrintJob(payload: NetworkPrintPayload): Pro
   // simple checksum (not cryptographic — Section 10.1 doesn't specify
   // an algorithm) so a real audit reviewer can at least confirm two
   // log entries carried byte-identical payload content.
-  mockAuditService.logEvent({
+  auditService.logEvent({
     type: 'system',
     event: 'Network Print Dispatched',
     detail: `eventId=${payload.eventId} idempotencyKey=${payload.idempotencyKey} attempt=${payload.attempt ?? 1} printerId=${payload.targetPrinter.printerId} templateVersion=${payload.templateVersion} payloadHash=${simpleHash(JSON.stringify(payload))} status=DISPATCHED(stub)`,
@@ -210,6 +267,8 @@ export async function dispatchNetworkPrintJob(payload: NetworkPrintPayload): Pro
     confidence: null,
   }).catch(err => console.error('[PS-51] Failed to log Network Print Dispatched audit entry:', err));
 
+  // Batch 606: the demo shows a labelled Simulated result for the interface-engine print route.
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'network', transport: 'direct_interface_engine', destination: payload.targetPrinter.printerId, copies: payload.copies });
   return { dispatched: true, method: 'stub' };
 }
 

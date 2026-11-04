@@ -1,0 +1,108 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batches 693 to 700 \u2014 guides brought up to date, AI-suggested code origin and match labels, writers' sign-ins, handover note, Checked origin wording (catch-up)",
+  "description": "Vitest, 2026-10-27. 146 tests in 19 files passed, 0 failed, in this run; the full suite was not re-run for this file. Batches 693, 694, 695, 698 and 700 changed documents and the rebuilt guides only; their tests are the guide link and coverage checks listed below. Not run: browser checks of the Codes window against a live AI model, of the two writer sign-ins, or of the guides after the rebuild; native review of fr/de/nl/ko/es text. Jira Test keys are created by the import."
+ },
+ "tests": [
+  {
+   "testInfo": {
+    "summary": "AI-suggested code origin is checked before it is shown",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 696): src/services/coding/suggestionOrigin.test.ts (7 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Origin and verification are carried with the suggestion and into the audit detail",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 696): src/services/coding/aiCodeSuggestions.test.ts (9 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Strong match / Possible match label from the score",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 696): src/services/aiGovernance/matchStrength.test.ts (2 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "AI review audit entries (accept, edit, reject, code bound)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 696): src/services/aiGovernance/aiReviewAudit.test.ts (9 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Code search service and dictionary verification",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 696): src/services/terminologySearch/codeSearchService.test.ts (23 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Codes window row: match label, checked origin and hover note",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 699): src/pages/Synoptic/Codes/AiSuggestionMeta.test.tsx (4 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Locale parity and no hard-coded UI text after the Checked origin wording",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 699): src/i18n/localeParity.test.ts (40 tests), src/i18n/uiText.guard.test.ts (3 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "Two technical-writer staff seeds (DOC-001, DOC-002)",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 697): src/services/users/labDirectorSeed.test.ts (2 tests)"
+  },
+  {
+   "testInfo": {
+    "summary": "User Guide and Administrator Guide links, anchors, coverage and navigation checks after the rebuild",
+    "type": "Generic",
+    "projectKey": "PS"
+   },
+   "start": "2026-10-27T19:00:00Z",
+   "finish": "2026-10-27T19:30:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (Batch 700): src/services/help/*.test.ts (7 files, 38 tests)"
+  }
+ ]
+}

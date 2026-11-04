@@ -19,11 +19,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
+import DisplayTokenModal from './DisplayTokenModal';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
-import { locationService } from '../../../services';
-import { mockOrSuiteTerminalService } from '../../../services/intraopDashboard/mockOrSuiteTerminalService';
+import { locationService, orSuiteTerminalService } from '@/services';
+
 import type { OrSuiteTerminal, NewOrSuiteTerminal } from '../../../services/intraopDashboard/IOrSuiteTerminalService';
 import type { Location } from '../../../services/locations/ILocationService';
 
@@ -83,22 +84,23 @@ const OrSuiteTerminalsSection: React.FC = () => {
   const [entries, setEntries] = useState<OrSuiteTerminal[]>([]);
   const [showInactive, setShowInactive] = useState(false);
   const [modal, setModal] = useState<{ mode: 'add' | 'edit'; entry?: OrSuiteTerminal } | null>(null);
+  const [tokenFor, setTokenFor] = useState<OrSuiteTerminal | null>(null);
 
-  const refresh = () => { mockOrSuiteTerminalService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
+  const refresh = () => { orSuiteTerminalService.getAll().then(res => { if (res.ok) setEntries(res.data); }); };
   useEffect(() => { refresh(); }, []);
 
   const visible = entries.filter(e => showInactive || e.status === 'Active');
 
   const handleSave = async (draft: Draft) => {
-    if (modal?.mode === 'edit' && modal.entry) await mockOrSuiteTerminalService.update(modal.entry.id, draft);
-    else await mockOrSuiteTerminalService.add(draft);
+    if (modal?.mode === 'edit' && modal.entry) await orSuiteTerminalService.update(modal.entry.id, draft);
+    else await orSuiteTerminalService.add(draft);
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: OrSuiteTerminal) => {
-    if (e.status === 'Active') await mockOrSuiteTerminalService.deactivate(e.id);
-    else await mockOrSuiteTerminalService.update(e.id, { status: 'Active' });
+    if (e.status === 'Active') await orSuiteTerminalService.deactivate(e.id);
+    else await orSuiteTerminalService.update(e.id, { status: 'Active' });
     refresh();
   };
 
@@ -130,6 +132,7 @@ const OrSuiteTerminalsSection: React.FC = () => {
             </span>
             <div className="ps-conf-row-actions">
               <button className="ps-conf-btn-secondary" onClick={() => toggleActive(e)}>{e.status === 'Active' ? t('orSuiteTerminalsSection.actions.deactivate') : t('orSuiteTerminalsSection.actions.reactivate')}</button>
+              <button className="ps-conf-btn-secondary" onClick={() => setTokenFor(e)}>{t('displayAccess.admin.button')}</button>
               <button className="ps-conf-btn-secondary" onClick={() => setModal({ mode: 'edit', entry: e })}>{t('orSuiteTerminalsSection.actions.edit')}</button>
             </div>
           </div>
@@ -137,6 +140,7 @@ const OrSuiteTerminalsSection: React.FC = () => {
         {visible.length === 0 && <div className="ps-conf-empty-row">{t('orSuiteTerminalsSection.emptyRow')}</div>}
       </div>
 
+      {tokenFor && <DisplayTokenModal kind="or-suite" subjectId={tokenFor.id} displayName={tokenFor.name} onClose={() => setTokenFor(null)} />}
       {modal && <TerminalModal mode={modal.mode} entry={modal.entry} onSave={handleSave} onClose={() => setModal(null)} />}
     </div>
   );

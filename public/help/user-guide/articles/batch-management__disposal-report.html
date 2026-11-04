@@ -1,0 +1,245 @@
+<h1 id="top">Waste Tracking Report</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Waste Tracking Report is a read-only record of everything that has already been disposed of: specimens, blocks, slides, decants and matrix blocks and slides. You can narrow it by facility, material type and date, and export it as a spreadsheet file for an inspection or audit. It reports the past; it never disposes of anything.</p>
+<p><strong>Intended users.</strong> Laboratory managers, quality staff and the bench roles that have Batch Management. Viewing needs only the Batch Management screen. Exporting needs a separate permission, checked for the facility you are reporting on.</p>
+<p><strong>Where it fits.</strong> Every successful scan on the <a href="/help/batch-management/disposal">Disposal Queue</a> adds a row here. The report is the mirror image of that queue: the queue lists what may be disposed of, and this report lists what was.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/batch-management-disposal-report-overview.png" alt="The Waste Tracking Report with counts, filters and the table of disposed items"><figcaption>The Waste Tracking Report with counts, filters and the table of disposed items</figcaption></figure>
+
+<p>The page title is <strong>Waste Tracking Report</strong>. The subtitle reads: "A real, computed report of every specimen, block, slide, decant, and matrix block/slide that has genuinely been disposed — filterable by facility, material type, and disposal date, and exportable for regulatory audit."</p>
+<p>Under the title are four count cards, the filter row and the table.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Count cards</strong></p>
+<table>
+<thead>
+<tr>
+<th>Card</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total Disposed</td>
+<td>The number of rows that match the filters.</td>
+</tr>
+<tr>
+<td>Tissue Block</td>
+<td>How many of those are blocks (cassettes included).</td>
+</tr>
+<tr>
+<td>Slide</td>
+<td>How many are slides.</td>
+</tr>
+<tr>
+<td>Wet Tissue</td>
+<td>How many are specimens or decanted portions.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Filters</strong></p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Filter by facility</td>
+<td><strong>All Facilities</strong> or one facility. If this computer has a scan station, the report opens already filtered to that station's facility.</td>
+</tr>
+<tr>
+<td>Filter by material type</td>
+<td><strong>All Material Types</strong>, Tissue Block, Slide or Wet Tissue.</td>
+</tr>
+<tr>
+<td>From date, to, To date</td>
+<td>An inclusive date range on the day of disposal. Leave either end empty for no limit.</td>
+</tr>
+</tbody>
+</table>
+<p>The report recomputes whenever you change a filter.</p>
+<p><strong>Table columns</strong></p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Disposed</td>
+<td>The date and time of disposal, in your language's format.</td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Tissue Block, Slide or Wet Tissue.</td>
+</tr>
+<tr>
+<td>Item ID</td>
+<td>The identifier on the item's label.</td>
+</tr>
+<tr>
+<td>Case</td>
+<td>The case accession number.</td>
+</tr>
+<tr>
+<td>Specimen</td>
+<td>The specimen letter. A matrix block shows each specimen it holds, separated by commas.</td>
+</tr>
+<tr>
+<td>Disposed By</td>
+<td>The name of the person who scanned it. If the account can no longer be found, the stored user identifier is shown; if none, a dash.</td>
+</tr>
+<tr>
+<td>Location</td>
+<td>The item's last known location, or "Unknown". This is the location event with the latest time, the same rule the Disposal Queue and the disposal scan use.</td>
+</tr>
+</tbody>
+</table>
+<p>Rows are listed newest first.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Export</td>
+<td>Downloads the rows currently shown as a spreadsheet (CSV) file named waste-tracking-report-(date). Greyed out when there are no rows.</td>
+</tr>
+</tbody>
+</table>
+<p>The exported columns are Disposed At, Material Type, Item ID, Case Accession, Specimen, Disposed By and Location. The export records itself in the audit log.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Computing the real, current report...</td>
+<td>The report is being worked out.</td>
+</tr>
+<tr>
+<td>Nothing has been disposed yet matching these filters.</td>
+<td>No rows. Change or clear the filters.</td>
+</tr>
+<tr>
+<td>You don't have permission to export the disposal report.</td>
+<td>Shown if your role cannot export for the chosen facility. The Export button looks dimmed with a tooltip naming the permission.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Batch Management</strong> and select the <strong>Waste Tracking Report</strong> tile. The report opens with the totals and the table. If your computer has a scan station, the facility filter is already set to its facility.</li>
+<li>Choose the <strong>facility</strong> and <strong>material type</strong> you need, or leave them on All.</li>
+<li>Enter the <strong>From date</strong> and <strong>To date</strong> for the period.</li>
+<li>Read the count cards and the table. The cards update with the filters.</li>
+<li>To keep a copy, select <strong>Export</strong>. A file downloads with the rows you see.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>For an audit of one facility, choose it in the facility filter and export, then repeat for the next facility.</li>
+<li>For a monthly record, set From date to the first of the month and To date to the last.</li>
+<li>To prove a single item was disposed of, filter by a narrow date and look up its identifier in the Item ID column.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>An item you disposed of is not listed.</strong> Check the facility filter. The facility is taken from the item's last known location, so an item with no location history appears only under All Facilities.</li>
+<li><strong>The facility filter hides everything.</strong> Choose All Facilities.</li>
+<li><strong>Export is dimmed.</strong> Your role cannot export for that facility. Ask your laboratory manager. Choosing a facility you work in may help.</li>
+<li><strong>A date range returns nothing.</strong> Check that From is not after To.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>"You don't have permission to export the disposal report." Choose a facility you are permitted for, or ask your laboratory manager to grant the permission.</li>
+<li>The file opens with odd characters in a spreadsheet. Import it as UTF-8 text.</li>
+<li>The numbers differ from yesterday's export. New disposals have been added, or the filter was different. Check the dates and facility.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Reports contain case identifiers</p>
+<p>The table and the export contain case accession numbers. Store exported files where your laboratory keeps controlled records, and do not send them by ordinary email.</p>
+</div>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Reading the facility filter as the place of disposal. It is the item's last recorded location.</li>
+<li>Forgetting the report opens already filtered to your station's facility.</li>
+<li>Exporting before setting the dates, producing a very large file.</li>
+<li>Expecting the report to show items waiting for disposal. That is the Disposal Queue.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Set the dates first, then the facility, then export once.</li>
+<li>Use the count cards for a quick total before opening the file.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Export at regular intervals and keep the files with your accreditation documents.</li>
+<li>Compare totals with the Disposal Queue after a large disposal run to confirm the work is recorded.</li>
+<li>Ask quality staff to review "Disposed By" for unusual patterns.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management/disposal">Disposal Queue</a>: where items are disposed of and rows are created.</li>
+<li><a href="/help/batch-management/retention-holds">Retention Holds</a>: cases on hold never reach disposal.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/batch-management">Batch Management</a>: the module page.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The report is empty</td>
+<td>No disposals match the filters, or the station's facility has none.</td>
+</tr>
+<tr>
+<td>Export is dimmed</td>
+<td>Your role lacks the export permission for the chosen facility.</td>
+</tr>
+<tr>
+<td>A disposed item shows "Unknown" location</td>
+<td>No location was ever recorded for it.</td>
+</tr>
+<tr>
+<td>"Disposed By" shows a code instead of a name</td>
+<td>That account was deactivated or removed.</td>
+</tr>
+<tr>
+<td>The Tissue Block count includes cassettes</td>
+<td>Cassettes and blocks are one item type here.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Set the facility to All Facilities and the dates wide.</li>
+<li>Narrow step by step.</li>
+<li>Check your role's export permission with your laboratory manager.</li>
+<li>Reload the page to recompute.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a disposal you witnessed is missing, or a row shows the wrong person. Have the item identifier, the case number and the date ready.</p>

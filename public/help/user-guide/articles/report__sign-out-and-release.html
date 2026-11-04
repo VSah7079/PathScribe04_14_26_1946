@@ -1,0 +1,639 @@
+<h1 id="top">Sign Out and Release</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> This article covers everything that happens at the end of a case on the <a href="/help/report">Report</a> screen: the review checks, signing the case out, the short release hold that follows, recalling a report, and correcting a report after it has gone out. It also covers the quick variants, <strong>Sign Out &amp; Next</strong> and <strong>Finalize &amp; Next</strong>, and trainee sign-out with an attending's countersign.</p>
+<p><strong>Intended users.</strong> Pathologists and fellows, who sign out. Residents and other trainees, who release a case for an attending's countersign. Attendings, who countersign. Pathology assistants and quality staff read the same banners.</p>
+<p><strong>Where it fits.</strong> You arrive here when the synoptic checklist and the narrative are complete (see <a href="/help/report/synoptic-reporting">Synoptic Reporting</a> and <a href="/help/report/microscopic-and-material">Microscopic and Material</a>). After sign-out the case moves to Pending Release, then to Finalized. Quality review and tumor board listing follow (see <a href="/help/quality">Quality &amp; Compliance</a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Two reporting modes</p>
+<p><strong>Orchestration</strong> cases are signed out in PathScribe with <strong>Sign Out Case</strong>. <strong>Assist</strong> cases are finalized in PathScribe with <strong>Finalize</strong>, and the official sign-out happens in your laboratory information system (LIS). Each section below says which mode it applies to. The mode is set when the case is created; you do not choose it.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>In this version the LIS, the outbound interfaces and the sign-in confirmation use demonstration data or are simulated. A release that "goes out" is recorded in the case and its audit log; whether anything reaches a real outside system depends on how your laboratory has connected it.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-sign-out-and-release-action-bar.png" alt="The bottom action bar of an Orchestration case with Sign Out Case, Sign Out &amp; Next and Release as Preliminary"><figcaption>The bottom action bar of an Orchestration case with Sign Out Case, Sign Out &amp; Next and Release as Preliminary</figcaption></figure>
+
+<p>The sign-out and release controls are on the <strong>bottom action bar</strong>, in two banners under the header, and in a small number of windows that open on demand.</p>
+<figure class="ps-ug-figure"><img src="img/report-sign-out-and-release-sign-out-window.png" alt="The sign-out window with the Coding Summary and the follow-up tick box"><figcaption>The sign-out window with the Coding Summary and the follow-up tick box</figcaption></figure>
+
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Sign-out window (Orchestration)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title: Sign Out Case</td>
+<td>The window for the signing pathologist. For an attending reviewing a trainee's case the title is <strong>Countersign Case</strong>.</td>
+</tr>
+<tr>
+<td>Body text</td>
+<td>"All synoptic reports for Case (accession) have been finalized." for a normal sign-out; "Released by (name) for your countersign" for a countersign.</td>
+</tr>
+<tr>
+<td>Coding Summary</td>
+<td>The billing codes applied to each specimen and block. A specimen that has ancillary codes but no base code shows a warning with <strong>Assign now</strong>. Codes suggested but not applied are listed as "suggested, not applied".</td>
+</tr>
+<tr>
+<td>A follow-up specimen (resection or excision) is expected</td>
+<td>Optional tick box. When ticked, the laboratory is warned if no follow-up specimen arrives within the biopsy-to-resection window.</td>
+</tr>
+<tr>
+<td>Feedback for (trainee)</td>
+<td>Countersign window only. Optional to countersign, required to return the case.</td>
+</tr>
+<tr>
+<td>Signature confirmation</td>
+<td>How you prove who is signing. Depending on your laboratory this is your password, your organisation's sign-in page, or a second-factor code. The button reads <strong>Sign Out Case</strong> with the method added, for example "(Password Required)".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Review before finalising window (Assist)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Review before finalising</td>
+<td>Title of the window. A tag shows <strong>Assist mode</strong>.</td>
+</tr>
+<tr>
+<td>Preview, as transmitted to LIS</td>
+<td>The synoptic answers exactly as they will be sent. Each specimen shows how many fields are filled, for example 12/21, and its place in the sending order ("Transmits 1st").</td>
+</tr>
+<tr>
+<td>Drag specimens to set transmission order</td>
+<td>Drag a specimen to change the order. Synoptics stay locked to their specimen.</td>
+</tr>
+<tr>
+<td>Required field incomplete, sign-out blocked</td>
+<td>A count of required fields still empty on a report.</td>
+</tr>
+<tr>
+<td>Optional fields empty</td>
+<td>A count of optional fields left empty (a reminder only).</td>
+</tr>
+<tr>
+<td>Finalise now / Finalise &amp; Next</td>
+<td>The buttons that finalize. Finalise &amp; Next shows "next case queued".</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Release banners</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Release countdown banner (signed-out report)</td>
+<td>Shows the status and the time left. The pathologist who signed sees "releasing automatically in (time)" with <strong>Recall Report</strong>. Everyone else sees that the signing pathologist's recall window closes automatically in (time).</td>
+</tr>
+<tr>
+<td>Held-report line</td>
+<td>For other held outputs (a preliminary, a correction or addendum): "(type) (what) held for the release delay until (time) (released by (name))." The person who released it sees <strong>Recall</strong>.</td>
+</tr>
+<tr>
+<td>Releasing in</td>
+<td>Countdown in the case header while a release is held.</td>
+</tr>
+<tr>
+<td>Watermark</td>
+<td>A diagonal watermark across the report while it is Pending Release. Its wording is set by your laboratory (see "The release hold").</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Correction window (Request Amendment / Addendum)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mode buttons</td>
+<td><strong>Addendum</strong>, <strong>Minor Amendment</strong> and <strong>Major Amendment</strong>. A new window opens set to Major Amendment.</td>
+</tr>
+<tr>
+<td>Applies to</td>
+<td>The report being revised (shown as "Amending:" or "Correcting:").</td>
+</tr>
+<tr>
+<td>Reason</td>
+<td>A required pick list.</td>
+</tr>
+<tr>
+<td>Addendum title</td>
+<td>Addendum only, for example "Addendum: Immunohistochemical Staining Results".</td>
+</tr>
+<tr>
+<td>Explanation</td>
+<td>What changed and why. Required for every kind; it is the audit trail.</td>
+</tr>
+<tr>
+<td>Clinical Notification Log</td>
+<td>Who was told and how. Required for a Major Amendment, and for a Minor Amendment when your organisation requires it. Fields: <strong>Clinician notified</strong>, <strong>Method</strong> (Verbal / Phone Call, Secure Page, Secure Email, Fax, Direct LIS Flag) and <strong>Date / time notified</strong>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign Out Case</td>
+<td>Orchestration. Runs the review checks, then opens the sign-out window. Hidden while grossing is unfinished, while the case is Pending Release, after it is Finalized, and for a pool case you have not claimed.</td>
+</tr>
+<tr>
+<td>Sign Out &amp; Next</td>
+<td>Orchestration. The same sign-out, then opens the next case in your list when it completes.</td>
+</tr>
+<tr>
+<td>Finalize, Finalize &amp; Next</td>
+<td>Assist. Runs the review checks, then opens the Review before finalising window.</td>
+</tr>
+<tr>
+<td>Release as Preliminary</td>
+<td>Orchestration, before final sign-out. Sends the current preliminary findings now (held for the release delay like any output). Does not sign out or finalize.</td>
+</tr>
+<tr>
+<td>Request Amendment / Addendum</td>
+<td>Shown on a Finalized case. Greyed out when your role may not release any kind of revision.</td>
+</tr>
+<tr>
+<td>Mark follow-up expected</td>
+<td>Shown after sign-out when no follow-up has been recorded yet. Afterwards the bar reads "Follow-up expected · due (date)".</td>
+</tr>
+<tr>
+<td>Print</td>
+<td>Assist, after finalizing. Orchestration printing is in the Report Draft tab. Subject to the Release Hold Print Policy.</td>
+</tr>
+<tr>
+<td>Recall Report</td>
+<td>In the release banner, for the person who signed.</td>
+</tr>
+<tr>
+<td>Return to Trainee</td>
+<td>In the countersign window, for the attending.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pending Release</td>
+<td>Signed, and held for the release delay. Shown as "Queued for Release" in the Worklist filter.</td>
+</tr>
+<tr>
+<td>Pending countersign</td>
+<td>A trainee released the case for an attending. The attending finds it with the Worklist's awaiting-countersign filter.</td>
+</tr>
+<tr>
+<td>Returned</td>
+<td>The attending returned the case to the trainee for revision.</td>
+</tr>
+<tr>
+<td>Finalized</td>
+<td>Released. Sections are locked; changes need an amendment or addendum.</td>
+</tr>
+<tr>
+<td>PRELIMINARY — SUBJECT TO CHANGE</td>
+<td>Watermark on a preliminary report.</td>
+</tr>
+<tr>
+<td>AMENDMENT IN PROGRESS — not yet transmitted</td>
+<td>Banner on a report unlocked for a Major Amendment. A correction reads <strong>CORRECTION IN PROGRESS — not yet transmitted</strong>. It shows the baseline and a <strong>Changed Items Summary</strong>.</td>
+</tr>
+<tr>
+<td>AMENDED REPORT, CORRECTED REPORT, ADDENDUM (number)</td>
+<td>Headings on a revised report.</td>
+</tr>
+<tr>
+<td>(n) amendments on record, AMENDED DIAGNOSIS</td>
+<td>Banner on a report that has been amended, with the amended diagnosis and a timestamp.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>A key acts only while its button is showing and enabled, and is ignored while another window is open in front. A key never signs anything for you: the sign-out and finalize windows always ask you to confirm who is signing. The spoken forms are in English here; the commands also exist in French, German, Dutch, Korean and Spanish.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Key</th>
+<th>Spoken phrases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sign Out Case</td>
+<td>Alt+Shift+X</td>
+<td>"sign out case", "sign out the case", "case sign out"</td>
+</tr>
+<tr>
+<td>Sign Out and Next</td>
+<td>Ctrl+Alt+Shift+O</td>
+<td>"sign out and next", "sign out next", "signout next", "finalize and next", "next case sign out"</td>
+</tr>
+<tr>
+<td>Finalise Report</td>
+<td>Ctrl+Alt+Shift+F</td>
+<td>"finalise", "finalize", "finalise report", "finalise case", "sign off", "sign off report"</td>
+</tr>
+<tr>
+<td>Cancel Finalise</td>
+<td>Ctrl+Alt+Escape</td>
+<td>"cancel finalise", "cancel finalize", "cancel sign off"</td>
+</tr>
+<tr>
+<td>Add Amendment</td>
+<td>Ctrl+Alt+E</td>
+<td>"add amendment", "open amendment", "request amendment", "amendment"</td>
+</tr>
+<tr>
+<td>Add Addendum</td>
+<td>Ctrl+Alt+Shift+B</td>
+<td>"add addendum", "open addendum", "addendum request", "request addendum"</td>
+</tr>
+<tr>
+<td>Save Amendment or Addendum</td>
+<td>Alt+Shift+F3</td>
+<td>"save amendment", "save correction", "release addendum" (only while the correction window is open)</td>
+</tr>
+<tr>
+<td>Recall Report</td>
+<td>Ctrl+Alt+Shift+V</td>
+<td>"recall report", "pull back report", "recall the report" (say it twice)</td>
+</tr>
+<tr>
+<td>Record Critical Notification</td>
+<td>Alt+Shift+F7</td>
+<td>"record notification", "record critical notification"</td>
+</tr>
+<tr>
+<td>Continue Past Fixation Time Gate</td>
+<td>Ctrl+Alt+Shift+5</td>
+<td>"continue fixation gate", "continue fixation time"</td>
+</tr>
+<tr>
+<td>Continue Past Collection/Receipt Date Gate</td>
+<td>Ctrl+Alt+Shift+6</td>
+<td>"continue date gate", "continue receipt date gate"</td>
+</tr>
+<tr>
+<td>Record Frozen-Final Reconciliation</td>
+<td>Ctrl+Alt+Shift+Z</td>
+<td>"record discordance", "record reconciliation", "confirm concordant"</td>
+</tr>
+<tr>
+<td>Place Case On Hold</td>
+<td>Alt+Shift+F5</td>
+<td>"place hold", "place case on hold"</td>
+</tr>
+<tr>
+<td>Release Case From Hold</td>
+<td>Alt+Shift+F6</td>
+<td>"release hold" (say it twice)</td>
+</tr>
+<tr>
+<td>Go to Codes</td>
+<td>Ctrl+Alt+G</td>
+<td>"go to codes", "open codes"</td>
+</tr>
+<tr>
+<td>Return to Trainee</td>
+<td>Ctrl+Alt+Shift+T</td>
+<td>"return to trainee", "reject with notes", "send back to resident"</td>
+</tr>
+</tbody>
+</table>
+<p>How the commands behave:</p>
+<ul>
+<li><strong>Sign Out and Next</strong> does what the button for your mode does. On an Orchestration case it is <strong>Sign Out &amp; Next</strong>; on an Assist case it is <strong>Finalize &amp; Next</strong>. On a case where neither button is showing, it does nothing.</li>
+<li><strong>Add Addendum</strong> and <strong>Add Amendment</strong> act only on a Finalized case, when your role may release a revision. Add Addendum opens the correction window already set to Addendum; Add Amendment opens it set to Major Amendment. If a draft is already open on that report, either command resumes the draft.</li>
+<li><strong>Say-it-twice commands.</strong> Recall Report and Release Case From Hold are hard to undo, so a spoken command is held until you say it a second time. A key press is already deliberate and runs at once.</li>
+<li><strong>Confirm Finalise</strong> (Ctrl+Alt+Shift+C, "confirm finalise") is registered, but nothing on the screen answers it, by design: finalizing needs your own sign-in confirmation. Select <strong>Finalise now</strong> in the window.</li>
+<li><strong>Enter Addendum</strong> (Alt+Shift+D) is registered as a dictation target but has no screen handler yet; type the addendum in the correction window.</li>
+</ul>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>Sign out an Orchestration case</strong></p>
+<ol>
+<li>Check that the checklist and report text are complete and that no hold is on the case.</li>
+<li>Select <strong>Sign Out Case</strong> (or press Alt+Shift+X). PathScribe runs the review checks first (see "The review checks" below). If one stops you, a message or window says why and the sign-out window does not open.</li>
+<li>If a specimen has ancillary codes but no base code, the screen opens the billing review instead of the sign-out window. Assign the base code (select <strong>Assign now</strong>), then select <strong>Sign Out Case</strong> again.</li>
+<li>In the sign-out window read the <strong>Coding Summary</strong>. Tick <strong>A follow-up specimen (resection or excision) is expected</strong> if it applies.</li>
+<li>Confirm who is signing as the window asks, then select the <strong>Sign Out Case</strong> button in the window. If your confirmation is refused, the message says why (for example "The signature confirmation has expired. Confirm again to sign.") and nothing is signed.</li>
+<li>A message reads <strong>Report signed — dispatch in (n) min unless recalled</strong>, and the case becomes <strong>Pending Release</strong>. The banner counts down. If the laboratory has no release hold for this case, the message is <strong>Case signed out successfully</strong> and the case is Finalized at once.</li>
+<li>A billing item that PathScribe flags for quality review does not block the sign-out; a message tells you how many were flagged. If the margin rule lists the case for tumor board, a message says so.</li>
+</ol>
+<p><strong>Sign Out &amp; Next (Orchestration)</strong></p>
+<ol>
+<li>Open the case from the Worklist so that your queue of cases is known. (A case opened from Search or a message has no queue.)</li>
+<li>Select <strong>Sign Out &amp; Next</strong> (or press Ctrl+Alt+Shift+O, or say "sign out and next"). The button does exactly what Sign Out Case does, and remembers that you want to move on.</li>
+<li>Work through the same checks and the same sign-out window. Nothing is skipped or shortened.</li>
+<li>When the case has been signed out (or released for countersign), the next case in your list opens by itself.</li>
+<li>If there is no next case, you stay on the signed-out case and see <strong>Case signed out. There is no next case in your list.</strong></li>
+</ol>
+<p><strong>Finalize &amp; Next (Assist)</strong></p>
+<ol>
+<li>Select <strong>Finalize &amp; Next</strong> (or press Ctrl+Alt+Shift+O). The review checks run.</li>
+<li>In the <strong>Review before finalising</strong> window check the synoptic data as transmitted. Drag specimens to set the order if needed.</li>
+<li>Select <strong>Finalise &amp; Next</strong> and confirm who is signing. The case is finalized and the next case in your list opens. With no next case you see <strong>Case finalised. There is no next case in your list.</strong></li>
+<li>The bar shows <strong>Finalized — structured data complete, LIS handles official sign-out</strong>.</li>
+</ol>
+<p><strong>Recall a signed report</strong></p>
+<ol>
+<li>While the countdown runs, select <strong>Recall Report</strong> in the banner (or press Ctrl+Alt+Shift+V).</li>
+<li>The message <strong>Report recalled — you can continue editing.</strong> appears. The case returns to the status it had before sign-out, nothing has been sent, and the report is open to edit again.</li>
+<li>Make the change and sign out again. A recall does not create an amendment.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Release as Preliminary.</strong> Select <strong>Release as Preliminary</strong> before final sign-out when a partial finding is clinically urgent. The message reads <strong>Preliminary report released (n specimens)</strong>, or <strong>Preliminary report held for the release delay; it goes out at (time).</strong> The case stays open. The button is greyed out unless your role may release preliminary reports (by default pathologists and fellows only).</li>
+<li><strong>Trainee sign-out and countersign.</strong> If your role or the case team requires a countersign, <strong>Sign Out Case</strong> releases the case for the attending instead of finalizing it: <strong>Case (id) released for attending countersign</strong>. The attending is told by email when an address is on file. The attending opens the case, reads the <strong>Countersign Case</strong> window, adds optional feedback, confirms who is signing, and signs. The release hold then starts as for any sign-out. To send the case back, the attending enters feedback (required) and selects <strong>Return to Trainee</strong>: <strong>Case returned to (name) for revision.</strong> The trainee can edit it again.</li>
+<li><strong>Delegate before sign-out.</strong> If someone else should sign the case, hand it over first (see <a href="/help/report/case-team">Case Team</a>). Signing authority follows the case team, not the window you have open.</li>
+<li><strong>Print during the hold.</strong> See "The release hold" for what the Release Hold Print Policy asks of you.</li>
+<li><strong>Mark a follow-up later.</strong> After sign-out, select <strong>Mark follow-up expected</strong> if you forgot to tick the box.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<p><strong>Added gates.</strong> After the review checks, one more set of checks can stop the sign-out. Each opens its own window, you answer it, and the sign-out then carries on from where it stopped:</p>
+<ol>
+<li><strong>Collection or receipt date missing.</strong> The window <strong>Collection/Receipt Date Required Before Sign-Out</strong> asks you to enter the real date and time, or to state that it is not recoverable with a justification. <strong>Continue Sign-Out</strong> goes on; <strong>Cancel — don't sign out</strong> stops.</li>
+<li><strong>Fixation time required.</strong> <strong>Fixation Time Required Before Sign-Out</strong> appears for specimen types that need documented fixation timing. Enter the fixation time, enter an estimate, or choose <strong>No time or estimate possible — override</strong> and give a reason.</li>
+<li><strong>Stain quality control.</strong> <strong>Stain QC Gate — Sign-Out Blocked</strong> lists the stain batches to resolve. Confirm the visual read checklist for each. A batch with a reported instrument failure blocks sign-out until its deficiency is resolved in Quality.</li>
+<li><strong>Margin inking.</strong> <strong>Sign-out cannot be completed</strong> when an inking issue is compliance critical. Resolve it, or, if your role allows, record an <strong>Administrative Override</strong> with a reason.</li>
+<li><strong>Clinical mismatch.</strong> The AI may suggest a possible mismatch between the clinical picture and the findings. The flag shows the words it relied on from each side ("Clinical side: …", "Pathology side: …"); a quote that cannot be found in the case text says "not found in the record, check it yourself". Read the quotes before you decide. In the default setup a mismatch is a plain flag: it is logged for quality review and does not hold sign-out. Where your laboratory has switched on the clinical-support setup, a high-risk one asks for a decision (Resolved or Unresolved) and may hold the release.</li>
+<li><strong>Peer review.</strong> Where your laboratory requires an independent peer review of a first-time malignancy, sign-out waits for it. Ask a colleague, or choose <strong>Sign out now</strong> for urgent care and give the reason; the review is still owed within 24 hours.</li>
+<li><strong>Frozen section reconciliation.</strong> If a frozen section was done, you compare it with the final diagnosis in <strong>Frozen-to-Permanent Reconciliation</strong>. If the categories differ it must be logged as a discordance (comment required). This window shows only when your laboratory has "Require Review Screen at Sign-Out" on.</li>
+</ol>
+<p><strong>Other stops.</strong></p>
+<ol start="8">
+<li><strong>Critical finding.</strong> A window lists critical or malignant findings. Record the notification (clinician, method, read-back) or select <strong>Acknowledge without recording</strong>. The list always includes a finding flagged Critical or Malignant. A finding the AI flagged only as Abnormal, and could not support firmly from the report text, is set aside and counted, not listed; you still read the report and decide.</li>
+<li><strong>Missing code system.</strong> If your country requires a code system and the case has none, you are asked to confirm before signing out. Going on is recorded in the audit log.</li>
+<li><strong>You are not allowed to sign this case.</strong> The message reads "Only an active participant on this case whose participation type can finalize may sign it out." Ask the primary pathologist, or have yourself added to the case team (see <a href="/help/report/case-team">Case Team</a>). Holding the sign-out permission is not enough on its own.</li>
+<li><strong>Already Pending Release.</strong> "This report is already Pending Release — recall it first if you need to make further changes."</li>
+<li><strong>Someone else changed the case.</strong> Choose to use their version, keep working, or (if your role allows) save yours. A sign-out never overrides a newer version.</li>
+</ol>
+<p><strong>Correct a Finalized report</strong></p>
+<ol start="13">
+<li>Select <strong>Request Amendment / Addendum</strong> (or press Ctrl+Alt+E for an amendment, Ctrl+Alt+Shift+B for an addendum).</li>
+<li>Choose the kind. <strong>Addendum</strong> adds new information and leaves the original text untouched. <strong>Minor Amendment</strong> fixes a clerical error without changing the diagnosis. <strong>Major Amendment</strong> changes a diagnosis, staging or interpretation and needs the Clinical Notification Log.</li>
+<li>Choose the <strong>Reason</strong>, write the <strong>Explanation</strong>, and fill the notification fields where required.</li>
+<li>For an addendum, enter the <strong>Addendum title</strong> and the addendum text and select <strong>Release Addendum</strong>. The message <strong>Addendum released</strong> appears. If the addendum text conflicts with the clinical history, a mismatch decision is asked first.</li>
+<li>For an amendment, select <strong>Save Draft (unlocks for editing)</strong>. The report unlocks: <strong>Report unlocked for amendment — edit the synoptic fields, then re-finalize and sign out to transmit.</strong> The banner <strong>AMENDMENT IN PROGRESS — not yet transmitted</strong> (or CORRECTION) shows what differs from the baseline. Edit the report and sign out again. The revised report is released through the same release hold and headed <strong>AMENDED REPORT</strong> or <strong>CORRECTED REPORT</strong>.</li>
+<li>If the report has been amended before, a <strong>Select baseline values</strong> step lets you pull an older value for a field instead of the latest.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">A report in its release hold is corrected by recall, not by amendment</p>
+<p>Until the release hold ends, nothing has been sent. Starting an amendment or addendum then is refused: "This report is still in its release delay, so it hasn't been sent. Recall it to make changes, or wait until the delay ends to add a correction or addendum." Recall, edit, and sign out again. Recalling a sign-out also takes back any correction or addendum released on it during the hold.</p>
+</div>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>The sign-out did not complete.</strong> "The sign-out could not be completed, so the case was left as it was. Please try again." means nothing changed. If the message adds that the case status could not be put back, reload the case and check it before trying again.</li>
+<li><strong>Countersign could not be recorded.</strong> "The countersign could not be recorded (reason), so the case was not signed out. Please try again."</li>
+<li><strong>A correction was not released.</strong> "(n) corrections could not be released. They stay open on their reports, not finalized." Open the report, check the banner, and release again.</li>
+<li><strong>An addendum was released but not sent.</strong> "The addendum was released but could not be sent. Check the outbound queue or contact support." The addendum is on the report; the sending is what failed.</li>
+<li><strong>Recall refused.</strong> Only the person who signed can recall; the report must still be inside its hold; you need the recall permission. Messages read "Only the pathologist who signed this report out can recall it", "The release buffer has already expired", or "You don't have permission to recall reports." The same wording appears for held outputs: "Only the person who released it can recall it", "The release delay has ended; it has gone out."</li>
+<li><strong>Sign Out &amp; Next did not move on.</strong> See "Sign Out &amp; Next: what ends the arming" below.</li>
+<li><strong>Leaving with unsaved work.</strong> The screen asks whether to save before it leaves the case.</li>
+</ol>
+<h2 id="the-review-checks">The review checks</h2>
+<p><strong>Sign Out Case</strong> and <strong>Finalize</strong> run the same checks before anything is signed, in this order. The first one that fails stops the process:</p>
+<ol>
+<li>The report is not already Pending Release.</li>
+<li>The case is not on hold. The message gives the hold note.</li>
+<li>Organ-map figures are current, Mohs blocks are complete, and derived margins agree with the answers.</li>
+<li>Counts and totals in the synoptic are consistent. A count larger than its total blocks sign-out; a total that differs from its grid only warns, and you may go on.</li>
+<li>Margins and molecular results that differ from what was expected are confirmed by you.</li>
+<li>Every specimen's microscopic description is saved and complete. The screen opens the specimen's microscopic panel.</li>
+<li>Critical or malignant findings have been acknowledged or recorded.</li>
+<li>Every visible required field is answered, and no required AI suggestion is unverified. Sign Out Case checks every synoptic on the case that is not yet finalized; Finalize checks the report you have open.</li>
+<li>Every section of AI-drafted narrative has been accepted, edited, or kept as the earlier text. The message reads "The AI-drafted text in (section) has not been accepted yet. Accept or edit it before signing out." Accepting, editing and rejecting AI text are recorded in the audit log, as is adding an AI-suggested code.</li>
+</ol>
+<p>After these, PathScribe checks your sign-in confirmation, the code-system rule, whether a countersign is needed, whether you are allowed to sign this case, and then the collection and fixation, stain, inking, mismatch, peer-review and frozen-section checks described above.</p>
+<h2 id="unconfirmed-ai-values-are-left-out">Unconfirmed AI values are left out</h2>
+<p>Before the <strong>Sign Out Case</strong> or <strong>Finalize</strong> window opens, PathScribe clears every optional field that still holds an unchanged AI value you have not confirmed or overridden. The window shows a note such as "2 optional AI-filled fields you have not confirmed were left out of this report (recorded in the audit log). Cancel and Confirm them to keep them." To keep a value, select <strong>Cancel</strong>, <strong>Confirm</strong> the field, and sign again. Values you edited, and fields you confirmed, are untouched. The signed report is made from what is left. When the sign-out checks pass, the audit log records how many fields were left out (no values).</p>
+<div class="admonition warning">
+<p class="admonition-title">Cancelling does not bring the values back by itself</p>
+<p>The cleared fields stay empty until you select Confirm on them again.</p>
+</div>
+<h2 id="sign-out-next-what-ends-the-arming">Sign Out &amp; Next: what ends the arming</h2>
+<p>Pressing <strong>Sign Out &amp; Next</strong> (or <strong>Finalize &amp; Next</strong>) "arms" the move to the next case. The arming:</p>
+<ul>
+<li><strong>Survives a parked sign-out.</strong> A collection, fixation, stain, inking, mismatch or peer-review window closes the sign-out window and later resumes it. The case still moves on after you answer it and the sign-out completes.</li>
+<li><strong>Ends when you press a plain button.</strong> Pressing <strong>Sign Out Case</strong>, <strong>Finalize</strong> or the plain hotkey clears it, so a sign-out you started plainly never moves you on.</li>
+<li><strong>Ends after ten minutes.</strong> If the sign-out has not completed within ten minutes, the arming clears and you stay on the case, so an old arming cannot move you away after some later sign-out.</li>
+<li><strong>Ends when you open another case.</strong></li>
+<li><strong>Does not survive a stop at the review checks.</strong> After fixing the problem, press <strong>Sign Out &amp; Next</strong> again.</li>
+</ul>
+<h2 id="the-release-hold">The release hold</h2>
+<p>After sign-out a report waits before it is sent out. The hold is set by your laboratory: on or off, from 1 to 30 minutes (10 by default), and it can differ by performing laboratory.</p>
+<ul>
+<li><strong>What waits.</strong> Every report output: the final sign-out, a preliminary, a correction, an addendum, autopsy reports and cytology reports. A resend after a failed delivery is not held.</li>
+<li><strong>STAT bypass.</strong> When your laboratory has the STAT bypass on, a case with STAT priority skips the hold; it is Finalized and released at once, and there is nothing to recall.</li>
+<li><strong>When it goes.</strong> The hold ends and the report is finalized and sent: <strong>Release buffer expired — report finalized and released.</strong> While PathScribe is open on any screen, a held report is released within about 15 seconds of its time. Until the server job that does this by itself is built, a report whose time has passed is released when someone next opens PathScribe.</li>
+<li><strong>Recall.</strong> Only the person who signed (or released) the report can recall it, and only before the hold ends. Records are never deleted: a recalled sign-out stays on file, marked recalled, with who and when.</li>
+<li><strong>What a recall reopens.</strong> A surgical sign-out returns to its earlier status. A surgical preliminary has its attestation cleared. A surgical correction or addendum goes back to draft. Autopsy and cytology outputs reopen as described in their own articles.</li>
+<li><strong>Print policy.</strong> Your laboratory chooses what happens when someone prints during the hold: <strong>Allow</strong> (print at once), <strong>Warn and confirm</strong> (the default; the screen says "Hard-copy printing is restricted while this report is Pending Release. The printed copy will carry the PENDING FINAL RELEASE watermark." and you confirm), <strong>Supervisor override</strong> (only a person with that permission may print, and gives a reason: "Reason for printing during the release hold", kept in the audit log) or <strong>Block</strong> (no printing until released). Any copy that prints during the hold carries the watermark. A released report's file never carries it.</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">The release timer is not backed by a separate scheduler yet</p>
+<p>The countdown is correct for the window you have open. A server job that releases a case nobody has open is designed but not built. Do not rely on closing the window and expecting an on-time release.</p>
+</div>
+<h2 id="messages-and-fields-in-the-sign-out-windows">Messages and fields in the sign-out windows</h2>
+<p>This section lists the wording of the windows that can appear while you sign a case out. Each one is described in the order it can appear.</p>
+<h3 id="review-before-finalising">Review before finalising</h3>
+<ul>
+<li><strong>Drag specimens to set transmission order</strong> and <strong>Synoptics are locked to their specimen</strong>: you can reorder specimens, but a synoptic report always stays with its own specimen.</li>
+<li><strong>Preview — as transmitted to LIS</strong> shows what will be sent. If no synoptic exists it says "No synoptic reports to transmit."; if a synoptic has no answers it says "No fields completed".</li>
+<li>After you finalise, the window shows <strong>Verifying…</strong> and then <strong>Verified</strong>, and tells you how many synoptics were transmitted and whether the next case is queued. If a fingerprint check does not recognise you it says "Biometric didn't recognise you — please use your password." In the demonstration the check is simulated and your password also works.</li>
+</ul>
+<h3 id="stain-inking-and-date-gates">Stain, inking and date gates</h3>
+<ul>
+<li><strong>Stain QC Gate — Sign-Out Blocked</strong>: for each batch, choose <strong>Confirm visual read checklist complete</strong>. The row then reads "Visual read confirmed by (your name)." A batch with a reported instrument failure cannot be confirmed here; resolve its deficiency first.</li>
+<li><strong>Administrative Override — Sign-Out Gate</strong> (margin inking): pick a <strong>Reason for override</strong> from the list (emergency intraoperative consultation, specimen pre-inked as a foreign object, specimen consumed or unavailable for re-inking, or Other). For Other, add <strong>Additional detail (optional)</strong>. Choose <strong>Record Administrative Override</strong>. You need permission to do this.</li>
+<li><strong>Collection and fixation dates</strong>: when a date cannot be found, a row offers <strong>Not recoverable — apply "(label)"</strong>, where the label is your laboratory's own wording for an administrative override.</li>
+</ul>
+<h3 id="critical-findings">Critical findings</h3>
+<ul>
+<li><strong>Requires urgent notification</strong> is the red label at the top of the <strong>Critical Finding Detected</strong> window.</li>
+<li>In <strong>Notified by</strong> type the name of the person who made the call; in the physician field type the <strong>Name of the physician contacted</strong>. Tick that the clinician read the finding back, then choose <strong>Record Notification</strong>. For email, choose <strong>Write the secure email…</strong>; a read-back does not apply, and the notification is recorded when the email has been sent.</li>
+</ul>
+<h3 id="frozen-to-permanent-reconciliation">Frozen-to-Permanent Reconciliation</h3>
+<ul>
+<li><strong>Automatically Flagged for Review</strong> appears because a frozen section was done on the specimen. Compare it with the final diagnosis before you continue. If the frozen diagnosis has no text it shows "(no diagnosis text recorded)".</li>
+<li>If the category matches, choose <strong>Confirm Concordant — Continue Sign-Out</strong>. If it differs, give a required comment and choose <strong>Record Discordance — Continue Sign-Out</strong>.</li>
+<li>For a teaching case, <strong>Feedback for {{name}} — optional</strong> (the name is the person who drafted the report) lets you write feedback for the person who drafted the report.</li>
+</ul>
+<h3 id="printing-a-signed-report">Printing a signed report</h3>
+<ul>
+<li><strong>Print report</strong> or <strong>Reprint report</strong> opens before printing. When your laboratory asks for a reason on a reprint, give a <strong>Reason for reprint</strong> (for example "copy for the clinic, original lost"). The reason is kept in the audit log.</li>
+<li>During the release hold the window warns that the copy carries the "PENDING FINAL RELEASE" watermark and asks for a <strong>Reason for printing during the release hold</strong>, because this is a supervisor override.</li>
+</ul>
+<h3 id="amendments">Amendments</h3>
+<ul>
+<li>The amendment window and the amended report banner show <strong>Amended by</strong> and the time of the change; if the person cannot be found it shows "Unknown user".</li>
+<li>Versions are named Original, then "1st Amended", and so on. The newest is named, for example, "2nd Amended (Most Recent)".</li>
+<li>The change table lists each <strong>Synoptic Element</strong>, the <strong>Value used</strong>, and the other columns. <strong>Confirm &amp; Continue</strong> moves on to the next step.</li>
+<li>In the report view <strong>Synoptic Report — as sent to LIS</strong> shows an amended report with the columns <strong>Synoptic Element</strong>, <strong>Originally Reported As</strong> and <strong>Currently Reported As</strong>, and the line <strong>Reason for Amendment:</strong>.</li>
+</ul>
+<h3 id="ai-review-before-sign-out">AI review before sign-out</h3>
+<ul>
+<li>In AI Review Mode, the footer buttons read <strong>Space — Confirm &amp; Next →</strong> (or <strong>Space — Confirm &amp; Finalise 🔒</strong> on the last field), <strong>O — Override</strong> and <strong>S — Skip</strong>.</li>
+</ul>
+<h3 id="countersign">Countersign</h3>
+<p>When a resident's case reaches you for countersign, the message names the resident; if the name is missing it says "the resident".</p>
+<h3 id="holds-and-deficiency-history">Holds and deficiency history</h3>
+<ul>
+<li>The case hold and retention hold windows list earlier holds under <strong>Past Holds (N)</strong>.</li>
+<li><strong>Deficiency History</strong> is read-only. It lists each deficiency on the case with <strong>Issue:</strong>, <strong>Corrective action:</strong> details, <strong>Raised by</strong> (a person, or <strong>System (auto-detected)</strong>) and, once closed, <strong>Verified effective:</strong> with the verifier's name. When there are none it says "No deficiencies recorded for this case."</li>
+</ul>
+<h2 id="confirming-your-identity-to-sign">Confirming your identity to sign</h2>
+<p>When you sign, the confirmation box asks for your credentials. Depending on how your organisation signs people in it shows <strong>Username</strong> and password ("Enter your password to sign."), a second-factor code box (placeholder "Six-digit code or recovery code"), or a separate sign-in window. While the separate window is open the box says <strong>Waiting for the sign-in window…</strong> If the browser blocks the window, allow pop-ups for PathScribe and try again. Too many wrong attempts lock signing for a short time; the box tells you how many attempts remain.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li><strong>Leaving an AI suggestion unverified on a required field.</strong> The sign-out stops with a message naming the field. Confirm or override it.</li>
+<li><strong>Expecting an unconfirmed optional AI value to appear in the signed report.</strong> It is left out. Confirm it before you sign.</li>
+<li><strong>Pressing Sign Out Case and expecting to move on.</strong> Only <strong>Sign Out &amp; Next</strong> (or the hotkey) moves to the next case.</li>
+<li><strong>Opening a case from Search and using Sign Out &amp; Next.</strong> There is no queue, so you stay on the case.</li>
+<li><strong>Trying to amend while the report is Pending Release.</strong> Recall it instead.</li>
+<li><strong>Waiting to recall until the last seconds.</strong> If the countdown ends first, the recall is refused and you must amend.</li>
+<li><strong>Looking for Sign Out Case on an Assist case.</strong> Assist cases use <strong>Finalize</strong>; the LIS signs out.</li>
+<li><strong>Speaking "confirm finalise".</strong> It does nothing by design. Select <strong>Finalise now</strong>.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Clear holds and critical-finding notifications first so the checks pass at the first try.</li>
+<li>Use <strong>Sign Out &amp; Next</strong> (Ctrl+Alt+Shift+O) from the Worklist queue to read, sign and move on without returning to the list.</li>
+<li>Settle collection and fixation dates at accessioning and grossing; they are the most common cause of a parked sign-out.</li>
+<li>Tick the follow-up box at sign-out rather than returning to the case later.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Use <strong>Release as Preliminary</strong> only for urgent partial findings. It does not close the case.</li>
+<li>Treat the release hold as your last proofreading window. Re-read the printed or on-screen report while the countdown runs; recall is free, an amendment is not.</li>
+<li>Trainees should add a short note to the attending before releasing for countersign; the attending's feedback is captured in the countersign window, not in a separate note.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: the screen as a whole.</li>
+<li><a href="/help/report/synoptic-reporting">Synoptic Reporting</a>: the checklist whose required fields the sign-out checks.</li>
+<li><a href="/help/report/microscopic-and-material">Microscopic and Material</a>: the microscopic description each specimen must have.</li>
+<li><a href="/help/report/case-team">Case Team</a>: who is allowed to sign, delegate and countersign.</li>
+<li><a href="/help/grossing">Grossing</a>: grossing must be complete before sign-out is offered.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/tumor-board">Tumor Board</a>: cases can be flagged automatically at sign-out by the margin rule (a message tells you).</li>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: post-sign-out review, deficiencies and billing flags.</li>
+<li><a href="/help/search">Search</a>: find the Finalized case.</li>
+<li><a href="/help/voice-and-keyboard">Voice and Keyboard</a>: all voice phrases and hotkeys.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No Sign Out Case button</td>
+<td>The case is Assist (use Finalize), grossing is not complete, the report is Pending Release or Finalized, or it is a pool case you have not claimed.</td>
+</tr>
+<tr>
+<td>Sign Out Case is greyed out</td>
+<td>Your role lacks the sign-out permission, or the synoptic layout is still being checked.</td>
+</tr>
+<tr>
+<td>"Only an active participant on this case..."</td>
+<td>You are not on the case team with a participation type that may finalize.</td>
+</tr>
+<tr>
+<td>"This case is on hold"</td>
+<td>A case hold is active. Release it in the left list.</td>
+</tr>
+<tr>
+<td>"n AI suggestions still need your review"</td>
+<td>A required field has an unconfirmed AI suggestion.</td>
+</tr>
+<tr>
+<td>"The AI-drafted text in (section) has not been accepted yet"</td>
+<td>AI-drafted narrative has not been accepted or edited. Accept it, edit it, or keep the earlier text.</td>
+</tr>
+<tr>
+<td>A value I expected is missing from the signed report</td>
+<td>It was an optional AI value you had not confirmed, and it was left out. The sign-out window said how many.</td>
+</tr>
+<tr>
+<td>Sign-out window did not open after pressing the button</td>
+<td>A review check stopped you, or the billing review opened because a base code is missing.</td>
+</tr>
+<tr>
+<td>Sign Out &amp; Next stayed on the case</td>
+<td>No next case in your list, a check stopped the sign-out, or ten minutes passed.</td>
+</tr>
+<tr>
+<td>Request Amendment / Addendum is greyed out</td>
+<td>Your role may not release amendments, corrections or addenda.</td>
+</tr>
+<tr>
+<td>"This report is still in its release delay"</td>
+<td>The report is Pending Release. Recall it.</td>
+</tr>
+<tr>
+<td>Recall Report button missing</td>
+<td>You are not the person who signed, or the hold has ended.</td>
+</tr>
+<tr>
+<td>Cannot print</td>
+<td>Release Hold Print Policy, a restricted case flag, or no print permission.</td>
+</tr>
+<tr>
+<td>Hotkey does nothing</td>
+<td>The matching button is not showing or is greyed out, or a window is open in front.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message on screen; it names the field, specimen, hold or gate.</li>
+<li>Fix that item, then select the same button again.</li>
+<li>If a button is missing, check the reporting mode, the case status in the header, and whether grossing is complete.</li>
+<li>If the sign-out window is refused, confirm your identity again; an expired confirmation is simply asked for again.</li>
+<li>If you cannot sign, check the case team in <a href="/help/report/case-team">Case Team</a>.</li>
+<li>If a window does not open, allow pop-ups for PathScribe; the sign-in confirmation can use one.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when sign-out fails twice with the same message, a report does not release after its countdown, the status does not return after a recall, or the signature window says signing is unavailable. Have the case number and the time of the problem ready.</p>

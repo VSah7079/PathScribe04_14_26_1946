@@ -10,7 +10,7 @@ import { getEffectiveScanStationId } from '@/utils/effectiveScanStation';
 import type { Case } from '@/types/case/Case';
 import { diffCaseChanges, labelOf, labelSynopticChanges, type SynopticLabelSource } from './reportChangeRules';
 import type { ReportFieldChange } from './IReportChangeLogService';
-import { mockReportChangeLogService } from './mockReportChangeLogService';
+import { reportChangeLogService as mockReportChangeLogService } from './reportChangeLogInstance';
 
 export function recordCaseChange(caseId: string, before: Case | undefined, after: Case, writtenKeys: string[]): void {
   try {

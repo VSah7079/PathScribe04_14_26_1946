@@ -34,6 +34,7 @@ import type {
 } from './ICytologyCategoryService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Seed data — the real, standard Bethesda System vocabulary ────────────────
 
@@ -261,7 +262,7 @@ const sorted = (list: CytologyCategoryEntry[]) =>
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const mockCytologyCategoryService: ICytologyCategoryService = {
+const cytologyCategoryServiceUnchecked: ICytologyCategoryService = {
 
   async getAll() {
     await delay();
@@ -328,11 +329,11 @@ export const mockCytologyCategoryService: ICytologyCategoryService = {
   },
 
   async deactivate(id: ID) {
-    return mockCytologyCategoryService.update(id, { active: false });
+    return cytologyCategoryServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockCytologyCategoryService.update(id, { active: true });
+    return cytologyCategoryServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -345,3 +346,8 @@ export const mockCytologyCategoryService: ICytologyCategoryService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCytologyCategoryService: ICytologyCategoryService = guardConfigWrites(cytologyCategoryServiceUnchecked, [
+  ['config:cytology-categories:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

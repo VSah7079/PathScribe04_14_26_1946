@@ -57,4 +57,15 @@ export interface CytologySignOutRecord {
    *  and an addendum — the two fields are mutually exclusive in
    *  practice, though nothing in this type enforces that mechanically. */
   addsToRecordId?: string;
+  /** Batch 390 (PS-340): why a correction or an addendum was released.
+   *  Mandatory on any record carrying amendsRecordId or addsToRecordId
+   *  (the release services refuse an empty one); undefined on every
+   *  original sign-out. Stored as entered: it is data, not interface text. */
+  revisionReason?: string;
+  /** Batch 534 (Pete, Oct 12: recall during the release delay "reopens, like
+   *  sign-out"): set when the person who released this record recalled it
+   *  before the delay ran out. The record itself is never edited or deleted;
+   *  this marks it withdrawn, so it no longer counts as the specimen's result
+   *  (the getters leave it out) and the specimen can be signed again. */
+  recalled?: { at: string; by: { userId: string; userName: string } };
 }

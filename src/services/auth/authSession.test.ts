@@ -8,6 +8,8 @@ import { resolveAuthConfig } from './authConfig';
 import type { ISsoClient, SsoCompletion } from './sso/ssoClient';
 import type { SessionProfile } from './sessionProfile';
 import type { DemoAccount } from './demo/demoAccounts';
+import { createMfaService } from './mfa/mfaService';
+import { memoryMfaStores } from './mfa/mfaStores';
 
 const TENANT = 'tenant-1';
 const ISS = `https://login.microsoftonline.com/${TENANT}/v2.0`;
@@ -83,6 +85,98 @@ function setup(over: Partial<AuthSessionDeps> & { env?: Record<string, string>; 
   };
   return { session: createAuthSession(deps), audit, updates, markers, sso, drafts, stored: () => stored, people };
 }
+
+describe('password sign-in: passwords set from the Staff screen (Batch 448)', () => {
+  const check = (map: Record<string, { pw: string; mustChange?: boolean; staffId: string }>) =>
+    async (email: string, password: string) => {
+      const r = map[email];
+      if (!r) return { result: 'none' as const };
+      return r.pw === password ? { result: 'match' as const, staffId: r.staffId, mustChange: !!r.mustChange } : { result: 'wrong' as const };
+    };
+  it('a staff-set password signs in a demo account with its own profile', async () => {
+    const t = setup({ people: [staff('PATH-001', DEMO.email)], verifyStaffPassword: check({ [DEMO.email]: { pw: 'new-long-password', staffId: 'PATH-001' } }), demoAccountFor: async id => (id === 'PATH-001' ? DEMO : undefined) });
+    expect(await t.session.signInWithPassword(DEMO.email, 'new-long-password')).toMatchObject({ id: 'PATH-001', role: 'superadmin', authMethod: 'password' });
+  });
+  it('once set, the built-in demo password no longer works', async () => {
+    const t = setup({ people: [staff('PATH-001', DEMO.email)], verifyStaffPassword: check({ [DEMO.email]: { pw: 'new-long-password', staffId: 'PATH-001' } }) });
+    expect(await t.session.signInWithPassword(DEMO.email, 'right')).toBeNull();
+  });
+  it('with no staff-set password, the built-in demo password still works', async () => {
+    const t = setup({ people: [staff('PATH-001', DEMO.email)], verifyStaffPassword: check({}) });
+    expect(await t.session.signInWithPassword(DEMO.email, 'right')).toMatchObject({ id: 'PATH-001' });
+  });
+  it('someone with no demo account gets the app role their staff roles give', async () => {
+    const ld = staff('LD-001', 'r.okafor@dvmc.org', { firstName: 'Rachel', lastName: 'Okafor', roles: ['Pathologist', 'Admin'] });
+    const t = setup({ people: [ld], verifyStaffPassword: check({ 'r.okafor@dvmc.org': { pw: 'a-long-password', staffId: 'LD-001' } }), demoAccountFor: async () => undefined });
+    expect(await t.session.signInWithPassword('r.okafor@dvmc.org', 'a-long-password')).toMatchObject({ id: 'LD-001', name: 'Rachel Okafor', role: 'pathologist-admin', initials: 'RO', authMethod: 'password' });
+  });
+  it('Batch 456 correction: a staff-set password for Grace Liu (QA Reviewer only) signs her in with her built-in account\'s role', async () => {
+    const grace = staff('QA-001', 'grace.liu@demo.pathscribe.ai', { firstName: 'Grace', lastName: 'Liu', roles: ['QA Reviewer'] });
+    const account: DemoAccount = { ...DEMO, email: 'grace.liu@demo.pathscribe.ai', id: 'QA-001', name: 'Grace Liu', role: 'pathologist', initials: 'GL' };
+    const t = setup({ people: [grace], verifyStaffPassword: check({ 'grace.liu@demo.pathscribe.ai': { pw: 'a-long-password', staffId: 'QA-001' } }), demoAccountFor: async id => (id === 'QA-001' ? account : undefined) });
+    expect(await t.session.signInWithPassword('grace.liu@demo.pathscribe.ai', 'a-long-password')).toMatchObject({ id: 'QA-001', name: 'Grace Liu', role: 'pathologist', authMethod: 'password' });
+  });
+  it('a staff record whose roles give no app access is refused', async () => {
+    const doc = staff('PHY-1', 'doc@clinic.org', { roles: ['Physician'] });
+    const t = setup({ people: [doc], verifyStaffPassword: check({ 'doc@clinic.org': { pw: 'a-long-password', staffId: 'PHY-1' } }) });
+    expect(await t.session.signInWithPassword('doc@clinic.org', 'a-long-password')).toBeNull();
+  });
+  it('a password that must be changed starts no session', async () => {
+    const t = setup({ people: [staff('PATH-001', DEMO.email)], verifyStaffPassword: check({ [DEMO.email]: { pw: 'temporary-password', staffId: 'PATH-001', mustChange: true } }) });
+    expect(await t.session.signInWithPassword(DEMO.email, 'temporary-password')).toBe('password_change_required');
+    expect(t.stored()).toBeNull();
+  });
+});
+
+describe('Batch 456: sign-in lockout (5 failures, 15 minutes)', () => {
+  const memoryLocks = () => {
+    const m = new Map<string, { failures: number; lockedUntil: string | null }>();
+    return { m, store: { read: (k: string) => m.get(k) ?? null, write: (k: string, s: { failures: number; lockedUntil: string | null }) => { m.set(k, s); }, clear: (ks: readonly string[]) => ks.forEach(k => m.delete(k)) } };
+  };
+  const at = (min: number) => () => new Date(Date.parse('2026-10-04T12:00:00Z') + min * 60_000);
+
+  it('counts down, locks on the 5th failure, and audits each failure and the lock without the password', async () => {
+    const locks = memoryLocks();
+    const t = setup({ signInLocks: locks.store, accountNameFor: async e => (e === DEMO.email ? 'Pete Nimmo' : null), now: at(0) });
+    for (const left of [4, 3, 2, 1]) expect(await t.session.signInWithPassword(DEMO.email, 'Wrong-Guess-1')).toEqual({ refused: 'invalid', attemptsLeft: left });
+    expect(await t.session.signInWithPassword(' Demo@PathScribe.ai ', 'Wrong-Guess-1')).toEqual({ refused: 'locked', lockedUntil: '2026-10-04T12:15:00.000Z' });
+    expect(t.audit.filter(a => a.event === 'Sign-in failed')).toHaveLength(5);
+    expect(t.audit.find(a => a.event === 'Sign-in locked')).toMatchObject({ user: 'Pete Nimmo', detail: expect.stringContaining('15 minutes after 5 failed attempts') });
+    expect(JSON.stringify(t.audit)).not.toContain('Wrong-Guess-1');
+  });
+
+  it('while locked, even the right password is refused and not checked; after 15 minutes it works and the count clears', async () => {
+    const locks = memoryLocks();
+    locks.m.set(DEMO.email, { failures: 5, lockedUntil: '2026-10-04T12:15:00.000Z' });
+    const verify = vi.fn(async (e: string, p: string) => (e === DEMO.email && p === 'right' ? DEMO : null));
+    const locked = setup({ signInLocks: locks.store, verifyDemoCredentials: verify, now: at(10) });
+    expect(await locked.session.signInWithPassword(DEMO.email, 'right')).toEqual({ refused: 'locked', lockedUntil: '2026-10-04T12:15:00.000Z' });
+    expect(verify).not.toHaveBeenCalled();
+    expect(locked.audit.find(a => a.event === 'Sign-in refused')).toMatchObject({ user: 'Unknown email' });
+    const later = setup({ signInLocks: locks.store, verifyDemoCredentials: verify, now: at(15) });
+    expect(await later.session.signInWithPassword(DEMO.email, 'right')).toMatchObject({ id: 'PATH-001' });
+    expect(locks.m.get(DEMO.email)).toEqual({ failures: 0, lockedUntil: null });
+  });
+
+  it('a right password resets the count; an email nobody has is counted the same way', async () => {
+    const locks = memoryLocks();
+    const t = setup({ signInLocks: locks.store, now: at(0) });
+    await t.session.signInWithPassword(DEMO.email, 'nope');
+    await t.session.signInWithPassword(DEMO.email, 'nope');
+    await t.session.signInWithPassword(DEMO.email, 'right');
+    expect(await t.session.signInWithPassword(DEMO.email, 'nope')).toEqual({ refused: 'invalid', attemptsLeft: 4 });
+    expect(await t.session.signInWithPassword('nobody@nowhere.org', 'nope')).toEqual({ refused: 'invalid', attemptsLeft: 4 });
+  });
+
+  it('a staff-set password that is wrong counts too; one that must be changed clears the count', async () => {
+    const locks = memoryLocks();
+    const verifyStaffPassword = async (_e: string, p: string) => (p === 'temporary-password' ? { result: 'match' as const, staffId: 'PATH-001', mustChange: true } : { result: 'wrong' as const });
+    const t = setup({ signInLocks: locks.store, verifyStaffPassword, now: at(0) });
+    expect(await t.session.signInWithPassword(DEMO.email, 'right')).toEqual({ refused: 'invalid', attemptsLeft: 4 });
+    expect(await t.session.signInWithPassword(DEMO.email, 'temporary-password')).toBe('password_change_required');
+    expect(locks.m.get(DEMO.email)).toEqual({ failures: 0, lockedUntil: null });
+  });
+});
 
 describe('password sign-in (demo accounts)', () => {
   it('signs in a demo account with its staff fields', async () => {
@@ -249,5 +343,63 @@ describe('the access token for API and hub calls', () => {
     expect(await setup({ stored: sso }).session.accessToken()).toBe('access-token');
     expect(await setup({ stored: { ...sso, authMethod: 'password' } }).session.accessToken()).toBeNull();
     expect(await setup().session.accessToken()).toBeNull();
+  });
+});
+
+// ── Batch 611 (#157): the second factor on single sign-on and on restore ───
+
+describe('multi-factor sign-in (Batch 611)', () => {
+  const mfaFor = async (mode: 'off' | 'all', at = new Date('2026-09-26T12:00:00Z')) => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, now: () => at,
+    });
+    await mfa.savePolicy({ id: 'x', name: 'x', email: '', role: 'admin', initials: 'X', voiceProfile: 'EN-US', organisationId: 'ORG-DVMC' }, { mode, sessionMaxHours: 8 });
+    return mfa;
+  };
+  const claims = (extra: Record<string, unknown>) => ({ ok: true as const, providerId: 'microsoft' as const, claims: { iss: ISS, sub: 'x', oid: 'oid-1', email: 'SChen@hospital.org', ...extra }, returnPath: '/worklist' });
+
+  it('refuses a single sign-on that the provider did not back with a second factor, and signs out of the provider', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa: await mfaFor('all') });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'mfa_required' });
+    expect(t.sso.signedOut).toEqual(['microsoft']);
+    expect(t.stored()).toBeNull();
+  });
+  it('refuses sign-in when the server-held policy cannot be read (fails closed, never "no policy") - Batch 675', async () => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, policySource: { get: async () => ({ ok: false, error: 'server_error' }), save: async () => ({ ok: false, error: 'x' }) },
+    });
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'server_unavailable' });
+    expect(t.sso.signedOut).toEqual(['microsoft']);
+    expect(t.stored()).toBeNull();
+  });
+  it('uses the server-held policy when it can be read - Batch 675', async () => {
+    const mfa = createMfaService({
+      stores: memoryMfaStores(), secretFor: null, audit: { logEvent: async e => ({ ok: true, data: { ...e, id: 'a', timestamp: '' } }) },
+      enforce: async () => true, policySource: { get: async () => ({ ok: true, data: { mode: 'all', stepUpMinutes: 30, sessionMaxHours: 8 } }), save: async () => ({ ok: false, error: 'x' }) },
+    });
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toEqual({ ok: false, reason: 'mfa_required' });
+  });
+  it('accepts it when the claims assert MFA, and the profile carries the stamp', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd', 'mfa'] }), mfa: await mfaFor('all') });
+    const r = await t.session.completeSsoSignIn('microsoft', 'u');
+    expect(r).toMatchObject({ ok: true, profile: { id: '1', mfa: { organisationId: 'ORG-DVMC', userId: '1', method: 'idp' } } });
+  });
+  it('asks nothing when the organisation does not require it', async () => {
+    const t = setup({ completion: claims({ amr: ['pwd'] }), mfa: await mfaFor('off') });
+    expect(await t.session.completeSsoSignIn('microsoft', 'u')).toMatchObject({ ok: true });
+  });
+  it('a restored session whose second factor has expired is dropped and the provider signed out', async () => {
+    const stamp = { organisationId: 'ORG-DVMC', userId: '1', verifiedAt: '2026-09-26T01:00:00Z', method: 'idp' as const };
+    const stored: SessionProfile = { id: '1', name: 'Sarah Chen', email: 'schen@hospital.org', role: 'pathologist', initials: 'SC', voiceProfile: 'EN-US', authMethod: 'sso', ssoProviderId: 'microsoft', organisationId: 'ORG-DVMC', canViewPediatric: true, mfa: stamp };
+    const live = setup({ stored, mfa: await mfaFor('all', new Date('2026-09-26T05:00:00Z')) });
+    expect(await live.session.restoreSession()).toMatchObject({ id: '1' });
+    const expired = setup({ stored, mfa: await mfaFor('all', new Date('2026-09-26T12:00:00Z')) });
+    expect(await expired.session.restoreSession()).toBeNull();
+    expect(expired.stored()).toBeNull();
+    expect(expired.sso.signedOut).toEqual(['microsoft']);
   });
 });

@@ -57,6 +57,7 @@ import type { ICytologyQcRuleService, NewCytologyQcRule } from './ICytologyQcRul
 import type { CytologyQcRule } from '@/types/cytologyQc/CytologyQcRule';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'cytologyQcRules';
 
@@ -234,7 +235,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-export const mockCytologyQcRuleService: ICytologyQcRuleService = {
+const cytologyQcRuleServiceUnchecked: ICytologyQcRuleService = {
   async getAll() {
     await delay();
     return ok([..._cache]);
@@ -270,11 +271,11 @@ export const mockCytologyQcRuleService: ICytologyQcRuleService = {
   },
 
   async deactivate(id: ID) {
-    return mockCytologyQcRuleService.update(id, { active: false });
+    return cytologyQcRuleServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockCytologyQcRuleService.update(id, { active: true });
+    return cytologyQcRuleServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -306,3 +307,8 @@ export const mockCytologyQcRuleService: ICytologyQcRuleService = {
     return ok({ ...created });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCytologyQcRuleService: ICytologyQcRuleService = guardConfigWrites(cytologyQcRuleServiceUnchecked, [
+  ['config:cytology-qc-rules:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove', 'duplicate']],
+]);

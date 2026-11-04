@@ -1,0 +1,674 @@
+<h1 id="top">Case Team</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> A case has a team: the people who work on it, each in a role called a participation type (Attending / Primary Pathologist, Resident / Fellow, Grossing / PA, Consultant and so on). This article explains how to see and change the team, how to bring in a colleague for a second look (<strong>Add Collaborator</strong>, <strong>Req. Review</strong>), how to hand a case or part of it to someone else (<strong>Delegate</strong>), how to nominate a case for a multidisciplinary meeting (<strong>Tumor Board</strong>), how a colleague finds the case afterwards (the <strong>Collaborating Cases</strong> tile on the Worklist), and how the messages that go with these actions work.</p>
+<p><strong>Intended users.</strong> Pathologists, fellows and residents who share a case; pathology assistants and technologists who appear on the team as grossing staff; MDT coordinators who follow flagged cases. Which buttons work depends on your role (see "Who can do what").</p>
+<p><strong>Where it fits.</strong> The team matters at the end of the case: only an active team member whose participation type can finalize is allowed to sign the case out (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>). Everything here is on the <a href="/help/report">Report</a> screen's bottom action bar.</p>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>Messages and review requests are stored in PathScribe's message centre. They do not leave the system. The <strong>Consult</strong> button for an outside reviewer is demonstration or pilot only and is not real security; see <a href="/help/external-consult">External Consult</a>.</p>
+</div>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/report-case-team-action-bar.png" alt="The bottom action bar with Delegate, Team, Req. Review, Consult, History, Flags and Tumor Board"><figcaption>The bottom action bar with Delegate, Team, Req. Review, Consult, History, Flags and Tumor Board</figcaption></figure>
+
+<figure class="ps-ug-figure"><img src="img/report-case-team-window.png" alt="The Case Team window with the staff directory on the left and participation types on the right"><figcaption>The Case Team window with the staff directory on the left and participation types on the right</figcaption></figure>
+
+<p>The buttons for this article sit together on the bottom action bar. They are hidden for a pool case you have not claimed (select <strong>Claim This Case</strong> first).</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Case Team window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case Team (heading)</td>
+<td>The window title. The hint reads "Drag staff cards onto participation types to assign".</td>
+</tr>
+<tr>
+<td>Staff Directory</td>
+<td>Active staff. A search box (<strong>Search staff…</strong>) filters by name or role. Each card shows the name, roles and subspecialty, and small badges for the participation types the person is eligible for. A person already on the case shows <strong>on case</strong> and cannot be dragged again.</td>
+</tr>
+<tr>
+<td>Participation Types</td>
+<td>One lane per type. A lane marked <strong>SINGLE</strong> takes only one person (for example the Primary pathologist); the others take several.</td>
+</tr>
+<tr>
+<td>Lane badges</td>
+<td><strong>Can finalise</strong> (this type may sign the case out) and <strong>Countersign req.</strong> (a person in this type needs an attending to countersign).</td>
+</tr>
+<tr>
+<td>Drop preview</td>
+<td>While you drag, each lane says <strong>Drop to assign</strong>, <strong>Drop to replace</strong>, <strong>Already assigned — will offer to replace</strong>, or <strong>Not eligible for this role</strong>.</td>
+</tr>
+<tr>
+<td>(you)</td>
+<td>Marks your own card in a lane.</td>
+</tr>
+<tr>
+<td>Remove, Undo</td>
+<td>The remove mark on a person's chip takes them off a lane; <strong>Undo</strong> brings them back before you save.</td>
+</tr>
+<tr>
+<td>Delegate (in the Primary lane)</td>
+<td>Shown on your own chip. You cannot remove yourself as sole primary pathologist; use this to hand the case over.</td>
+</tr>
+<tr>
+<td>Technical component facility</td>
+<td>A pick list below the lanes. Choose another laboratory here when it did the processing, cutting and staining; the report then shows that laboratory's letterhead as well. The default is <strong>None (same lab)</strong>. It saves on its own, with <strong>Saved.</strong> or "Could not save. Reload the case and try again."</td>
+</tr>
+<tr>
+<td>Footer</td>
+<td>"(n) team members", <strong>Unsaved changes</strong>, <strong>Cancel</strong> and <strong>Save</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Participation types built into PathScribe</strong> (your administrator can add more, and a laboratory can change who may finalize):</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Short name</th>
+<th>Who it is for</th>
+<th>Can finalize</th>
+<th>Countersign</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Attending / Primary Pathologist</td>
+<td>PATH</td>
+<td>The pathologist responsible for diagnosis and sign-out. Only one.</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Resident / Fellow</td>
+<td>RES</td>
+<td>Trainee drafting the report</td>
+<td>No</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Co-Signer / Supervisor</td>
+<td>ATT</td>
+<td>Supervising pathologist; also FPPE proctor and PA gross sign-off. Only one.</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Grossing / PA</td>
+<td>GROSS</td>
+<td>Pathologist assistant, resident or histotechnologist who grossed the case</td>
+<td>No</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Cytotechnologist</td>
+<td>CYTO</td>
+<td>Screened cytology slides</td>
+<td>No</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Consultant / Subspecialist</td>
+<td>CONS</td>
+<td>Internal expert reviewing slides</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Frozen Section Pathologist</td>
+<td>FS</td>
+<td>Performed the intraoperative diagnosis. Only one.</td>
+<td>No</td>
+<td>Required</td>
+</tr>
+<tr>
+<td>Second Opinion</td>
+<td>2nd Op</td>
+<td>Second attending doing a mandatory QA double-read</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Provisional Hire (FPPE)</td>
+<td>FPPE</td>
+<td>A new pathologist under focused review; proctor countersign required</td>
+<td>No</td>
+<td>Required</td>
+</tr>
+</tbody>
+</table>
+<p>Two more types (Biomedical Scientist and Advanced Practitioner BMS) are offered only in jurisdictions where they exist.</p>
+<p><strong>Delegate Case window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Delegation Type (left)</td>
+<td>The kinds of hand-over your laboratory has switched on. Each shows a description, and <strong>transfers ownership</strong> where the case changes hands.</td>
+</tr>
+<tr>
+<td>Delegate To (right)</td>
+<td>Recipients. Switch between <strong>Individual</strong> (search "Search by name or role…") and <strong>Pool / Queue</strong> (search "Search pools…"). For a type that sends to a pool, only pools are shown.</td>
+</tr>
+<tr>
+<td>Select Synoptic</td>
+<td>Appears when the type hands over a single synoptic report and the case has more than one.</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>"Add a note…". Labelled <strong>Note (required)</strong> for types that need one.</td>
+</tr>
+<tr>
+<td>Confirm Delegation</td>
+<td>Does the delegation.</td>
+</tr>
+</tbody>
+</table>
+<p>Delegation types as built (an administrator can turn them on or off and add custom types):</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Ownership</th>
+<th>Note</th>
+<th>On by default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Case Reassignment</td>
+<td>transfers ownership</td>
+<td>Optional</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Move to Pool</td>
+<td>transfers ownership (to a pool)</td>
+<td>Optional</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Second Opinion</td>
+<td>You keep ownership and sign-out</td>
+<td>Required</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Teaching Case</td>
+<td>You keep ownership; may go to several recipients</td>
+<td>Optional</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>External Consultation</td>
+<td>You keep ownership</td>
+<td>Required</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Informal Review</td>
+<td>You keep ownership</td>
+<td>Optional</td>
+<td>No (off by default; use <strong>Req. Review</strong>)</td>
+</tr>
+<tr>
+<td>Tumor Board</td>
+<td>Not a sign-out</td>
+<td>Optional</td>
+<td>No (use <strong>Tumor Board</strong> on the bar)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Req. Review window (Request Colleague Review)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Review Type</td>
+<td><strong>Informal Review</strong>, <strong>Consultation</strong>, <strong>Second Opinion</strong>, <strong>Clinical Observation</strong> or <strong>Code Review</strong>.</td>
+</tr>
+<tr>
+<td>Send To</td>
+<td>A colleague, chosen from active pathologists (<strong>Search colleagues…</strong>). For Code Review there is no colleague: the case goes to the billing review pool.</td>
+</tr>
+<tr>
+<td>Additional Context</td>
+<td>Optional free text, for example "Please review the deep margin — uncertain if pT1 or muscularis invasion…".</td>
+</tr>
+<tr>
+<td>Send Request</td>
+<td>Sends it.</td>
+</tr>
+</tbody>
+</table>
+<p>The window is headed <strong>Informal Review Request</strong>. While the colleague list opens it says "Loading colleagues…"; if the list is empty it says "No active pathologists found." After sending a Code Review the window says "Case sent to Code Review" and adds the case to the billing review pool; a billing specialist reviews it in Quality Assurance, and it does not block sign-out.</p>
+<p><strong>Flag for Tumor Board / MDT window</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Board</td>
+<td>Breast MDT, GI MDT, Thoracic MDM or Gyn-Onc.</td>
+</tr>
+<tr>
+<td>Meeting date, Meeting time</td>
+<td>Optional. Leave blank if not known; the case lands in the Unscheduled group. Time needs a date.</td>
+</tr>
+<tr>
+<td>Flag for MDT</td>
+<td>Nominates the case.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Delegate</td>
+<td>Opens the Delegate Case window.</td>
+</tr>
+<tr>
+<td>Team</td>
+<td>Opens the Case Team window.</td>
+</tr>
+<tr>
+<td>Req. Review</td>
+<td>Opens the Request Colleague Review window. Does not transfer ownership.</td>
+</tr>
+<tr>
+<td>Consult</td>
+<td>Gives an outside reviewer access for a second opinion (demonstration or pilot only).</td>
+</tr>
+<tr>
+<td>Flags</td>
+<td>Opens the Flag Manager (see <a href="/help/case-flags">Case Flags</a>).</td>
+</tr>
+<tr>
+<td>Tumor Board</td>
+<td>Opens the Flag for Tumor Board / MDT window. Greyed out when your role may not flag cases.</td>
+</tr>
+<tr>
+<td>History</td>
+<td>Opens the patient's history.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Peer review banner</td>
+<td>Under the header: the state of a peer review before sign-out (see "Peer review before sign-out").</td>
+</tr>
+<tr>
+<td>Also opened by</td>
+<td>Colleagues who have the case open now.</td>
+</tr>
+<tr>
+<td>Collaborating Cases tile</td>
+<td>A Worklist tile with a count of the cases you are a team member of.</td>
+</tr>
+<tr>
+<td>Delegated tile</td>
+<td>A Worklist tile for cases handed to you that are waiting.</td>
+</tr>
+<tr>
+<td>Informal review tile</td>
+<td>A Worklist tile for informal review requests sent to you.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>A key acts only when the screen it belongs to is showing, and is ignored while another window is open in front.</p>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Key</th>
+<th>Spoken phrases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add Collaborator</td>
+<td>Ctrl+Alt+Shift+0</td>
+<td>"add collaborator (name)", "add a collaborator (name)", "invite collaborator (name)"</td>
+</tr>
+<tr>
+<td>Open Case Team</td>
+<td>Alt+T</td>
+<td>"open case team", "case team", "manage team", "show team", "team members"</td>
+</tr>
+<tr>
+<td>Add Team Member</td>
+<td>Alt+M</td>
+<td>"add team member", "add participant", "add to team", "assign participant"</td>
+</tr>
+<tr>
+<td>Assign to Participation Type</td>
+<td>Alt+Shift+A</td>
+<td>"assign as", "assign to", "set as primary", "set as consultant", "set as grossing"</td>
+</tr>
+<tr>
+<td>Open Delegation Menu</td>
+<td>Alt+D</td>
+<td>"open delegation", "delegate case", "transfer case", "show handoff"</td>
+</tr>
+<tr>
+<td>Request Consultation</td>
+<td>Ctrl+Alt+R</td>
+<td>"request consultation", "request review", "send for review", "consult colleague", "second opinion", "peer review"</td>
+</tr>
+<tr>
+<td>Select Peer Review (in the Delegate window)</td>
+<td>Alt+1</td>
+<td>"request peer review", "internal review", "informal opinion"</td>
+</tr>
+<tr>
+<td>Select Formal Consult (in the Delegate window)</td>
+<td>Alt+2</td>
+<td>"formal consultation", "add consultant", "official consult"</td>
+</tr>
+<tr>
+<td>Select Full Transfer (in the Delegate window)</td>
+<td>Alt+3</td>
+<td>"full transfer", "transfer ownership", "assign to pool"</td>
+</tr>
+<tr>
+<td>Confirm Delegation</td>
+<td>Ctrl+Enter</td>
+<td>"confirm delegation", "send case", "complete transfer"</td>
+</tr>
+<tr>
+<td>Return to Trainee</td>
+<td>Ctrl+Alt+Shift+T</td>
+<td>"return to trainee", "reject with notes", "send back to resident"</td>
+</tr>
+<tr>
+<td>Open Flag Manager</td>
+<td>Alt+F</td>
+<td>"open flags", "manage flags", "show flags", "add flag"</td>
+</tr>
+<tr>
+<td>Collaborating Cases (on the Worklist)</td>
+<td>Ctrl+Alt+F</td>
+<td>"collaborating cases", "show collaborations", "cases i collaborate on"</td>
+</tr>
+</tbody>
+</table>
+<p>How the commands behave:</p>
+<ul>
+<li><strong>Add Collaborator</strong> is the only one that carries a name. Say the command and the name together ("add collaborator Nguyen"). The hotkey on its own has no name to use, so it tells you to say who to add.</li>
+<li><strong>Open Case Team, Add Team Member and Assign to Participation Type</strong> all open the Case Team window. They do not pick a person or lane for you; you drag the card yourself.</li>
+<li><strong>Request Consultation</strong> and its phrases ("request review", "second opinion", "peer review") open the <strong>Delegate Case</strong> window, not the Req. Review window. The <strong>Req. Review</strong> button itself has no spoken command.</li>
+<li><strong>Select Peer Review</strong> chooses the Informal Review type. Because that type is off by default, a laboratory that has not switched it on sees "That delegation type is turned off. Choose another type." Say "formal consultation" or "full transfer" instead.</li>
+<li><strong>Confirm Delegation</strong> presses Confirm Delegation with the same checks as the button; it is a spoken form of a deliberate confirmation.</li>
+<li>There is no spoken or keyboard command for the <strong>Tumor Board</strong> button yet other than the button itself; use the bar.</li>
+</ul>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<p><strong>View the team</strong></p>
+<ol>
+<li>On the Report screen select <strong>Team</strong> (or press Alt+T). The Case Team window opens.</li>
+<li>Read the lanes on the right. Each person on the case appears as a chip in their lane. When the case was assigned to someone not yet on the team, that person is added when the window opens: as the primary pathologist, or as a cytotechnologist if they are a cytotechnologist.</li>
+</ol>
+<p><strong>Change the team</strong></p>
+<ol>
+<li>Find the person in the <strong>Staff Directory</strong> (use <strong>Search staff…</strong>).</li>
+<li>Drag the card onto a lane. The lane previews the result.
+   - <strong>Not eligible for this role:</strong> the person's roles do not allow that type. Nothing changes and a message names the role and the type.
+   - <strong>Already assigned:</strong> a <strong>(Type) already assigned</strong> window asks whether to <strong>Replace</strong>. It reads "(Name) is currently the (type). Replace with (name)?" and "This only changes the draft — nothing is saved until you click Save below."</li>
+<li>To remove someone, use the remove mark on their chip. <strong>Undo</strong> reverses it before saving. You cannot remove yourself as the sole primary pathologist: <strong>Cannot Remove Primary</strong> explains this and offers <strong>Open Delegate →</strong>.</li>
+<li>Select <strong>Save</strong>. The footer shows <strong>Saving…</strong>. If the primary pathologist changed, the case moves to the new primary's Worklist.</li>
+<li>If you have unsaved changes and select <strong>Cancel</strong> or close the window, <strong>Discard changes?</strong> asks whether to <strong>Keep editing</strong> or <strong>Discard changes</strong>.</li>
+</ol>
+<p><strong>Add a collaborator by voice (an in-lab consultation)</strong></p>
+<ol>
+<li>With the case open and no window in front, say "add collaborator" followed by the person's name, for example "add collaborator Nguyen". Titles such as "Doctor" are ignored.</li>
+<li>PathScribe looks for exactly one active staff member whose first or last name contains every word you said. The name needs to be unambiguous: if no one matches you see <strong>No active staff member matches "(name)".</strong>; if more than one matches you see <strong>More than one person matches "(name)". Say the first and last name.</strong>; if you said no name you see <strong>Say who to add, for example "add collaborator Nguyen".</strong> Nobody is added in these cases.</li>
+<li>The person is added to the team as a <strong>Consultant / Subspecialist</strong>. The message reads <strong>(Name) added to the case team as a consultant.</strong></li>
+<li>They receive a message from you (sent by the app, not typed by you) with the subject "Consultation requested — (case)" and the text "(You) added you to the case team for case (case) as a Consultant. Please open the case link below to review the report and leave an internal note." The case link opens the report with the Internal Notes drawer.</li>
+<li>If the message cannot be sent, the person is still added, and you see <strong>(Name) was added to the case team, but the message to them could not be sent.</strong></li>
+<li>The collaborator now sees the case under <strong>Collaborating Cases</strong> on their Worklist, can read the report and leaves an <strong>Internal Note</strong>. A Consultant cannot sign out the case and does not take ownership.</li>
+</ol>
+<p><strong>Request a colleague's review (informal, no ownership change)</strong></p>
+<ol>
+<li>Select <strong>Req. Review</strong>.</li>
+<li>Choose the <strong>Review Type</strong>, search <strong>Send To</strong>, and optionally add <strong>Additional Context</strong>.</li>
+<li>Select <strong>Send Request</strong>. The window reads <strong>Review request sent</strong>: "(Name) has been sent a message with a link to case (case)." and "They can open the case and leave an internal note when reviewed."</li>
+<li>For an <strong>Informal Review</strong> the colleague also gets a request on their Worklist. The other types are message-only.</li>
+<li>For <strong>Code Review</strong> the case is added to the billing review pool instead: <strong>Case (case) has been added to the billing review pool.</strong> This does not block sign-out.</li>
+</ol>
+<p><strong>Delegate a case</strong></p>
+<ol>
+<li>Select <strong>Delegate</strong> (or press Alt+D).</li>
+<li>Choose a <strong>Delegation Type</strong> on the left, by clicking it or by dropping a recipient on it.</li>
+<li>Choose the recipient on the right: drag the card onto the type, or click it. For a pool type choose a pool.</li>
+<li>Type the note. If the type needs one, the field is labelled <strong>Note (required)</strong> and the Confirm button stays greyed out until it is filled.</li>
+<li>Select <strong>Confirm Delegation</strong> (or press Ctrl+Enter). The window shows <strong>Delegating…</strong> and closes; the message reads <strong>Case delegated.</strong></li>
+<li>What happens depends on the type:
+   - <strong>Case Reassignment</strong> (transfers ownership): the recipient becomes the primary pathologist and the case moves to their Worklist. You are no longer responsible.
+   - <strong>Move to Pool:</strong> the case leaves your list and goes to the pool for any available pathologist to claim.
+   - <strong>Second Opinion, Teaching Case, External Consultation and similar:</strong> the recipient is added to the team (as Second Opinion or Consultant) and keeps the case in their view; you remain the owner and sign out.</li>
+<li>The recipient sees the case under <strong>Delegated</strong>. When the recipient signs the case out, their pending delegations on it are completed.</li>
+</ol>
+<p><strong>Flag a case for Tumor Board / MDT</strong></p>
+<ol>
+<li>Select <strong>Tumor Board</strong> on the bar. The window <strong>Flag for Tumor Board / MDT</strong> opens.</li>
+<li>Choose the <strong>Board</strong>. Optionally set <strong>Meeting date</strong> and <strong>Meeting time</strong>.</li>
+<li>Select <strong>Flag for MDT</strong>. The message reads <strong>Case flagged for (board).</strong> The case appears on the <a href="/help/tumor-board">Tumor Board</a> screen as Pending Presentation with no presenter.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li><strong>Hand over only one report.</strong> If your laboratory has a delegation type for assigning a single synoptic report, the Delegate window shows <strong>Select Synoptic</strong> for it. The recipient finalizes that report and an attending countersigns. The standard delegation types listed above do not include this; ask your administrator.</li>
+<li><strong>Open from a message.</strong> A colleague's message with a case link opens the report with the Internal Notes drawer ready. Leave a note, then reply in the message centre. See <a href="/help/messaging">Messaging</a>.</li>
+<li><strong>Use the Worklist.</strong> From the Worklist, select the <strong>Collaborating Cases</strong> tile (or press Ctrl+Alt+F) to list the cases you are a team member of. While the list is showing, the tile reads <strong>← Back to</strong> your case list; select it to return.</li>
+<li><strong>Delegate to several people.</strong> For a type that allows several recipients (Teaching Case), click or drop more than one person onto the type. If one of several is refused, the window lists who was delegated and who was not, with the reason, and a <strong>Done</strong> button.</li>
+<li><strong>Ask for a peer review before sign-out.</strong> Use the Peer review banner (below), not Req. Review, when you need an independent read of the diagnosis for a first-time malignancy.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li><strong>Cytotechnologists cannot be Consultants (or any pathologist type).</strong> A cytotechnologist cannot hold a pathologist role on a case. Adding one by voice reads <strong>(Name) is a cytotechnologist and cannot be added as a consultant.</strong> In the Case Team window the message reads "(Name) is a cytotechnologist and can't be (type). Cytotechnologists can't hold pathologist roles on a case." In the Delegate window: "Cases can't be delegated to a cytotechnologist: a delegation makes its recipient a pathologist on the case."</li>
+<li><strong>You may not change the team.</strong> <strong>You are not allowed to change this case's team.</strong> (voice) or "You don't have permission to change this case's team." (window). Ask your manager.</li>
+<li><strong>Someone else changed the team first.</strong> <strong>Not saved: someone else changed this case's team while you were editing it. Close and reopen Case Team to see the latest team, then make your changes again.</strong> Nothing is overwritten. By voice: <strong>Someone else changed the team, or it could not be saved. Nobody was added.</strong></li>
+<li><strong>Already on the team.</strong> <strong>(Name) is already on the case team.</strong> Someone you removed earlier is brought back as a consultant.</li>
+<li><strong>Delegation refused.</strong> Messages: "You don't have permission to delegate cases.", "Choose a recipient.", "This delegation type sends a case to one recipient only. Choose a single recipient.", "That delegation type is turned off. Choose another type.", "The case or report couldn't be found."</li>
+<li><strong>Tumor Board refused.</strong> Messages: "This case is already flagged for a Tumor Board.", "This board's case list is locked for its upcoming meeting — choose a later date.", "You don't have permission to flag a case for Tumor Board.", "Could not flag this case for Tumor Board — please try again."</li>
+<li><strong>Review request refused.</strong> "You don't have permission to send review requests." Nothing is sent.</li>
+<li><strong>Pool case.</strong> The team buttons are hidden until you select <strong>Claim This Case</strong>.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li><strong>Changed the wrong lane.</strong> Before saving, use <strong>Undo</strong> on the chip, or <strong>Cancel</strong> and <strong>Discard changes</strong>. After saving, drag the person to the right lane and save again; the change is recorded in the audit log.</li>
+<li><strong>Delegated to the wrong person.</strong> If ownership transferred, ask the new owner to delegate it back, or ask your manager. A non-ownership delegation can be left in place; you still sign out.</li>
+<li><strong>Added the wrong collaborator.</strong> Open <strong>Team</strong> and remove them from the Consultant lane, then <strong>Save</strong>. The message already sent stays in their inbox.</li>
+<li><strong>Flagged the wrong board.</strong> Open <a href="/help/tumor-board">Tumor Board</a> and ask the coordinator to dismiss or change the listing; the Flag window will not create a second active listing for the same case.</li>
+<li><strong>Team window will not save.</strong> Close it, reopen it, and repeat your change.</li>
+</ol>
+<h2 id="who-can-do-what">Who can do what</h2>
+<table>
+<thead>
+<tr>
+<th>Action</th>
+<th>What is needed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Change the case team, Add Collaborator</td>
+<td>The permission to change a case's team. By default every role that could open a case report has it.</td>
+</tr>
+<tr>
+<td>Delegate a case</td>
+<td>The permission to delegate cases. By default every role that could open a case report has it.</td>
+</tr>
+<tr>
+<td>Request an informal review</td>
+<td>The permission to ask a colleague for an informal review (pathologists by default).</td>
+</tr>
+<tr>
+<td>Flag a case for Tumor Board</td>
+<td>The permission to flag a case for Tumor Board.</td>
+</tr>
+<tr>
+<td>Ask for, record or override a peer review</td>
+<td>Three separate permissions (ask, record, override). The gate itself is off by default.</td>
+</tr>
+<tr>
+<td>Sign out</td>
+<td>An active team member whose participation type can finalize, and the sign-out permission.</td>
+</tr>
+</tbody>
+</table>
+<p>If a button is greyed out, your role does not have the permission; ask your laboratory manager.</p>
+<h2 id="peer-review-before-sign-out">Peer review before sign-out</h2>
+<p>The Peer review banner appears under the header. It is a different action from <strong>Req. Review</strong>:</p>
+<ul>
+<li><strong>Req. Review</strong> is a message to a colleague. It never blocks sign-out.</li>
+<li>A <strong>peer review</strong> is a structured independent read, recorded in PathScribe, for a first-time malignancy. The banner says "First-time malignancy for this patient (no prior malignant case)". Depending on your laboratory it is recommended, or sign-out waits for it.</li>
+<li>Any pathologist can still ask for one on a case not yet signed out: <strong>Ask for peer review</strong>, choose the <strong>Reviewer</strong> (another pathologist, never the one signing out), add an optional note and select <strong>Ask for review</strong>.</li>
+<li>The reviewer sees <strong>Record your review</strong>, answers "Do you agree with the diagnosis?" (<strong>I agree</strong> / <strong>I disagree</strong>), gives their diagnosis and, if they disagree, how far apart the reads are (Minor, Moderate, Major).</li>
+<li>On disagreement either pathologist records the outcome with <strong>Record outcome</strong>: <strong>Consensus reached</strong> (with the consensus diagnosis) or <strong>No consensus (unresolved)</strong> (a reason is required, and a corrective action is recommended to the quality lead).</li>
+<li>The requester can <strong>Withdraw</strong> the request (a reason is required).</li>
+<li>Where sign-out is waiting for a review, <strong>Sign out now</strong> lets a pathologist with the override permission sign out for urgent care. Choose the reason; the review is still owed within 24 hours.</li>
+</ul>
+<h2 id="the-collaborating-cases-tile">The Collaborating Cases tile</h2>
+<p>On the Worklist, the <strong>Collaborating Cases</strong> tile counts the cases where you are an active member of the case team, leaving out Finalized and closed cases. It therefore includes cases you were added to as a consultant or second opinion, and also cases where you are a team member in another role. Select it to see the list; select it again (it then reads <strong>← Back to</strong> your case list) to go back. The count and list update as the team changes. Cases that were never given a team do not appear. See <a href="/help/worklist">Worklist</a>.</p>
+<h2 id="case-team-window-messages">Case Team window: messages</h2>
+<ul>
+<li>Dragging a person onto a participation type shows <strong>Drag staff here</strong> in the empty drop area. Staff are listed on the left; a search with no match says <strong>No staff found</strong>.</li>
+<li>Each assignee has a bin button with the tooltip <strong>Remove from this participation type</strong>.</li>
+<li>If the person's role is not allowed for that type, the window refuses with a message such as "(role) cannot be assigned as (type)."</li>
+</ul>
+<h2 id="delegation-window-messages">Delegation window: messages</h2>
+<p>The delegation window is headed <strong>Case Action · Delegation</strong>. Search staff or pools; if no staff match it shows <strong>No results for "(search)"</strong>, and an empty pool search shows <strong>No pools found</strong>. When only some people could be delegated, the result lists who was delegated and then <strong>Not delegated:</strong> with the names and reasons.</p>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Using <strong>Delegate</strong> with Case Reassignment when you only wanted an opinion. That hands the case over. Use <strong>Add Collaborator</strong>, <strong>Req. Review</strong>, or the Second Opinion type, which keep you as owner.</li>
+<li>Expecting a Consultant to sign out. A Consultant, a Second Opinion and a Resident cannot finalize on their own.</li>
+<li>Saying only the first name of a common name. Say the first and last name if the response is "More than one person matches".</li>
+<li>Removing yourself as primary. The window will not allow it; delegate instead.</li>
+<li>Waiting for a reply with no note. Put the question in <strong>Additional Context</strong> or the delegation note so the reader knows what to look at.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Say "add collaborator (name)" rather than opening the window and dragging a card.</li>
+<li>Use <strong>Req. Review</strong> with a one-line question for a quick look; use Delegate only to change who is responsible.</li>
+<li>Keep the Worklist's <strong>Collaborating Cases</strong> tile in view so requests are not missed.</li>
+<li>Tick the right lane on first drag; the preview before you drop tells you if it is not eligible.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Settle the team early. The primary pathologist and any trainee should be on the team before sign-out; the sign-out check looks at the team.</li>
+<li>A trainee who needs an attending's countersign should have a Co-Signer / Supervisor on the case (see <a href="/help/report/sign-out-and-release">Sign Out and Release</a>).</li>
+<li>Use the Technical component facility box when another laboratory processed the case, so the report carries both letterheads.</li>
+<li>Flag for Tumor Board at sign-out or when the diagnosis is clear; leave the date blank if the coordinator will schedule it.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/worklist">Worklist</a>: where you open the case and see Collaborating, Delegated and Countersign tiles.</li>
+<li><a href="/help/grossing">Grossing</a>: the grossing staff who appear on the team.</li>
+<li><a href="/help/messaging">Messaging</a>: where review requests and collaborator notices arrive.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/report/sign-out-and-release">Sign Out and Release</a>: who may sign and how a countersign works.</li>
+<li><a href="/help/tumor-board">Tumor Board</a>: where a flagged case is scheduled and presented.</li>
+<li><a href="/help/external-consult">External Consult</a>: giving an outside reviewer access.</li>
+<li><a href="/help/case-flags">Case Flags</a>: the Flag Manager on the same bar.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The team buttons are missing</td>
+<td>The case is still in a pool; select <strong>Claim This Case</strong>.</td>
+</tr>
+<tr>
+<td>Add Collaborator does nothing</td>
+<td>A window is open in front, no case is open, or you said no name.</td>
+</tr>
+<tr>
+<td>"No active staff member matches"</td>
+<td>The name is misspelled, the person is inactive, or two words from different people were combined.</td>
+</tr>
+<tr>
+<td>"More than one person matches"</td>
+<td>Two active staff share the name. Say first and last name.</td>
+</tr>
+<tr>
+<td>A cytotechnologist cannot be added</td>
+<td>By design: cytotechnologists cannot hold pathologist roles or be delegated to.</td>
+</tr>
+<tr>
+<td>Cannot drop a card on a lane</td>
+<td><strong>Not eligible for this role</strong>: the person's role does not allow that type.</td>
+</tr>
+<tr>
+<td>"Not saved: someone else changed this case's team"</td>
+<td>A colleague saved the team while yours was open. Close, reopen, repeat.</td>
+</tr>
+<tr>
+<td>The Tumor Board button is greyed out</td>
+<td>Your role may not flag cases.</td>
+</tr>
+<tr>
+<td>The colleague did not get the request</td>
+<td>The message is sent from the app; check the message centre. A failed collaborator message says so in the toast.</td>
+</tr>
+<tr>
+<td>A case does not appear under Collaborating Cases</td>
+<td>It is Finalized or closed, or the person is not an active team member.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Read the message on screen; it names the person, the type or the permission.</li>
+<li>Reopen the Case Team window to see the latest team.</li>
+<li>Check the person's roles with your manager if they are not eligible for a lane.</li>
+<li>If a spoken command is not recognised, use the button; the window keys also work.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a team change will not save after reopening, a delegation shows as done but the recipient cannot see the case, or a message to a colleague never arrives. Have the case number and the time of the problem ready.</p>

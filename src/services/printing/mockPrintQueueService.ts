@@ -3,7 +3,8 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { ServiceResult } from '../types';
 import type { IPrintQueueService, BulkPrintJobResult } from './IPrintQueueService';
 import type { PrintJob } from '@/types/printing/PrintJob';
-import { auditService } from '@/services';
+import { auditService } from '../auditlog/auditServiceInstance';
+import { printDestinationAuditText, printDestinationProblem, redirectSiteAllowed } from '../printRouting/printDestinationRules';
 
 /** Real, per PS-279 §2.2.3 — the one, real place this app decides
  *  which real statuses a hold/cancel action may act on, reused by
@@ -21,7 +22,7 @@ const delay = () => new Promise(r => setTimeout(r, 80));
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockPrintQueueService: IPrintQueueService = {
+const printQueueServiceUnchecked: IPrintQueueService = {
   async getAll() {
     await delay();
     return ok(load());
@@ -119,7 +120,7 @@ export const mockPrintQueueService: IPrintQueueService = {
     return ok(updated);
   },
 
-  async markPrinted(id) {
+  async markPrinted(id, options) {
     await delay();
     const all = load();
     const idx = all.findIndex(e => e.id === id);
@@ -128,6 +129,7 @@ export const mockPrintQueueService: IPrintQueueService = {
     const updated: PrintJob = {
       ...prior,
       status: 'PRINTED',
+      simulated: options?.simulated,
       errorCode: undefined,
       errorMessage: undefined,
       lastAttemptAt: new Date().toISOString(),
@@ -146,12 +148,17 @@ export const mockPrintQueueService: IPrintQueueService = {
     return ok(updated);
   },
 
-  async persistRenderedPdf(id, pdfBase64) {
+  async persistRenderedPdf(id, pdfBase64, document) {
     await delay();
     const all = load();
     const idx = all.findIndex(e => e.id === id);
     if (idx === -1) return err(`Print job ${id} not found`);
-    const updated: PrintJob = { ...all[idx], pdfBase64 };
+    // Batch 538: a stored release document is kept once, in the document store; the job names it.
+    const updated: PrintJob = {
+      ...all[idx], ...(document?.id ? {} : { pdfBase64 }),
+      ...(document?.id ? { reportDocumentId: document.id } : {}),
+      ...(document?.sha256 ? { pdfSha256: document.sha256 } : {}),
+    };
     const next = [...all];
     next[idx] = updated;
     persist(next);
@@ -262,6 +269,9 @@ export const mockPrintQueueService: IPrintQueueService = {
     const idx = all.findIndex(e => e.id === id);
     if (idx === -1) return err(`Print job ${id} not found`);
     const prior = all[idx];
+    // Batch 553: a destination that can't be used, or another lab's agent printer, is refused.
+    if (printDestinationProblem(destination)) return err(PRINT_JOB_BAD_DESTINATION);
+    if (!redirectSiteAllowed(prior, destination)) return err(PRINT_JOB_WRONG_SITE);
     const updated: PrintJob = {
       ...prior,
       redirectedToDestination: destination,
@@ -274,7 +284,7 @@ export const mockPrintQueueService: IPrintQueueService = {
     auditService.logEvent({
       type: 'user',
       event: 'Print job redirected',
-      detail: `Print job ${id} (${prior.reportType}, ${prior.mode}) redirected by ${redirectedBy} to ${destination.displayName ?? `${destination.protocol} ${destination.ipAddress}`}.`,
+      detail: `Print job ${id} (${prior.reportType}, ${prior.mode}) redirected by ${redirectedBy} to ${printDestinationAuditText(destination)}.`,
       user: redirectedBy,
       caseId: prior.caseId,
       confidence: null,
@@ -283,15 +293,15 @@ export const mockPrintQueueService: IPrintQueueService = {
   },
 
   async holdMany(ids, heldBy, holdReason) {
-    return runBulk(ids, id => mockPrintQueueService.holdPrintJob(id, heldBy, holdReason));
+    return runBulk(ids, id => printQueueServiceUnchecked.holdPrintJob(id, heldBy, holdReason));
   },
 
   async releaseHoldMany(ids, releasedBy) {
-    return runBulk(ids, id => mockPrintQueueService.releaseHold(id, releasedBy));
+    return runBulk(ids, id => printQueueServiceUnchecked.releaseHold(id, releasedBy));
   },
 
   async cancelMany(ids, cancelledBy, cancelReason) {
-    return runBulk(ids, id => mockPrintQueueService.cancelPrintJob(id, cancelledBy, cancelReason));
+    return runBulk(ids, id => printQueueServiceUnchecked.cancelPrintJob(id, cancelledBy, cancelReason));
   },
 
   async tagBatch(jobIds, batchId) {
@@ -327,3 +337,55 @@ async function runBulk(ids: string[], action: (id: string) => Promise<ServiceRes
   }
   return ok({ succeededIds, failed });
 }
+
+
+// ── Permissions (Batch 515, PS-283) ─────────────────────────────────────────
+// Holding, releasing, cancelling and redirecting a print job are people's
+// actions on the Print Queue dashboard, so each checks its capability here, in
+// the service (CLAUDE.md rule 7). Before, anyone who could open Audit Log →
+// Interfaces could do all of them. A bulk action checks once for the whole
+// selection. Queueing, marking printed/failed and the dispatch bookkeeping are
+// the system's own steps and are not checked. Retry is checked in
+// redispatchPrintJob.ts.
+import { PRINT_JOB_NOT_PERMITTED } from './printJobCodes';
+export { PRINT_JOB_NOT_PERMITTED };
+/** Batch 553: Redirect to a destination with a problem (printDestinationRules.ts). */
+export const PRINT_JOB_BAD_DESTINATION = 'PRINT_JOB_BAD_DESTINATION';
+/** Batch 553: Redirect to an agent printer on another site than the job's performing lab. */
+export const PRINT_JOB_WRONG_SITE = 'PRINT_JOB_WRONG_SITE';
+
+const enforce = async (capability: string) => {
+  const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+  return authorizationService.enforce(capability);
+};
+const permitHold = async () => (await enforce('print:job:hold')).allowed;
+const permitCancel = async () => (await enforce('print:job:cancel')).allowed;
+const permitRedirect = async () => (await enforce('print:job:redirect')).allowed;
+const refusedBulk = (ids: string[]): ServiceResult<BulkPrintJobResult> => ok({
+  succeededIds: [], failed: ids.map(id => ({ id, error: PRINT_JOB_NOT_PERMITTED })),
+});
+
+export const mockPrintQueueService: IPrintQueueService = {
+  ...printQueueServiceUnchecked,
+  async holdPrintJob(id, heldBy, holdReason) {
+    return (await permitHold()) ? printQueueServiceUnchecked.holdPrintJob(id, heldBy, holdReason) : err(PRINT_JOB_NOT_PERMITTED);
+  },
+  async releaseHold(id, releasedBy) {
+    return (await permitHold()) ? printQueueServiceUnchecked.releaseHold(id, releasedBy) : err(PRINT_JOB_NOT_PERMITTED);
+  },
+  async cancelPrintJob(id, cancelledBy, cancelReason) {
+    return (await permitCancel()) ? printQueueServiceUnchecked.cancelPrintJob(id, cancelledBy, cancelReason) : err(PRINT_JOB_NOT_PERMITTED);
+  },
+  async redirectPrintJob(id, destination, redirectedBy) {
+    return (await permitRedirect()) ? printQueueServiceUnchecked.redirectPrintJob(id, destination, redirectedBy) : err(PRINT_JOB_NOT_PERMITTED);
+  },
+  async holdMany(ids, heldBy, holdReason) {
+    return (await permitHold()) ? printQueueServiceUnchecked.holdMany(ids, heldBy, holdReason) : refusedBulk(ids);
+  },
+  async releaseHoldMany(ids, releasedBy) {
+    return (await permitHold()) ? printQueueServiceUnchecked.releaseHoldMany(ids, releasedBy) : refusedBulk(ids);
+  },
+  async cancelMany(ids, cancelledBy, cancelReason) {
+    return (await permitCancel()) ? printQueueServiceUnchecked.cancelMany(ids, cancelledBy, cancelReason) : refusedBulk(ids);
+  },
+};

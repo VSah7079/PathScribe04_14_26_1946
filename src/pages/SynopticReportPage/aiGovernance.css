@@ -1,0 +1,5 @@
+/* Batch 681: passive cues for AI values nobody has confirmed yet (no click needed to dismiss them). */
+.ps-syn-field-row--ai-unreviewed { background: color-mix(in srgb, rgb(8,145,178) 7%, transparent); }
+.ps-signout-ai-unreviewed { margin-block: 8px; }
+/* Windows forced-colors (high contrast) removes background tints, so mark the row with a border too. */
+@media (forced-colors: active) { .ps-syn-field-row--ai-unreviewed { border-inline-start: 3px dashed CanvasText; } }

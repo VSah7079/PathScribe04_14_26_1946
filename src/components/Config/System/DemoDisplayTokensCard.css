@@ -1,0 +1,5 @@
+/* Batch 747 (S8): the demo display tokens table on Configuration → Demo Reset (DemoDisplayTokensCard.tsx). */
+.ps-demoreset__token-table    { width: 100%; margin-block-start: 8px; border-collapse: collapse; font-size: 12px; }
+.ps-demoreset__token-table th { text-align: start; font-weight: 600; color: var(--ps-conf-text-3); padding: 4px 6px; border-block-end: 1px solid var(--ps-conf-border); }
+.ps-demoreset__token-table td { padding: 6px; border-block-end: 1px solid var(--ps-conf-border); vertical-align: middle; }
+.ps-demoreset__token          { font-family: monospace; font-size: 11px; word-break: break-all; }

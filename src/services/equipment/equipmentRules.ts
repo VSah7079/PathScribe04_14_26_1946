@@ -10,14 +10,15 @@
 //     station (worklist dispatch).
 //   - equipmentForPicker, filterEquipment, stationsForEquipment: lists.
 // ─────────────────────────────────────────────────────────────────────────────
-import { EQUIPMENT_KINDS, type Equipment, type EquipmentDraft, type EquipmentKind } from './IEquipmentService';
+import { EQUIPMENT_KINDS, type Equipment, type EquipmentDraft, type EquipmentKind, type DeckSlot } from './IEquipmentService';
 import { isValidInterval } from './equipmentLogRules';
 
 export type EquipmentDraftErrorKey =
-  | 'nameRequired' | 'codeRequired' | 'codeFormat' | 'codeTaken' | 'kindRequired' | 'facilityRequired' | 'stationOtherFacility' | 'intervalInvalid';
+  | 'nameRequired' | 'codeRequired' | 'codeFormat' | 'codeTaken' | 'kindRequired' | 'facilityRequired' | 'stationOtherFacility' | 'intervalInvalid'
+  | 'deckSlotsInvalid' | 'temperatureRangeInvalid';
 
 export type EquipmentDraftErrors = Partial<Record<
-  'name' | 'code' | 'kind' | 'facilityId' | 'scanStationId' | 'maintenanceIntervalDays' | 'calibrationIntervalDays', EquipmentDraftErrorKey
+  'name' | 'code' | 'kind' | 'facilityId' | 'scanStationId' | 'maintenanceIntervalDays' | 'calibrationIntervalDays' | 'deckSlots' | 'temperatureMaxCelsius', EquipmentDraftErrorKey
 >>;
 
 /** Codes are letters, digits, "_" and "-": they go into barcodes (LOC-INST-<code>-SLOT_<slot>). */
@@ -32,7 +33,7 @@ export function isEquipmentKind(kind: string): kind is EquipmentKind {
 }
 
 export function validateEquipmentDraft(
-  draft: Pick<EquipmentDraft, 'name' | 'code' | 'kind' | 'facilityId' | 'scanStationId' | 'maintenanceIntervalDays' | 'calibrationIntervalDays'>,
+  draft: Pick<EquipmentDraft, 'name' | 'code' | 'kind' | 'facilityId' | 'scanStationId' | 'maintenanceIntervalDays' | 'calibrationIntervalDays'> & Partial<Pick<EquipmentDraft, 'deckSlots' | 'temperatureMinCelsius' | 'temperatureMaxCelsius'>>,
   context: {
     existing: ReadonlyArray<Pick<Equipment, 'id' | 'code'>>;
     stations: ReadonlyArray<{ id: string; facilityId: string }>;
@@ -55,7 +56,25 @@ export function validateEquipmentDraft(
   // Batch 360: schedules are whole days, 1 to 10 years; empty = not scheduled.
   if (!isValidInterval(draft.maintenanceIntervalDays)) errors.maintenanceIntervalDays = 'intervalInvalid';
   if (!isValidInterval(draft.calibrationIntervalDays)) errors.calibrationIntervalDays = 'intervalInvalid';
+  // Batch 406: deck slots have unique ids made for barcodes, and each takes at least one rack type.
+  if (draft.deckSlots && !deckSlotsValid(draft.deckSlots)) errors.deckSlots = 'deckSlotsInvalid';
+  // Batch 730: the temperature range, when set, is two numbers with the lowest below the highest.
+  const lo = draft.temperatureMinCelsius, hi = draft.temperatureMaxCelsius;
+  if ((lo !== undefined && !Number.isFinite(lo)) || (hi !== undefined && !Number.isFinite(hi)) || (lo !== undefined && hi !== undefined && lo >= hi)) errors.temperatureMaxCelsius = 'temperatureRangeInvalid';
   return errors;
+}
+
+const SLOT_ID_PATTERN = /^[A-Z0-9_]+$/;
+
+/** Batch 406: a deck slot id as stored (trimmed, upper case). */
+export function normaliseDeckSlotId(id: string): string {
+  return id.trim().toUpperCase();
+}
+
+/** Batch 406: every slot has an id of letters, digits and "_", no two alike, and at least one rack type. */
+export function deckSlotsValid(slots: ReadonlyArray<Pick<DeckSlot, 'id' | 'rackTypes'>>): boolean {
+  const ids = slots.map(sl => normaliseDeckSlotId(sl.id));
+  return ids.every(id => SLOT_ID_PATTERN.test(id)) && new Set(ids).size === ids.length && slots.every(sl => sl.rackTypes.length > 0);
 }
 
 export type BatchInstrumentCheck =

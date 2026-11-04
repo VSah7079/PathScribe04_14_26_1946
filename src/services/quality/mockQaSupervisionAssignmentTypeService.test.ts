@@ -1,4 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockQaSupervisionAssignmentTypeService } from './mockQaSupervisionAssignmentTypeService';
 import { FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './mockQaSupervisionAssignmentService';
 
@@ -56,17 +61,27 @@ describe('mockQaSupervisionAssignmentTypeService', () => {
     expect(all.data.length).toBe(3);
   });
 
-  it('deactivate/reactivate toggle the real active flag', async () => {
-    await mockQaSupervisionAssignmentTypeService.deactivate(FPPE_ACTIVITY_TYPE_ID);
+  it('deactivate/reactivate toggle a custom type\'s active flag', async () => {
+    const created = await mockQaSupervisionAssignmentTypeService.add({ name: 'Custom toggle', tabScope: 'custom', active: true, createdBy: 'user-1' });
+    if (!created.ok) throw new Error('add failed');
+    await mockQaSupervisionAssignmentTypeService.deactivate(created.data.id);
     let all = await mockQaSupervisionAssignmentTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === FPPE_ACTIVITY_TYPE_ID)?.active).toBe(false);
-
-    await mockQaSupervisionAssignmentTypeService.reactivate(FPPE_ACTIVITY_TYPE_ID);
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(false);
+    await mockQaSupervisionAssignmentTypeService.reactivate(created.data.id);
     all = await mockQaSupervisionAssignmentTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === FPPE_ACTIVITY_TYPE_ID)?.active).toBe(true);
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(true);
   });
+
+  it('Batch 428: a standard type can\'t be switched off (the service refuses, not only the screen)', async () => {
+    const res = await mockQaSupervisionAssignmentTypeService.deactivate(FPPE_ACTIVITY_TYPE_ID);
+    expect(res.ok).toBe(false);
+    const all = await mockQaSupervisionAssignmentTypeService.getAll();
+    if (!all.ok) return;
+    expect(all.data.find(t => t.id === FPPE_ACTIVITY_TYPE_ID)?.active).not.toBe(false);
+  });
+
 
   it('update rejects an unknown id', async () => {
     const res = await mockQaSupervisionAssignmentTypeService.update('not-real', { name: 'X' });

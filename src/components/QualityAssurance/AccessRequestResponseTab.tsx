@@ -18,9 +18,9 @@
 // `r.type`/`r.status` themselves (the persisted enum values) are never
 // touched.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { TooltipContentProps } from 'recharts';
 import { accessRequestService } from '@/services';
@@ -28,6 +28,16 @@ import type { AccessRequest } from '@/types/access/AccessRequest';
 import { QaScopeSwitcher } from './QaScopeSwitcher';
 import { exportQaReportRows, scopeLabel, QaScope, qaScopeContext } from './qaReportUtils';
 import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import ReasonPromptModal from '@/components/Common/ReasonPromptModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { ACCESS_REQUEST_DECISION_CAPABILITY } from '@/services/access/accessRequestDecision';
+import { getPatientCaseAccess } from '@/services/patientCaseAccess/patientCaseAccessService';
+import { formatDateTime } from '@/utils/formatDate';
+import { facilityMonthlyTrend, averageHours } from '@/services/quality/facilityMonthlyTrend';
+import { useSystemConfig } from '@/contexts/SystemConfigContext';
+import { pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { CHART_TICK_COLOR } from '@/utils/chartTheme';
 
 const hoursBetween = (a: string, b: string) => (new Date(b).getTime() - new Date(a).getTime()) / 3600000;
 
@@ -36,6 +46,7 @@ const TYPE_LABELS: Record<AccessRequest['type'], string> = {
   pediatric: 'Pediatric',
   pool: 'Pool',
   orchestration: 'Orchestration',
+  patient_cases: "Patient's other cases",
 };
 
 // On-screen display only.
@@ -43,6 +54,7 @@ const TYPE_LABEL_KEY: Record<AccessRequest['type'], string> = {
   pediatric:     'accessRequestResponseTab.type.pediatric',
   pool:          'accessRequestResponseTab.type.pool',
   orchestration: 'accessRequestResponseTab.type.orchestration',
+  patient_cases: 'accessRequestResponseTab.type.patient_cases',
 };
 
 const STATUS_LABEL_KEY: Record<'granted' | 'denied', string> = {
@@ -63,18 +75,58 @@ function accessRequestMatchesScope(r: AccessRequest, scope: QaScope): boolean {
 }
 
 export const AccessRequestResponseTab: React.FC = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const openCasePage = useOpenCase();
+  // Row click handler: only rows that name a case open it.
+  const openCaseHandler = (caseId: string | undefined) => (caseId ? () => void openCasePage(caseId, 'synoptic') : undefined);
   const [scope, setScope] = useState<QaScope>({ level: 'enterprise' });
   const [requests, setRequests] = useState<AccessRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  // Batch 432: denying a request (the service checks the permission and messages the requester).
+  const [denyTarget, setDenyTarget] = useState<AccessRequest | null>(null);
+  const [denyError, setDenyError] = useState<string | null>(null);
+  // Batch 613: access to a patient's other cases in force (this person may revoke), and the one being revoked.
+  const [grants, setGrants] = useState<AccessRequest[]>([]);
+  const [revokeTarget, setRevokeTarget] = useState<AccessRequest | null>(null);
+  const accessUser = user ? { id: user.id, name: user.name, role: user.role, organisationId: user.organisationId } : null;
 
-  useEffect(() => {
-    accessRequestService.getAll().then(res => {
-      if (res.ok) setRequests(res.data);
-      setLoading(false);
-    });
-  }, []);
+  const load = () => Promise.all([
+    accessRequestService.getAll(),
+    accessUser ? getPatientCaseAccess().listRevocableGrants(accessUser) : Promise.resolve([] as AccessRequest[]),
+  ]).then(([res, revocable]) => {
+    if (res.ok) setRequests(res.data);
+    setGrants(revocable);
+    setLoading(false);
+  });
+  useEffect(() => { void load(); }, []);
+
+  const confirmDeny = async (reason: string) => {
+    const target = denyTarget;
+    setDenyTarget(null);
+    if (!target || !user) return;
+    const res = target.type === 'patient_cases'
+      ? await getPatientCaseAccess().denyAccess(target.id, accessUser!, reason)
+      : await accessRequestService.deny(target.id, user.id, user.name ?? user.id, reason);
+    setDenyError(res.ok ? null : t('accessRequestResponseTab.deny.failed'));
+    await load();
+  };
+
+  const approvePatientCases = async (target: AccessRequest) => {
+    if (!accessUser) return;
+    const res = await getPatientCaseAccess().grantAccess(target.id, accessUser);
+    setDenyError(res.ok ? null : t('accessRequestResponseTab.deny.failed'));
+    await load();
+  };
+
+  const confirmRevoke = async (reason: string) => {
+    const target = revokeTarget;
+    setRevokeTarget(null);
+    if (!target || !accessUser) return;
+    const res = await getPatientCaseAccess().revokeAccess(target.id, accessUser, reason);
+    setDenyError(res.ok ? null : t('accessRequestResponseTab.patientCases.revoke.failed'));
+    await load();
+  };
 
   const scoped = useMemo(
     () => requests.filter(r => accessRequestMatchesScope(r, scope)),
@@ -96,25 +148,11 @@ export const AccessRequestResponseTab: React.FC = () => {
 
   // Real monthly turnaround trend, last 6 months — same pattern as the
   // other QA tabs' trend charts.
-  const monthlyTrend = useMemo(() => {
-    const months: { month: string; avgHours: number | null; total: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const monthKey = d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
-      const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1).getTime();
-      const inMonth = resolved.filter(r => {
-        const ts = new Date(r.resolvedAt!).getTime();
-        return ts >= monthStart && ts < monthEnd;
-      });
-      const avgHours = inMonth.length > 0
-        ? +(inMonth.reduce((s, r) => s + hoursBetween(r.requestedAt, r.resolvedAt!), 0) / inMonth.length).toFixed(1)
-        : null;
-      months.push({ month: monthKey, avgHours, total: inMonth.length });
-    }
-    return months;
-  }, [resolved]);
+  const { config: systemConfig } = useSystemConfig();
+  // Batch 504: by the facility's calendar month (services/quality/facilityMonthlyTrend.ts).
+  const monthlyTrend = useMemo(() => facilityMonthlyTrend(resolved, r => r.resolvedAt, inMonth => ({
+    avgHours: averageHours(inMonth, r => r.requestedAt, r => r.resolvedAt!), total: inMonth.length,
+  }), systemConfig.facilityTimezone), [resolved, systemConfig.facilityTimezone]);
 
   const handleExport = () => {
     const rows = scoped.map(r => ({
@@ -127,10 +165,10 @@ export const AccessRequestResponseTab: React.FC = () => {
       'Turnaround Hours': r.resolvedAt ? hoursBetween(r.requestedAt, r.resolvedAt).toFixed(1) : '',
       'Resolved By': r.resolvedByUserName ?? '',
     }));
-    void exportQaReportRows('qa:access-request-response:export', rows, `access-request-response-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope));
+    void exportQaReportRows('qa:access-request-response:export', rows, `access-request-response-${scopeLabel(scope)}-${new Date().toISOString().slice(0, 10)}.csv`, qaScopeContext(scope), { scope });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('accessRequestResponseTab.loading')}</div>;
+  if (loading) return <LoadingState label={t('accessRequestResponseTab.loading')} />;
 
   return (
     <div>
@@ -143,9 +181,9 @@ export const AccessRequestResponseTab: React.FC = () => {
         <ResponsiveContainer width="100%" height={180}>
           <LineChart data={monthlyTrend} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} width={32} unit="h" />
-            <Tooltip content={({ active, payload, label }: TooltipContentProps<number, string>) => {
+            <XAxis dataKey="month" tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={{ stroke: 'rgba(255,255,255,0.08)' }} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: CHART_TICK_COLOR }} axisLine={false} tickLine={false} width={32} unit="h" />
+            <Tooltip content={({ active, payload, label }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
               const point = payload[0]?.payload;
               return (
@@ -184,6 +222,16 @@ export const AccessRequestResponseTab: React.FC = () => {
       <div className="ps-defic-review-banner ps-mt-20 ps-mb-8">
         <span className="ps-defic-review-banner-label">{t('countersignTurnaroundTab.pendingBanner', { count: pending.length })}</span>
       </div>
+      {denyError && <div className="ps-qa-inline-error" role="alert">{denyError}</div>}
+      <ReasonPromptModal
+        show={!!denyTarget}
+        title={t('accessRequestResponseTab.deny.title')}
+        message={denyTarget ? t('accessRequestResponseTab.deny.message', { name: denyTarget.requestingUserName }) : ''}
+        reasonLabel={t('accessRequestResponseTab.deny.reasonLabel')}
+        confirmLabel={t('accessRequestResponseTab.deny.button')}
+        onConfirm={reason => void confirmDeny(reason)}
+        onCancel={() => setDenyTarget(null)}
+      />
       <div className="ps-conf-table-wrap">
         <table className="ps-conf-table">
           <thead><tr>
@@ -192,16 +240,65 @@ export const AccessRequestResponseTab: React.FC = () => {
             <th className="ps-conf-th">{t('qualityAssurance.common.case')}</th>
             <th className="ps-conf-th">{t('accessRequestResponseTab.headers.requestedAt')}</th>
             <th className="ps-conf-th">{t('countersignTurnaroundTab.headers.waiting')}</th>
+            <th className="ps-conf-th">{t('accessRequestResponseTab.headers.actions')}</th>
           </tr></thead>
           <tbody>
-            {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
+            {pending.length === 0 && <tr><td className="ps-conf-td" colSpan={6}>{t('accessRequestResponseTab.noPendingMessage')}</td></tr>}
             {pending.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => navigate(`/case/${r.caseId}/synoptic`) : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} {...pressable(openCaseHandler(r.caseId), { role: null })}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className="ps-conf-td" data-phi="accession">{r.caseId ?? <span className="ps-conf-td--muted-italic">—</span>}</td>
                 <td className="ps-conf-td">{new Date(r.requestedAt).toLocaleString()}</td>
                 <td className="ps-conf-td">{hoursBetween(r.requestedAt, new Date().toISOString()).toFixed(1)}h</td>
+                {/* Batch 432: deny, with a reason. Granting happens where the
+                    access lives (the request then closes itself). */}
+                <td className="ps-conf-td" onClick={e => e.stopPropagation()}>
+                  {r.type === 'patient_cases' && (
+                    <CapabilityButton capability="patient:other-cases:decide-access" className="ps-conf-btn-primary" onClick={() => void approvePatientCases(r)}>
+                      {t('patientCaseAccess.decide.approve')}
+                    </CapabilityButton>
+                  )}
+                  <CapabilityButton capability={ACCESS_REQUEST_DECISION_CAPABILITY[r.type]} className="ps-conf-btn-secondary" onClick={() => setDenyTarget(r)}>
+                    {t('accessRequestResponseTab.deny.button')}
+                  </CapabilityButton>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ReasonPromptModal
+        show={!!revokeTarget}
+        title={t('accessRequestResponseTab.patientCases.revoke.title')}
+        message={revokeTarget ? t('accessRequestResponseTab.patientCases.revoke.message', { name: revokeTarget.requestingUserName }) : ''}
+        reasonLabel={t('accessRequestResponseTab.patientCases.revoke.reasonLabel')}
+        confirmLabel={t('patientCaseAccess.grants.confirmRevoke')}
+        onConfirm={reason => void confirmRevoke(reason)}
+        onCancel={() => setRevokeTarget(null)}
+      />
+      <div className="ps-defic-review-banner ps-mt-20 ps-mb-8">
+        <span className="ps-defic-review-banner-label">{t('accessRequestResponseTab.patientCases.heading')}</span>
+      </div>
+      <div className="ps-conf-table-wrap">
+        <table className="ps-conf-table">
+          <thead><tr>
+            <th className="ps-conf-th">{t('accessRequestResponseTab.headers.requestedBy')}</th>
+            <th className="ps-conf-th">{t('accessRequestResponseTab.headers.resolvedBy')}</th>
+            <th className="ps-conf-th">{t('accessRequestResponseTab.headers.actions')}</th>
+          </tr></thead>
+          <tbody>
+            {grants.length === 0 && <tr><td className="ps-conf-td" colSpan={3}>{t('accessRequestResponseTab.patientCases.none')}</td></tr>}
+            {grants.map(g => (
+              <tr key={g.id}>
+                <td className="ps-conf-td">{g.requestingUserName}</td>
+                <td className="ps-conf-td">{g.resolvedByUserName ?? '—'}{g.resolvedAt ? ` · ${formatDateTime(g.resolvedAt, i18n.language)}` : ''}</td>
+                <td className="ps-conf-td">
+                  <CapabilityButton capability="patient:other-cases:decide-access" className="ps-conf-btn-secondary" onClick={() => setRevokeTarget(g)}>
+                    {t('patientCaseAccess.grants.revoke')}
+                  </CapabilityButton>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -222,7 +319,7 @@ export const AccessRequestResponseTab: React.FC = () => {
           <tbody>
             {resolved.length === 0 && <tr><td className="ps-conf-td" colSpan={5}>{t('accessRequestResponseTab.noResolvedMessage')}</td></tr>}
             {resolved.map(r => (
-              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} onClick={r.caseId ? () => navigate(`/case/${r.caseId}/synoptic`) : undefined}>
+              <tr key={r.id} className={r.caseId ? 'ps-conf-tr-clickable' : undefined} {...pressable(openCaseHandler(r.caseId), { role: null })}>
                 <td className="ps-conf-td">{t(TYPE_LABEL_KEY[r.type])}</td>
                 <td className="ps-conf-td">{r.requestingUserName}</td>
                 <td className={`ps-conf-td ${r.status === 'granted' ? 'ps-accessreq-status--granted' : 'ps-accessreq-status--denied'}`}>{t(STATUS_LABEL_KEY[r.status as 'granted' | 'denied'])}</td>

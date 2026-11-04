@@ -40,12 +40,21 @@ export function describeLinkedAccounts(staff: Pick<StaffUser, 'externalIdentitie
 
 export type UnlinkResult =
   | { ok: true; staff: StaffUser }
-  | { ok: false; reason: 'not_found' | 'not_linked' | 'save_failed' };
+  | { ok: false; reason: 'not_found' | 'not_linked' | 'save_failed' | 'not_permitted' };
 
 export async function unlinkExternalIdentity(
   input: { staffId: string; issuer: string; subject: string; actorName: string },
-  deps: { userService: Pick<IUserService, 'getById' | 'update'>; auditService: Pick<IAuditService, 'logEvent'> },
+  deps: {
+    userService: Pick<IUserService, 'getById' | 'update'>;
+    auditService: Pick<IAuditService, 'logEvent'>;
+    /** Batch 428: the capability check (a fake in tests). */
+    authorization?: { enforce: (capability: string) => Promise<{ allowed: boolean }> };
+  },
 ): Promise<UnlinkResult> {
+  // Batch 428: unlinking changes how someone signs in, so it needs
+  // config:staff-access:assign, like the rest of a staff member's access (audited).
+  const authorization = deps.authorization ?? (await import('../authorization/defaultAuthorizationService')).authorizationService;
+  if (!(await authorization.enforce('config:staff-access:assign')).allowed) return { ok: false, reason: 'not_permitted' };
   const found = await deps.userService.getById(input.staffId);
   if (found.ok === false) return { ok: false, reason: 'not_found' };
   const links = found.data.externalIdentities ?? [];

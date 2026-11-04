@@ -1,10 +1,16 @@
+**Batch 650:** `PoolClaimModal` answers Accept case / Pass case (voice and keys) once the window is ready and the button is not greyed, takes the registry's SYNOPTIC context while open and hands the host's back (`restoreVoiceContext`). Test: `PoolClaimModal.voice.test.tsx`.
+
+**Batch 649:** `PoolClaimModal.tsx`: Claim and Pass are greyed without `case:pool:claim` / `case:pool:pass` and say why; `services/cases/poolCaseActions.ts` checks again.
+
 # components/Worklist/
 
 The case worklist table and its pool-claim workflow.
 
+**Batch 709:** the Case column (display, sort) shows the visible case number from `services/cases/caseDisplayNumber.ts` (the accession number printed on labels, cassettes, blocks and slides, falling back to the internal id), not the internal routing id. Links and storage still use `Case.id`. `WorklistTable.tsx` stays 2,289 lines.
+
 ## Files
 
-- **`WorklistTable.tsx`** (1834 lines, one of the largest single
+- **`WorklistTable.tsx`** (~2,270 lines; was 1834, updated in the Batch 496 README audit — one of the largest single
   components in the app) — The core case list: sorting, filtering,
   responsive card/table switching, divider rows, virtualization. Cleanly
   self-organized into clear internal sections (Types/Constants/Color
@@ -46,6 +52,11 @@ The case worklist table and its pool-claim workflow.
   nothing about how `buildPoolGroupRows()` itself groups, sorts, or
   counts pools needed to change.
 - **`poolGrouping.test.ts`** — 19 real tests (grew from 8): the original grouping/sorting/counting coverage, plus the new explicit-flag regression fix, and `computeRestrictedPoolKeys`'s real membership logic (restricted when not a member and restriction is on, unrestricted when a member, unrestricted when restriction is off, matches by both Subspecialty name and id). Re-run and confirmed still passing, unmodified, after `splitPoolRowsByUrgency()` was added above — the additive-function approach was specifically chosen to keep this coverage untouched, and re-running confirmed that held rather than just assuming it.
+- **`SlideDetailDrawer.tsx`** — the Digital Readiness slide detail drawer, opened from the worklist (`pages/WorklistPage/WorklistPage.tsx`).
+- **`autopsyGrouping.ts`** (+ test) — the Autopsy branch tab's grouping, same pattern as the pool and amendment grouping files.
+- **`AutopsyWorklistBadges.tsx`** — see Batch 477 below.
+
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): these three files were missing from this list.*
 - **`amendmentGrouping.ts`** (+ `amendmentGrouping.test.ts`) — pure,
   testable extraction of the Worklist's Amendment & Addenda
   sub-grouping logic, same discipline as `poolGrouping.ts` above. Real
@@ -315,6 +326,66 @@ patient data, not stuck showing "Restricted Pooled Case."
 
 `WorklistTable.tsx`: `getFlagPalette` returns only the flag's hue; the rgba tints it built were never used.
 
+## Batch 431
+
+- The "access requested" badges (pool, pediatric, Orchestration) come from the person's own pending access requests; each request is saved as a record.
+- The worklist sort order is the person's own setting.
+
+## Batch 440
+
+`WorklistTable` takes an optional `interceptOpen(caseId) => boolean`. A filter can open its cases its own way; the Worklist's Cytology Review tile uses it to take a case before opening it in the Cytology Workspace. It runs after the pediatric and Outreach access checks and before the pool claim.
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`WorklistAbnormalBadge.test.tsx`: the abnormal badge in row and card views, its colour and that it doesn't pulse (PS-133), and the synthetic codes in its tooltip (PS-130).
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+`PoolClaimModal`: if someone else accepted the case first, the modal says so instead of failing silently.
+
+## Batch 477 — Autopsy worklist badges (PS-261 follow-up, Module 5)
+
+Pete's own scoping call: given the Autopsy branch tab + grouping (`autopsyGrouping.ts`) already here since September — his own "there are so few, can we just group the records?" — a "dedicated autopsy worklist" means real autopsy state on the rows already shown there, not a second screen.
+
+New `AutopsyWorklistBadges.tsx`, shown in both the table row's Status cell and the card layout's body: case authority (reuses `autopsyIntake.caseAuthority.*`, the Search page's own label keys), an active ancillary hold (`searchPage.holdType.autopsyAncillary`), PAD/FAD signed (`searchPage.autopsyReport.*`, not mutually exclusive — a case can show both), and a tooltip-only "SLA" chip (domain abbreviation, same treatment as "RES" on the Staff chip) carrying the jurisdiction's real, static TAT/SLA target. Decision logic lives in `services/autopsy/resolveAutopsyWorklistBadges.ts`, same split `resolveWorklistDpBadges.ts` already established. Renders nothing for a non-autopsy row.
+
+**Disclosed, not fixed:** no real elapsed-time/deadline calculation exists yet (`resolveAutopsyTatSlaMatrix.ts`'s own header already flags this as "a later phase"), so the SLA chip shows the jurisdiction's static target only, never a computed on-track/overdue verdict — fabricating one here would be dishonest. The SLA tooltip text itself reuses `formatAutopsyTatSlaSummary.ts` verbatim, including that function's own pre-existing, disclosed hardcoded-English gap (already shown the same way on the report page) — not a new gap, not fixed here either.
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+- `WorklistTable` remembers collapsed pools through `utils/uiPreferences.ts` instead of the mock-storage helpers. The key changed, so a remembered collapsed/expanded state resets once.
+- `PoolClaimModal` and `WorklistTable` import their services from `@/services`.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. The MRN label and the resident badge ("RES") are translated. Group dividers in `amendmentGrouping.ts` and `autopsyGrouping.ts` carry a translation key (`labelKey`) instead of English text.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 567 (WCAG 2.1 AA)
+
+- `WorklistTable.tsx`: the two digital-pathology cells are a mouse shortcut only (`clickableContainer`), and only when they show a badge; the badge button is the one tab stop (it was the cell and the badge).
+
+## Batch 610 (part A) — autopsy TAT chip
+
+`AutopsyWorklistBadges` takes `caseSource` and shows `AutopsyTatChip` after the SLA badge.
+
+## Batch 610 (#164)
+
+`WorklistTable` takes an optional `slaBreaches` map (case id to `firstTouch` or `total`) and shows an "SLA" badge in both the card and table views for an open case past its client's target. `WorklistPage` builds the map with `loadOpenSlaBreaches`.
+
+## Batch 624
+
+The digital readiness and AI cells (and the slide drawer) show PathScribe's own wording through `t()`; scanner and AI vendor wording is shown as received. The flag chip shows a shipped flag's name in the user's language (`services/flags/shippedFlagNames.ts`). `WorklistTable.tsx` is 2 lines shorter (baseline lowered).

@@ -15,7 +15,8 @@
 //   rec_type = SNOMED concept type filter
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { TERMINOLOGY_CONFIG } from '../../components/Config/Terminology/terminologyConfig';
+import { nlmLookupUrl, nlmViaServer } from './nlmLookupRoute';
+import { getAccessToken } from '../auth/accessTokenSource';
 
 // Real, per direct guidance: "real search could introduce time...
 // Everything needs to be fast as possible otherwise, the point of the
@@ -42,11 +43,23 @@ async function fetchWithTimeout(url: string, timeoutMs = TERMINOLOGY_SEARCH_TIME
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal });
+    // Batch 617: a look-up through the API server carries the signed-in user's token; a direct demo call to NLM carries nothing.
+    const token = nlmViaServer() && url.startsWith('/api/terminology/nlm/') ? await getAccessToken().catch(() => '') : '';
+    return await fetch(url, { signal: controller.signal, ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}) });
   } finally {
     clearTimeout(timeoutId);
   }
 }
+
+import { simulatedIcdoSearch, simulatedIcd11Search, SIMULATED_HIERARCHY } from './simulatedCodeLookup';
+import { searchOpcs4Sample } from '../coding/opcs4Sample';
+import { searchIcdo3Morphology } from '../coding/icdO3Morphology';
+
+/** Batch 607: hierarchy label on results from the bundled ICD-O-3 morphology table. */
+export const BUNDLED_ICDO3_HIERARCHY = 'ICD-O-3 (bundled)';
+
+let simulatedFallback = import.meta.env.MODE !== 'test';
+export function setSimulatedCodeFallbackForTests(v: boolean): void { simulatedFallback = v; }
 
 export interface CodeResult {
   code:       string;
@@ -54,8 +67,6 @@ export interface CodeResult {
   system:     string;
   hierarchy?: string;
 }
-
-const NLM_BASE = TERMINOLOGY_CONFIG.nlm.baseUrl;
 
 export type SnomedFilter = 'all' | 'morphology' | 'anatomy' | 'specimen' | 'organism';
 
@@ -136,6 +147,18 @@ async function searchSnomed(
   }
 }
 
+/** Batch 656: exact look-up of a SNOMED CT code by its own identifier (UTS `sourceUi` input). True only when the same code comes back. */
+async function lookupSnomedByCode(code: string): Promise<string | null> {
+  if (!/^\d{5,18}$/.test(code)) return null;
+  const params = new URLSearchParams({ string: code, inputType: 'sourceUi', searchType: 'exact', sabs: 'SNOMEDCT_US', returnIdType: 'code', pageSize: '5' });
+  const res = await fetchWithTimeout(`${UTS_SEARCH}?${params}`);
+  if (!res.ok) throw new Error(`UTS SNOMED ${res.status}`);
+  const data = await res.json();
+  const results: { ui?: string; name?: string; rootSource?: string }[] = data?.result?.results ?? [];
+  const hit = results.find(r => r.ui === code && r.rootSource === 'SNOMEDCT_US');
+  return hit ? (hit.name ?? '') : null;
+}
+
 // ─── ICD-10-CM ────────────────────────────────────────────────────────────────
 // Endpoint: /icd10cm/v3/search
 // data[1] = codes, data[3] = [[code, name], ...] when df=code,name
@@ -150,7 +173,7 @@ async function searchIcd10(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'code,name',
       df:      'code,name',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.icd10}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('icd10')}?${params}`);
     if (!res.ok) throw new Error(`NLM ICD-10 ${res.status}`);
     const data = await res.json();
 
@@ -190,7 +213,7 @@ async function searchIcd11(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'code,title',
       df:      'code,title',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.icd11}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('icd11')}?${params}`);
     if (!res.ok) throw new Error(`NLM ICD-11 ${res.status}`);
     const data = await res.json();
 
@@ -231,7 +254,7 @@ async function searchLoinc(query: string, maxResults = 20): Promise<CodeResult[]
       sf:      'LOINC_NUM,LONG_COMMON_NAME,SHORTNAME',
       df:      'LOINC_NUM,LONG_COMMON_NAME',
     });
-    const res = await fetchWithTimeout(`${NLM_BASE}${TERMINOLOGY_CONFIG.nlm.endpoints.loinc}?${params}`);
+    const res = await fetchWithTimeout(`${nlmLookupUrl('loinc')}?${params}`);
     if (!res.ok) throw new Error(`NLM LOINC ${res.status}`);
     const data = await res.json();
 
@@ -301,15 +324,35 @@ async function searchIcdo(query: string, maxResults = 20): Promise<CodeResult[]>
   }
 }
 
+// Batch 607 (#140): the bundled ICD-O-3 morphology table answers first (code and behaviour); the live search adds to it.
+async function searchIcdoWithBundled(query: string, maxResults: number): Promise<CodeResult[]> {
+  const bundled: CodeResult[] = searchIcdo3Morphology(query, maxResults).map(h => ({ code: h.code, display: h.display, system: 'ICDO', hierarchy: BUNDLED_ICDO3_HIERARCHY }));
+  const isCode = /^\d{4}(\/\d?)?$/.test(query.trim());
+  let live: CodeResult[] = [];
+  try {
+    live = isCode ? [] : await searchIcdo(query, maxResults);
+  } catch (e) {
+    if (bundled.length) return bundled;
+    if (simulatedFallback) return simulatedIcdoSearch(query, maxResults);
+    throw e;
+  }
+  const seen = new Set(bundled.map(b => b.code));
+  return [...bundled, ...live.filter(l => !seen.has(l.code))].slice(0, maxResults);
+}
+
 // ─── OPCS-4 ───────────────────────────────────────────────────────────────────
 // NHS UK procedure classification — no public NLM endpoint exists.
 // Requires NHS TRUD licence and backend proxy for production.
 // Dev/demo: returns empty with a console note.
 // TODO: wire to NHS TRUD API via backend proxy.
 
-async function searchOpcs4(_query: string, _maxResults = 20): Promise<CodeResult[]> {
-  console.info('[codeSearchService] OPCS-4 search requires NHS TRUD backend proxy — not yet implemented');
-  return [];
+// Batch 607: the OPCS-4 tab says so (components/Opcs4Notice).
+// Batch 651: the only reference data is the short DEMONSTRATION list (services/coding/opcs4Sample.ts). Results from it are labelled
+// Simulated (hierarchy 'Simulated'), exactly as the ICD-O and ICD-11 samples are, and cannot be applied to a case. Without the
+// simulated fallback (tests, or when switched off) the search stays empty until the licensed feed exists (Planned).
+async function searchOpcs4(query: string, maxResults = 20): Promise<CodeResult[]> {
+  if (!simulatedFallback) return [];
+  return searchOpcs4Sample(query, maxResults).map(r => ({ ...r, system: 'OPCS4', hierarchy: SIMULATED_HIERARCHY }));
 }
 
 // ─── CPT ──────────────────────────────────────────────────────────────────────
@@ -322,8 +365,8 @@ async function searchOpcs4(_query: string, _maxResults = 20): Promise<CodeResult
 // silent, permanent empty-array stub this was before.
 
 async function searchCpt(query: string, maxResults = 20): Promise<CodeResult[]> {
-  const { mockRvuCodeMapService } = await import('../billing/mockRvuCodeMapService');
-  const activeRes = await mockRvuCodeMapService.getActiveVersion();
+  const { rvuCodeMapService } = await import('../billing/rvuCodeMapServiceInstance');
+  const activeRes = await rvuCodeMapService.getActiveVersion();
   if (!activeRes.ok || !activeRes.data) return [];
 
   const q = query.trim().toLowerCase();
@@ -349,9 +392,9 @@ export async function searchCodes(
   switch (system) {
     case 'SNOMED': return searchSnomed(query, filter, maxResults);
     case 'ICD10':  return searchIcd10(query, maxResults);
-    case 'ICD11':  return searchIcd11(query, maxResults);
+    case 'ICD11':  return searchIcd11(query, maxResults).catch(e => { if (simulatedFallback) return simulatedIcd11Search(query, maxResults); throw e; });
     case 'LOINC':  return searchLoinc(query, maxResults);
-    case 'ICDO':   return searchIcdo(query, maxResults);
+    case 'ICDO':   return searchIcdoWithBundled(query, maxResults);
     case 'OPCS4':  return searchOpcs4(query, maxResults);
     case 'CPT':    return searchCpt(query, maxResults);
     default:       return [];
@@ -413,33 +456,52 @@ export async function searchCodes(
 // risks silently hiding a real, valid code from a pathologist, which
 // this app never trades for speed.
 const verifiedCodeCache = new Map<string, boolean>();
+const verifiedDisplayCache = new Map<string, string>();
 
 /** Real, for test isolation only — module-level cache state would
  *  otherwise silently leak between test cases. */
 export function clearVerifiedCodeCache(): void {
   verifiedCodeCache.clear();
+  verifiedDisplayCache.clear();
 }
 
 export async function verifyCodeExists(code: string, system: string, displayHint: string): Promise<boolean> {
-  if (system === 'CPT') return true; // Real, per direct precedent: CPT already has its own, separate, existing re-verification against CODE_MAP_TABLE (AddCodeModal.tsx) — never duplicated here.
+  return (await verifyCodeWithDisplay(code, system, displayHint)).found;
+}
+
+/**
+ * Batch 696: the same check, and it also returns the dictionary's own description of the code (a found code with no
+ * description in the dictionary answer returns display ''). The caller shows that text, not the AI's wording.
+ * CPT is not looked up here (see above), so it returns found with no display.
+ */
+export async function verifyCodeWithDisplay(code: string, system: string, displayHint: string): Promise<{ found: boolean; display?: string }> {
+  if (system === 'CPT') return { found: true }; // Real, per direct precedent: CPT already has its own, separate, existing re-verification against CODE_MAP_TABLE (AddCodeModal.tsx) — never duplicated here.
 
   const positiveKey = `${system}::${code}`;
-  if (verifiedCodeCache.get(positiveKey) === true) return true;
+  if (verifiedCodeCache.get(positiveKey) === true) return { found: true, display: verifiedDisplayCache.get(positiveKey) };
   const negativeKey = `${system}::${code}::${displayHint}`;
-  if (verifiedCodeCache.get(negativeKey) === false) return false;
+  if (verifiedCodeCache.get(negativeKey) === false) return { found: false };
 
   try {
-    const results = await searchCodes(system, displayHint, 'all', 20);
-    const found = results.some(r => r.code === code);
-    if (found) verifiedCodeCache.set(positiveKey, true);
+    // Batch 656: two checks run side by side and either one confirms the code. The old check searched the
+    // AI's long wording and matched only the start of it, so many real codes failed it and were dropped
+    // silently. A look-up by the code itself is exact; the wording search stays as the second route.
+    const byWording = searchCodes(system, displayHint, 'all', 20).then(r => r.find(x => x.code === code)?.display ?? null);
+    const byCode = (system === 'SNOMED' ? lookupSnomedByCode(code) : searchCodes(system, code, 'all', 20).then(r => r.find(x => x.code === code)?.display ?? null));
+    const settled = await Promise.allSettled([byCode, byWording]);
+    const hits = settled.flatMap(r => (r.status === 'fulfilled' && r.value !== null ? [r.value] : []));
+    const found = hits.length > 0;
+    if (!found && settled.every(r => r.status === 'rejected')) throw (settled[0] as PromiseRejectedResult).reason;
+    const display = hits.find(h => h.trim() !== '') ?? '';
+    if (found) { verifiedCodeCache.set(positiveKey, true); verifiedDisplayCache.set(positiveKey, display); }
     else verifiedCodeCache.set(negativeKey, false);
-    return found;
+    return found ? { found: true, display } : { found: false };
   } catch {
     // Real, deliberate: a network/timeout failure is never cached —
     // an unreachable endpoint right now says nothing real about
     // whether the code exists, and caching that would risk
     // permanently hiding a real code behind a transient outage.
-    return false;
+    return { found: false };
   }
 }
 
@@ -461,4 +523,23 @@ export async function filterToVerifiedCodes<T extends { code: string; system: st
     suggestions.map(s => verifyCodeExists(s.code, s.system, s.display))
   );
   return suggestions.filter((_, i) => verifications[i]);
+}
+
+/**
+ * Batch 696: keeps only the suggestions whose code is real, and gives each the dictionary's own description in place of
+ * the AI's wording (the AI's wording is kept as `aiWording`). `verifiedBy` says which check passed: 'dictionary', or
+ * 'code-map' for CPT (checked against the billing code table, not looked up).
+ */
+export async function verifyAndDescribeCodes<T extends { code: string; system: string; display: string }>(
+  suggestions: T[]
+): Promise<Array<T & { aiWording: string; verifiedBy: 'dictionary' | 'code-map' }>> {
+  const checks = await Promise.all(suggestions.map(s => verifyCodeWithDisplay(s.code, s.system, s.display)));
+  const out: Array<T & { aiWording: string; verifiedBy: 'dictionary' | 'code-map' }> = [];
+  suggestions.forEach((s, i) => {
+    const c = checks[i];
+    if (!c.found) return;
+    const fromDictionary = s.system !== 'CPT';
+    out.push({ ...s, display: fromDictionary && c.display ? c.display : s.display, aiWording: s.display, verifiedBy: fromDictionary ? 'dictionary' : 'code-map' });
+  });
+  return out;
 }

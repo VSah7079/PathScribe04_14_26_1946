@@ -139,11 +139,12 @@ describe('canFinalizeCase — dimension 4 (case relationship) as a real write gu
     expect(result.granted).toBe(false);
   });
 
-  it('grants an admin/pathologist-admin/superadmin regardless of case participation — the real supervisor override', () => {
+  it('Batch 649 (no bypass): admin, pathologist-admin and superadmin are refused unless they are an eligible participant', () => {
     for (const role of ['admin', 'pathologist-admin', 'superadmin'] as const) {
       const result = canFinalizeCase(session({ id: 'someone-else', role }), [primary]);
-      expect(result.granted).toBe(true);
-      if (result.granted) expect(result.dimension).toBe('admin-override');
+      expect(result.granted).toBe(false);
+      if (!result.granted) expect(result.dimension).toBe('not-a-participant');
+      expect(canFinalizeCase(session({ id: 'primary-1', role }), [primary]).granted).toBe(true);
     }
   });
 
@@ -297,12 +298,11 @@ describe('canFinalizeCase — end-to-end with real ParticipationTypeRecord data 
     expect(canFinalizeCase(session({ id: 'primary-1' }), [primary], types, LAB_B).granted).toBe(true);
   });
 
-  it('an admin/supervisor override still bypasses everything, lab-scoped authority included', () => {
+  it('Batch 649: an administrator has no override of lab-scoped authority (not even as the participant)', () => {
     const overriddenPrimary: ParticipationTypeRecord = { ...PRIMARY_TYPE, authorityOverrides: { [LAB_A]: { canFinalize: false } } };
     const primary: CaseFinalizeParticipant = { staffId: 'primary-1', status: 'active', participationTypeIds: ['primary'] };
-    const result = canFinalizeCase(session({ id: 'someone-else', role: 'admin' }), [primary], [overriddenPrimary], LAB_A);
-    expect(result.granted).toBe(true);
-    if (result.granted) expect(result.dimension).toBe('admin-override');
+    expect(canFinalizeCase(session({ id: 'someone-else', role: 'admin' }), [primary], [overriddenPrimary], LAB_A).granted).toBe(false);
+    expect(canFinalizeCase(session({ id: 'primary-1', role: 'superadmin' }), [primary], [overriddenPrimary], LAB_A).granted).toBe(false);
   });
 });
 

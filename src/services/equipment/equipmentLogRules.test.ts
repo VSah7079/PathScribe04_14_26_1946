@@ -100,3 +100,21 @@ describe('shown in red (Batch 361)', () => {
     expect(states.get('c')).toBe('notScheduled');
   });
 });
+
+// Batch 730: temperature checks against the device's range.
+import { temperatureOutcome as tOut } from './equipmentLogRules';
+describe('temperature checks (Batch 730)', () => {
+  const base = { type: 'temperature_check' as const, performedOn: '2026-10-01', performedBy: 'Tech', outcome: 'pass' as const, notes: '' };
+  it('pass inside the range, fail outside; no range, no automatic outcome', () => {
+    expect(tOut(4, { minCelsius: 2, maxCelsius: 8 })).toBe('pass');
+    expect(tOut(9, { minCelsius: 2, maxCelsius: 8 })).toBe('fail');
+    expect(tOut(-25, { maxCelsius: -20 })).toBe('pass');
+    expect(tOut(5, {})).toBeNull();
+  });
+  it('needs a reading, and an outcome that follows the range', () => {
+    expect(validateEquipmentLogEntry(base, '2026-10-30').temperatureCelsius).toBe('temperatureRequired');
+    expect(validateEquipmentLogEntry({ ...base, temperatureCelsius: 9, minCelsius: 2, maxCelsius: 8 }, '2026-10-30').outcome).toBe('outcomeMismatch');
+    expect(validateEquipmentLogEntry({ ...base, temperatureCelsius: 4, minCelsius: 2, maxCelsius: 8 }, '2026-10-30')).toEqual({});
+    expect(validateEquipmentLogEntry({ ...base, temperatureCelsius: 30 }, '2026-10-30')).toEqual({});
+  });
+});

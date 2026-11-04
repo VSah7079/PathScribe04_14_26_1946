@@ -114,3 +114,30 @@ export function resolveCytologyHistologyCorrelationReport(
 
   return { rows, totalCorrelated, concordantCount, correlationRatePercent, ppvHsilPercent };
 }
+
+/** English text for the correlation category in a download, whatever the screen's language. */
+const CATEGORY_EXPORT_TEXT: Record<CytologyHistologyCorrelationCategory, string> = {
+  concordant: 'Concordant',
+  minor_discrepancy: 'Minor Discrepancy',
+  major_discrepancy: 'Major Discrepancy',
+  discordant_unspecified: 'Discordant (Unspecified)',
+};
+
+/**
+ * Batch 603 (Pete, dev review): the download's rows. No patient MRN: a file leaves the app's access controls, and QA
+ * exports carry accession numbers only (the rule at the top of qaReportUtils.ts). Accessions still pair each cytology
+ * case with its histology case.
+ */
+export function cytologyHistologyCorrelationCsvRows(rows: readonly CytologyHistologyCorrelationReportRow[]): Record<string, string | number>[] {
+  const day = (iso?: string) => (iso ? new Date(iso).toLocaleDateString() : '');
+  return rows.map(r => ({
+    'Cyto Accession': r.cytoAccessionId ?? '',
+    'Cyto Date': day(r.cytoDate),
+    'Cyto Diagnosis': r.cytoDiagnosis,
+    'Hist Accession': r.histAccessionId ?? '',
+    'Hist Date': day(r.histDate),
+    'Hist Diagnosis': r.histDiagnosis,
+    'Days to Biopsy': r.daysToBiopsy ?? '',
+    'Correlation Category': CATEGORY_EXPORT_TEXT[r.correlationCategory],
+  }));
+}

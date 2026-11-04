@@ -26,6 +26,8 @@ export interface CytologyReviewContextInputs {
   primarySignOutProviderId: string;
   providerRole: 'pathologist' | 'cytotechnologist';
   isGynCytology: boolean;
+  /** Batch 501: a fine-needle aspirate (the specimen had a ROSE evaluation). */
+  isFna?: boolean;
   sampleAdequacy: 'satisfactory' | 'unsatisfactory' | 'limited';
   resultIsNegative: boolean;
   /** Real, per spec's own named high-risk examples this call site can
@@ -51,7 +53,7 @@ export function resolveQcEvaluationContextFromCytologyReview(inputs: CytologyRev
     primarySignOutProviderId: inputs.primarySignOutProviderId,
     providerRole: inputs.providerRole,
     providerCapabilities: inputs.providerCapabilities,
-    specimenCategory: inputs.isGynCytology ? 'gyn_pap' : 'non_gyn_fluid',
+    specimenCategory: inputs.isGynCytology ? 'gyn_pap' : inputs.isFna ? 'fna' : 'non_gyn_fluid',
     sampleAdequacy: inputs.sampleAdequacy,
     resultIsNegative: inputs.resultIsNegative,
     activeHighRiskFlags: inputs.isHighRiskHpvPositive ? ['high_risk_hpv_positive'] : [],

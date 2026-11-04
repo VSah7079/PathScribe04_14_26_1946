@@ -21,7 +21,7 @@ export const NetworkPrintJobs: React.FC<{ tracker?: NetworkPrintJobTracker }> = 
   const jobs = useSyncExternalStore(tracker.subscribe, tracker.getSnapshot, tracker.getSnapshot);
 
   return (
-    <div className="ps-netprint-jobs" aria-live="polite" aria-label={t('networkPrint.regionLabel')}>
+    <div className="ps-netprint-jobs" role="region" aria-live="polite" aria-label={t('networkPrint.regionLabel')}>
       {jobs.map(job => {
         const text = describeNetworkPrintJob(job);
         const waiting = job.state === 'waiting' || job.state === 'noReply';

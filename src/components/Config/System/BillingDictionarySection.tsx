@@ -59,7 +59,7 @@
 // of not reaching into a shared export it doesn't own. The real
 // BillingRuleStatus enum (DRAFT/PENDING_APPROVAL/ACTIVE/REJECTED/
 // RETIRED) — an internal data value that also flows into
-// mockBillingRuleService/auditService — keeps its raw value as the
+// billingRuleService/auditService — keeps its raw value as the
 // data key; only its on-screen badge text is translated, via the same
 // "data key stays English, display label translated" LABEL_KEY
 // pattern used for TAT_TYPE/ROLE/STAIN_CATEGORY elsewhere in this
@@ -70,10 +70,9 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import '../../../pathscribe.css';
-import { mockBillingRuleService } from '@/services/billing/mockBillingRuleService';
+
 import type { BillingRuleVersion, BillingRuleStatus } from '@/types/billing/BillingRuleVersion';
-import { mockRvuCodeMapService } from '@/services/billing/mockRvuCodeMapService';
-import { mockModifierDictionaryService } from '@/services/billing/mockModifierDictionaryService';
+
 import type { CptModifierEntry } from '@/services/billing/cptModifierDictionary';
 import { HCPCS_LEVEL_II_DICTIONARY } from '@/services/billing/hcpcsLevelIIDictionary';
 import type { HcpcsLevelIIEntry } from '@/services/billing/hcpcsLevelIIDictionary';
@@ -83,7 +82,8 @@ import { CptCodeSearchPicker } from '@/components/Common/CptCodeSearchPicker';
 import { listAllSites } from '@/services/organisation/organisationService';
 import type { Site } from '@/services/organisation/organisationService';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
-import { auditService } from '@/services';
+import { auditService, billingRuleService, rvuCodeMapService, modifierDictionaryService } from '@/services';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 type NewVersionDraft = Omit<BillingRuleVersion, 'version' | 'createdAt' | 'status'> & { status?: BillingRuleVersion['status'] };
 
@@ -233,7 +233,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
   // this modal never writes to the Code Map, only searches it.
   const [rvuEntries, setRvuEntries] = useState<BillingDictionaryEntry[]>([]);
   useEffect(() => {
-    mockRvuCodeMapService.getActiveVersion().then(res => {
+    rvuCodeMapService.getActiveVersion().then(res => {
       if (res.ok && res.data) setRvuEntries(res.data.entries);
     });
   }, []);
@@ -244,7 +244,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
   // same pattern as rvuEntries immediately above.
   const [modifierEntries, setModifierEntries] = useState<CptModifierEntry[]>([]);
   useEffect(() => {
-    mockModifierDictionaryService.getActiveVersion().then(res => {
+    modifierDictionaryService.getActiveVersion().then(res => {
       if (res.ok && res.data) setModifierEntries(res.data.entries);
     });
   }, []);
@@ -371,14 +371,14 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
               <div className="ps-conf-form-row">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.billingCodeLabel')} <span className="ps-conf-required">*</span></label>
-                  <input className={`ps-conf-input ${errors.code ? 'ps-conf-input--error' : ''}`}
+                  <input aria-label={t('billingDictionarySection.modal.billingCodeLabel')} className={`ps-conf-input ${errors.code ? 'ps-conf-input--error' : ''}`}
                     value={code} onChange={e => set(setCode)(e.target.value)} disabled={!isNewCode && !duplicateFrom}
                     placeholder={t('billingDictionarySection.modal.billingCodePlaceholder')} />
                   {errors.code && <span className="ps-conf-error-text">{errors.code}</span>}
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.scopeLabel')}</label>
-                  <select className="ps-conf-select" value={targetSiteId} onChange={e => set(setTargetSiteId)(e.target.value)}>
+                  <select aria-label={t('billingDictionarySection.modal.scopeLabel')} className="ps-conf-select" value={targetSiteId} onChange={e => set(setTargetSiteId)(e.target.value)}>
                     <option value="">{t('billingDictionarySection.enterpriseWideLabel')}</option>
                     {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
@@ -410,7 +410,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
                       deliberate — its own doc comment allows real ISO
                       3166-1 codes beyond a fixed set) — only the real,
                       current input mechanism changes here. */}
-                  <select className="ps-conf-select" value={country} onChange={e => setCountry(e.target.value)}>
+                  <select aria-label={t('billingDictionarySection.modal.countryLabel')} className="ps-conf-select" value={country} onChange={e => setCountry(e.target.value)}>
                     <optgroup label={t('billingDictionarySection.modal.countryGroupOperating')}>
                       <option value="US">US</option>
                       <option value="UK">UK</option>
@@ -465,7 +465,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.descriptionLabel')}</label>
-                  <input className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.descriptionLabel')} className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.descriptionPlaceholder')} />
                 </div>
               </div>
@@ -473,7 +473,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
               <div className="ps-conf-form-row--3">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.levelLabel')} <span className="ps-conf-required">*</span></label>
-                  <select className="ps-conf-input" value={level} onChange={e => setLevel(e.target.value as BillingRuleVersion['level'])}>
+                  <select aria-label={t('billingDictionarySection.modal.levelLabel')} className="ps-conf-input" value={level} onChange={e => setLevel(e.target.value as BillingRuleVersion['level'])}>
                     <option value="specimen">{t('billingDictionarySection.modal.levelSpecimenOption')}</option>
                     <option value="block">{t('billingDictionarySection.modal.levelBlockOption')}</option>
                     <option value="stain">{t('billingDictionarySection.modal.levelStainOption')}</option>
@@ -488,7 +488,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
                       title={t('billingDictionarySection.modal.componentTypeTooltip', { tc: BILLING_TYPE_LABEL.TC, professional: BILLING_TYPE_LABEL['26'], global: BILLING_TYPE_LABEL.Global })}
                     >i</span>
                   </label>
-                  <select className="ps-conf-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingRuleVersion['billingType'])}>
+                  <select aria-label={t('billingDictionarySection.modal.componentTypeLabel')} className="ps-conf-input" value={billingType} onChange={e => setBillingType(e.target.value as BillingRuleVersion['billingType'])}>
                     <option value="TC">{BILLING_TYPE_LABEL.TC}</option>
                     <option value="26">{BILLING_TYPE_LABEL['26']}</option>
                     <option value="Global">{BILLING_TYPE_LABEL.Global}</option>
@@ -499,31 +499,31 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
               <div className="ps-conf-form-row--3">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.rvuWorkLabel')}</label>
-                  <input className="ps-conf-input" type="number" step="0.01" value={rvuWork} onChange={e => setRvuWork(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.rvuWorkLabel')} className="ps-conf-input" type="number" step="0.01" value={rvuWork} onChange={e => setRvuWork(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.rvuWorkPlaceholder')} />
                   <span className="ps-conf-section-subtitle">{t('billingDictionarySection.modal.rvuWorkHint')}</span>
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.rvuPeLabel')}</label>
-                  <input className="ps-conf-input" type="number" step="0.01" value={rvuPe} onChange={e => setRvuPe(e.target.value)} />
+                  <input aria-label={t('billingDictionarySection.modal.rvuPeLabel')} className="ps-conf-input" type="number" step="0.01" value={rvuPe} onChange={e => setRvuPe(e.target.value)} />
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.rvuMpLabel')}</label>
-                  <input className="ps-conf-input" type="number" step="0.01" value={rvuMp} onChange={e => setRvuMp(e.target.value)} />
+                  <input aria-label={t('billingDictionarySection.modal.rvuMpLabel')} className="ps-conf-input" type="number" step="0.01" value={rvuMp} onChange={e => setRvuMp(e.target.value)} />
                 </div>
               </div>
 
               <div className="ps-conf-form-row">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.effectiveFromLabel')} <span className="ps-conf-required">*</span></label>
-                  <input className={`ps-conf-input ${errors.effectiveFrom ? 'ps-conf-input--error' : ''}`}
+                  <input aria-label={t('billingDictionarySection.modal.effectiveFromLabel')} className={`ps-conf-input ${errors.effectiveFrom ? 'ps-conf-input--error' : ''}`}
                     type="date" value={effectiveFrom} onChange={e => set(setEffectiveFrom)(e.target.value)} />
                   {errors.effectiveFrom && <span className="ps-conf-error-text">{errors.effectiveFrom}</span>}
                 </div>
                 {needsChangeReason && (
                   <div className="ps-conf-form-field">
                     <label className="ps-conf-label">{t('billingDictionarySection.modal.changeReasonLabel')} <span className="ps-conf-required">*</span></label>
-                    <input className={`ps-conf-input ${errors.changeReason ? 'ps-conf-input--error' : ''}`}
+                    <input aria-label={t('billingDictionarySection.modal.changeReasonLabel')} className={`ps-conf-input ${errors.changeReason ? 'ps-conf-input--error' : ''}`}
                       value={changeReason} onChange={e => set(setChangeReason)(e.target.value)}
                       placeholder={t('billingDictionarySection.modal.changeReasonPlaceholder')} />
                     {errors.changeReason && <span className="ps-conf-error-text">{errors.changeReason}</span>}
@@ -533,7 +533,7 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
 
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('billingDictionarySection.modal.notesLabel')}</label>
-                <input className="ps-conf-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('billingDictionarySection.modal.notesPlaceholder')} />
+                <input aria-label={t('billingDictionarySection.modal.notesLabel')} className="ps-conf-input" value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('billingDictionarySection.modal.notesPlaceholder')} />
               </div>
             </>
           )}
@@ -562,24 +562,24 @@ const NewVersionModal: React.FC<NewVersionModalProps> = ({ sites, billingCode, s
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.quantityRuleLabel')}</label>
-                  <input className="ps-conf-input" value={quantityRules} onChange={e => setQuantityRules(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.quantityRuleLabel')} className="ps-conf-input" value={quantityRules} onChange={e => setQuantityRules(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.quantityRulePlaceholder')} />
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.bundlingRuleLabel')}</label>
-                  <input className="ps-conf-input" value={bundlingRules} onChange={e => setBundlingRules(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.bundlingRuleLabel')} className="ps-conf-input" value={bundlingRules} onChange={e => setBundlingRules(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.bundlingRulePlaceholder')} />
                 </div>
               </div>
               <div className="ps-conf-form-row">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.documentationRequirementsLabel')}</label>
-                  <input className="ps-conf-input" value={documentationRequirements} onChange={e => setDocumentationRequirements(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.documentationRequirementsLabel')} className="ps-conf-input" value={documentationRequirements} onChange={e => setDocumentationRequirements(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.documentationRequirementsPlaceholder')} />
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('billingDictionarySection.modal.suppressionAdvisoryLabel')}</label>
-                  <input className="ps-conf-input" value={suppressionAdvisory} onChange={e => setSuppressionAdvisory(e.target.value)}
+                  <input aria-label={t('billingDictionarySection.modal.suppressionAdvisoryLabel')} className="ps-conf-input" value={suppressionAdvisory} onChange={e => setSuppressionAdvisory(e.target.value)}
                     placeholder={t('billingDictionarySection.modal.suppressionAdvisoryPlaceholder')} />
                 </div>
               </div>
@@ -723,7 +723,7 @@ const BillingDictionarySection: React.FC = () => {
   const [rvuEntries, setRvuEntries] = useState<BillingDictionaryEntry[]>([]);
 
   const refresh = () => {
-    Promise.all([mockBillingRuleService.getAll(), listAllSites(), mockRvuCodeMapService.getActiveVersion()]).then(([versionsRes, sitesRes, rvuRes]) => {
+    Promise.all([billingRuleService.getAll(), listAllSites(), rvuCodeMapService.getActiveVersion()]).then(([versionsRes, sitesRes, rvuRes]) => {
       if (versionsRes.ok) setAllVersions(versionsRes.data);
       setSites(sitesRes);
       if (rvuRes.ok && rvuRes.data) setRvuEntries(rvuRes.data.entries);
@@ -772,7 +772,7 @@ const BillingDictionarySection: React.FC = () => {
   }).filter(r => !search || r.billingCode.toLowerCase().includes(search.toLowerCase()) || r.current.cpt.includes(search));
 
   const handleSaveNewVersion = async (draft: NewVersionDraft) => {
-    const res = await mockBillingRuleService.createVersion(draft);
+    const res = await billingRuleService.createVersion(draft);
     if (res.ok === false) { setErrorMsg(res.error); return; }
     setNewVersionState(null);
     setErrorMsg(null);
@@ -780,7 +780,7 @@ const BillingDictionarySection: React.FC = () => {
   };
 
   const handleRetire = async (billingCode: string, version: number, siteId?: string) => {
-    const res = await mockBillingRuleService.retireVersion(billingCode, version, undefined, siteId);
+    const res = await billingRuleService.retireVersion(billingCode, version, undefined, siteId);
     if (res.ok === false) { setErrorMsg(res.error); return; }
     refresh();
   };
@@ -793,7 +793,7 @@ const BillingDictionarySection: React.FC = () => {
   // BillingTypeTriggerSection.tsx).
   const handleSubmitForApproval = async (billingCode: string, version: number, siteId?: string) => {
     const submittedBy = getSessionUser()?.id ?? 'unknown';
-    const res = await mockBillingRuleService.submitForApproval(billingCode, version, siteId, submittedBy);
+    const res = await billingRuleService.submitForApproval(billingCode, version, siteId, submittedBy);
     if (res.ok === false) { setErrorMsg(res.error); return; }
     auditService.logEvent({
       type: 'user',
@@ -806,7 +806,7 @@ const BillingDictionarySection: React.FC = () => {
     refresh();
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('billingDictionarySection.loading')}</div>;
+  if (loading) return <LoadingState label={t('billingDictionarySection.loading')} />;
 
   return (
     <div>
@@ -823,9 +823,9 @@ const BillingDictionarySection: React.FC = () => {
       {errorMsg && <p className="ps-conf-error-text">{errorMsg}</p>}
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('billingDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('billingDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.site')} value={viewingSiteId} onChange={e => setViewingSiteId(e.target.value)} className="ps-conf-select">
           <option value="">{t('billingDictionarySection.viewingLabel', { scope: t('billingDictionarySection.enterpriseWideLabel') })}</option>
           {sites.map(s => <option key={s.id} value={s.id}>{t('billingDictionarySection.viewingLabel', { scope: s.name })}</option>)}
         </select>

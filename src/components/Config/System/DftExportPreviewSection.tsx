@@ -31,13 +31,19 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { mockServiceChargeService } from '@/services/billing/mockServiceChargeService';
-import { mockBillingDeficiencyService } from '@/services/billing/mockBillingDeficiencyService';
+
 import { canCaseExportDft } from '@/services/billing/canCaseExportDft';
 import { buildDftP03ForCase } from '@/services/hl7/dftBuilder';
+import { buildFinancialClassPayload } from '@/services/billing/buildFinancialClassPayload';
 import { buildJsonWebhookPayload } from '@/services/billing/jsonWebhookBuilder';
+import { permitInterfacePreview } from '@/services/interfacePreview/permitInterfacePreview';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
 import type { BillingDeficiencyRecord } from '@/types/billing/BillingDeficiencyRecord';
+import { serviceChargeService, billingDeficiencyService } from '@/services';
+import { toast } from 'react-toastify';
+import { readSessionProfile } from '@/services/auth/sessionProfile';
+import { isEngineSimulated } from '@/services/mockInterfaceEngine/simulatedEngineReceiver';
+import { sendCaseChargesToBillingEngine, dispatchFinancialClass, type ChargeDispatchResult } from '@/services/interfaceDispatch/dispatchCharge';
 
 const DftExportPreviewSection: React.FC = () => {
   const { t } = useTranslation();
@@ -50,21 +56,47 @@ const DftExportPreviewSection: React.FC = () => {
     blocking: BillingDeficiencyRecord[];
     dftMessage: string | null;
     jsonPayload: string | null;
+    financialClassPreview: string | null;
   } | null>(null);
+
+  // Batch 605: send the previewed charges (and the financial-class payload) to the billing engine.
+  const [sending, setSending] = useState(false);
+  const [sendNote, setSendNote] = useState<string | null>(null);
+  const [fcResult, setFcResult] = useState<ChargeDispatchResult | null>(null);
+  const actorName = () => readSessionProfile()?.name ?? 'system';
+  const handleSend = async () => {
+    if (!result) return;
+    setSending(true);
+    try {
+      const r = await sendCaseChargesToBillingEngine(result.caseId, actorName());
+      setSendNote(r.message);
+      if (r.ok) toast.success(t(isEngineSimulated() ? 'dftExportPreviewSection.send.sentSimulated' : 'dftExportPreviewSection.send.sent'));
+      else toast.warn(r.message);
+    } finally { setSending(false); }
+  };
+  const handleSendFinancialClass = async () => {
+    if (!result) return;
+    setSending(true);
+    try { setFcResult(await dispatchFinancialClass(result.caseId, actorName())); } finally { setSending(false); }
+  };
 
   const handleLookup = async () => {
     const caseId = caseIdInput.trim();
     if (!caseId) return;
+    // Batch 428: a preview shows a case's data; it needs config:interface-preview:view.
+    if (!(await permitInterfacePreview())) return;
     setBusy(true);
     setNotFound(false);
     setResult(null);
+    setSendNote(null);
+    setFcResult(null);
     try {
       const caseData = await caseRouter.getCase(caseId);
       if (!caseData) { setNotFound(true); return; }
 
       const [chargesRes, deficienciesRes] = await Promise.all([
-        mockServiceChargeService.getChargesForCase(caseId),
-        mockBillingDeficiencyService.getByCaseId(caseId),
+        serviceChargeService.getChargesForCase(caseId),
+        billingDeficiencyService.getByCaseId(caseId),
       ]);
       const charges = chargesRes.ok ? chargesRes.data.filter(c => c.transactionType === 'charge') : [];
       const deficiencies = deficienciesRes.ok ? deficienciesRes.data : [];
@@ -72,6 +104,7 @@ const DftExportPreviewSection: React.FC = () => {
 
       let dftMessage: string | null = null;
       let jsonPayload: string | null = null;
+      let financialClassPreview: string | null = null;
       if (gate.allowed && charges.length > 0) {
         // Real, per direct guidance: Case.coding.icd10 is a bare
         // string[] (types/case/Case.ts's own CaseCoding), but
@@ -98,10 +131,13 @@ const DftExportPreviewSection: React.FC = () => {
         // async since patientDataScope requires a real lookup, not a
         // guess.
         const payload = await buildJsonWebhookPayload(caseData, charges);
-        jsonPayload = JSON.stringify(payload, null, 2);
+        // Batch 605: the financial-class payload travels with the billing export (preview only until a billing engine is connected).
+        const fc = await buildFinancialClassPayload(caseData);
+        financialClassPreview = JSON.stringify(fc, null, 2);
+        jsonPayload = JSON.stringify({ ...payload, financialClass: fc }, null, 2);
       }
 
-      setResult({ caseId, charges, blocking: gate.blocking, dftMessage, jsonPayload });
+      setResult({ caseId, charges, blocking: gate.blocking, dftMessage, jsonPayload, financialClassPreview });
     } finally {
       setBusy(false);
     }
@@ -117,7 +153,7 @@ const DftExportPreviewSection: React.FC = () => {
       </div>
 
       <div className="ps-qa-tab-toolbar">
-        <input
+        <input aria-label={t('dftExportPreviewSection.caseIdPlaceholder')}
           className="ps-conf-input ps-dft-export__case-input"
           placeholder={t('dftExportPreviewSection.caseIdPlaceholder')}
           value={caseIdInput}
@@ -177,13 +213,42 @@ const DftExportPreviewSection: React.FC = () => {
             </div>
           )}
 
+          {result.charges.length > 0 && result.blocking.length === 0 && (
+            <div className="ps-qa-tab-toolbar" data-testid="dft-send-toolbar">
+              {isEngineSimulated() && <span className="ps-conf-badge">{t('dftExportPreviewSection.send.badge')}</span>}
+              <button className="ps-conf-btn-primary" disabled={sending} onClick={handleSend}>{t('dftExportPreviewSection.send.button')}</button>
+              <button className="ps-conf-btn-secondary" disabled={sending} onClick={handleSendFinancialClass}>{t('dftExportPreviewSection.send.financialClassButton')}</button>
+            </div>
+          )}
+          {sendNote && <p className="ps-conf-hint">{sendNote}</p>}
+          {fcResult && (
+            <>
+              <p className="ps-conf-hint">{fcResult.ok ? t('dftExportPreviewSection.send.financialClassSent') : (fcResult.error ?? t('dftExportPreviewSection.send.financialClassFailed'))}</p>
+              {fcResult.sent[0] && (
+                <textarea aria-label={t('dftExportPreviewSection.send.financialClassTitle')} readOnly
+                  className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--json" value={fcResult.sent[0].text} />
+              )}
+            </>
+          )}
+
+          {result.financialClassPreview && (
+            <>
+              <div className="ps-conf-section-header ps-dft-export__section-header--spaced">
+                <h2 className="ps-conf-section-title">{t('dftExportPreviewSection.financialClassPreview.title')} <span className="ps-conf-badge">{t('dftExportPreviewSection.financialClassPreview.badge')}</span></h2>
+                <p className="ps-conf-section-subtitle">{t('dftExportPreviewSection.financialClassPreview.subtitle')}</p>
+              </div>
+              <textarea aria-label={t('dftExportPreviewSection.financialClassPreview.title')} readOnly
+                className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--json" value={result.financialClassPreview} />
+            </>
+          )}
+
           {result.jsonPayload && (
             <>
               <div className="ps-conf-section-header ps-dft-export__section-header--spaced">
                 <h2 className="ps-conf-section-title">{t('dftExportPreviewSection.jsonSection.title')}</h2>
                 <p className="ps-conf-section-subtitle">{t('dftExportPreviewSection.jsonSection.subtitle')}</p>
               </div>
-              <textarea
+              <textarea aria-label={t('dftExportPreviewSection.jsonSection.title')}
                 readOnly
                 className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--json"
                 value={result.jsonPayload}
@@ -197,7 +262,7 @@ const DftExportPreviewSection: React.FC = () => {
                 <h2 className="ps-conf-section-title">{t('dftExportPreviewSection.dftSection.title')}</h2>
                 <p className="ps-conf-section-subtitle">{t('dftExportPreviewSection.dftSection.subtitle')}</p>
               </div>
-              <textarea
+              <textarea aria-label={t('dftExportPreviewSection.dftSection.title')}
                 readOnly
                 className="ps-conf-input ps-dft-export__mono-textarea ps-dft-export__mono-textarea--hl7"
                 value={result.dftMessage.split('\r').join('\n')}

@@ -1,8 +1,13 @@
+**Batch 649:** `useSignOutWorkflow.orchestrationGates.test.ts` (new): Orchestration Sign Out Case is stopped by each review gate; `useSignOutWorkflow.test.ts` and `useAmendmentWorkflow.test.ts` updated.
+
 # Testing the SynopticReportPage hooks
 
-192 tests across 8 of the 10 hooks in this directory (`useMicroscopicEntry.ts`
-and `useReleaseBufferCountdown.ts` — both new, Aug 2026 — don't yet have a
-dedicated test file; see "Test files" below). This is the first React-hook
+272 tests across 8 of the 15 hooks in this directory. `useMicroscopicEntry.ts`,
+`useReleaseBufferCountdown.ts`, `useEffectiveSpecimenComplexity.ts`,
+`useCaseMaterialStore.ts`, `usePeerReview.ts`, `useOrganMap.ts` and
+`useWarningConfirm.tsx` have no dedicated test file here
+(`useCaseMaterialStore` is exercised by `../../components/DecantBillingSync.test.tsx`);
+see "Test files" below. This is the first React-hook
 test coverage in this codebase — the existing suite (~520 tests before
 this) is entirely non-React: services, utilities, calculations, running in
 Node with no DOM. Setting these up required real, non-obvious
@@ -18,6 +23,8 @@ infrastructure work, documented here so it isn't rediscovered the hard way.
 - `useReportGeneration.test.ts` (referenced below, "gotchas" section)
 - `useSignOutWorkflow.test.ts`
 - `useSpecimenBlockManagement.test.ts` (has an integration test — see below)
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the eight files hold 272 `it`/`test` cases (was 192), and the folder now has 15 hooks, seven without a test file here. The "~520 tests before this" figure is from when this suite was first written.*
 
 ## Running the tests
 
@@ -117,10 +124,19 @@ you hit them yourself:
   `useReportGeneration.test.ts`'s `OrchestratorEngine` mock hit this on
   the first attempt; every single test failed with the same root cause
   before it was found.
-- **`window.prompt` isn't implemented by `happy-dom`.** `vi.spyOn(window,
-  'prompt')` requires the property to already exist as a function; direct
-  assignment (`window.prompt = vi.fn()`) is what actually works.
-  (`useGrossingCompletion.test.ts`)
+- **Driving a modal a hook `await`s on, instead of a `window.prompt()`
+  mock.** `useGrossingCompletion`'s re-finalize reason capture used to be
+  a blocking `window.prompt()` (and hit the `happy-dom` gotcha that used
+  to be documented right here: `vi.spyOn(window, 'prompt')` requires the
+  property to already exist as a function, so direct assignment,
+  `window.prompt = vi.fn()`, was what actually worked). Batch 474 replaced
+  it with `ReasonPromptModal`, so the hook now `await`s a promise the
+  modal resolves. The test can't just mock a return value anymore — it
+  has to kick off `handleGrossComplete()` without awaiting it yet, flush
+  a microtask (`await Promise.resolve()`) so the promise registers and
+  `showUpdateReasonPrompt` flips true, then call the hook's own
+  `confirmUpdateReason`/`cancelUpdateReason` and await the original call.
+  See `runGrossCompleteViaReasonPrompt()` in `useGrossingCompletion.test.ts`.
 - **`ConcurrencyConflictError`'s real constructor** is
   `(caseId, expectedVersion, actualVersion)`, not just `(actualVersion)` —
   checked against the actual class before writing more than one test
@@ -144,3 +160,29 @@ you hit them yourself:
 ## Batch 363 (PS-72): patient data tagged for screenshot redaction
 
 `useSignOutWorkflow.test.ts` and `useSpecimenBlockManagement.test.ts` expect `showToast(message, 'info', { containsPhi: true })` for toasts that name the case.
+
+## Batch 426
+
+`useLisIntegration.test.ts`: the LIS-send tests now check what the hook hands `dispatchAssistSynopticResult` (mocked) and what it does with the outcome. The queue and payload behaviour is tested in `services/reports/dispatchAssistSynopticResult.test.ts`.
+
+## Batch 428: Configuration permissions
+
+`useSpecimenBlockManagement.test.ts` allows Configuration changes in a mocked authorization service: the specimen dictionary the hook writes to is checked now (`config:specimen-dictionary:manage`).
+
+## Batch 431
+
+`useOrchestratorDraft.test.ts`: saving writes no browser copy, and opening a case ignores an old browser copy and uses the case's sections.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`useSignOutWorkflow.test.ts`: Suggest Synoptic from Narrative (PS-274), Generate Narrative review and insert (PS-275), surgical post-sign-out QA call (PS-324). `useReportGeneration.test.ts`: Regen All one at a time and warnings as toasts (PS-317, PS-318).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`useSignOutWorkflow.test.ts`: confirming a rule-matched abnormal finding sets the case's abnormal status; dismissing never does (PS-129).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`useSpecimenBlockManagement.test.ts`: decants go through the atomic save on the current version. A failure rolls back and says why, and a conflict opens the dialog.
+
+`checkAmendmentMismatch.test.ts` (Batch 609): re-sign-out of an amended report uses the lab setting, first sign-out ignores it, an addendum is checked. `useAmendmentWorkflow.test.ts` covers holding an addendum for the decision and going back.

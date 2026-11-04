@@ -27,23 +27,8 @@
 import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 
-export interface LisSyncPendingFlag {
-  id: string;
-  name: string;
-  lisCode: string;
-  tagClass: 'COMPUTATIONAL' | 'ADMINISTRATIVE';
-  severity: 1 | 2 | 3 | 4 | 5;
-  specimenId?: string;
-}
-
-export interface LisSyncState {
-  lastCheckedAt: string;
-  pendingUpdate?: {
-    availableSince: string;
-    newFlags: LisSyncPendingFlag[];
-    summary: string;
-  };
-}
+import type { ILisSyncService, LisSyncPendingFlag, LisSyncState } from './ILisSyncService';
+export type { LisSyncPendingFlag, LisSyncState } from './ILisSyncService';
 
 const STORAGE_KEY = 'pathscribe_mock_lis_sync_state';
 
@@ -81,7 +66,7 @@ function persist(state: Record<string, LisSyncState>): void {
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const delay = () => new Promise(r => setTimeout(r, 250)); // simulated round-trip latency
 
-export const mockLisSyncService = {
+export const mockLisSyncService: ILisSyncService = {
   async getSyncState(caseId: string): Promise<ServiceResult<LisSyncState | null>> {
     const state = load();
     return ok(state[caseId] ?? null);

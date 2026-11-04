@@ -1,3 +1,11 @@
+**Batch 755b:** `demo/demoAccounts.ts`: Paul Carter signs in to his own record (UK-ADV-001, no clinical credentials); the Manchester demo pathologist PATH-UK-001 is the fictional Dr. Imogen Hartley, with her own demo sign-in (imogen.hartley@demo.pathscribe.ai, shared demo password).
+
+**Batch 738:** `demo/demoAccounts.ts`: jordan.ellis@demo.pathscribe.ai (administrator only), same shared demo password (hash only).
+
+**Batch 675 (access-14):** `mfa/IMfaPolicyService.ts`, `httpMfaPolicyService.ts`, `mockMfaPolicyService.ts`, `mfaPolicyServiceInstance.ts`: the organisation's second-factor policy on the API server. `mfaService` takes an optional `policySource` (set only when an API server is configured); `loadPolicy` copies the server policy into the in-memory store the synchronous checks use, and `authSession` refuses a single sign-on (`server_unavailable`) or ends a restored session if it cannot be read. Contract: `docs/architecture/ACCESS_SESSION_API.md` §5.
+
+**Batch 649:** `authorizeSurgicalSignOut.ts` decides who may sign out (Orchestration) or finalize (Assist) a surgical report in two parts, both required: the capability `surgical:report:sign-out` (with the case and its facility), then the case relationship (`canFinalizeCase`). `canFinalizeCase` in `caseAccessControl.ts` no longer has the `admin-override` path that let Superadmin, Admin and similar roles sign any case: signing needs an active participant whose participation type can finalize at the performing laboratory. Locale text `caseAccessControl.finalize.notAParticipant` reworded; `…adminOverride` removed. Tests: `authorizeSurgicalSignOut.test.ts`, `caseAccessControl.test.ts`, `signingScreens.guard.test.ts`.
+
 # services/auth/
 
 Two jobs:
@@ -13,8 +21,10 @@ Two jobs:
 
 ## Notes
 
-- NOTE: services/authorization/ (a similarly-named, EMPTY folder) was found and deleted during the July 2026 review — don't recreate it without a real reason; auth/ is the real, single home for this concern.
-- **This module's own documented caveat still applies to the cross-tenant QA fix above**: it's a real, correctly-shaped decision, but it's still a client-side check — a modified client can bypass it. The actual security boundary needs server-side query enforcement (see `backend-requirements-concurrency-security.md` §11) — what's built here models the correct shape for the backend team to match, same as every other access decision in this file.
+- `services/authorization/` exists again since Batch 369 (PS-355) and is the home for capabilities and `authorizationService.enforce`. This folder keeps sign-in, session roles, case-level access control and signer confirmation. (An earlier, empty `authorization/` folder was deleted in the July 2026 review.)
+- **This module's own documented caveat still applies to the cross-tenant QA fix above**: it's a real, correctly-shaped decision, but it's still a client-side check — a modified client can bypass it. The actual security boundary needs server-side query enforcement (the API server's job: `docs/architecture/CASE_PRIVACY_MODEL.md`, PS-345; the backend-requirements document once cited here was never written, PS-40) — what's built here models the correct shape for the backend team to match, same as every other access decision in this file.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `services/authorization/` is no longer an empty, deleted folder; it holds the capability checks (Batch 369).*
 
 ## Batch 328 (PS-63), reverted in Batch 329
 
@@ -59,7 +69,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 - `authConfig`, `externalIdentity`, `sessionRole`, `authSession`, `demo/demoAccounts`: unit tests.
 - `sso/ssoClient.integration.test.ts`: the real library against the local provider.
 
-**Still open:** the API server's part, an admin screen for linked accounts, OR terminal device tokens, runtime configuration (`AUTHENTICATION_OIDC.md` §8).
+**Still open:** the API server's part, an admin screen for linked accounts, OR terminal device tokens, runtime configuration (`AUTHENTICATION_OIDC.md` §8). *(Since closed in part: linked accounts are shown and unlinked in Staff → edit, `components/Config/Staff/LinkedSignInAccounts.tsx`, Batch 345 — checked in the Batch 496 README audit.)*
 
 ## Batch 344: confirming who signs
 
@@ -89,7 +99,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 - `testing/fakeOidcProvider.ts` now records `auth_time` and each `/authorize` request.
 
 **Still open:**
-- **The server must verify each signature itself.** Today the client doesn't send the popup's ID token with the signing request (`AUTHENTICATION_OIDC.md` §5.4).
+- **The server must verify each signature itself.** Today the client doesn't send the popup's ID token with the signing request (`AUTHENTICATION_OIDC.md` §5.4). *(Since closed on the client side: Batch 345 carries the ID token as `SignatureConfirmation.proof` and `signatureEvidence.ts` checks it; cryptographic verification is still the API server's job — checked in the Batch 496 README audit.)*
 - **Real WebAuthn** for biometric signing.
 
 ## Batch 345: the signature checked when it is saved, and stored
@@ -119,7 +129,7 @@ It moved here from `useSignOutWorkflow.ts` so Surgical Pathology, Autopsy and (n
 
 ## Batch 371 (Pete: Superadmin is reserved for ForMedrixAI support)
 
-- **Demo accounts.** These stay `superadmin`: Pete Nimmo (both emails), System Admin, Paul Carter, Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Dr. Sarah Johnson, Dr. Oliver Pemberton and Dr. J. Mark Tuthill now sign in as `pathologist`, so they see the product as their own staff would. Sarah Johnson gained a staff record (Pathologist, ORG-DVMC) in `users/mockUserService.ts`, which bumps the seed version.
+- **Demo accounts.** These stay `superadmin`: Pete Nimmo (both emails), System Admin, Paul Carter (UK workflow adviser; since Batch 755b his own id, UK-ADV-001, not the Manchester pathologist PATH-UK-001), Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Dr. Sarah Johnson, Dr. Oliver Pemberton and Dr. J. Mark Tuthill now sign in as `pathologist`, so they see the product as their own staff would. Sarah Johnson gained a staff record (Pathologist, ORG-DVMC) in `users/mockUserService.ts`, which bumps the seed version.
 - **`caseAccessControl.isCrossTenantSupportAccess`** (new, pure): whether a granted case open relies on support access, i.e. a superadmin session and another organisation's case. `CaseRouter.getCase` then checks `platform:cross-tenant-cases:view`, which writes the audit entry. The tenant-check bypass in `resolveCaseAccess` itself is unchanged.
 
 ## Batch 374
@@ -133,6 +143,89 @@ Five more demo sign-ins, all with the same password as `demo@pathscribe.ai`, so 
 
 They sign in with the app role `pathologist`, the same coarse role an SSO sign-in with case access gets. What they can open comes from their roles' capabilities.
 
+## Batch 423
+
+The new signing action `registry-go-live` (audit text "registry live register approval") is the credential re-confirmation for approving a registry's switch to its live register. It is checked through `signatureGate.accept` in `services/registryGoLive/registryGoLiveDeps.ts`, with the same one-time use, freshness and lockout as report sign-out.
+
+## Batch 428: Configuration permissions
+
+Unlinking a sign-in account (`linkedAccounts.ts`) needs `config:staff-access:assign`, like the rest of a staff member's access (it used to skip the staff check).
+
+## Batch 444
+
+`authSessionInstance.ts` passes `resolveAuthConfig` an explicit object of the 16 `VITE_AUTH_*` settings, each read by name. It used to pass `import.meta.env` itself, which made Vite copy every `VITE_` variable in `.env` (the demo passwords included) into the production bundle.
+
+## Batch 448
+
+`authSession.signInWithPassword` checks a password set from the Staff screen first (`verifyStaffPassword`).
+- **A built-in demo account** keeps its own profile and app role.
+- **Anyone else** (the demo Lab Director, a site without single sign-on) gets the app role their staff roles give, as single sign-on does (`deriveSessionRole`). No role means no access.
+- **Must-change passwords:** the result is `'password_change_required'` and no session starts.
+- **Wiring:** `authSessionInstance.ts` adds `verifyStaffPassword` and `demoAccountFor`.
+
+`demo/demoAccounts.ts`: the built-in passwords are only the starting ones.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`demo/demoAccounts.ts` has seven new built-in sign-ins:
+
+| Name | Role | Staff id |
+|---|---|---|
+| Dr. Rachel Okafor | Lab Director | LD-001 |
+| Dr. James Okafor | Resident | 2 |
+| Dr. Lucas Moreau | Fellow | FEL-001 |
+| Nadia Rahman | Cytotechnologist | CT-002 |
+| Hannah Price | Template Author | TA-001 |
+| Dr. Samuel Osei | Template Approver | TAP-001 |
+| Grace Liu | QA Reviewer | QA-001 |
+| Helen Schollars | Admin and Pathologist (technical writer, Batch 697) | DOC-001 |
+| Shelly Krill | Admin and Pathologist (technical writer, Batch 697) | DOC-002 |
+
+Each has its own salt and the demo@pathscribe.ai password. The hashes were made with `scripts/auth/hash-demo-password.mjs` logic on the command line; the password itself is in no file.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+**Sign-in lockout** (Pete: "Add the sign-in lockout"), `signInLockout.ts`:
+- 5 failed password sign-ins in a row for one email lock it for 15 minutes (`SIGN_IN_LOCK_POLICY`, the same numbers and counting as `SIGNING_LOCK_POLICY`).
+- Counted per email typed, whether or not it is an account. While locked the password isn't checked. A correct password clears the count.
+- `authSession.signInWithPassword` now returns a `SignInRefusal` (`invalid` with the attempts left, or `locked` with the time) when it has a lock store; `authSessionInstance.ts` wires the browser store (`pathscribe_sign_in_locks`, under the mock prefix, so Full Reset clears it).
+- Audited: "Sign-in failed", "Sign-in locked", "Sign-in refused" (attempt while locked). The audit names the account (`accountNameFor`) or says "Unknown email"; it never records what was typed.
+- `signInRefusalNotice` picks the sign-in screen's message: plain "incorrect" until the last try, then a warning, then the minutes left.
+- Server contract: `docs/architecture/AUTHENTICATION_OIDC.md` §4a. The browser lock holds only in that browser.
+
+**Correction:** Batch 455 said a password set on the Staff screen for Grace Liu (QA Reviewer only) would not sign her in. That was wrong: `profileForStaffSignIn` uses her built-in demo account's role first. Tested in `authSession.test.ts`. Only someone with no built-in account whose only role is QA Reviewer gets no app role.
+
+Tests: `signInLockout.test.ts`, and the lockout block in `authSession.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 533
+
+`signerConfirmation.ts`: signing action `cytology-preliminary` (an urgent cytology preliminary, when the laboratory requires the signature).
+
+## Batch 547
+
+The sign-in mode and providers come from the deployment's `config.json` at start-up (`appEnv()`, `services/runtimeConfig/`). Because of that, the demo accounts are loaded only in the demo build (`__DEMO_TOOLS__`), and a server build never has them. A server build must be set to `sso` (`SSO_REQUIRED`). *(Before, an `sso` build left them out by the build-time setting.)*
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `sessionEndHooks.ts` (new): things held in this window for the signed-in user that must go at sign-out (`onSessionEnd`, `runSessionEndHooks`). `authSession.endSession` calls them through the new `onSessionEnded` dependency; the export service registers its reset, so the next person at a shared workstation never sees the last one's export notices.
+
+## Batch 611 (#157) — multi-factor sign-in (`mfa/`)
+
+- **`mfa/totp.ts`**: RFC 6238 codes (HMAC-SHA1, 6 digits, 30 s, one step either side), base32, `verifyTotp` with replay rejection. Tests: `totp.test.ts` (the RFC vectors).
+- **`mfa/mfaAssurance.ts`**: reads the provider's `amr` / `acr` claims. Test: `mfaAssurance.test.ts`.
+- **`mfa/mfaPolicy.ts`**: the per-organisation policy (off / signing roles / everyone, step-up minutes, session hours) and the session stamp that belongs to one person in one organisation. Test: `mfaPolicy.test.ts`.
+- **`mfa/mfaService.ts`**: policy save (needs `config:session-security:manage`), status at sign-in, Simulated enrolment with recovery codes (hashes only), challenge and step-up with lockout (5 failures, 15 minutes), single sign-on evaluation, session validity, reset (`auth:mfa-enrolment:reset`), audit with no codes or secrets. Test: `mfaService.test.ts`.
+- **`mfa/mfaStores.ts`, `mfa/mfaInstance.ts`**: the browser stores (`ps_mfa_policy_v1`, `ps_mfa_enrolments_v1`, `ps_mfa_locks_v1`, cleared by Full Reset) and the app's instance.
+- **Wired in:** `authSession.ts` (a single sign-on the provider did not back with a second factor is refused with `mfa_required`; a restored session whose second factor expired is dropped), `signerConfirmation.ts` (a signature asks for a fresh code, or for the provider's fresh proof; tests in `signerConfirmation.mfa.test.ts`), `sessionProfile.ts` (`mfa` stamp), `demo/demoAccounts.ts` (`demoMfaSecretFor`). Full account: `docs/architecture/MFA.md`.
+
+## Batch 642 — sign-out authentication policy (`signOutPolicy/`)
+
+- **`signOutPolicy/signOutPolicy.ts`** (pure): the policy (strict or session mode, session length 15/30/60/240 minutes, optional second factor), the enterprise default with per-facility overrides and a lock, `resolveSignOutPolicy` (the case's performing facility), the sign-out session (`evaluateSignOutSession`: timeout, role change, other person or facility), the button state, the audit CSV rows and the one-line audit detail. Test: `signOutPolicy.test.ts`.
+- **`signOutPolicy/signOutPolicyService.ts`**: saves the policy (needs `config:session-security:manage`, audited with old and new values), holds the sign-out session, and audits authentications, in-session sign-outs and expiries. Test: `signOutPolicyService.test.ts`.
+- **`signOutPolicy/signOutPolicyInstance.ts`**: the browser stores (policy: `dataStorage`; session: per tab) and the logout hook. Exported from `@/services` as `signOutPolicyService`.
+- **`signerConfirmation.ts`**: `signOutState`, `confirmWithinSession` (a confirmation carrying `sessionReuse`), a second factor forced by the sign-out policy (`mfa_not_enrolled` when the person has none). `signatureEvidence.ts` accepts a session-backed SSO confirmation and records the session id; the server checks the session and the policy (`docs/architecture/SIGN_OUT_AUTHENTICATION.md`).
+- Not built (phase 2e, needs the server): remote sign-out restriction by trusted network, ending a session on workstation lock, network classification.

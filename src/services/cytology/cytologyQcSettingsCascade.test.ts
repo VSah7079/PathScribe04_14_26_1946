@@ -1,5 +1,10 @@
 // src/services/cytology/cytologyQcSettingsCascade.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockCytologyQcSettingsService } from './mockCytologyQcSettingsService';
 import { mockFacilityCytologyQcOverrideService } from './mockFacilityCytologyQcOverrideService';
 import { mockStaffCytologyQcOverrideService } from './mockStaffCytologyQcOverrideService';
@@ -133,5 +138,37 @@ describe('resolveEffectiveCytologyQcSettings — real, 3-tier cascade merge', ()
     expect(resolveEffectiveCytologyQcSettings(enterprise, facilityOverride, staffOverride).negativeRandomSelectionRatePercent).toBe(40);
     // A DIFFERENT, non-overridden staff member at the same facility still correctly gets the facility's own 15%.
     expect(resolveEffectiveCytologyQcSettings(enterprise, facilityOverride, null).negativeRandomSelectionRatePercent).toBe(15);
+  });
+});
+
+// Batch 450 (PS-157): an override that sets only one of the two rates inherits the
+// other from the tier below it.
+describe('resolveEffectiveCytologyQcSettings — partial overrides inherit the other rate', () => {
+  const enterprise = { negativeRandomSelectionRatePercent: 10, nonNegativeRandomSelectionRatePercent: 12 };
+  const facility = (overrides: Record<string, number>) => ({ id: 'f1', facilityId: 'fac-1', overrides, createdAt: '', updatedAt: '' });
+  const staff = (overrides: Record<string, number>) => ({ id: 's1', staffUserId: 'CT-1', overrides, createdAt: '', updatedAt: '' });
+
+  it('a facility override of only the negative rate keeps the Enterprise non-negative rate', () => {
+    expect(resolveEffectiveCytologyQcSettings(enterprise, facility({ negativeRandomSelectionRatePercent: 25 }), null))
+      .toEqual({ negativeRandomSelectionRatePercent: 25, nonNegativeRandomSelectionRatePercent: 12 });
+  });
+
+  it('a staff override of only the non-negative rate keeps the facility\'s negative rate (not the Enterprise one)', () => {
+    expect(resolveEffectiveCytologyQcSettings(enterprise, facility({ negativeRandomSelectionRatePercent: 25, nonNegativeRandomSelectionRatePercent: 30 }), staff({ nonNegativeRandomSelectionRatePercent: 50 })))
+      .toEqual({ negativeRandomSelectionRatePercent: 25, nonNegativeRandomSelectionRatePercent: 50 });
+  });
+
+  it('a staff override of one rate over a facility override of the other combines all three tiers', () => {
+    expect(resolveEffectiveCytologyQcSettings(enterprise, facility({ nonNegativeRandomSelectionRatePercent: 30 }), staff({ negativeRandomSelectionRatePercent: 40 })))
+      .toEqual({ negativeRandomSelectionRatePercent: 40, nonNegativeRandomSelectionRatePercent: 30 });
+  });
+
+  it('a stored facility override updated with only one rate keeps its other rate, and resolves with it', async () => {
+    await mockFacilityCytologyQcOverrideService.create('fac-partial', { negativeRandomSelectionRatePercent: 20, nonNegativeRandomSelectionRatePercent: 22 });
+    await mockFacilityCytologyQcOverrideService.update('fac-partial', { negativeRandomSelectionRatePercent: 35 });
+    const res = await mockFacilityCytologyQcOverrideService.getForFacility('fac-partial');
+    if (!res.ok) throw new Error('setup failed');
+    expect(resolveEffectiveCytologyQcSettings(enterprise, res.data, null))
+      .toEqual({ negativeRandomSelectionRatePercent: 35, nonNegativeRandomSelectionRatePercent: 22 });
   });
 });

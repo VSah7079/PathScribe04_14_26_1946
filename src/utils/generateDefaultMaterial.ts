@@ -21,7 +21,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { cassetteIdentifier, slideIdentifier, decantIdentifier, decantSlideIdentifier } from '@/types/labels/LabelData';
-import { getBlockLabel } from '@/utils/specimenLabeling';
+import { getBlockLabel, type LabelStyleInput } from '@/utils/specimenLabeling';
 import type { HistologyBlock, SpecimenTriage } from '@/types/case/Specimen';
 import type { Decant } from '@/types/case/Material';
 import type { Protocol } from '@/services/protocols/IProtocolService';
@@ -45,7 +45,8 @@ import { resolveDecantCassetteColor } from '@/utils/resolveDecantCassetteColor';
 export async function generateDefaultMaterial(
   entry: SpecimenEntry | undefined,
   specimenId: string,
-  specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen',
+  // Batch 715: the resolved letters/numbers style (or an old preset) for the block labels.
+  specimenLabelStyle?: LabelStyleInput,
   stainTypes: StainType[] = [],
   protocols: Protocol[] = [],
   // Real feature, per direct follow-up on unique material
@@ -151,17 +152,14 @@ export async function generateDefaultMaterial(
           decants.push({
             id: `${specimenId}-DECANT-${decantLabel}`,
             label: decantLabel,
-            // Real, deliberate mapping — DecantType has no generic
-            // "protocol-driven" value; 'cell_block' is the real,
-            // closer match for a task/stain-bearing pathway (embedded,
-            // processed, sectioned, the same real lifecycle a block
-            // has) than 'residual_fluid' (the leftover, not-further-
-            // processed portion) would be.
-            decantType: 'cell_block',
+            // Batch 739 (fluid decision 6): the pathway says what it makes; a cell block when it doesn't (as
+            // before). Only a cell block goes into a cassette, so only it takes the cassette colour.
+            decantType: pathway.decantType ?? 'cell_block',
+            ...(pathway.decantType === 'aliquot' && pathway.aliquotPurpose ? { aliquotPurpose: pathway.aliquotPurpose } : {}),
             stains,
             createdAt: new Date().toISOString(),
             displayId: decantDisplayId(decantLabel),
-            cassetteColorId: decantCassetteColorId,
+            ...((pathway.decantType ?? 'cell_block') === 'cell_block' ? { cassetteColorId: decantCassetteColorId } : {}),
           });
         }
         return;

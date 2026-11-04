@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/locations/
 
 The `Location` dictionary — real wards/rooms/beds, scoped to a
@@ -78,12 +80,14 @@ other HL7 integration setting in this app is already scoped.
 
 ## Admin UI
 
-`components/ClientDictionary/ClientEditorModal.tsx`'s **Locations**
-tab — edit-mode only, **not** role-gated (a real fix: it was
+`components/FacilityDictionary/FacilityEditorModal.tsx`'s **Locations**
+tab (Configuration → Facilities) — edit-mode only, **not** role-gated (a real fix: it was
 originally gated to `hl7_routing_endpoint`, on the reasoning that a
 facility only needs locations if it's doing HL7 integration; corrected
 after a direct request to also surface Location on the manual
 accession flow, which doesn't require HL7 at all).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the Locations tab is in `FacilityEditorModal.tsx`; `ClientEditorModal.tsx` was deleted in Batch 179.*
 
 **`pages/AccessionPage/AccessionPage.tsx`** also consumes this
 directly — a facility-scoped Location dropdown, right next to the
@@ -120,6 +124,19 @@ for Intraop"). Same facility-scoped dropdown pattern, captured once
 per session (alongside OR/surgeon) rather than per specimen — see
 `services/intraop/README.md`.
 
+## Batch 397
+
+`formatLocationDisplay.ts`: point of care / room / bed, as shown in pickers and summaries (used by the Intraop page; Accession and the Facility editor still build it inline).
+
+## Batch 428: Configuration permissions
+
+- `mockLocationService`: `create`, `update`, `deactivate`, `reactivate`, `verify` need `config:facilities:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+
+Batch 616: server version in `httpLocationService.ts` (used when the deployment has an API server address; the demo keeps the mock). Chosen in `locationServiceInstance.ts`. Contract: `docs/architecture/LAB_DICTIONARIES_API.md`.

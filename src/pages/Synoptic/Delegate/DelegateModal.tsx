@@ -6,6 +6,7 @@
 // service now checks case:delegation:create; a refusal is shown. Confirm can
 // also be said ("confirm delegation", DELEGATE_CONFIRM).
 import React, { useState, useEffect, useRef } from 'react';
+import './delegateResult.css';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import {
@@ -14,11 +15,15 @@ import {
 } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { IActionRegistryService } from '../../../services/actionRegistry/IActionRegistryService';
-import { userService, subspecialtyService, delegationTypeService, delegationService, delegationMissing, delegationNoteShown } from '../../../services';
+import { delegateToRecipients, toggleRecipientId, addRecipientId, limitRecipientIds } from '../../../services/delegations/delegateToRecipients';
+import { formatList } from '../../../utils/formatList';
+import { userService, subspecialtyService, delegationTypeService, delegationService, delegationMissing, delegationNoteShown, presetAvailable } from '../../../services';
 import { useFieldRequirements } from '../../../hooks/useFieldRequirements';
 import { CapabilityButton } from '../../../components/Common/CapabilityButton';
 import { getStaffSubspecialtyDisplay } from '../../../utils/staffSubspecialties';
 import type { StaffUser, Subspecialty } from '../../../services';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 interface Pool {
   id: string;
@@ -41,6 +46,10 @@ interface DelegateModalProps {
   currentUserId?: string;
   onDelegated?: () => void;
   synopticInstances?: SynopticOption[];
+  /** Batch 610 (#83): a delegation type to choose on opening (said by voice: peer review, formal consult, full transfer). */
+  presetTypeId?: string;
+  /** Changes each time the preset is asked for, so saying it again while open applies it again. */
+  presetNonce?: number;
 }
 
 // ─── Draggable recipient card — staff or pool ────────────────────────────────
@@ -61,7 +70,7 @@ const RecipientCard: React.FC<RecipientCardProps> = ({ id, primary, secondary, i
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={onClick}
+      {...pressable(onClick)}
       className={`ps-delegate-recipient-card${isDragging ? ' ps-delegate-recipient-card--dragging' : isSelected ? ' ps-delegate-recipient-card--selected' : ''}`}
       data-dragged={transform ? '' : undefined}
       style={transform ? { '--drag-transform': CSS.Translate.toString(transform) } as React.CSSProperties : undefined}
@@ -98,7 +107,9 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
   return (
     <div
       ref={setNodeRef}
-      onClick={onSelectType}
+      // Batch 567 (axe nested-interactive): the zone can hold a button (clear the recipient), so it isn't a button
+      // itself; clicking it still picks the type, and the type's name is the button for the keyboard.
+      {...clickableContainer(onSelectType)}
       className={`ps-delegate-type-zone${isSelected ? ' ps-delegate-type-zone--selected' : ''}${isOver ? ' ps-delegate-type-zone--over' : ''}`}
       style={{ '--ps-hue': dt.color } as React.CSSProperties}
     >
@@ -112,7 +123,8 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
         <span className="ps-delegate-type-zone-id-badge">
           {dt.id.replace('_', ' ')}
         </span>
-        <span className="ps-delegate-type-zone-label">{dt.label}</span>
+        <button type="button" className="ps-row-open-btn ps-delegate-type-zone-label" aria-pressed={isSelected}
+          onClick={e => { e.stopPropagation(); onSelectType(); }}>{dt.label}</button>
         {isSelected && <span className="ps-delegate-type-zone-check">✓</span>}
       </div>
       <div className="ps-delegate-type-zone-desc">{dt.description}</div>
@@ -123,7 +135,7 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
         selectedRecipientLabel ? (
           <div className="ps-delegate-type-zone-recipient-chip">
             <span className="ps-delegate-type-zone-recipient-label">{selectedRecipientLabel}</span>
-            <button onClick={e => { e.stopPropagation(); onClearRecipient(); }} className="ps-delegate-type-zone-recipient-clear">✕</button>
+            <button type="button" aria-label={t('common.remove')} title={t('common.remove')} onClick={e => { e.stopPropagation(); onClearRecipient(); }} className="ps-delegate-type-zone-recipient-clear">✕</button>
           </div>
         ) : (
           <div className="ps-delegate-type-zone-drop-hint">
@@ -136,14 +148,17 @@ const TypeZone: React.FC<TypeZoneProps> = ({ dt, isSelected, isOver, selectedRec
 };
 
 export const DelegateModal: React.FC<DelegateModalProps> = ({
-  isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = []
+  isOpen, onClose, registry, caseId, currentUserId = 'PATH-001', onDelegated, synopticInstances = [], presetTypeId, presetNonce
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const requirements = useFieldRequirements('report');
   const [refusal, setRefusal] = useState<string | null>(null);
+  // Batch 655: some recipients delegated and some refused (a type that takes several people): the dialog stays open and lists both.
+  const [partial, setPartial] = useState<{ delegated: string[]; refused: { name: string; error: string }[] } | null>(null);
   const [subspecialties, setSubspecialties] = useState<Subspecialty[]>([]);
   const [searchTerm,         setSearchTerm]         = useState('');
-  const [selectedId,         setSelectedId]         = useState<string | null>(null);
+  // Batch 652: several recipients when the delegation type allows it (multiAssign, e.g. Teaching Case); otherwise one.
+  const [selectedIds,        setSelectedIds]        = useState<string[]>([]);
   const [filter,             setFilter]             = useState<'individuals' | 'pools'>('individuals');
   const [confirming,         setConfirming]         = useState(false);
   const [delegationType,     setDelegationType]     = useState<string | null>(null);
@@ -178,18 +193,25 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
   useEffect(() => {
     const shouldShowPools = delegationType === 'POOL';
     setFilter(shouldShowPools ? 'pools' : 'individuals');
-    setSelectedId(prev => {
-      if (!prev) return prev;
-      const isCurrentSelectionAPool = contextPools.some(p => p.id === prev);
-      return isCurrentSelectionAPool === shouldShowPools ? prev : null;
-    });
+    const several = !!delegationTypes.find(d => d.id === delegationType)?.multiAssign;
+    setSelectedIds(prev => limitRecipientIds(prev.filter(id => contextPools.some(p => p.id === id) === shouldShowPools), several));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [delegationType]);
 
+  // Batch 610 (#83): choose the preset delegation type once the list has loaded.
+  const appliedPresetRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!isOpen || !presetTypeId || loading || delegationTypes.length === 0) return;
+    if (appliedPresetRef.current === presetNonce) return;
+    appliedPresetRef.current = presetNonce;
+    if (presetAvailable(delegationTypes, presetTypeId)) { setDelegationType(presetTypeId); setRefusal(null); }
+    else setRefusal('presetUnavailable');
+  }, [isOpen, presetTypeId, presetNonce, loading, delegationTypes]);
+
   useEffect(() => {
     if (isOpen) {
-      setSearchTerm(''); setSelectedId(null); setConfirming(false);
-      setDelegationType(null); setNote(''); setSelectedInstanceId(null); setRefusal(null);
+      setSearchTerm(''); setSelectedIds([]); setConfirming(false);
+      setDelegationType(null); setNote(''); setSelectedInstanceId(null); setRefusal(null); setPartial(null);
       setLoading(true);
       Promise.all([
         userService.getAll(),
@@ -258,10 +280,12 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
     p.subspecialty.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const selectedStaff     = staff.find(s => s.id === selectedId);
+  const selectedId        = selectedIds[0] ?? null;
   const selectedPool      = contextPools.find(p => p.id === selectedId);
-  const selectedLabel     = selectedStaff?.name ?? selectedPool?.name ?? null;
+  const recipientName     = (id: string) => staff.find(s => s.id === id)?.name ?? contextPools.find(p => p.id === id)?.name ?? id;
+  const selectedLabel     = selectedIds.length > 0 ? formatList(selectedIds.map(recipientName), i18n.language) : null;
   const selectedDelegType = delegationTypes.find(d => d.id === delegationType);
+  const severalAllowed    = !!selectedDelegType?.multiAssign;
 
   const delegationForm = {
     delegationType, recipientId: selectedId,
@@ -288,8 +312,10 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
     if (!over) return;
     const recipientId = String(active.id).replace(/^(staff|pool)-/, '');
     const typeId = String(over.id).replace('type-', '');
+    // Dropping on the type already chosen adds to the recipients when that type takes several.
+    const typeTakesSeveral = !!delegationTypes.find(d => d.id === typeId)?.multiAssign;
+    setSelectedIds(prev => (typeId === delegationType ? addRecipientId(prev, recipientId, typeTakesSeveral) : [recipientId]));
     setDelegationType(typeId);
-    setSelectedId(recipientId);
     setSelectedInstanceId(null);
   };
 
@@ -303,16 +329,25 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
       // Batch 353: the delegation service decides what the request does
       // (assign the chosen synoptic, or delegate the case to the user or
       // pool) and records it.
-      if (caseId && selectedId) {
-        const res = await delegationService.delegate({
+      if (caseId && selectedIds.length > 0) {
+        // Batch 652: one delegation per recipient (each with the same permission check and audit entry).
+        const res = await delegateToRecipients({
           caseId, requestorId: currentUserId, delegationType: delegationType!,
-          recipient: selectedPool !== undefined
-            ? { kind: 'pool', id: selectedId, name: selectedLabel ?? undefined }
-            : { kind: 'user', id: selectedId, name: selectedLabel ?? undefined },
+          recipients: selectedIds.map(id => (selectedPool !== undefined
+            ? { kind: 'pool' as const, id, name: recipientName(id) }
+            : { kind: 'user' as const, id, name: recipientName(id) })),
           synopticInstanceId: selectedInstanceId ?? undefined,
           note: note || undefined,
-        });
-        if (res.ok === false) { setRefusal(res.error); return; }
+        }, { delegationService, delegationTypeService });
+        // Nothing delegated: say why and stay open. Some delegated: they are done, so the page refreshes as for any delegation.
+        if (!res.ok && res.delegated.length === 0) { setRefusal(res.error ?? null); return; }
+        if (!res.ok) {
+          setPartial({
+            delegated: res.delegated.map(d => recipientName(d.toUserId ?? d.toPoolId ?? '')),
+            refused: res.refused.map(r => ({ name: r.recipient.name ?? recipientName(r.recipient.id), error: r.error })),
+          });
+          return;
+        }
       }
       onDelegated?.();
       onClose();
@@ -375,7 +410,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                     setDelegationType(isSel ? null : dt.id);
                     if (!isSel) setSelectedInstanceId(null);
                   }}
-                  onClearRecipient={() => setSelectedId(null)}
+                  onClearRecipient={() => setSelectedIds([])}
                 />
               ))}
 
@@ -388,7 +423,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                     return (
                       <div
                         key={inst.instanceId}
-                        onClick={() => setSelectedInstanceId(isSel ? null : inst.instanceId)}
+                        {...pressable(() => setSelectedInstanceId(isSel ? null : inst.instanceId))}
                         className={`ps-delegate-synoptic-item${isSel ? ' ps-delegate-synoptic-item--selected' : ''}`}
                       >
                         <div className="ps-delegate-synoptic-item-title">{inst.specimenDescription}</div>
@@ -403,7 +438,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               {noteShown && (
                 <div className="ps-delegate-note-section">
                   <div className="fm-section-label fm-section-label--sm">{t('delegateModal.noteRequired')}</div>
-                  <input
+                  <input aria-label={t('delegateModal.noteRequired')}
                     type="text"
                     placeholder={t('delegateModal.notePlaceholder')}
                     value={note}
@@ -447,7 +482,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
               </div>
 
               <div className="ps-delegate-list">
-                {loading && <div className="ps-delegate-empty">{t('delegateModal.loading')}</div>}
+                {loading && <LoadingState variant="inline" className="ps-delegate-empty" label={t('delegateModal.loading')} />}
 
                 {filter === 'individuals' && !loading && (
                   filteredStaff.length === 0
@@ -458,8 +493,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                           id={`staff-${s.id}`}
                           primary={s.name}
                           secondary={t('delegateModal.staffSecondary', { role: s.role, subspecialty: s.subspecialty || '—' })}
-                          isSelected={selectedId === s.id}
-                          onClick={() => setSelectedId(selectedId === s.id ? null : s.id)}
+                          isSelected={selectedIds.includes(s.id)}
+                          onClick={() => setSelectedIds(prev => toggleRecipientId(prev, s.id, severalAllowed))}
                         />
                       ))
                 )}
@@ -473,8 +508,8 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
                           id={`pool-${pool.id}`}
                           primary={pool.name}
                           secondary={t('delegateModal.poolSecondary', { count: pool.memberCount })}
-                          isSelected={selectedId === pool.id}
-                          onClick={() => setSelectedId(selectedId === pool.id ? null : pool.id)}
+                          isSelected={selectedIds.includes(pool.id)}
+                          onClick={() => setSelectedIds(prev => toggleRecipientId(prev, pool.id, false))}
                         />
                       ))
                 )}
@@ -499,6 +534,15 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
         {/* ── Footer — unchanged ─────────────────────────────── */}
         <div className="fm-footer">
           {refusal && <span className="ps-field-still-required" role="alert">{t(`delegateModal.refusals.${refusal}`)}</span>}
+          {partial && (
+            <div className="ps-delegate-result" role="status">
+              <span className="ps-delegate-result__done">{t('delegateModal.partial.delegated', { names: partial.delegated.join(', ') })}</span>
+              <span className="ps-delegate-result__heading">{t('delegateModal.partial.notDelegated')}</span>
+              <ul className="ps-delegate-result__list">
+                {partial.refused.map(r => <li key={r.name}>{t('delegateModal.partial.refusedLine', { name: r.name, reason: t(`delegateModal.refusals.${r.error}`) })}</li>)}
+              </ul>
+            </div>
+          )}
           <span className={'fm-footer-status' + (delegationType || selectedLabel ? ' dirty' : '')}>
             {!delegationType
               ? t('delegateModal.chooseDelegationType')
@@ -508,6 +552,9 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
             }
           </span>
           <div className="fm-del-footer-row">
+            {partial ? (
+              <button className="fm-btn-save" onClick={() => { onDelegated?.(); onClose(); }}>{t('delegateModal.partial.done')}</button>
+            ) : (<>
             <button className="fm-btn-cancel" onClick={onClose}>{t('delegateModal.cancel')}</button>
             <CapabilityButton
               capability="case:delegation:create"
@@ -518,6 +565,7 @@ export const DelegateModal: React.FC<DelegateModalProps> = ({
             >
               {confirming ? t('delegateModal.delegating') : t('delegateModal.confirmDelegation')}
             </CapabilityButton>
+            </>)}
           </div>
         </div>
 

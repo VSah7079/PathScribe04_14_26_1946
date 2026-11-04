@@ -25,8 +25,10 @@
 
 import type { ServiceResult } from '../types';
 import type { Physician } from './IPhysicianService';
-import { mockPhysicianService, generateAutoPhysicianCode } from './mockPhysicianService';
-import { mockFacilityService } from '../facilities/mockFacilityService';
+// Batch 428: an interface feed (the master file from the LIS), not a person's
+// Configuration change, so it uses the physician list unchecked.
+import { physicianServiceUnchecked as mockPhysicianService, generateAutoPhysicianCode } from './mockPhysicianService';
+import { facilityService } from '../facilities/facilityServiceInstance';
 import type { PhysicianMasterFileRecord } from './PhysicianMasterFileRecord';
 
 export type PhysicianMasterFileOutcome = 'created' | 'updated' | 'deactivated' | 'reactivated';
@@ -62,7 +64,7 @@ async function findBySource(sourceSystem: string, sourceRecordId: string): Promi
  *  on unmatchedFacilityAssigningAuthorities for why). */
 async function resolveFacilityIds(assigningAuthorities: string[] | undefined): Promise<{ clientIds: string[]; unmatched: string[] }> {
   if (!assigningAuthorities || assigningAuthorities.length === 0) return { clientIds: [], unmatched: [] };
-  const res = await mockFacilityService.getAll();
+  const res = await facilityService.getAll();
   const facilities = res.ok ? res.data : [];
   const clientIds: string[] = [];
   const unmatched: string[] = [];

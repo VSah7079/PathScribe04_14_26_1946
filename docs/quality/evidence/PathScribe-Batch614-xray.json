@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 614 \u2014 voice and hotkey handlers for permission-only entries, Mac Option/AltGr, Code Systems wiring, correlation print",
+    "description": "Vitest, 2026-10-18: full suite 1391 files (1386 passed, 4 skipped, 1 failed); 11,349 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Python checks 233 and 44 passed. Not run: browser check."
+  },
+  "tests": [
+    {
+      "testKey": "PS-791",
+      "start": "2026-10-19T00:00:00Z",
+      "finish": "2026-10-19T02:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Coding/CodeSystemOffNote.test.tsx\nPASSED: src/components/Config/Staff/RoleDictionary.cheatsheet.test.tsx\nPASSED: src/components/Editor/__tests__/PathScribeEditor.voiceCommands.test.tsx\nPASSED: src/components/Editor/__tests__/editorCommands.test.ts\nPASSED: src/components/QualityAssurance/CytologyHistologyCorrelationPrintView.test.tsx\nPASSED: src/pages/Synoptic/Codes/Opcs4Notice.test.tsx\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts\nPASSED: src/services/actionRegistry/shortcutResolution.test.ts\nPASSED: src/services/coding/codePolicyEnforcement.test.ts\nPASSED: src/services/interfaceEngine/buildOrderCreationPayload.test.ts"
+    }
+  ]
+}

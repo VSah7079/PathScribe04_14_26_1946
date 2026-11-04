@@ -19,7 +19,12 @@ distinct step, not dropped) and adding Checkout as the batch-specific
 completion/reconciliation stage (the spec's own "Out-of-Process
 Verification" step, genuinely new, not an existing stage renamed).
 Final set: Grossing, Processing, Embedding, Microtomy, Staining,
-Checkout.
+Checkout. *(Since changed: `BATCH_PROCESSING_NODES` in
+`src/services/batches/IBatchService.ts` now lists Decal / Special
+Processing, Processing, Embedding, Microtomy / Sectioning, Staining,
+Checkout, External Referral, Cytology Processing, Cytology Staining and
+Cytology Imaging; Grossing is no longer a batch node — checked in the
+Batch 496 README audit.)*
 
 ## The tiles
 
@@ -56,5 +61,5 @@ the confirmation.
 ## Changed files (4)
 - src/services/batches/IBatchService.ts
 - src/pages/BatchManagement/BatchManagementPage.tsx
-- src/pages/BatchManagement/CreateBatchModal.tsx
+- src/pages/BatchManagement/CreateBatchModal.tsx *(Since renamed: now `NewContainerModal.tsx` — checked in the Batch 496 README audit.)*
 - src/pathscribe.css

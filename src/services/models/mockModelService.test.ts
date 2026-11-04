@@ -162,3 +162,31 @@ describe('loadOrInitAdoptionStore', () => {
     expect(loadOrInitAdoptionStore()).toEqual({ 'ORG-X': [] });
   });
 });
+
+describe('mock model service: per-adoption overrides (Batch 609, #173)', () => {
+  it('saves overrides for one organisation only and shows them on the model', async () => {
+    const h = harness(seeded());
+    const res = await h.service.update('psv32', { configOverrides: { maxTokens: 400 }, thresholdOverrides: { confidenceThreshold: 85 } });
+    expect(res).toMatchObject({ ok: true, data: { configOverrides: { maxTokens: 400 }, thresholdOverrides: { confidenceThreshold: 85 } } });
+    expect(h.store()['ORG-A'].find(a => a.modelId === 'psv32')).toMatchObject({ configOverrides: { maxTokens: 400 } });
+    h.setOrg('ORG-B');
+    const other = await h.service.getById('psv32');
+    expect(other.ok && other.data.configOverrides).toBeUndefined();
+  });
+
+  it('refuses a value outside the allowed range and keeps what was saved', async () => {
+    const h = harness(seeded());
+    await h.service.update('psv32', { thresholdOverrides: { confidenceThreshold: 85 } });
+    expect(await h.service.update('psv32', { thresholdOverrides: { confidenceThreshold: 150 } })).toEqual({ ok: false, error: 'INVALID_OVERRIDE' });
+    const again = await h.service.getById('psv32');
+    expect(again.ok && again.data.thresholdOverrides).toEqual({ confidenceThreshold: 85 });
+  });
+
+  it('clearing both sections removes the overrides', async () => {
+    const h = harness(seeded());
+    await h.service.update('psv32', { configOverrides: { maxTokens: 400 } });
+    await h.service.update('psv32', { configOverrides: {}, thresholdOverrides: {} });
+    const res = await h.service.getById('psv32');
+    expect(res.ok && res.data.configOverrides).toBeUndefined();
+  });
+});

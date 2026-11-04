@@ -6,10 +6,18 @@
 //
 //   • Passwords are stored as PBKDF2-SHA256 hashes (600,000 iterations,
 //     one random salt each), made with scripts/auth/hash-demo-password.mjs.
-//   • This module is loaded only when VITE_AUTH_MODE is unset or "demo"
-//     (authSession.ts). An "sso" build leaves it out of the bundle entirely.
+//   • This module is loaded only in the demo build (__DEMO_TOOLS__) when
+//     VITE_AUTH_MODE is not "sso" (authSessionInstance.ts). Batch 547: a
+//     server build (npm run build:server) leaves it out of the bundle
+//     entirely, whatever its config.json says; check-production-bundle.mjs
+//     fails the build if it isn't. *(Before Batch 547 an "sso" build left it
+//     out; the mode now comes from config.json at start-up.)*
 //   • The passwords themselves were in the shipped bundle until Batch 343,
-//     so treat them as known: change them with the script above.
+//     so treat them as known.
+//   • Batch 448: these are only the starting passwords. An administrator
+//     sets or resets anyone's password from Staff → edit → Sign-in password
+//     (services/staffPasswords/); once set there, the built-in one stops
+//     working for that account. Full Reset returns to these.
 //
 // Role guide:
 //   "pathologist"       → clinical cases + reporting only
@@ -18,16 +26,17 @@
 //   "superadmin"        → PathScribe platform support: every tenant
 //
 // Batch 371 (Pete): Superadmin is reserved for ForMedrixAI support staff.
-// Kept as superadmin: Pete Nimmo (both emails), System Admin, Paul Carter,
+// Kept as superadmin: Pete Nimmo (both emails), System Admin, Paul Carter (UK workflow adviser, Batch 755b: his own id),
 // Amber Fehrs-Battey, Bronwyn Prior and Rossana Babakhani. Everyone else
 // signs in with the hospital role their staff record gives them, so they
 // see the product the way their own staff would: Dr. Sarah Johnson,
-// Dr. Oliver Pemberton and Dr. J. Mark Tuthill as pathologists.
+// Dr. Oliver Pemberton, Dr. J. Mark Tuthill and (Batch 755b) Dr. Imogen Hartley as pathologists.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { VoiceProfileId } from '../../../constants/voiceProfiles';
 import type { AppRole } from '../sessionProfile';
 import { verifyPasswordHash, type StoredPasswordHash } from './passwordHash';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
 
 export interface DemoAccount {
   email: string;
@@ -48,8 +57,11 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'MYdQ+CXRlWPlRMf3BCtBJw==', hash: 'RK2gCXwbvxTXiKBSK/Xf7e3maqiIjVGYVzWK2l4ECzg=' } },
   { email: 'admin@pathscribe.ai', id: 'u3', name: 'System Admin', role: 'superadmin', initials: 'SA', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'wPPBq65tJV9Fa5fBQZMCnw==', hash: '0S/9fhTFW88UHfuToglZj88thYz4cOxRYkKDkyYHceY=' } },
-  { email: 'paul.carter@mft.nhs.uk', id: 'PATH-UK-001', name: 'Paul Carter', role: 'superadmin', initials: 'PC', voiceProfile: 'EN-GB',
+  { email: 'paul.carter@mft.nhs.uk', id: 'UK-ADV-001', name: 'Paul Carter', role: 'superadmin', initials: 'PC', voiceProfile: 'EN-GB',
     password: { iterations: 600000, salt: 'XVUGeEa6qL+qyCwiHMIpnA==', hash: 'ZOgtCeIdbYxAxy1gHCEnPIU62Lh9wRTHoMQxOcWblIo=' } },
+  // Batch 755b: the Manchester demo pathologist (fictional), so a UK demonstration can sign in to her worklist.
+  { email: 'imogen.hartley@demo.pathscribe.ai', id: 'PATH-UK-001', name: 'Dr. Imogen Hartley', role: 'pathologist', initials: 'IH', voiceProfile: 'EN-GB',
+    password: { iterations: 600000, salt: '6Ghn2H3XAnso9Hojtep+uQ==', hash: 'RfZsXaUmDiV3bh30LzqWm/vs8HyAfslLow1MehMvrUA=' } },
   { email: 'bronwyn.prior@mft.nhs.uk', id: 'PATH-UK-003', name: 'Bronwyn Prior', role: 'superadmin', initials: 'BP', voiceProfile: 'EN-GB',
     password: { iterations: 600000, salt: 'JOwlIjqHtjj0AS8PS8wztw==', hash: '6flaOlFocCYfeUlHPkNGdJFkCMfhFXiyNRNFGPtLk10=' } },
   { email: 'oliver.pemberton@mft.nhs.uk', id: 'PATH-UK-002', name: 'Dr. Oliver Pemberton', role: 'pathologist', initials: 'OP', voiceProfile: 'EN-GB',
@@ -58,7 +70,7 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'YXOo5/Oho4EMvSOiGgLZtg==', hash: '//aycKGHDWa06Qyt6AKVRslPfOcD6R6WQaGewAFFwKg=' } },
   { email: 'mark.tuthill@hfhs-demo.pathscribe.ai', id: 'PATH-US-002', name: 'Dr. J. Mark Tuthill', role: 'pathologist', initials: 'MT', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: '6RoUd+kv3wAf2w43JBsriw==', hash: 'rx+AoGDty1oJkOjhf3/lG4bbQhbDzqZFzsozm3XeF4o=' } },
-  { email: (import.meta.env.VITE_BABAKHANI_EMAIL ?? 'rossana.babakhani@pathscribe.ai').toLowerCase(), id: 'PATH-RB-001', name: 'Rossana Babakhani', role: 'superadmin', initials: 'RB', voiceProfile: 'EN-US',
+  { email: (appEnv().VITE_BABAKHANI_EMAIL ?? 'rossana.babakhani@pathscribe.ai').toLowerCase(), id: 'PATH-RB-001', name: 'Rossana Babakhani', role: 'superadmin', initials: 'RB', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'odzRFd6XC3lJdcDteGQ4Rg==', hash: 'TBJNaS9kGBSXKTLG1ylG6tuqSeQIJoDSSgvnkVHNU0Q=' } },
   // Batch 374: bench and PA sign-ins, so the Home page's per-role tiles can be
   // demoed. Same password as demo@pathscribe.ai.
@@ -74,6 +86,38 @@ export const DEMO_ACCOUNTS: readonly DemoAccount[] = [
     password: { iterations: 600000, salt: 'BW6UbPcfctpi2AGqs3pP3Q==', hash: 'HxfyWumohGb5Mfmv/wTtlt3R9RulynQ6uiixtD7D7mQ=' } },
   { email: 'michelle.nimmo@ai.com', id: 'PATH-MN-001', name: 'Michelle Nimmo', role: 'pathologist-admin', initials: 'MN', voiceProfile: 'EN-US',
     password: { iterations: 600000, salt: 'NEV6v3TdVFZRqfKRGYUnZw==', hash: 'UJkKSg81VbsWvNt41slFyagi7r3nmRs0q8hfQgj1yjo=' } },
+  // Batch 455 (Pete: "Some workflows require a second staff person with the
+  // appropriate RBPs"): a sign-in for every built-in role nobody could demo,
+  // so each two-person workflow has two real people. Same password as
+  // demo@pathscribe.ai (each hashed with its own salt). Built in, so a Full
+  // Reset, which clears passwords set on the Staff screen, can't lock them out.
+  // The session role is what their staff roles give (sessionRole.ts); what they
+  // may do comes from those staff roles.
+  { email: 'rachel.okafor@demo.pathscribe.ai', id: 'LD-001', name: 'Dr. Rachel Okafor', role: 'admin', initials: 'RO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'BRs+bgTOn+h9O7QJQo/K+g==', hash: 'JXgVWl7/CcR45ynpfRQ0ZEY7ROUArQnSPQybJKEoEsg=' } },
+  // Batch 738 (Demo Seed Data S13): an administrator with no clinical role, for the demo videos (fictional).
+  { email: 'jordan.ellis@demo.pathscribe.ai', id: 'ADM-001', name: 'Jordan Ellis', role: 'admin', initials: 'JE', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'ViiIsYPOd8vNjaGu/25XAA==', hash: 'NnFSCzBuJr6r3UVr6JDawB+X7jVidenA9B6K83KeEwA=' } },
+  { email: 'james.okafor@demo.pathscribe.ai', id: '2', name: 'Dr. James Okafor', role: 'pathologist', initials: 'JO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '9dJCrOwDXXASeVNr08zdqQ==', hash: 'QZ9TtRQGYt15AMr5i4z00toCalq7YH2WH8Qv0nZdf+0=' } },
+  { email: 'lucas.moreau@demo.pathscribe.ai', id: 'FEL-001', name: 'Dr. Lucas Moreau', role: 'pathologist', initials: 'LM', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'LkkjQih8JGqpRK7CCi29hw==', hash: 'FVN4yM3YiVeaRs+SKKiXNknIWj2DRzmzQLX7+3T9kXU=' } },
+  { email: 'nadia.rahman@demo.pathscribe.ai', id: 'CT-002', name: 'Nadia Rahman', role: 'pathologist', initials: 'NR', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'JUUpWPFzLkRiSztDFRW5Gg==', hash: '9M9+chfKH7tquSv+Bp/pKGrBSK9wBvQtP7/VNz16T1k=' } },
+  { email: 'hannah.price@demo.pathscribe.ai', id: 'TA-001', name: 'Hannah Price', role: 'admin', initials: 'HP', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'mdT6kdPJ7sWjwpBIdXS6Ew==', hash: 'WtpxldKZQ3yQhr25Q/mw80M25q1+C35i7U0bPLRvQRQ=' } },
+  { email: 'samuel.osei@demo.pathscribe.ai', id: 'TAP-001', name: 'Dr. Samuel Osei', role: 'admin', initials: 'SO', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '15e9hKDlTmhfhKko8yvliw==', hash: 'pFFJi+yoDSXKZL5r8I6bPWDaIlfQ3Rd+Hx61aOWqpIk=' } },
+  { email: 'grace.liu@demo.pathscribe.ai', id: 'QA-001', name: 'Grace Liu', role: 'pathologist', initials: 'GL', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'Smv3/DzDZgoCo/KYrzt6dA==', hash: 'MjtxMX+UpCc1jJtBJfdujhesbd7v3sm1w4dkA0j+a68=' } },
+  // Batch 697 (Pete): the two technical writers who update the Admin and User
+  // Guides. They hold Admin and Pathologist together so they can open every
+  // screen to capture it. This is not a read-only role; the starting passwords
+  // were given to Pete and are reset from Staff → edit → Sign-in password.
+  { email: 'helen.schollars@demo.pathscribe.ai', id: 'DOC-001', name: 'Helen Schollars', role: 'pathologist-admin', initials: 'HS', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: 'gfSyqxFf2WjCZuMC7k6gQg==', hash: 'ZDOUSQBcUFqBZShVvmxYVC8HisabfB9sc4B7u81gXJE=' } },
+  { email: 'shelly.krill@demo.pathscribe.ai', id: 'DOC-002', name: 'Shelly Krill', role: 'pathologist-admin', initials: 'SK', voiceProfile: 'EN-US',
+    password: { iterations: 600000, salt: '4ZKC0w+iUVUIiTkeVJWnag==', hash: 'KxlCfPVoFFYa8DySL0BvCjCACWGaEMF2JrKWULTlO/8=' } },
 ];
 
 /** Checked when the email matches no account, so an unknown email takes as long as a wrong password. */
@@ -89,4 +133,20 @@ export async function verifyDemoCredentials(email: string, password: string, acc
   const account = accounts.find(a => a.email.toLowerCase() === wanted);
   const ok = await verifyPasswordHash(password.trim(), account?.password ?? NO_ACCOUNT);
   return account && ok ? account : null;
+}
+
+// ── Batch 611 (#157): the Simulated second factor ──────────────────────────
+// A documented demo secret per account, so the multi-factor sign-in can be
+// shown without a phone. It is derived from a seed that is written here and in
+// docs/architecture/MFA.md, so treat it as known: it protects nothing and
+// exists only in the demo build. Add the secret to an authenticator app, or use
+// the "Show demo code (Simulated)" button on the screen.
+export const DEMO_MFA_SEED = 'pathscribe-demo-mfa-v1';
+
+/** The base32 demo secret for a staff id (20 bytes of SHA-256(seed:id)); the same for every id, so staff whose password was set on the Staff screen are covered too. */
+export async function demoMfaSecretFor(accountId: string): Promise<string | null> {
+  if (!accountId) return null;
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${DEMO_MFA_SEED}:${accountId}`) as BufferSource));
+  const { base32Encode } = await import('../mfa/totp');
+  return base32Encode(digest.slice(0, 20));
 }

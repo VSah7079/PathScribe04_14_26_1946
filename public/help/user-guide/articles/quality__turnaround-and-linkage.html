@@ -1,0 +1,237 @@
+<h1 id="top">Countersign, Linkage and Drift</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> Three Quality Assurance reports watch for work that is slow or has gone wrong after the fact. <strong>Countersign Turnaround</strong> measures how long attending pathologists take to countersign reports released by residents. <strong>Frozen Linkage</strong> (the intraoperative linkage report) shows intraoperative entries that have not yet been joined to a formal case. <strong>Post-Final Drift</strong> lists cases whose content changed after the report was finalised, and whether PathScribe put it right.</p>
+<p><strong>Intended users.</strong> Quality staff, laboratory managers, and pathologists who supervise residents.</p>
+<p><strong>Where it fits.</strong> All three are tiles on the <strong>Operations</strong> pillar of <strong>Quality Assurance</strong>. Each report is read-only apart from opening cases. See <a href="/help/quality">Quality &amp; Compliance</a>.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/quality-turnaround-overview.png" alt="The Countersign Turnaround report with its trend chart, tiles and tables"><figcaption>The Countersign Turnaround report with its trend chart, tiles and tables</figcaption></figure>
+
+<p>Each report opens with the scope switcher and an <strong>Export</strong> button on the first line, then a chart, tiles and tables. The screens say "Loading countersign data…", "Loading intraoperative linkage data…" or "Loading drift correction data…" while they open.</p>
+<h3 id="field-definitions">Field definitions</h3>
+<p><strong>Countersign Turnaround</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chart</td>
+<td>Average turnaround in hours by month. A month with none says "No countersigns this month".</td>
+</tr>
+<tr>
+<td>Avg Turnaround</td>
+<td>Average hours from release to countersignature.</td>
+</tr>
+<tr>
+<td>Pending Countersign</td>
+<td>Released reports still waiting for the attending.</td>
+</tr>
+<tr>
+<td>Avg Fields Changed</td>
+<td>Average number of report fields the attending changed when countersigning.</td>
+</tr>
+<tr>
+<td>With Feedback</td>
+<td>Countersigned reports where the attending left feedback.</td>
+</tr>
+<tr>
+<td>Pending table</td>
+<td>Cases waiting, with the resident, attending, release time and how long they have waited.</td>
+</tr>
+<tr>
+<td>Countersigned table</td>
+<td>Resident, Attending, Released At, Turnaround, <strong>Fields Changed</strong> and Feedback ("none" when empty).</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Frozen Linkage (intraoperative linkage)</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Chart</td>
+<td>Average hours between an intraoperative entry being created and being merged into a case, by month. "No merges" for an empty month.</td>
+</tr>
+<tr>
+<td>Merged</td>
+<td>Entries already merged into a case.</td>
+</tr>
+<tr>
+<td>Pending Linkage</td>
+<td>Entries not yet linked to a case.</td>
+</tr>
+<tr>
+<td>Pending Over 24h</td>
+<td>Entries waiting more than 24 hours. Turns red when above zero.</td>
+</tr>
+<tr>
+<td>Pending table</td>
+<td><strong>Entry ID</strong>, the OR, who performed it and when it was created. Select a row to open the intraoperative queue.</td>
+</tr>
+<tr>
+<td>Merged table</td>
+<td><strong>Entry ID</strong>, the case it was merged into, <strong>Merged At</strong>, who performed it and how it was resolved.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Post-Final Drift</strong></p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drift Events Detected</td>
+<td>Cases where a change after finalisation was found.</td>
+</tr>
+<tr>
+<td>Auto-Corrected</td>
+<td>Cases PathScribe put right by itself.</td>
+</tr>
+<tr>
+<td>Unresolved — Needs Review</td>
+<td>Cases still needing a person. Amber when above zero.</td>
+</tr>
+<tr>
+<td>Cases with unresolved drift correction</td>
+<td>Case, Status, Detail and Detected time, with an <strong>Open</strong> button.</td>
+</tr>
+<tr>
+<td>All drift events</td>
+<td>Every event, newest first: Case, Event, Detail and Timestamp. "No drift events recorded in this scope." when there are none.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Scope switcher</td>
+<td>Limits the report to the whole enterprise, an organisation or a referring facility.</td>
+</tr>
+<tr>
+<td>Export</td>
+<td>Saves the report as a spreadsheet file. Your role must allow it. On Frozen Linkage the file holds merged and pending entries together.</td>
+</tr>
+<tr>
+<td>Open</td>
+<td>In the unresolved drift table. Opens the case.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deferred (conflict)</td>
+<td>PathScribe held back its correction because it conflicted with something else. A person must decide.</td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>The automatic correction did not work.</td>
+</tr>
+<tr>
+<td>Red Pending Over 24h tile</td>
+<td>At least one entry has waited more than a day.</td>
+</tr>
+<tr>
+<td>"no audit record — merged before the resolution-logging fix"</td>
+<td>In the Frozen Linkage export: an older merge with no recorded detail.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Choose the report tile and set the scope.</li>
+<li>Read the tiles. For Countersign Turnaround, look at <strong>Pending Countersign</strong> and <strong>Avg Turnaround</strong>.</li>
+<li>Select a row to open the case or queue behind it.</li>
+<li>Use <strong>Export</strong> to keep the figures for a meeting.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Residents and attendings see their own figures on <a href="/help/my-contribution">My Contribution</a>.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If <strong>Unresolved — Needs Review</strong> is above zero, open each case, read the detail and decide whether the report needs a correction.</li>
+<li>An intraoperative entry pending over 24 hours should be linked in the <a href="/help/intraop-queue">Intraop Queue</a>.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a report stays on its loading message, refresh the page.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Treating a high Avg Fields Changed as a fault of the attending. It shows how much the resident draft needed changing.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Rows open the related case directly; you do not need to search.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Review Pending Over 24h daily; the other figures weekly.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/quality/patient-matching">Patient Match and Management</a>: the previous screen.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality/fppe-tracking">FPPE Tracking</a>: supervision of newly hired pathologists.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Report is empty</td>
+<td>Nothing in the chosen scope.</td>
+</tr>
+<tr>
+<td>Frozen Linkage ignores the scope for pending entries</td>
+<td>Pending entries are not tied to a case yet, so all pending entries show.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Set the scope to the whole enterprise.</li>
+<li>Refresh the page.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when an entry stays pending after the case exists. Have the Entry ID ready.</p>

@@ -1,44 +1,58 @@
 // src/components/Config/configDirtyGuardContext.ts
 // ─────────────────────────────────────────────────────────────────────────────
-// Real, minimal bridge (PS-128) between a Config tab's own local "unsaved
-// draft" state and ConfigurationPage.tsx's own tab-switch / search-nav /
-// voice-nav navigation, which — before this fix — had zero awareness of any
-// nested tab's own dirty state and would silently discard in-progress edits.
+// PS-128: how a Configuration editor tells ConfigurationPage it has unsaved
+// changes, and how a section's own navigation asks before leaving them.
 //
-// Deliberately NOT a general "any Config screen can register under any key"
-// registry: ConfigurationPage.tsx's own renderActiveTab() only ever mounts
-// ONE tab at a time, so there is only ever one real "current tab" whose
-// dirty state could matter to an outgoing navigation. A single shared
-// setDirty(boolean) is enough; there's no second tab around to collide with.
+// Batch 309 started this with one `setDirty(boolean)` for the Macros tab, and
+// only switching Configuration tabs checked it. Batch 437 made it cover the
+// whole page (services/configDirty/configDirtyRegistry.ts):
+//   • `useReportConfigDirty(dirty)`: an inline form that keeps a draft beside
+//     the saved value reports whether they differ (exact). Several can report
+//     at once; each clears its report when it unmounts.
+//   • Editor dialogs don't report: the page watches for edits inside open
+//     dialogs (hooks/useConfigEditTracking.ts).
+//   • `useConfigNavigationGuard()`: a section's own sub-tabs and section list
+//     run their change through `guard(...)`, which asks first when anything
+//     is unsaved.
+//   • The page tells the app-wide guard (contexts/DirtyStateContext), so the
+//     logo, breadcrumbs, nav bar, header search and Sign Out ask too.
 //
-// This is opt-in, not automatic. A tab that never calls setDirty(true) is
-// simply never dirty from ConfigurationPage.tsx's point of view — today
-// that's every Config tab except Macros (see MacroPanel.tsx, the first real
-// consumer). The other ~30 Config admin screens (dictionaries, routing
-// rules, etc.) each manage their own add/edit state inside their own
-// modal-based CRUD flows rather than an inline, page-persistent draft the
-// way Macros/Protocols-review do, so this page-level guard genuinely
-// doesn't apply to them the same way — a real, disclosed scope limit, not
-// an oversight. See PS-128's own Jira comment for the full account.
-//
-// Real, deliberate default: a component that calls useConfigDirtyGuard()
-// outside of ConfigurationPage's own provider (e.g. a unit test that mounts
-// MacroPanel standalone, or some future route that reuses MacroPanel
-// elsewhere) gets a harmless no-op setDirty rather than a thrown error —
-// there's simply no page-level guard to report to in that case.
+// Outside ConfigurationPage (a unit test mounting one section) the context is
+// a harmless no-op: reports go nowhere and `guard` runs the action at once.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useId } from 'react';
 
 export interface ConfigDirtyGuardContextValue {
-  /** Called by the currently-active tab whenever its own local unsaved-draft state changes. */
+  /** Batch 309's single flag (Macros, Assist LIS polling); same as report('legacy', dirty). */
   setDirty: (dirty: boolean) => void;
+  /** An editor with exact draft-vs-saved state says whether it has unsaved changes. */
+  report: (sourceId: string, dirty: boolean) => void;
+  /** Runs a section's own navigation now, or after "Discard changes" when anything is unsaved. */
+  guard: (action: () => void) => void;
 }
 
-const noopContextValue: ConfigDirtyGuardContextValue = { setDirty: () => {} };
+const noopContextValue: ConfigDirtyGuardContextValue = {
+  setDirty: () => {},
+  report: () => {},
+  guard: (action) => action(),
+};
 
 export const ConfigDirtyGuardContext = createContext<ConfigDirtyGuardContextValue>(noopContextValue);
 
 export function useConfigDirtyGuard(): ConfigDirtyGuardContextValue {
   return useContext(ConfigDirtyGuardContext);
+}
+
+/** Reports this editor's unsaved state while it is mounted. */
+export function useReportConfigDirty(dirty: boolean): void {
+  const { report } = useContext(ConfigDirtyGuardContext);
+  const id = useId();
+  useEffect(() => { report(id, dirty); }, [report, id, dirty]);
+  useEffect(() => () => report(id, false), [report, id]);
+}
+
+/** A section's own navigation (sub-tabs, section list), guarded. */
+export function useConfigNavigationGuard(): (action: () => void) => void {
+  return useContext(ConfigDirtyGuardContext).guard;
 }

@@ -1,5 +1,5 @@
 // src/services/referral/processInboundReferralResultEvent.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 beforeEach(() => {
   const store: Record<string, string> = {};
@@ -79,5 +79,21 @@ describe('processInboundReferralResultEvent — real, idempotent ingestion of a 
       discreteResult: 'Negative', pdfAttachmentUrl: 'https://reference-lab.example/reports/abc.pdf',
     });
     expect(result.outcome).toBe('invalid-payload');
+  });
+});
+
+describe('Batch 467b: send-out molecular results', () => {
+  it('hands the batch\'s coded results (or a report alone) to the molecular order engine', async () => {
+    const { molecularOrderEngine } = await import('../molecularOrders/molecularOrderEngineLive');
+    const spy = vi.spyOn(molecularOrderEngine, 'onSendOutResults').mockResolvedValue(undefined);
+    const { mockReferralTrackingService } = await import('./mockReferralTrackingService');
+    await mockReferralTrackingService.createOnDispatch('rb-467b');
+    const { processInboundReferralResultEvent } = await import('./processInboundReferralResultEvent');
+    const orderResults = [{ orderId: 'MO-1', caseAccession: 'S26-1', interpretation: 'POSITIVE' as const }];
+    expect((await processInboundReferralResultEvent({ messageId: 'm-467b-1', timestamp: 'T', batchId: 'rb-467b', resultType: 'discrete', discreteResult: 'EGFR: POSITIVE', orderResults })).outcome).toBe('applied');
+    expect(spy).toHaveBeenCalledWith({ batchId: 'rb-467b', results: orderResults, reportOnly: false });
+    await processInboundReferralResultEvent({ messageId: 'm-467b-2', timestamp: 'T', batchId: 'rb-467b', resultType: 'pdf_attachment', pdfAttachmentUrl: 'https://x/report.pdf' });
+    expect(spy).toHaveBeenLastCalledWith({ batchId: 'rb-467b', results: undefined, reportOnly: true });
+    spy.mockRestore();
   });
 });

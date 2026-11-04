@@ -20,8 +20,10 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockReportReleaseService } from '../../../services/reportRelease/mockReportReleaseService';
+
 import type { ReportReleaseOrgConfig } from '../../../services/reportRelease/IReportReleaseService';
+import { reportReleaseService } from '@/services';
+import { RELEASE_HOLD_PRINT_POLICIES, type ReleaseHoldPrintPolicy } from '../../../services/reportRelease/heldPrintPolicy';
 
 // ─── Small reusable toggle ────────────────────────────────────────────────────
 
@@ -85,7 +87,7 @@ const ReleaseBufferSection: React.FC = () => {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    mockReportReleaseService.getOrgDefault().then(res => {
+    reportReleaseService.getOrgDefault().then(res => {
       if (res.ok) setConfig(res.data);
       setLoading(false);
     });
@@ -93,7 +95,7 @@ const ReleaseBufferSection: React.FC = () => {
 
   const persist = async (next: ReportReleaseOrgConfig) => {
     setConfig(next);
-    const res = await mockReportReleaseService.setOrgDefault(next);
+    const res = await reportReleaseService.setOrgDefault(next);
     if (res.ok) {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -128,6 +130,7 @@ const ReleaseBufferSection: React.FC = () => {
         dimmed={durationDimmed}
       >
         <input
+          aria-label={t('releaseBufferSection.settings.bufferDuration.label')}
           type="number"
           min={DURATION_MIN}
           max={DURATION_MAX}
@@ -163,6 +166,7 @@ const ReleaseBufferSection: React.FC = () => {
         dimmed={durationDimmed}
       >
         <input
+          aria-label={t('releaseBufferSection.settings.watermarkText.label')}
           type="text"
           value={config.watermarkText}
           disabled={!config.enabled}
@@ -172,17 +176,23 @@ const ReleaseBufferSection: React.FC = () => {
       </SettingRow>
 
       <SettingRow
-        label={t('releaseBufferSection.settings.restrictHardcopy.label')}
-        description={t('releaseBufferSection.settings.restrictHardcopy.description')}
+        label={t('releaseBufferSection.settings.releaseHoldPrintPolicy.label')}
+        description={t('releaseBufferSection.settings.releaseHoldPrintPolicy.description')}
         indented
         dimmed={durationDimmed}
       >
-        <Toggle
-          enabled={config.restrictHardcopyPrinting}
-          onChange={val => persist({ ...config, restrictHardcopyPrinting: val })}
+        <select
+          aria-label={t('releaseBufferSection.settings.releaseHoldPrintPolicy.label')}
+          className="ps-conf-select"
+          value={config.releaseHoldPrintPolicy}
           disabled={!config.enabled}
-          ariaLabel={t('releaseBufferSection.settings.restrictHardcopy.label')}
-        />
+          onChange={e => persist({ ...config, releaseHoldPrintPolicy: e.target.value as ReleaseHoldPrintPolicy })}
+        >
+          {RELEASE_HOLD_PRINT_POLICIES.map(p => (
+            <option key={p} value={p}>{t(`releaseBufferSection.settings.releaseHoldPrintPolicy.options.${p}.label`)}</option>
+          ))}
+        </select>
+        <span className="ps-conf-field-hint">{t(`releaseBufferSection.settings.releaseHoldPrintPolicy.options.${config.releaseHoldPrintPolicy}.description`)}</span>
       </SettingRow>
 
       {saved && (

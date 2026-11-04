@@ -32,7 +32,7 @@
 // false negative beyond that same honest default.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockIntraoperativeService } from '../intraop/mockIntraoperativeService';
+import { intraoperativeService as mockIntraoperativeService } from '../intraop/intraoperativeServiceInstance';
 
 export async function wasCaseFrozenSectioned(caseId: string): Promise<boolean> {
   const res = await mockIntraoperativeService.getAll();

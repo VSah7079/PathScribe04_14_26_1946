@@ -1,6 +1,7 @@
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import { getEffectiveScanStationId } from '../../utils/effectiveScanStation';
+import { newAuditId } from './auditIds';
 import type {
   AuditLog, ErrorLog,
   AuditFilterParams, ErrorFilterParams,
@@ -100,26 +101,26 @@ const SEED_AUDIT_LOGS: AuditLog[] = [
 
 const SEED_ERROR_LOGS: ErrorLog[] = [
   { id: 'el-01', timestamp: ts(0,  9,  1), severity: 'error',   code: 'LIS-503',       message: 'LIS connection timeout after 30s — retrying',                          source: 'LIS Connector',   caseId: null,       resolved: false },
-  { id: 'el-02', timestamp: ts(0,  8, 55), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI confidence below threshold (62%) for protocol selection',            source: 'AI Engine',       caseId: 'S26-4403', resolved: true  },
+  { id: 'el-02', timestamp: ts(0,  8, 55), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI suggestion below the review threshold for protocol selection',            source: 'AI Engine',       caseId: 'S26-4403', resolved: true  },
   { id: 'el-03', timestamp: ts(0,  8, 22), severity: 'error',   code: 'AUTH-401',      message: 'Failed login attempt — invalid credentials',                            source: 'Auth Service',    caseId: null,       resolved: true  },
   { id: 'el-04', timestamp: ts(1, 17, 14), severity: 'warning', code: 'SYNC-DELAY',    message: 'LIS sync delayed 4m 22s — queue backlog detected',                     source: 'LIS Connector',   caseId: null,       resolved: true  },
   { id: 'el-05', timestamp: ts(1, 14,  2), severity: 'error',   code: 'DB-WRITE',      message: 'Failed to persist synoptic draft — retrying (attempt 2/3)',            source: 'Storage Service', caseId: 'S26-4398', resolved: true  },
   { id: 'el-06', timestamp: ts(1, 11, 47), severity: 'info',    code: 'AI-FALLBACK',   message: 'AI model fallback to secondary due to primary model latency',           source: 'AI Engine',       caseId: 'S26-4396', resolved: true  },
-  { id: 'el-07', timestamp: ts(1,  9,  5), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI confidence below threshold (58%) for synoptic field population',    source: 'AI Engine',       caseId: 'S26-4395', resolved: true  },
+  { id: 'el-07', timestamp: ts(1,  9,  5), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI suggestion below the review threshold for synoptic field population',    source: 'AI Engine',       caseId: 'S26-4395', resolved: true  },
   { id: 'el-08', timestamp: ts(2, 15, 30), severity: 'error',   code: 'LIS-404',       message: 'Case not found in LIS — accession mismatch',                           source: 'LIS Connector',   caseId: 'S26-4391', resolved: false },
   { id: 'el-10', timestamp: ts(2, 11, 10), severity: 'warning', code: 'SYNC-DELAY',    message: 'LIS sync delayed 7m 01s — high queue volume',                          source: 'LIS Connector',   caseId: null,       resolved: true  },
   { id: 'el-11', timestamp: ts(2,  8, 44), severity: 'error',   code: 'AI-TIMEOUT',    message: 'AI engine response timeout (>15s) — request retried',                  source: 'AI Engine',       caseId: 'S26-4390', resolved: true  },
   { id: 'el-12', timestamp: ts(3, 16, 20), severity: 'warning', code: 'CERT-EXPIRY',   message: 'TLS certificate for LIS endpoint expires in 14 days',                  source: 'System Monitor',  caseId: null,       resolved: false },
   { id: 'el-13', timestamp: ts(3, 14,  5), severity: 'info',    code: 'CONFIG-RELOAD', message: 'System configuration reloaded after settings update',                   source: 'Config Service',  caseId: null,       resolved: true  },
   { id: 'el-14', timestamp: ts(3, 10, 33), severity: 'error',   code: 'AUTH-401',      message: 'Failed login attempt — account temporarily locked',                    source: 'Auth Service',    caseId: null,       resolved: true  },
-  { id: 'el-15', timestamp: ts(4, 15, 48), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI confidence below threshold (55%) — manual review recommended',      source: 'AI Engine',       caseId: 'S26-4382', resolved: true  },
+  { id: 'el-15', timestamp: ts(4, 15, 48), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI suggestion below the review threshold — manual review recommended',      source: 'AI Engine',       caseId: 'S26-4382', resolved: true  },
   { id: 'el-16', timestamp: ts(4,  9, 22), severity: 'info',    code: 'BACKUP-OK',     message: 'Scheduled audit log backup completed successfully',                      source: 'Backup Service',  caseId: null,       resolved: true  },
   { id: 'el-17', timestamp: ts(5, 14, 10), severity: 'error',   code: 'LIS-503',       message: 'LIS service unavailable — maintenance window',                         source: 'LIS Connector',   caseId: null,       resolved: true  },
   { id: 'el-18', timestamp: ts(5, 11, 55), severity: 'info',    code: 'AI-RETRAIN',    message: 'AI protocol model retrained with updated CAP definitions',              source: 'AI Engine',       caseId: null,       resolved: true  },
   { id: 'el-19', timestamp: ts(6, 16, 30), severity: 'warning', code: 'SYNC-DELAY',    message: 'LIS sync delayed 11m 14s — upstream API degraded',                     source: 'LIS Connector',   caseId: null,       resolved: true  },
   { id: 'el-20', timestamp: ts(6, 13,  0), severity: 'error',   code: 'DB-CONN',       message: 'Database connection pool exhausted — queuing requests',                 source: 'Storage Service', caseId: null,       resolved: true  },
   { id: 'el-22', timestamp: ts(8, 14, 20), severity: 'error',   code: 'LIS-404',       message: 'Case not found in LIS — accession mismatch',                           source: 'LIS Connector',   caseId: 'S26-4355', resolved: false },
-  { id: 'el-23', timestamp: ts(9, 11,  5), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI confidence below threshold (60%) for protocol selection',            source: 'AI Engine',       caseId: 'S26-4350', resolved: true  },
+  { id: 'el-23', timestamp: ts(9, 11,  5), severity: 'warning', code: 'AI-LOW-CONF',   message: 'AI suggestion below the review threshold for protocol selection',            source: 'AI Engine',       caseId: 'S26-4350', resolved: true  },
   { id: 'el-24', timestamp: ts(10, 9, 33), severity: 'info',    code: 'CONFIG-RELOAD', message: 'System configuration reloaded after settings update',                   source: 'Config Service',  caseId: null,       resolved: true  },
   { id: 'el-25', timestamp: ts(11,15, 44), severity: 'error',   code: 'AI-TIMEOUT',    message: 'AI engine response timeout (>15s) — request retried successfully',     source: 'AI Engine',       caseId: 'S26-4345', resolved: true  },
   { id: 'el-26', timestamp: ts(12,10, 22), severity: 'warning', code: 'SYNC-DELAY',    message: 'LIS sync delayed 3m 58s — minor queue backlog',                        source: 'LIS Connector',   caseId: null,       resolved: true  },
@@ -199,7 +200,7 @@ export const mockAuditService: IAuditService = {
     // (if anything) the caller passed — is what genuinely covers
     // every real audit event in this app, not just the three
     // consumers of one specific bridge file.
-    const newEntry: AuditLog = { ...entry, stationId: getEffectiveScanStationId(), id: 'al-' + Date.now(), timestamp: nowTs() };
+    const newEntry: AuditLog = { ...entry, stationId: getEffectiveScanStationId(), id: newAuditId('al'), timestamp: nowTs() };
     MOCK_AUDIT_LOGS = [newEntry, ...MOCK_AUDIT_LOGS];
     persistAudit(MOCK_AUDIT_LOGS);
     return ok({ ...newEntry });
@@ -212,7 +213,7 @@ export const mockAuditService: IAuditService = {
 
   async logError(entry) {
     await delay();
-    const newEntry: ErrorLog = { ...entry, id: 'el-' + Date.now(), timestamp: nowTs(), resolved: false };
+    const newEntry: ErrorLog = { ...entry, id: newAuditId('el'), timestamp: nowTs(), resolved: false };
     MOCK_ERROR_LOGS = [newEntry, ...MOCK_ERROR_LOGS];
     persistErrors(MOCK_ERROR_LOGS);
     return ok({ ...newEntry });
@@ -220,10 +221,20 @@ export const mockAuditService: IAuditService = {
 
   async resolveError(id) {
     await delay();
+    // Batch 432: resolving needs audit:error:resolve (Admin, Lab Director, QA
+    // Reviewer); the check itself is audited (high risk). Imported when used:
+    // the authorization service writes to this audit service.
+    const { authorizationService } = await import('../authorization/defaultAuthorizationService');
+    if (!(await authorizationService.enforce('audit:error:resolve')).allowed) return err('NOT_PERMITTED');
     const idx = MOCK_ERROR_LOGS.findIndex(e => e.id === id);
     if (idx === -1) return err(`Error log ${id} not found`);
-    MOCK_ERROR_LOGS = MOCK_ERROR_LOGS.map(e => e.id === id ? { ...e, resolved: true } : e);
+    if (MOCK_ERROR_LOGS[idx].resolved) return ok({ ...MOCK_ERROR_LOGS[idx] });
+    const { getSessionUser } = await import('../auth/caseAccessControl');
+    const me = getSessionUser();
+    const resolvedBy = me ? ([me.firstName, me.lastName].filter(Boolean).join(' ') || me.id) : 'Unknown';
+    const updated: ErrorLog = { ...MOCK_ERROR_LOGS[idx], resolved: true, resolvedBy, resolvedAt: nowTs() };
+    MOCK_ERROR_LOGS = MOCK_ERROR_LOGS.map(e => e.id === id ? updated : e);
     persistErrors(MOCK_ERROR_LOGS);
-    return ok({ ...MOCK_ERROR_LOGS[idx], resolved: true });
+    return ok({ ...updated });
   },
 };

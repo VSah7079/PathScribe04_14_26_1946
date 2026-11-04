@@ -13,6 +13,7 @@
 // signed-out report is never touched.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { partCoveredBy } from '../reports/workupParts';
 import type { Case, SynopticReportInstance, ProtocolChange, AiFieldSuggestion } from '@/types/case/Case';
 import { textFingerprint } from '../lisIngestion/stagingRules';
 import type {
@@ -104,12 +105,21 @@ export function planMilestoneWork(input: {
 
 /** The case's LIS-owned text, updated from the snapshot. Only fields the
  *  LIS actually sent are written. */
-export function lisTextPatch(caseData: Case, snapshot: LisCaseSnapshot): Pick<Case, 'diagnostic'> {
+export function lisTextPatch(caseData: Case, snapshot: LisCaseSnapshot): Pick<Case, 'diagnostic'> & Partial<Pick<Case, 'order'>> {
   const d = { ...(caseData.diagnostic ?? {}) };
   if (snapshot.grossText !== undefined) d.grossDescription = snapshot.grossText;
   if (snapshot.microscopicText !== undefined) d.microscopicDescription = snapshot.microscopicText;
   if (snapshot.diagnosisText !== undefined) d.primaryDiagnosis = snapshot.diagnosisText;
-  return { diagnostic: d };
+  // Batch 426: the LIS's order numbers, kept to echo on the synoptic result.
+  if (!snapshot.placerOrderNumber && !snapshot.fillerOrderNumber) return { diagnostic: d };
+  return {
+    diagnostic: d,
+    order: {
+      ...caseData.order,
+      ...(snapshot.placerOrderNumber ? { placerOrderNumber: snapshot.placerOrderNumber } : {}),
+      ...(snapshot.fillerOrderNumber ? { fillerOrderNumber: snapshot.fillerOrderNumber } : {}),
+    },
+  };
 }
 
 /** The case as the AI should read it for this fill. A gross-stage fill
@@ -176,7 +186,8 @@ export function applyTemplateProposals(
     const action = c.action ?? 'replace';
     if (action === 'add') {
       if (!c.proposedTemplateId) continue;
-      if (reports.some(r => r.specimenId === c.specimenId && r.templateId === c.proposedTemplateId)) continue;
+      // Batch 427: a combined workup that already covers this part with this protocol counts too.
+      if (partCoveredBy(reports, c.specimenId, c.proposedTemplateId)) continue;
       reports.push(newDraft(c));
       draftsCreated++;
       continue;
@@ -201,22 +212,65 @@ export function applyTemplateProposals(
 
 /** Merges fresh AI suggestions into a draft. A field's answer is
  *  (re)filled only when it is empty or still exactly the AI's earlier,
- *  unverified value; anything a person entered or verified is kept. */
+ *  unverified value; anything a person entered or verified is kept.
+ *
+ *  Batch 426 (Pete and his developer: "field locking", "keep or update?"):
+ *  for a field the pathologist set (the developer's PATHOLOGIST_LOCKED), a
+ *  new suggestion that differs from their answer is kept aside in
+ *  `reevaluations` for the synoptic panel to ask about, and the field's
+ *  earlier suggestion (with its verified/disputed state) is left as it was.
+ *  Before Batch 426 the new suggestion replaced the earlier one, which reset
+ *  a confirmed field to "unverified", so a later run could overwrite it. */
 export function mergeSuggestionsIntoInstance(
   inst: SynopticReportInstance,
   suggestions: Record<string, AiFieldSuggestion>,
   now: string,
-): { instance: SynopticReportInstance; fieldsSuggested: number } {
+): { instance: SynopticReportInstance; fieldsSuggested: number; fieldsToReview: number } {
   const answers = { ...(inst.answers ?? {}) };
+  const aiSuggestions = { ...(inst.aiSuggestions ?? {}) };
+  const reevaluations = { ...(inst.reevaluations ?? {}) };
+  let fieldsToReview = 0;
   for (const [field, sug] of Object.entries(suggestions)) {
     const prev = inst.aiSuggestions?.[field];
     const current = answers[field];
     const untouched = isEmptyAnswer(current) || (!!prev && prev.verification === 'unverified' && sameValue(current, prev.value));
-    if (untouched) answers[field] = sug.value;
+    if (untouched) {
+      answers[field] = sug.value;
+      aiSuggestions[field] = { ...sug, verification: 'unverified' }; // Batch 682: a polled fill is always a draft until the pathologist confirms it
+      delete reevaluations[field];
+      continue;
+    }
+    // The pathologist's field: ask only when the new suggestion says something else.
+    if (sameValue(current, sug.value)) { delete reevaluations[field]; continue; }
+    reevaluations[field] = { value: sug.value, confidence: sug.confidence, source: sug.source, suggestedAt: now };
+    fieldsToReview++;
   }
+  const { reevaluations: _old, ...rest } = inst;
   return {
-    instance: { ...inst, answers, aiSuggestions: { ...(inst.aiSuggestions ?? {}), ...suggestions }, updatedAt: now },
+    instance: { ...rest, answers, aiSuggestions, ...(Object.keys(reevaluations).length ? { reevaluations } : {}), updatedAt: now },
     fieldsSuggested: Object.keys(suggestions).length,
+    fieldsToReview,
+  };
+}
+
+/** Batch 426: the pathologist's answer to "keep or update?" for one re-evaluated field.
+ *  Keep: their value stays and the question goes. Accept: the new value becomes the
+ *  answer and counts as confirmed by them (verified). Pure. */
+export function resolveReevaluation(
+  inst: SynopticReportInstance,
+  fieldId: string,
+  choice: 'keep' | 'accept',
+): SynopticReportInstance {
+  const pending = inst.reevaluations?.[fieldId];
+  if (!pending) return inst;
+  const { [fieldId]: _done, ...left } = inst.reevaluations ?? {};
+  const { reevaluations: _old, ...rest } = inst;
+  const base = { ...rest, ...(Object.keys(left).length ? { reevaluations: left } : {}) };
+  if (choice === 'keep') return base;
+  return {
+    ...base,
+    answers: { ...(inst.answers ?? {}), [fieldId]: pending.value },
+    aiSuggestions: { ...(inst.aiSuggestions ?? {}), [fieldId]: { value: pending.value, confidence: pending.confidence, source: pending.source, verification: 'verified' } },
   };
 }
 

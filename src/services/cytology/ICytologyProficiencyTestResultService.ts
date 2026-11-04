@@ -28,6 +28,8 @@ export interface CytologyProficiencyTestResult {
   scoreDetail?: string;
   expectedAnswer?: string;
   receivedAt: string;
+  /** Batch 608 (#77): true for a result graded by the built-in simulator, not a real provider. */
+  simulated?: boolean;
 }
 
 export interface ICytologyProficiencyTestResultService {

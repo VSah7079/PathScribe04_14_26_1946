@@ -14,7 +14,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { verifyEngineAuth } from './_lib/verifyEngineAuth';
-import { claimMessageId } from './_lib/idempotency';
 import { upsertEngraverStatus } from './_lib/upsertEngraverStatus';
 import { logIntegrationError } from './_lib/logIntegrationError';
 import type { EngraverStatusEventPayload } from '../../../src/types/events/EngraverStatusEventPayload';
@@ -78,11 +77,8 @@ export default async function handler(request: Request): Promise<Response> {
   const payload = body;
 
   try {
-    const { alreadyProcessed } = await claimMessageId(payload.messageId, EVENT_TYPE);
-    if (alreadyProcessed) {
-      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
-    }
-
+    // Batch 549 (F10): the messageId is claimed inside the status update's own
+    // transaction, so a crash between the two can't lose the event.
     const outcome = await upsertEngraverStatus({
       deviceId: payload.deviceId,
       deviceName: payload.deviceName,
@@ -95,8 +91,11 @@ export default async function handler(request: Request): Promise<Response> {
       diagnosticsUrl: payload.diagnosticsUrl,
       sourceSystem: payload.sourceSystem,
       timestamp: payload.timestamp,
-    });
+    }, { messageId: payload.messageId, eventType: EVENT_TYPE });
 
+    if (outcome === 'already-processed') {
+      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
+    }
     return new Response(JSON.stringify({ status: outcome, messageId: payload.messageId, deviceId: payload.deviceId }), { status: 200 });
   } catch (err) {
     console.error(`[${EVENT_TYPE}] unexpected error`, err);

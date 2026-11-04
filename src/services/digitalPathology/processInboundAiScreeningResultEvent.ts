@@ -5,7 +5,7 @@
 // this app's own other inbound processors.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockAiScreeningResultService } from './mockAiScreeningResultService';
+import { aiScreeningResultService as mockAiScreeningResultService } from './aiScreeningResultServiceInstance';
 import type { AiScreeningResultEventPayload } from '@/types/events/AiScreeningResultEventPayload';
 
 export interface ProcessInboundAiScreeningResultEventResult {

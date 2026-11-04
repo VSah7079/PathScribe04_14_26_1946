@@ -1,43 +1,35 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css'
-import './pathscribe.css';
-import './i18n/config';
-import { signingCallbackProvider } from './services/auth/sso/ssoClient';
+// src/main.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 547 (PS-539 phase 2d, readiness review §9 item 1): one build serves
+// every deployment. Before anything else loads, the app reads the deployment's
+// /config.json (services/runtimeConfig/loadRuntimeConfig.ts). Then it starts
+// (startApp.tsx, everything main.tsx did before), or, if config.json breaks a
+// rule, it shows what is wrong instead of starting wrongly.
+// Batch 557: with an API server, its /api/config is read too (settings and
+// where it keeps its data), and merged under config.json's own values.
+// docs/architecture/RUNTIME_CONFIG.md.
+// ─────────────────────────────────────────────────────────────────────────────
+import { loadRuntimeConfig } from './services/runtimeConfig/loadRuntimeConfig';
+import { setRuntimeSettings, setServerHosting } from './services/runtimeConfig/runtimeEnv';
 
-// Real, per direct follow-up on testing PS-239's own real endpoint
-// with mock data — see services/mockInterfaceEngine/
-// mockInterfaceEngineSettings.ts's own header for the full account.
-// Real, deliberate double-gate: import.meta.env.DEV (Vite's own real,
-// build-time flag — false in a real production build, so this whole
-// branch is dead code there, never shipped) AND a separate, explicit,
-// persisted "enabled" flag defaulting to OFF — never active by
-// accident even in a real local dev session.
-if (import.meta.env.DEV) {
-  import('./services/mockInterfaceEngine/mockInterfaceEngineSettings').then(({ getMockInterfaceEngineSettings }) => {
-    if (getMockInterfaceEngineSettings().enabled) {
-      import('./mocks/browser').then(({ mockInterfaceEngineWorker }) => {
-        mockInterfaceEngineWorker.start({ onUnhandledRequest: 'bypass' });
-      });
-    }
-  });
-}
+const config = await loadRuntimeConfig(
+  (url, init) => fetch(url, init),
+  `${import.meta.env.BASE_URL}config.json`,
+  {
+    demoBuild: __DEMO_TOOLS__,
+    buildApiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+    buildAuthMode: import.meta.env.VITE_AUTH_MODE,
+    isProduction: import.meta.env.PROD,
+  },
+);
 
-// Batch 344: the signature-confirmation popup returns here
-// (/auth/signing/<provider>). It only hands the identity provider's answer
-// back to the window that opened it, which then closes it. The app itself
-// never starts in the popup: its session code would otherwise treat the
-// popup as a second tab of the same session.
-const signingProvider = signingCallbackProvider(window.location.pathname);
-if (signingProvider) {
-  void import('./services/auth/authSessionInstance')
-    .then(m => m.signerConfirmation.completePopup(signingProvider, window.location.href))
-    .catch(e => console.error('[signing] could not return the confirmation to PathScribe', e));
+if (config.problems.length) {
+  const { showRuntimeConfigError } = await import('./startRuntimeConfigError');
+  showRuntimeConfigError(config.problems);
 } else {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  setRuntimeSettings(config.values);
+  // Batch 557: where the deployment keeps its data, from the API server's /api/config.
+  setServerHosting(config.hosting);
+  if (config.server === 'unavailable') console.warn('[config] The PathScribe server\'s /api/config did not answer; starting with config.json alone.');
+  await import('./startApp');
 }

@@ -20,6 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import React, { useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { pressable } from '@/utils/a11y/pressable';
 
 export interface BiopsyArrayPosition {
   position: number;
@@ -103,7 +104,7 @@ const BiopsyArrayDiagram: React.FC<BiopsyArrayDiagramProps> = ({ cassetteLabel, 
           return (
             <g
               key={p.blockId}
-              onClick={() => onOpenBlockEditor(p.blockId)}
+              {...pressable(() => onOpenBlockEditor(p.blockId))}
               className="ps-biopsyarray-cell-group"
             >
               <title>

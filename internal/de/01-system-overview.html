@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Systemübersicht und Architektur · PathScribe-Administratorhandbuch (interne Ausgabe von ForMedrixAI)</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="internal" data-lang="de" data-root="../">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administratorhandbuch</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Bildschirme, Felder, Fehlercodes suchen" aria-label="Im Handbuch suchen" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Sprache"><option value="en">English</option><option value="fr">Français</option><option value="de" selected>Deutsch</option><option value="nl">Nederlands</option><option value="ko">한국어</option><option value="es">Español</option></select>
+<button class="print" type="button" onclick="window.print()">Drucken / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Kapitel des Handbuchs"><a href="index.html">Inhalt</a><a href="setup-sequence.html">Reihenfolge der Einrichtung</a><a href="01-system-overview.html" aria-current=page>1. Systemübersicht und Architektur</a><a href="02-tier1-primary-prerequisites.html">2. Stufe 1: Primäre Systemvoraussetzungen (zuerst einrichten)</a><a href="03-tier2-master-dictionaries.html">3. Stufe 2: Stammwörterbücher und klinische Grunddaten (an zweiter Stelle einrichten)</a><a href="04-tier3-workflow-engines.html">4. Stufe 3: Workflow-Engines und betriebliche Konfiguration (als Drittes einrichten)</a><a href="05-tier4-ai-framework.html">5. Stufe 4: Das in PathScribe eingebettete KI-Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html">6. Stufe 5: Befundung, synoptische Formulare und Konfiguration des Schedulers</a><a href="07-tier6-interface-engine.html">7. Stufe 6: Schnittstellen-Engine und Anbindung externer Systeme</a><a href="08-tier7-billing-registry.html">8. Stufe 7: Abrechnung, Erlösmanagement und Registermeldung</a><a href="09-appendices.html">9. Anhang: Fehlerbehebung und Prüfung des Prüfprotokolls</a><a href="99-glossary.html">99. Anhang: Glossar der Begriffe und Abkürzungen</a></nav><main id="main"><aside class="pagetoc" aria-label="Auf dieser Seite"><b>Auf dieser Seite</b><ul><li class="l2"><a href="#ch1-how-to-use">So verwenden Sie dieses Handbuch</a></li><li class="l2"><a href="#ch1-executive-summary">Zusammenfassung für die Leitung</a></li><li class="l2"><a href="#ch1-architecture">Architekturübersicht</a></li><li class="l3"><a href="#ch1-parts">Die Teile</a></li><li class="l3"><a href="#ch1-data-flow">Wie die Daten fließen</a></li><li class="l3"><a href="#ch1-hosting">Hosting und Skalierung</a></li><li class="l2"><a href="#ch1-current-state">Der heutige Stand des Produkts</a></li><li class="l2"><a href="#ch1-prerequisites">Systemvoraussetzungen</a></li><li class="l3"><a href="#ch1-prereq-hardware">Serverhardware und Hosting</a></li><li class="l3"><a href="#ch1-prereq-database">Datenbank</a></li><li class="l3"><a href="#ch1-prereq-network">Netzwerk</a></li><li class="l3"><a href="#ch1-prereq-workstation">Arbeitsplatzrechner</a></li><li class="l2"><a href="#ch1-security">Sicherheitsmodell</a></li><li class="l3"><a href="#ch1-sso">Single Sign-On</a></li><li class="l3"><a href="#ch1-rbac">Rollenbasierte Zugriffskontrolle</a></li><li class="l3"><a href="#ch1-mfa">Multi-Faktor-Authentifizierung und erneute Authentifizierung bei der Abmeldung</a></li><li class="l3"><a href="#ch1-session">Sitzungssicherheit</a></li><li class="l3"><a href="#ch1-support">Support-Zugriff</a></li><li class="l3"><a href="#ch1-audit">Protokollierung zur Nachvollziehbarkeit</a></li><li class="l3"><a href="#ch1-phi">Schwärzung von Patientendaten in Support-Screenshots</a></li><li class="l3"><a href="#ch1-ai-policy">KI-Anbieterrichtlinie und Hosting-Regionen</a></li><li class="l3"><a href="#ch1-retention">Datenaufbewahrung</a></li><li class="l3"><a href="#ch1-regulatory">HIPAA und CLIA: die Kontrollen, die das Produkt hat</a></li></ul></aside><article><h1 id="ch1"><a class="anchor" href="#ch1" aria-label="Link to this section">#</a> Systemübersicht und Architektur</h1>
+<p>Dieses Kapitel richtet sich an Administratorinnen, Administratoren und Techniker, die eine PathScribe-Bereitstellung planen. Es beschreibt, aus welchen Teilen PathScribe besteht, wie Daten zwischen ihnen fließen, was ein Standort bereitstellen muss und welche Sicherheitskontrollen es gibt. Es beschreibt, was das Produkt heute leistet. Alles, was nicht umgesetzt ist, ist als <strong>Geplant</strong> oder <strong>Nicht umgesetzt</strong> gekennzeichnet, und das Kapitel nennt, wo sich die nächstliegende funktionierende Funktion befindet.</p>
+<h2 id="ch1-how-to-use"><a class="anchor" href="#ch1-how-to-use" aria-label="Link to this section">#</a> So verwenden Sie dieses Handbuch</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; So verwenden Sie dieses Handbuch"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>So verwenden Sie dieses Handbuch</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt (dieses Handbuch und die Schaltfläche Hilfe in der Anwendung).</p>
+<p><strong>Die Kapitel folgen der Reihenfolge der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>.</strong> Kapitel 2 behandelt Stufe 1, Kapitel 3 behandelt Stufe 2 und so weiter bis Kapitel 8, das Stufe 7 behandelt. Kapitel N dokumentiert Stufe N-1. Wenn Sie einen Standort vom ersten bis zum letzten Kapitel einrichten, sind bei jedem Bildschirm, den Sie erreichen, die Bildschirme, von denen er abhängt, bereits eingerichtet. Kapitel 9 enthält die Anhänge (Referenz des Prüfprotokolls und Glossar).</p>
+<p><strong>Jeder Bildschirm hat ein Feld Einrichtungsreihenfolge.</strong> Jeder Pflegebildschirm in diesem Handbuch trägt drei Zeilen:</p>
+<ul>
+<li><strong>Einrichtungsschritt:</strong> der Platz des Bildschirms in der Reihenfolge, zum Beispiel „Stufe 2, Schritt 6“. Ein Bildschirm, der ein <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a>, eine Warteschlange oder ein im Alltag genutztes Dashboard ist, trägt „Referenz, nicht Teil der Einrichtung“.</li>
+<li><strong>Zuerst einrichten:</strong> die Bildschirme, die zuvor eingerichtet sein müssen. Jeder ist ein Link. Das Handbuch nennt auch, was geschieht, wenn Sie ihn überspringen (eine leere Auswahlliste oder ein abgelehntes Speichern).</li>
+<li><strong>Dies ermöglicht:</strong> was der Bildschirm nach der Einrichtung möglich macht.</li>
+</ul>
+<p><strong>Die Seite mit der Gesamtreihenfolge der Einrichtung.</strong> <a href="setup-sequence.html">Reihenfolge der Einrichtung</a> (<code>setup-sequence.html</code>) listet jeden Bildschirm in der Reihenfolge auf, in der Sie ihn einrichten sollten, erzeugt aus diesen drei Zeilen. Verwenden Sie sie als Checkliste für einen neuen Standort.</p>
+<p><strong>Die Schaltfläche Hilfe.</strong> <strong>Umgesetzt.</strong> Eine Schaltfläche <strong>Hilfe</strong> befindet sich oben rechts auf jedem Konfigurationsbildschirm und öffnet dieses Handbuch in einem neuen Tab beim eigenen Abschnitt dieses Bildschirms, sodass nicht gespeicherte Änderungen nicht verloren gehen. Sie folgt dem geöffneten Tab und dem Abschnitt der Seitenleiste: Im Rollenverzeichnis des Reiters Personal öffnet sie den Abschnitt <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollenverzeichnis</a>, und unter <strong>System &gt; Abteilungen</strong> öffnet sie <a href="03-tier2-master-dictionaries.html#screen-departments">Abteilungen</a>. Der Bildschirm Migration Jobs hat eine unter seinem Titel. Die Schaltfläche öffnet <code>go.html#&lt;screen id&gt;</code>, wobei <code>&lt;screen id&gt;</code> die Kennung des Bildschirms in diesem Handbuch ist (zum Beispiel <code>screen-departments</code>); <code>go.html</code> wird vom Build des Handbuchs erzeugt und findet die richtige Kapitelseite. Das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> hat noch keine. Ein Test schlägt fehl, wenn ein Konfigurations-Tab oder -Abschnitt keinen Abschnitt in diesem Handbuch hat, sodass kein neuer Bildschirm ohne Dokumentation ausgeliefert werden kann.</p>
+<p><strong>Statuswörter.</strong> Jeder Bildschirm und jeder Teil dieses Kapitels verwendet eines von fünf festen Wörtern:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Umgesetzt</strong></td>
+<td>Funktioniert mit den Demonstrationsdaten und hat einen schriftlichen Schnittstellenvertrag (<code>docs/architecture/*_API.md</code>) für den Produktionsserver.</td>
+</tr>
+<tr>
+<td><strong>Demonstration</strong></td>
+<td>Funktioniert nur im Browser mit den Demonstrationsdaten. Die Serverseite der Produktion ist noch nicht angebunden.</td>
+</tr>
+<tr>
+<td><strong>Teilweise</strong></td>
+<td>Ein Teil dessen, was die Überschrift nennt, ist umgesetzt. Der Abschnitt listet genau auf, welcher Teil.</td>
+</tr>
+<tr>
+<td><strong>Geplant</strong></td>
+<td>Nicht umgesetzt. Ein kurzer Absatz sagt, was beabsichtigt ist und was zum Zeitplan bekannt ist.</td>
+</tr>
+<tr>
+<td><strong>Nicht umgesetzt</strong></td>
+<td>Angefordert, aber es gibt weder einen Bildschirm noch einen Vertrag. Der Abschnitt sagt dies in einem Satz und nennt, was am nächsten kommt und tatsächlich existiert.</td>
+</tr>
+</tbody>
+</table>
+<p>Lesen Sie „Umgesetzt“ mit Sorgfalt. Es bedeutet, dass die Browserseite funktioniert und der Vertrag für den Server geschrieben ist. Es bedeutet nicht, dass der Produktionsserver existiert. Der nächste Teil dieses Kapitels sagt, in welchem Zustand sich der Produktionsserver heute befindet.</p>
+<p><strong>NUR FÜR FORMEDRIXAI INTERN.</strong> Einige Einstellungen dürfen nur von den Bereitstellungs- oder Serviceingenieuren von ForMedrixAI geändert werden. Es sind die Berechtigungen der Domäne <code>platform:</code> oder jede als <code>platformOnly</code> gekennzeichnete <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> sowie Bildschirme, die nur für solches Personal angezeigt werden. In diesem Handbuch beginnt ihre Überschrift mit <code>[FORMEDRIXAI INTERNAL ONLY]</code>, und der Abschnitt beginnt mit einem umrandeten Hinweis, der sagt, wer die Einstellung ändern darf und warum sie eingeschränkt ist. Die Kundenausgabe des Handbuchs lässt diese Abschnitte weg. Die interne Ausgabe behält sie. Wenn Sie Kundenadministrator oder Kundenadministratorin sind und eine Einstellung nicht sehen, die ein Ingenieur von ForMedrixAI erwähnt, handelt es sich wahrscheinlich um eine davon.</p>
+<h2 id="ch1-executive-summary"><a class="anchor" href="#ch1-executive-summary" aria-label="Link to this section">#</a> Zusammenfassung für die Leitung</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Zusammenfassung für die Leitung"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Zusammenfassung für die Leitung</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Die Browseranwendung ist umgesetzt. Der Produktions-API-Server, das Datenbankschema und die ständig laufenden Dienste sind in schriftlichen Verträgen festgelegt und noch nicht umgesetzt (siehe <a href="#ch1-current-state">Der heutige Stand des Produkts</a>).</p>
+<p>PathScribe ist ein KI-gestütztes Befundungssystem für die klinische Pathologie und Laborinformationssystem (<a class="term" href="99-glossary.html#g-lis" title="Laborinformationssystem, die Software, die Aufträge, Proben und Ergebnisse eines Labors verwaltet.">LIS</a>) von ForMedrixAI LLC. Es ist für die USA, das Vereinigte Königreich, die <a class="term" href="99-glossary.html#g-eu" title="Europäische Union.">EU</a> und weitere Märkte gebaut, und die Bildschirme sind in sechs Sprachen übersetzt (Englisch, Französisch, Deutsch, Niederländisch, Koreanisch und Spanisch; die Übersetzungen außer Englisch müssen vor dem klinischen Einsatz noch von Muttersprachlern geprüft werden).</p>
+<p>Ein <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> läuft in einer von zwei Betriebsarten, die je Fall festgelegt wird:</p>
+<ul>
+<li><strong>CoPilot.</strong> PathScribe ist eine Ebene zur synoptischen Datenerfassung auf einem führenden LIS. Das führende LIS besitzt den Fall und den endgültigen Befund, und PathScribe liefert strukturierte synoptische Daten an dieses zurück.</li>
+<li><strong>Orchestrierung.</strong> PathScribe führt den Fall von Anfang bis Ende als schlankes LIS, einschließlich KI-gestütztem Fließtext. Es wird für Einsenderfälle ohne führendes LIS verwendet.</li>
+</ul>
+<p>Was eine Administratorin oder ein Administrator steuert, ist die Konfiguration: Personal und Rollen, die Verzeichnisse und Nachschlagelisten, die Workflow-Regeln, das KI-Verhalten, Befundvorlagen, Schnittstellen und Abrechnungsregeln. Die folgenden Kapitel dokumentieren diese Bildschirme in der Reihenfolge, in der ein Standort eingerichtet wird.</p>
+<p>Drei Tatsachen sind für die Planung wichtig:</p>
+<ol>
+<li><strong>Die Produktionsdatenbank ist Microsoft SQL Server</strong>, erreicht über einen PathScribe-API-Server auf Basis von <a class="term" href="99-glossary.html#g-asp-net-core" title="Das Microsoft-Webframework, auf dem der API-Server von PathScribe aufgebaut ist.">ASP.NET Core</a>, mit Live-Aktualisierungen über <a class="term" href="99-glossary.html#g-signalr" title="Die Microsoft-Technologie, mit der PathScribe Live-Aktualisierungen vom Server an geöffnete Bildschirme sendet.">SignalR</a>. PathScribe verwendet Firebase nicht als Produktionsdatenbank. Einige Firebase-Dateien sind aus früheren Arbeiten im Repository verblieben und sollen ersetzt werden.</li>
+<li><strong>Den Hosting-Ort wählen der Kunde oder ForMedrixAI.</strong> Das Design verwendet Standardbausteine (Container, SQL Server, TLS-Zertifikate) und hängt nicht von einem einzelnen Cloud-Anbieter ab. Ein Standort kann eine öffentliche Cloud, eine private oder souveräne Cloud oder ein eigenes Rechenzentrum verwenden.</li>
+<li><strong>PathScribe kann noch nicht in die Produktion überführt werden.</strong> Die Browseranwendung ist weit genug, um sie vorzuführen und gegen Verträge zu testen. Der Server, der echte Patientendaten halten würde, ist nicht gebaut. Planen Sie eine erste Bereitstellung als gemeinsames Projekt mit ForMedrixAI, nicht als Installation.</li>
+</ol>
+<h2 id="ch1-architecture"><a class="anchor" href="#ch1-architecture" aria-label="Link to this section">#</a> Architekturübersicht</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Architekturübersicht"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Architekturübersicht</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Jeder der folgenden Teile trägt seinen eigenen Status.</p>
+<h3 id="ch1-parts"><a class="anchor" href="#ch1-parts" aria-label="Link to this section">#</a> Die Teile</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Architekturübersicht &gt; Die Teile"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Architekturübersicht</span> <span aria-hidden="true">›</span> <span>Die Teile</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Teil</th>
+<th>Was es ist</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Browseranwendung</strong></td>
+<td>Eine Single-Page-Anwendung in React und TypeScript, die als statische Dateien ausgeliefert wird. Sie hält keine Schlüssel und schreibt, wenn ein API-Server konfiguriert ist, keine Patientendaten in den Browserspeicher. Ein Build bedient jeden Standort: Die Einstellungen jedes Standorts stammen aus einer Datei <code>config.json</code> neben <code>index.html</code>.</td>
+<td>Umgesetzt</td>
+</tr>
+<tr>
+<td><strong>PathScribe-API-Server</strong></td>
+<td><a class="term" href="99-glossary.html#g-asp-net-core" title="Das Microsoft-Webframework, auf dem der API-Server von PathScribe aufgebaut ist.">ASP.NET Core</a>. Er erzwingt Berechtigungen, hält die Anmeldesitzung, führt die Datenbanktransaktionen und geplanten Aufträge aus und ruft die KI-Anbieter, den Befund-Renderer und die Schnittstellen-Engine auf.</td>
+<td>Geplant. Verträge sind in <code>docs/architecture/*_API.md</code> geschrieben. Im Repository gibt es keinen Servercode.</td>
+</tr>
+<tr>
+<td><strong><a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a> für Live-Aktualisierungen</strong></td>
+<td>Ein SignalR-Hub auf dem API-Server unter <code>/hubs/live</code>. Er teilt geöffneten Bildschirmen mit, dass sich etwas geändert hat, nur mit Kennungen und nie mit Patiententext.</td>
+<td>Geplant. Die Browserseite ist umgesetzt und gegen einen Test-Hub getestet.</td>
+</tr>
+<tr>
+<td><strong>Datenbank</strong></td>
+<td>Microsoft SQL Server.</td>
+<td>Geplant. Im Repository sind weder Schema noch Skripte vorhanden.</td>
+</tr>
+<tr>
+<td><strong>Schnittstellen-Engine</strong></td>
+<td>BridgeLink, ein Open-Source-Fork von Mirth Connect (ein Java-Server). PathScribe übergibt ihr eine JSON-Nachricht; die Engine erzeugt und sendet den HL7-Verkehr und empfängt die Antworten.</td>
+<td>Teilweise. Der Nachrichtenvertrag ist geschrieben. Die Engine ist noch nicht bereitgestellt oder angebunden, und die <a class="term" href="99-glossary.html#g-demonstration-build" title="Eine Version von PathScribe, die ihre Daten im Browser hält und Demonstrationskonten enthält. Sie verbindet sich nie mit einem echten API-Server.">Demonstrationsversion</a> verwendet eine Mock-Engine.</td>
+</tr>
+<tr>
+<td><strong>KI-Proxy und KI-Anbieter</strong></td>
+<td>Der API-Server leitet KI-Anfragen an den konfigurierten Anbieter weiter und fügt den Anbieterschlüssel hinzu, den der Browser nie hält.</td>
+<td>Teilweise. Die Browserseite und die Prüfung des Anbieters je <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> sind umgesetzt. Die Serverrouten sind geplant.</td>
+</tr>
+<tr>
+<td><strong>Befund-Renderer</strong></td>
+<td>Ein Dienst, der einen freigegebenen Befund in ein <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, die Form, in der ein signierter Befund gespeichert und gedruckt wird.">PDF</a> umwandelt, mit headless Chromium, gesteuert durch Playwright.</td>
+<td>Geplant. Es gibt nur einen Ersatz für die Entwicklung.</td>
+</tr>
+<tr>
+<td><strong><a class="term" href="99-glossary.html#g-site-agent" title="Ein kleiner Windows-Dienst, der in einem Labor installiert ist, Befunde und Etiketten druckt und Dateien auf Freigaben im Krankenhausnetzwerk schreibt, auf Anweisung des API-Servers.">Standort-Agent</a></strong></td>
+<td>Ein Windows-Dienst, der an jedem Standort installiert ist. Er verbindet sich nach außen über HTTPS, druckt Befunde und Etiketten auf Netzwerkdrucker und schreibt Dateien auf Windows-Freigaben.</td>
+<td>Teilweise. Die Verwaltungsbildschirme und der Vertrag sind umgesetzt. Der Agent selbst ist geplant.</td>
+</tr>
+<tr>
+<td><strong>Druckbrücken am <a class="term" href="99-glossary.html#g-workstation" title="Ein registrierter Computer in einer Einrichtung, mit seiner Fachrichtung, seinem Bereich und seinen zugeordneten Druckern.">Arbeitsplatz</a></strong></td>
+<td><a class="term" href="99-glossary.html#g-qz-tray" title="Ein kleines Programm auf einem Computer, mit dem eine Webseite ohne Druckdialog auf einem lokalen Drucker drucken kann, etwa einem Etikettendrucker.">QZ Tray</a> oder der PathScribe-Arbeitsplatz-Agent, der auf einem Computer am Arbeitsplatz läuft, um Etiketten auf dem danebenstehenden Drucker zu drucken.</td>
+<td>QZ Tray: Umgesetzt (Etiketten werden darüber gedruckt). Arbeitsplatz-Agent: Umgesetzt (Browserseite).</td>
+</tr>
+<tr>
+<td><strong>Viewer für Whole Slide Imaging (<a class="term" href="99-glossary.html#g-wsi" title="Whole Slide Imaging, das Einscannen eines Glasobjektträgers zu einem digitalen Bild, das am Bildschirm betrachtet werden kann.">WSI</a>)</strong></td>
+<td>Die eigene Viewer-Anwendung des Herstellers (zum Beispiel Leica, Roche oder Hamamatsu). PathScribe verfolgt Scan-Chargen und öffnet den Viewer des Herstellers in einem neuen Browser-Tab für den richtigen Objektträger. Es zeichnet nie Objektträgerbilder.</td>
+<td>Umgesetzt (Startlink). Statusaktualisierungen von Scan-Chargen brauchen den Hub.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-data-flow"><a class="anchor" href="#ch1-data-flow" aria-label="Link to this section">#</a> Wie die Daten fließen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Architekturübersicht &gt; Wie die Daten fließen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Architekturübersicht</span> <span aria-hidden="true">›</span> <span>Wie die Daten fließen</span></nav>
+
+<pre><code> Hospital or lab network                         PathScribe hosting (cloud or on-premises)
+ -----------------------                         ----------------------------------------
+ Bench workstation                               Static web host (browser app, config.json)
+   Browser app  --- https ---------------------&gt; PathScribe API server (ASP.NET Core)
+     |   ^                                         |        |         |          |
+     |   +---- wss /hubs/live (SignalR) &lt;----------+        |         |          |
+     |                                                      |         |          |
+     +-- QZ Tray / workstation agent (localhost)            v         v          v
+         labels to the printer beside it                SQL Server   AI proxy   Report renderer
+                                                         (database)    |        (Chromium PDF)
+ Site agent (Windows service) --- https, outward ------&gt;     |         v
+   report and label printers, Windows shares                 |    AI vendors (per jurisdiction policy)
+                                                             |
+ Interface engine (BridgeLink) &lt;---- JSON ---- API server ---+
+   HL7 to and from the host LIS, EMR, instruments
+   (hosted by ForMedrixAI, or installed at the hospital)
+</code></pre>
+<p>So lesen Sie das Schema:</p>
+<ol>
+<li><strong>Browser zum API-Server.</strong> Jede Aktion läuft mit der Identität der angemeldeten Person über den API-Server. Die eigenen Berechtigungsprüfungen des Browsers blenden nur Schaltflächen aus; der Server entscheidet. Der Server liefert feste Fehlercodes (<code>NOT_PERMITTED</code>, <code>NOT_FOUND</code>, <code>CONFLICT</code>, <code>INVALID</code>, <code>SIGNED_OUT</code>, <code>TOO_MANY_REQUESTS</code>, <code>TIMED_OUT</code>, <code>UNAVAILABLE</code>) und sendet nie Text zurück, der einen Patienten nennen könnte. Patientennamen und Kennungen wandern in einem Anfragekörper, nie in einer Webadresse.</li>
+<li><strong>API-Server zum <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a> zu den Browsern.</strong> Nachdem eine Datenbankänderung festgeschrieben ist, schreibt der Server in derselben Transaktion ein Ereignis in eine Outbox-Tabelle. Ein Dispatcher veröffentlicht es dann über den Hub. Das Ereignis enthält nur Kennungen. Ein Bildschirm, der es empfängt, liest die Daten über den normalen, berechtigungsgeprüften Aufruf neu. Die ersten Bildschirme, die ihn nutzen, sind das Live Board des Operationssaals und die Warteschlange für intraoperative Fälle; das Entwurfsziel sind weniger als 500 Millisekunden vom Festschreiben bis zum zweiten Board. Ohne Hub fragen dieselben Bildschirme zyklisch ab (alle 15 Sekunden auf den intraoperativen Bildschirmen).</li>
+<li><strong>API-Server zur KI.</strong> Der Browser ruft <code>/api/ai/...</code> auf seinem eigenen Ursprung auf. Der Server fügt den Anbieterschlüssel hinzu, prüft die Anbieter- und Regionsrichtlinie des Rechtsraums, leitet die Anfrage weiter und schreibt einen Prüfeintrag, der keinen Prompt-Text enthält.</li>
+<li><strong>API-Server zur Schnittstellen-Engine.</strong> Der API-Server sendet einen JSON-Umschlag mit einem Transaktionstyp (15 ausgehende Typen sind in <code>INTERFACE_TRANSACTIONS.md</code> aufgeführt). Die Engine bildet ihn auf <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, die Familie von Standards für den Austausch von Gesundheitsinformationen zwischen Systemen.">HL7</a> ab und sendet ihn. PathScribe erzeugt HL7 für die Übertragung nie selbst. Der HL7-Verkehr bleibt im eigenen Nachrichtenspeicher der Engine, nicht auf dem Nachrichtenbus von PathScribe.</li>
+<li><strong>API-Server zum Standort-Agenten.</strong> Der <a class="term" href="99-glossary.html#g-site-agent" title="Ein kleiner Windows-Dienst, der in einem Labor installiert ist, Befunde und Etiketten druckt und Dateien auf Freigaben im Krankenhausnetzwerk schreibt, auf Anweisung des API-Servers.">Standort-Agent</a> ist der einzige Weg, auf dem ein in der Cloud gehosteter Server einen Drucker oder eine Freigabe im Krankenhaus erreicht. Er verbindet sich über HTTPS mit einem Clientzertifikat nach außen zum Server, sodass keine eingehende Firewall-Freigabe nötig ist.</li>
+<li><strong>Befunde.</strong> Der Server rendert jedes <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, die Form, in der ein signierter Befund gespeichert und gedruckt wird.">PDF</a>, das PathScribe verlässt, speichert je Freigabe ein unveränderliches, mit Hash versehenes Dokument und sendet genau dieses Dokument über jeden Kanal. Der Browser zeigt eine Vorschau, die so gebaut ist, dass sie dem Gesendeten entspricht.</li>
+</ol>
+<h3 id="ch1-hosting"><a class="anchor" href="#ch1-hosting" aria-label="Link to this section">#</a> Hosting und Skalierung</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Architekturübersicht &gt; Hosting und Skalierung"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Architekturübersicht</span> <span aria-hidden="true">›</span> <span>Hosting und Skalierung</span></nav>
+
+<p><strong>Status:</strong> Geplant. Dies ist der Entwurf in <code>DEPLOYMENT_READINESS_REVIEW.md</code>; nichts davon wurde bereitgestellt.</p>
+<ul>
+<li><strong>Zwei unterstützte Hosting-Arten.</strong> Eine öffentliche Cloud, die dort, wo es passt, die verwaltete Datenbank und das Container-Hosting des Anbieters nutzt. Oder ein portables Paket: dieselben Container auf Kubernetes oder Docker in einer privaten Cloud, einer souveränen Cloud oder dem eigenen Rechenzentrum des Krankenhauses. Das Paket wird einmal validiert, und jeder Hosting-Standort erhält dann eine Checkliste zur Installationsqualifizierung.</li>
+<li><strong>Ständig laufende Teile.</strong> Die <a class="term" href="99-glossary.html#g-api" title="Programmierschnittstelle (Application Programming Interface). Der PathScribe-API-Server ist der ASP.NET-Core-Dienst, den der Browser für alle Produktivdaten aufruft.">API</a> (mindestens eine betriebsbereite Instanz), die Datenbank (in der Produktion nie automatisch pausiert), der <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a> für Live-Aktualisierungen, der Befund-Renderer und die Schnittstellen-Engine, die HL7-Verbindungen hält. Das Herunterskalieren auf null ist weder mit einer Bildschirmaktualisierung im Sekundentakt noch mit STAT-Fällen in der Nacht vereinbar. Wiederkehrende Aufträge (Wiederholungen, Freigabe-Timer, Ablaufprüfungen) können als kurze geplante Aufgaben laufen.</li>
+<li><strong>Skalierung des Hubs.</strong> Gemeinsam genutztes SaaS verwendet Azure <a class="term" href="99-glossary.html#g-signalr" title="Die Microsoft-Technologie, mit der PathScribe Live-Aktualisierungen vom Server an geöffnete Bildschirme sendet.">SignalR</a> Service. Private Cloud und lokaler Betrieb verwenden ein Redis-Backplane oder eine einzelne Instanz. Ohne Azure SignalR Service braucht der Lastverteiler Sticky Sessions und aktivierte WebSockets mit einem Leerlauf-Timeout von mehr als 15 Sekunden. Das Entwicklungsteam muss diese Matrix noch bestätigen.</li>
+<li><strong>Die Schnittstellen-Engine läuft in beiden Fällen</strong> (entschieden am Oct 13, 2026): gehostet von ForMedrixAI in der Region des Mandanten oder installiert im Krankenhaus, aus demselben Container-Image.</li>
+<li><strong>Ein Build, viele Standorte.</strong> <code>npm run build:server</code> erzeugt den Build für die Produktion. Er enthält keine Demonstrationskonten und keine Demonstrationswerkzeuge. Die Adressen und Anmeldeeinstellungen jedes Standorts stehen in seiner <code>config.json</code> (37 Einstellungen, aufgelistet in <code>RUNTIME_SETTINGS</code>), die mit <code>Cache-Control: no-store</code> ausgeliefert wird. PathScribe startet nicht und nennt die falschen Einstellungen, wenn die Datei gegen eine Regel verstößt (zum Beispiel eine Adresse, die nicht <code>https://</code> ist).</li>
+<li><strong>Sicherheits-Header des Browsers.</strong> Die Content-Security-Policy, HSTS und die übrigen Header werden für nginx, IIS und Azure App Service, Azure Static Web Apps, Azure Front Door oder eine einfache Liste aus einer einzigen Definition in <code>deploy/security-headers/</code> erzeugt. Führen Sie den Generator nach der Änderung einer Adresse in <code>config.json</code> erneut aus, damit die neue Adresse zugelassen wird.</li>
+<li><strong>Schemaänderungen</strong> sind versionierte SQL-Skripte, die von der Release-Pipeline angewendet werden, nie beim Start der Anwendung, und jede Änderung hinterlässt die Datenbank für die vorherige Version nutzbar.</li>
+</ul>
+<h2 id="ch1-current-state"><a class="anchor" href="#ch1-current-state" aria-label="Link to this section">#</a> Der heutige Stand des Produkts</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Der heutige Stand des Produkts"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Der heutige Stand des Produkts</span></nav>
+
+<p><strong>Status:</strong> Demonstration für fast jeden Datenbildschirm; Ausnahmen siehe die folgende Tabelle.</p>
+<p>Lesen Sie diesen Teil, bevor Sie einem Kunden einen Termin für die Inbetriebnahme zusagen. Er wurde am Oct 21, 2026 gegen das Repository geprüft.</p>
+<p><strong>Was heute läuft.</strong> Die Browseranwendung läuft auf <strong>im Browser gehaltenen Demonstrationsdiensten</strong>. Etwa 170 Dienstordner in <code>src/services/</code> folgen einem Muster: eine Schnittstelle, eine <a class="term" href="99-glossary.html#g-demonstration-build" title="Eine Version von PathScribe, die ihre Daten im Browser hält und Demonstrationskonten enthält. Sie verbindet sich nie mit einem echten API-Server.">Demonstrationsversion</a>, die ihre Daten im Browser hält, und (bei fast allen) eine Serverversion, die die <a class="term" href="99-glossary.html#g-api" title="Programmierschnittstelle (Application Programming Interface). Der PathScribe-API-Server ist der ASP.NET-Core-Dienst, den der Browser für alle Produktivdaten aufruft.">API</a> aufruft. Die Anwendung wählt die Serverversion, wenn <code>VITE_API_BASE_URL</code> in <code>config.json</code> gesetzt ist, und sonst die Demonstrationsversion. Wenn ein API-Server konfiguriert ist, werden Demonstrationsdaten im Arbeitsspeicher gehalten und nicht in den Browserspeicher geschrieben.</p>
+<p><strong>Was an eine Produktions-API angebunden ist.</strong> Nichts. Die Serverversionen existieren im Browsercode und haben Tests mit einem Scheinserver, die jede Route prüfen, aber der API-Server, der sie beantworten würde, ist nicht im Repository und wurde nicht gebaut (die Arbeit ist dem Team in Indien zugewiesen, nach den Verträgen). Nichts wurde gegen einen echten Server ausprobiert. Serverseitige Versionen im Browsercode sind für alle Dienste außer dreien geschrieben:</p>
+<table>
+<thead>
+<tr>
+<th>Dienst ohne Serverversion</th>
+<th>Grund</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-action-registry" title="Die Liste der Sprach- und Tastaturbefehle, die PathScribe kennt. Die Befehle sind keine Zugriffskontrolle; das sind die Berechtigungen.">Aktionsregister</a> (Sprach- und Tastenkürzel-Abgleich)</td>
+<td>Synchron und im Arbeitsspeicher. Nur seine gespeicherten Einstellungen würden über den Konfigurationsdienst an den Server gehen.</td>
+</tr>
+<tr>
+<td>KI-Anweisungsdienst</td>
+<td>Seine Regeln laufen im Browser über eingespeisten Speicher; der Speicher geht über den Konfigurations- und den Prüfdienst.</td>
+</tr>
+<tr>
+<td>Schnittstellenwörterbuch-Dienst</td>
+<td>Ebenso: Die Regeln laufen im Browser. Der Speicher geht über den Konfigurations- und den Prüfdienst.</td>
+</tr>
+</tbody>
+</table>
+<p>Live-Aktualisierungen verwenden im Browser bereits <a class="term" href="99-glossary.html#g-signalr" title="Die Microsoft-Technologie, mit der PathScribe Live-Aktualisierungen vom Server an geöffnete Bildschirme sendet.">SignalR</a> (<code>signalRLiveUpdateService.ts</code>), aber der <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a> ist nicht gebaut.</p>
+<p><strong>Was eine Produktionsbereitstellung blockiert</strong> (aus der Bereitschaftsprüfung, Stand bei Batch 641):</p>
+<table>
+<thead>
+<tr>
+<th>Blocker</th>
+<th>Stand</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API-Server und SQL-Server-Schema</td>
+<td>Offen. Nicht begonnen.</td>
+</tr>
+<tr>
+<td>Blob-Speicher für Befund-PDFs, Exporte und zurückgehaltene Freigaben</td>
+<td>Vertrag geschrieben. Speicher und Endpunkte offen.</td>
+</tr>
+<tr>
+<td>Serverseitige geplante Aufträge (etwa zehn Timer)</td>
+<td>Offen. Bis ein Auftrag umgezogen ist, führt der Browser ihn aus, solange jemand angemeldet ist. <code>VITE_SERVER_JOBS</code> übergibt einen Auftrag namentlich an den Server.</td>
+</tr>
+<tr>
+<td>Befund-Renderer-Dienst</td>
+<td>Zytologievorlage fertig. Der gehostete Dienst ist offen.</td>
+</tr>
+<tr>
+<td>Anmeldung über den Server (Backend-for-Frontend), Konfiguration des Identitätsanbieters zur Laufzeit</td>
+<td>Konfiguration zur Laufzeit fertig. Der Serverteil ist offen.</td>
+</tr>
+<tr>
+<td>Schnittstellen-Engine, ständig laufend, mit den Edge-Regeln</td>
+<td>Vertrag geschrieben. Hosting und Endpunkte offen.</td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-site-agent" title="Ein kleiner Windows-Dienst, der in einem Labor installiert ist, Befunde und Etiketten druckt und Dateien auf Freigaben im Krankenhausnetzwerk schreibt, auf Anweisung des API-Servers.">Standort-Agent</a></td>
+<td>Vertrag und Bildschirme fertig. Der Agent ist offen.</td>
+</tr>
+<tr>
+<td>Hub und Push-Aktualisierungen</td>
+<td>Browserseite fertig. Der Hub ist offen.</td>
+</tr>
+<tr>
+<td>Die früheren Vercel-Funktionen <code>api/</code>, die Firebase-Dienste und <code>functions/</code> stilllegen</td>
+<td>Offen. Drei Bildschirme (Graviergeräte-Überwachung, QA-Mängelliste, Verlauf der Materialverfolgung) lesen noch Firebase-gestützte Dienste.</td>
+</tr>
+</tbody>
+</table>
+<p>Weitere offene Punkte, die eine Administratorin oder ein Administrator kennen sollte:</p>
+<ul>
+<li><strong>Der Browser erzwingt Berechtigungen heute, und die Durchsetzung auf dem Server ist nicht gebaut.</strong> Die Berechtigungsprüfungen laufen in den Diensten des Browsers. Ein Server muss jede Prüfung wiederholen, bevor echte Patientendaten gehalten werden. Siehe <a href="#ch1-security">Sicherheitsmodell</a>.</li>
+<li><strong>Ein Test mit Screenreadern durch eine Person wurde nicht durchgeführt.</strong> Automatisierte Barrierefreiheitsprüfungen (WCAG-2.1-Regeln A und AA, in Chromium) bestehen, aber eine Person hat noch nicht mit NVDA oder VoiceOver getestet (PS-687).</li>
+<li><strong>Firefox wurde nicht durch die automatisierte Testsuite geführt</strong> im Build-Arbeitsbereich. Eine manuelle Prüfung in Chrome, Edge und Firefox ist offen (PS-718).</li>
+<li><strong>Übersetzungen</strong> ins Französische, Deutsche, Niederländische, Koreanische und Spanische müssen vor dem klinischen Einsatz von Muttersprachlern geprüft werden.</li>
+<li><strong>Die Pipeline zur kontinuierlichen Integration</strong> ist geschrieben, läuft aber erst, wenn das Repository auf GitHub liegt (geplant für Ende Oktober 2026).</li>
+</ul>
+<h2 id="ch1-prerequisites"><a class="anchor" href="#ch1-prerequisites" aria-label="Link to this section">#</a> Systemvoraussetzungen</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Systemvoraussetzungen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Systemvoraussetzungen</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Das Repository enthält die Anforderungen an Software, Netzwerk und Browser. Es enthält <strong>keine Dimensionierungsangaben</strong> für Server, Datenbankspeicher, Bandbreite, Datensicherung oder Wiederherstellung. Wo dieser Teil „Noch nicht festgelegt“ sagt, gibt es im Repository keine Angabe, und hier wird keine erfunden; die offenen Punkte stehen in der Datei mit den offenen Fragen des Kapitels, damit ForMedrixAI sie entscheidet, bevor ein Kunde die Kapazität plant.</p>
+<h3 id="ch1-prereq-hardware"><a class="anchor" href="#ch1-prereq-hardware" aria-label="Link to this section">#</a> Serverhardware und Hosting</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Systemvoraussetzungen &gt; Serverhardware und Hosting"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Systemvoraussetzungen</span> <span aria-hidden="true">›</span> <span>Serverhardware und Hosting</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Gegenstand</th>
+<th>Was das Repository sagt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Größe des API-Servers (CPU, Arbeitsspeicher, Anzahl der Instanzen)</td>
+<td>Noch nicht festgelegt. Der Entwurf verlangt mindestens eine betriebsbereite Instanz, mit Geschäftslogik in Klassenbibliotheken und einem Container-Image.</td>
+</tr>
+<tr>
+<td>Größe des Hubs (<a class="term" href="99-glossary.html#g-signalr" title="Die Microsoft-Technologie, mit der PathScribe Live-Aktualisierungen vom Server an geöffnete Bildschirme sendet.">SignalR</a>) und Anzahl der Verbindungen</td>
+<td>Noch nicht festgelegt. Der Abnahmetest verwendet mindestens 50 verbundene Boards.</td>
+</tr>
+<tr>
+<td>Befund-Renderer</td>
+<td>Ein betriebsbereiter Pool von 2 bis 4 Chromium-Browserprozessen (beginnen Sie mit 2), ein Timeout von 5 Sekunden je Befund, ein Browser, der nach 500 Renderings neu gestartet wird, kein ausgehender Netzwerkverkehr, ein größeres <code>/dev/shm</code> und etwa 100 MB Schriftarten (einschließlich CJK). CPU und Arbeitsspeicher je Instanz: Noch nicht festgelegt.</td>
+</tr>
+<tr>
+<td>Schnittstellen-Engine</td>
+<td>BridgeLink, ein dauerhaft laufender Java-Server, als Container. Größe: Noch nicht festgelegt.</td>
+</tr>
+<tr>
+<td>Container-Plattform</td>
+<td>Kubernetes oder Docker für das portable Paket; das Container-Hosting des Anbieters für eine öffentliche Cloud. Versionen: Noch nicht festgelegt.</td>
+</tr>
+<tr>
+<td>Nachrichtenvermittler</td>
+<td>Keiner. Der Nachrichtenbus besteht aus Tabellen in der SQL-Server-Datenbank, hinter einer Schnittstelle (<code>IMessageBus</code>). RabbitMQ oder eine Cloud-Warteschlange würden nur hinzugefügt, wenn der Lasttest zeigt, dass die Tabellen ein Engpass sind.</td>
+</tr>
+<tr>
+<td>Build-Werkzeuge (für Techniker, die das Frontend bauen)</td>
+<td>Node.js 24.x (<code>engines</code> in <code>package.json</code>). Auf einem Produktionsserver, der statische Dateien ausliefert, nicht erforderlich.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-prereq-database"><a class="anchor" href="#ch1-prereq-database" aria-label="Link to this section">#</a> Datenbank</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Systemvoraussetzungen &gt; Datenbank"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Systemvoraussetzungen</span> <span aria-hidden="true">›</span> <span>Datenbank</span></nav>
+
+<p><strong>Status:</strong> Geplant. Im Repository sind weder Schema noch Skripte noch Datenbankcode vorhanden.</p>
+<ul>
+<li><strong>Engine.</strong> Microsoft SQL Server. Dieselbe Engine läuft als Azure SQL Database (serverless oder bereitgestellt), als SQL Server auf einer virtuellen Maschine, als SQL Server in Linux-Containern (offizielle Microsoft-Images für 2017 bis 2025; nur x86-64-Linux-Hosts; eine Lizenz ist erforderlich) oder als AWS RDS for SQL Server.</li>
+<li><strong>Pausieren Sie eine Produktionsdatenbank nie automatisch.</strong> Eine pausierte Datenbank macht den ersten Bildschirm am Morgen oder einen STAT-Fall in der Nacht zu einer fehlgeschlagenen Anfrage. Das automatische Pausieren ist nur für Test- und Schulungsmandanten zulässig. Bei Azure SQL serverless wird es mit <code>-1</code> ausgeschaltet.</li>
+<li><strong>Ausgangspunkt für die Größe.</strong> Die Bereitschaftsprüfung empfiehlt für einen Produktionsmandanten mindestens 2 virtuelle Kerne, „bis ein Lasttest etwas anderes sagt“. Es ist eine Empfehlung, keine getestete Anforderung. Speicher, Arbeitsspeicher, IOPS und Wachstum je <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>: Noch nicht festgelegt.</li>
+<li><strong>Schemaänderungen.</strong> Versionierte Skripte, die von der Release-Pipeline angewendet werden, bevor der API-Container startet, nie beim Start der Anwendung.</li>
+<li><strong>Datensicherungen.</strong> Die Wiederherstellung zu einem beliebigen Zeitpunkt (Point-in-Time-Restore) ist der Entwurf für die Prüftabellen. Zeitplan der Datensicherung, <a class="term" href="99-glossary.html#g-retention" title="Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.">Aufbewahrung</a>, Wiederherstellungszeitziel und Wiederherstellungspunktziel: Noch nicht festgelegt.</li>
+<li><strong>Hinweis zu AWS.</strong> AWS hat kein serverless SQL Server, und eine geänderte Instanzklasse bedeutet Ausfallzeit (verkürzt durch Multi-AZ). Es fallen Lizenzkosten an.</li>
+<li><strong>Blob-Speicher</strong> für Befund-PDFs, Exporte und zurückgehaltene Freigaben: Azure Blob oder ein S3-kompatibler Speicher, je <a class="term" href="99-glossary.html#g-tenant" title="Der abgetrennte Bereich einer Kundenorganisation innerhalb eines gemeinsam genutzten PathScribe-Dienstes.">Mandant</a>, privat, im Ruhezustand verschlüsselt und in der <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a> des Mandanten (Vertrag: <code>BLOB_STORAGE_API.md</code>). PathScribe speichert keine Bilder oder Anhänge, nur Links auf das Bildgebungssystem des Labors.</li>
+</ul>
+<h3 id="ch1-prereq-network"><a class="anchor" href="#ch1-prereq-network" aria-label="Link to this section">#</a> Netzwerk</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Systemvoraussetzungen &gt; Netzwerk"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Systemvoraussetzungen</span> <span aria-hidden="true">›</span> <span>Netzwerk</span></nav>
+
+<table>
+<thead>
+<tr>
+<th>Bedarf</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, die Verschlüsselung, die eine Webverbindung schützt und als https erscheint.">TLS</a> überall</td>
+<td>Jede Serveradresse in <code>config.json</code> muss <code>https://</code> sein. Einfaches <code>http://</code> ist nur zum selben Computer in einem Entwicklungs-Build erlaubt oder für eine interne Bereitstellung, die in ihrer Ursprungsdatei der Sicherheits-Header <code>"https": false</code> setzt (wodurch HSTS entfällt).</td>
+</tr>
+<tr>
+<td>Browser zu <a class="term" href="99-glossary.html#g-api" title="Programmierschnittstelle (Application Programming Interface). Der PathScribe-API-Server ist der ASP.NET-Core-Dienst, den der Browser für alle Produktivdaten aufruft.">API</a> und <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a></td>
+<td>HTTPS zum API-Server. WebSockets (<code>wss://</code>) zu <code>/hubs/live</code>. Lassen Sie Server-Sent Events und Long Polling als Ausweichverfahren aktiviert, weil einige Krankenhaus-Proxys WebSockets sperren. Lastverteiler brauchen aktivierte WebSockets und ein Leerlauf-Timeout von mehr als 15 Sekunden.</td>
+</tr>
+<tr>
+<td>Zugelassene Adressen</td>
+<td>Die Adressen in <code>config.json</code> (API, <a class="term" href="99-glossary.html#g-identity-provider" title="Der Dienst, der Personen für Single Sign-On anmeldet, etwa das Microsoft-Entra-Verzeichnis eines Krankenhauses.">Identitätsanbieter</a>, Hub, Renderer, Schnittstellenempfänger, KI- und Terminologie-Endpunkte, Fehlerüberwachung) werden zur Content-Security-Policy des Browsers. Führen Sie den Header-Generator nach jeder Änderung erneut aus.</td>
+</tr>
+<tr>
+<td>Identitätsanbieter</td>
+<td>Vom Browser aus erreichbar (und vom Server aus, sobald der Server die Anmeldung hält). Weiterleitungsadressen für Microsoft Entra ID: <code>https://&lt;pathscribe host&gt;/auth/callback/microsoft</code> und <code>https://&lt;pathscribe host&gt;/auth/signing/microsoft</code>.</td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-site-agent" title="Ein kleiner Windows-Dienst, der in einem Labor installiert ist, Befunde und Etiketten druckt und Dateien auf Freigaben im Krankenhausnetzwerk schreibt, auf Anweisung des API-Servers.">Standort-Agent</a></td>
+<td>Nur ausgehendes HTTPS (Port 443), auf einem eigenen Hostnamen (zum Beispiel <code>agent.&lt;tenant domain&gt;</code>), der ein Clientzertifikat verlangt. Keine eingehende Firewall-Freigabe. Ein Proxy mit TLS-Inspektion muss diesen Host unverändert durchlassen, weil die Inspektion das Clientzertifikat zerstört.</td>
+</tr>
+<tr>
+<td>Reichweite des Standort-Agenten (lokal von der IT des Krankenhauses festgelegt)</td>
+<td>Die Drucker-Subnetze, die Druckerports (Standard 9100, 515, 631 und 443), die UNC-Wurzeln für Freigaben und die Hosts, von denen Dokumente heruntergeladen werden dürfen. PathScribe kann diese Liste nicht ändern.</td>
+</tr>
+<tr>
+<td>HL7-Verbindung</td>
+<td>Aufträge hinein und Ergebnisse hinaus laufen über die Schnittstellen-Engine. Die Verbindung wird durch ein Site-to-Site-VPN oder MLLP über TLS gesichert. Eine Nachricht wird erst bestätigt, wenn sie dauerhaft gespeichert ist.</td>
+</tr>
+<tr>
+<td>Feste ausgehende Adresse</td>
+<td>SFTP-Dateiablagen brauchen für die Zulassungsliste des Krankenhauses eine feste ausgehende IP-Adresse (ein NAT-Gateway oder ein Firewall-Egress) und einen fest hinterlegten Hostschlüssel.</td>
+</tr>
+<tr>
+<td>E-Fax und E-Mail</td>
+<td>Ein SMTP-Gateway auf Port 587 mit Authentifizierung.</td>
+</tr>
+<tr>
+<td>Bandbreite und Latenz</td>
+<td>Noch nicht festgelegt. Das Entwurfsziel für eine allgemeine Bildschirmaktualisierung sind 800 ms im 95. Perzentil vom Festschreiben bis zur Anzeige; für die Boards im Operationssaal weniger als 500 ms. Der erste Seitenaufruf umfasst 0,70 MB komprimiert (Ziel 1 MB).</td>
+</tr>
+<tr>
+<td><a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a></td>
+<td>Je Bereitstellung wird eine Region gewählt. Der Endpunkt <code>/api/config</code> des API-Servers kann die Regionen der Datenbank und des Blob-Speichers melden, die der Reiter KI-Verhalten anzeigt (siehe <a href="05-tier4-ai-framework.html#screen-tab-ai">KI-Verhalten</a>). Dieser Endpunkt ist geplant.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ch1-prereq-workstation"><a class="anchor" href="#ch1-prereq-workstation" aria-label="Link to this section">#</a> Arbeitsplatzrechner</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Systemvoraussetzungen &gt; Arbeitsplatzrechner"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Systemvoraussetzungen</span> <span aria-hidden="true">›</span> <span>Arbeitsplatzrechner</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt, offene Prüfungen sind vermerkt.</p>
+<ul>
+<li><strong>Unterstützte Browser</strong> (entschieden am Oct 15, 2026): aktuelle Versionen von Chrome, Microsoft Edge und Firefox. <strong>Safari wird nicht unterstützt.</strong> Die automatisierten Tests laufen in Chromium (der Engine von Chrome und Edge). Firefox wird nur auf Anforderung ausgeführt, wurde im Build-Arbeitsbereich noch nicht ausgeführt, und eine manuelle Prüfung in allen drei ist offen (PS-718). In Chrome und Edge werden Auswahllisten als gestaltete Felder gezeichnet; Firefox zeigt seine eigene Liste. Das Verhalten ist dasselbe.</li>
+<li><strong>Verwendete Browserfunktionen.</strong> WebAssembly (die Rechtschreibprüfung), Web Workers und (wenn die Person sie erlaubt) Kamera, Mikrofon und Bildschirmaufnahme, für Zuschnittfotos, Diktat und Screenshots für Verbesserungsanfragen. Der Header Permissions-Policy erlaubt diese nur für PathScribe.</li>
+<li><strong>Etikettendruck von einem Arbeitsplatzrechner.</strong> <a class="term" href="99-glossary.html#g-qz-tray" title="Ein kleines Programm auf einem Computer, mit dem eine Webseite ohne Druckdialog auf einem lokalen Drucker drucken kann, etwa einem Etikettendrucker.">QZ Tray</a> (Umgesetzt) oder der PathScribe-Arbeitsplatz-Agent (Umgesetzt, Browserseite) muss auf dem Computer laufen. Sie lauschen nur auf dem Computer selbst: der Arbeitsplatz-Agent auf <code>wss://127.0.0.1</code> an den Ports 9100 bis 9102 und QZ Tray auf <code>localhost</code> an den Ports 8181, 8282, 8383 und 8484. Wenn die Seite QZ Tray nicht erreichen kann, öffnet sich das Etikett im Druckfenster des Browsers, und eine Meldung sagt, dass der Etikettendrucker nicht verbunden ist.</li>
+<li><strong>Zugriff auf das lokale Netzwerk erlauben.</strong> Chrome und Edge fragen die Person um Erlaubnis für lokale Adressen. Die IT des Krankenhauses kann PathScribe mit der Richtlinie <code>LocalNetworkAccessAllowedForUrls</code> vorab genehmigen.</li>
+<li><strong>Abfragen von QZ Tray.</strong> QZ Tray fragt „Allow this website to use your printers?“, bis Druckanfragen mit dem Zertifikat des Kunden signiert werden. Das Signieren ist <strong>geplant</strong> (es braucht den API-Server). Bis dahin wird die Person möglicherweise einmal je Arbeitsplatzrechner gefragt. Die Entscheidung (Oct 16, 2026) lautet: ein selbstsigniertes Zertifikat je Kunde, das ein Ablaufdatum hat, das die IT erneuern und erneut verteilen muss; siehe <code>docs/product/QZ_TRAY_CERTIFICATE_GUIDE.md</code>. Die Schritte für jedes Werkzeug zur Geräteverwaltung sind mit „Zuerst testen“ gekennzeichnet, weil sie auf keinem Pilotrechner ausgeführt wurden.</li>
+<li><strong>Etikettendrucker.</strong> Thermodrucker, die <a class="term" href="99-glossary.html#g-zpl" title="Zebra Programming Language, die Druckersprache, die das Layout eines Etiketts für Etikettendrucker vom Typ Zebra beschreibt.">ZPL</a> verarbeiten. Berichtsdrucker im Netzwerk werden über den Standort-Agenten erreicht. Das Drucken von Befunden im Netzwerk funktioniert heute nicht aus dem Browser.</li>
+<li><strong>Screenreader.</strong> Automatisierte Barrierefreiheitsprüfungen bestehen; der Test durch eine Person mit NVDA oder VoiceOver ist offen (PS-687).</li>
+<li><strong>Sprachen.</strong> Englisch, Französisch, Deutsch, Niederländisch, Koreanisch und Spanisch, dazu belgisch-niederländische und belgisch-französische Formulierungen.</li>
+<li><strong>Monitorgröße, Mindestprozessor und Arbeitsspeicher:</strong> Noch nicht festgelegt.</li>
+<li><strong>Viewer für Whole Slide Imaging.</strong> Der Viewer des Herstellers muss so installiert oder vom Arbeitsplatzrechner aus erreichbar sein, wie der Hersteller es verlangt. PathScribe öffnet den Viewer nur in einem neuen Tab, mit einer Vorlage für die Startadresse, die Sie einmal für jeden Viewer eingeben und in die der Barcode des Objektträgers eingesetzt wird. Er wird in den <a href="04-tier3-workflow-engines.html#screen-vendor_integrations">Anbieterintegrationen</a> konfiguriert. PathScribe liefert keine Viewer-Adresse mit.</li>
+</ul>
+<h2 id="ch1-security"><a class="anchor" href="#ch1-security" aria-label="Link to this section">#</a> Sicherheitsmodell</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Fast jede der folgenden Kontrollen ist im Browser umgesetzt und hat einen geschriebenen Serververtrag. Der Server, der jede Prüfung wiederholen muss, ist nicht gebaut (siehe <a href="#ch1-current-state">Der heutige Stand des Produkts</a>). Eine Prüfung im Browser ist ein Entgegenkommen; die Prüfung des Servers ist die Kontrolle. Beschreiben Sie keine der hier genannten Kontrollen als Schutz echter Patientendaten, solange die Serverseite nicht existiert.</p>
+<p>Dieser Teil sagt, was jede Kontrolle tut. Er sagt nicht, dass ein Labor durch ihre Verwendung ein Gesetz oder eine Norm erfüllt. Das entscheiden die eigenen Richtlinien, Verträge und das Qualitätssystem des Labors.</p>
+<h3 id="ch1-sso"><a class="anchor" href="#ch1-sso" aria-label="Link to this section">#</a> Single Sign-On</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Single Sign-On"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-single-sign-on" title="Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.">Single Sign-On</a></span></nav>
+
+<p><strong>Status:</strong> Teilweise. OpenID Connect (<a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, der Anmeldestandard, den PathScribe für Single Sign-On verwendet.">OIDC</a>): Browserseite umgesetzt. Serverseite geplant.</p>
+<ul>
+<li><strong><a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a>.</strong> OpenID Connect, Authorization-Code-Flow mit PKCE, wobei die Anwendung als öffentlicher Client einer Single-Page-Anwendung registriert ist (kein Client-Secret). Es ist generisch und funktioniert daher mit Microsoft Entra ID, Okta, Ping und Keycloak. Microsoft Entra ID ist das erste Ziel. Die Entra-Authority muss einen Mandanten nennen: <code>/common</code>, <code>/organizations</code> und <code>/consumers</code> werden abgelehnt, weil sie jedes Microsoft-Konto zulassen würden.</li>
+<li>Die Anmeldung mit <strong>Google</strong> wird nicht angeboten, weil der Token-Endpunkt von Google ein Client-Secret verlangt. Ein Krankenhaus mit Google Workspace kann Google über Entra ID oder Okta föderieren.</li>
+<li><strong>Niemand wird durch die Anmeldung angelegt.</strong> Nur Personal, das bereits eingerichtet und aktiv ist, kann sich anmelden. Die Identität wird einem Personaldatensatz über das dauerhafte Subjekt des Anbieters zugeordnet (<code>oid</code> von Entra, sonst <code>sub</code>), nie allein über die E-Mail. Die erste Anmeldung kann über die E-Mail verknüpfen, wenn die E-Mail vertrauenswürdig ist (verifiziert oder eine mandantenspezifische Entra-Authority); eine Einstellung kann das ausschalten, sodass eine Administratorin oder ein Administrator jedes Konto verknüpft. Ablehnungen (nicht eingerichtet, inaktiv, mehrdeutig, bereits verknüpft, kein Anwendungszugriff) werden mit einer klaren Meldung angezeigt und protokolliert. Siehe <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a>.</li>
+<li><strong>Demonstrationsversionen</strong> bieten auch die Anmeldung mit Passwort. Ein Produktions-Build (<code>VITE_AUTH_MODE</code> auf <code>sso</code> gesetzt) enthält keine Demonstrationskonten.</li>
+<li><strong>Token.</strong> Heute hält der Browser die Token in <code>sessionStorage</code> (nur dieser Tab, weg, wenn der Tab geschlossen wird). <strong>Für die Produktion geplant</strong> (entschieden am Oct 3 und Oct 15, 2026): Der API-Server hält die Token, und der Browser erhält nur ein Sitzungs-Cookie mit <code>HttpOnly</code>, <code>Secure</code> und <code>SameSite</code> samt einem Anti-Forgery-Header. Der Browser trägt nie ein JWT, und der <a class="term" href="99-glossary.html#g-hub" title="Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.">Hub</a> verwendet dasselbe Cookie. Dafür ist ein gemeinsamer Sitzungsspeicher (SQL Server oder Redis) auf dem Server nötig.</li>
+<li><strong>Die Anwendung in Entra ID registrieren</strong> (Schritte für die IT des Krankenhauses, aus <code>AUTHENTICATION_OIDC.md</code>): eine Registrierung für einen einzelnen Mandanten mit der Plattform Single-Page-Anwendung und den beiden unter <a href="#ch1-prereq-network">Netzwerk</a> genannten Weiterleitungsadressen, ohne Client-Secret, mit dem optionalen Claim <code>email</code> im ID-Token und einem bereitgestellten API-Bereich (Scope), der der Anwendung gewährt wird.</li>
+<li><strong>Konten und Rollen aus dem Verzeichnis.</strong> Die automatische Kontensynchronisierung (<a class="term" href="99-glossary.html#g-scim" title="System for Cross-domain Identity Management, ein Standard, mit dem ein Identitätsanbieter Mitarbeiterkonten automatisch anlegt und deaktiviert.">SCIM</a>: Eintritte, Änderungen und Austritte) ist für die Serverphase <strong>geplant</strong>. Die Zuordnung von Verzeichnisgruppen zu PathScribe-Rollen ist für die Zeit nach dem ersten Release <strong>geplant</strong>. Wenn sie kommt, darf eine Gruppe nur Rollen für den <a class="term" href="99-glossary.html#g-workstation" title="Ein registrierter Computer in einer Einrichtung, mit seiner Fachrichtung, seinem Bereich und seinen zugeordneten Druckern.">Arbeitsplatz</a> gewähren, nie Admin, Laborleitung, Vorlagengenehmiger oder irgendetwas mit <a class="term" href="99-glossary.html#g-signing-authority" title="Die Arten von Befunden, die eine Person freigeben darf, festgelegt durch die Beteiligungsart und die Regeln des Landes.">Signierbefugnis</a>, und jede Zuordnung braucht die Genehmigung einer zweiten Administratorin oder eines zweiten Administrators. Heute werden Rollen von Hand in den <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeitern</a> und den <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a> zugewiesen.</li>
+</ul>
+<h4 id="ch1-saml"><a class="anchor" href="#ch1-saml" aria-label="Link to this section">#</a> SAML 2.0</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Single Sign-On &gt; SAML 2.0"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-single-sign-on" title="Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.">Single Sign-On</a></span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-saml" title="Security Assertion Markup Language, ein älterer Single-Sign-On-Standard. Das Single Sign-On von PathScribe verwendet OIDC.">SAML</a> 2.0</span></nav>
+
+<p><strong>Status:</strong> Nicht umgesetzt.</p>
+<p>PathScribe hat keine SAML-2.0-Anmeldung, keine SAML-Bibliothek und keinen SAML-Bildschirm. Eine Suche im gesamten Repository findet das Wort nur in zwei Entwurfsdokumenten. Das Nächstliegende, das funktioniert, ist <a class="term" href="99-glossary.html#g-oidc" title="OpenID Connect, der Anmeldestandard, den PathScribe für Single Sign-On verwendet.">OIDC</a>, siehe oben. Die dokumentierte Richtung für gemeinsam genutztes SaaS-Hosting ist, dass sich Krankenhäuser über einen PathScribe-Identitätsbroker (Microsoft Entra ID External ID) anmelden, der mit dem Verzeichnis des Krankenhauses SAML oder OIDC spricht und mit PathScribe reines OIDC, sodass „PathScribe nie SAML verarbeitet“. Dieser Broker ist <strong>geplant</strong> und nicht gebaut. Eine Bereitstellung in einer privaten Cloud oder eine dedizierte Bereitstellung verbindet sich per OIDC direkt mit der eigenen Entra ID des Krankenhauses. Ein Krankenhaus, das heute nur SAML anbieten kann, sollte das ForMedrixAI bei der Planung mitteilen oder SAML in Entra ID oder Okta föderieren, die dann OIDC mit PathScribe sprechen.</p>
+<h3 id="ch1-rbac"><a class="anchor" href="#ch1-rbac" aria-label="Link to this section">#</a> Rollenbasierte Zugriffskontrolle</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Rollenbasierte Zugriffskontrolle"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Rollenbasierte Zugriffskontrolle</span></nav>
+
+<p><strong>Status:</strong> Demonstration. Die Prüfungen laufen in den Diensten des Browsers. Die serverseitige Durchsetzung (<code>AUTHORIZATION_API.md</code>, Phase 4) ist <strong>geplant</strong>.</p>
+<ul>
+<li><strong>Berechtigungen.</strong> Alles, was PathScribe durchsetzt, ist eine benannte <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> in der Form <code>domain:object:verb</code>, zum Beispiel <code>config:retention-policy:manage</code>. Der Katalog (<code>capabilityCatalog.ts</code>) ist die einzige Liste und enthält etwa 320 Berechtigungen (322 zum Zeitpunkt des Schreibens; die Zahl wächst mit den Releases). Eine Berechtigung wird nur zusammen mit ihrer Prüfung hinzugefügt, und ein Test lässt den Build fehlschlagen, wenn eine Berechtigung keine Prüfung hat. Jede Berechtigung hat eine Risikostufe. Bei einer Berechtigung mit <strong>hohem Risiko</strong> wird jede Prüfung an einer Aktion in das <a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> geschrieben, erlaubt oder abgelehnt, und jeder Export hat hohes Risiko.</li>
+<li><strong>Rollen.</strong> Eine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a> ist ein Satz von Berechtigungen. Ein Mitarbeiter oder eine Mitarbeiterin hat eine oder mehrere Rollen und eine Zuweisung zu Einrichtungen (eine leere Zuweisung bedeutet alle Einrichtungen). Der Geltungsbereich gehört zur Zuweisung, nicht zur Rolle. Eine Prüfung ist nur bestanden, wenn eine innegehabte Rolle die Berechtigung gewährt, jede von ihr vorausgesetzte Berechtigung ebenfalls gewährt ist und die Aktion innerhalb der Einrichtungen der Person liegt. Eine Ablehnung nennt einen Grund (nicht gewährt, Voraussetzung nicht gewährt, außerhalb des Geltungsbereichs, <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a> unbekannt).</li>
+<li><strong>Eingebaute Rollen.</strong> Sechzehn: Pathologe, Assistenzarzt, Fellow, Pathologieassistent, Admin, Arzt, OP-Personal, Vorlagenautor, Vorlagengenehmiger, Laborleitung, QA-Prüfer, <a class="term" href="99-glossary.html#g-accession" title="Der Vorgang, eine Probe entgegenzunehmen und ihr eine dauerhafte Fallnummer zu geben; auch diese Nummer selbst (die Eingangsnummer). Sie verbindet einen Fall mit dem physischen Gewebe und seiner Probenkette.">Probeneingang</a>, <a class="term" href="99-glossary.html#g-histotechnologist" title="Eine Fachkraft im Labor, die Gewebe einbettet sowie Schnitte anfertigt und färbt.">Histologie-Fachkraft</a>, <a class="term" href="99-glossary.html#g-cytotechnologist" title="Eine Fachkraft im Labor, die Zytologie-Objektträger durchmustert und auffällige an einen Pathologen weitergibt.">Zytologieassistent</a>, Molekularbiologie-Fachkraft und Superadmin. Arzt und OP-Personal sind Verzeichniseinträge ohne Anwendungszugriff. Die Voreinstellungen folgen dem Prinzip der minimalen Rechte: Ein Pathologe hat standardmäßig keine Konfigurationsberechtigungen. Eine Administratorin oder ein Administrator kann Rollen ändern und Rollen hinzufügen in den <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, außer Superadmin.</li>
+<li><strong>Keine Umgehung für irgendeine Rolle.</strong> Superadmin ist eine Rolle, der Berechtigungen wie jeder anderen gewährt werden, und die Prüfung hat dafür keine Abkürzung. Auch Admin schließt nichts ein.</li>
+<li><strong>Superadmin ist ForMedrixAI-Support vorbehalten.</strong> Es wird nur über eine Support-Anmeldung gehalten. Ein Krankenhaus kann es weder zuweisen noch bearbeiten noch in der Rollenauswahl für Personal sehen, und ein Personaldatensatz, der es nennt, erhält daraus nichts. Die serverseitige Quelle dieser Identität (der eigene Identitätsmandant von ForMedrixAI) ist <strong>geplant</strong>.</li>
+<li><strong>Nur für die Plattform bestimmte Berechtigungen.</strong> Sechs Berechtigungen der Domäne <code>platform:</code> gelten nur für Superadmin (mandantenübergreifende Fallansicht, Aufsichtsbehörden, Signierregeln sowie Verwalten, Veröffentlichen und Simulieren des Schnittstellenwörterbuchs). Eine Rolle eines Krankenhauses kann sie nicht innehaben. Ihre Bildschirme sind in diesem Handbuch mit <code>[FORMEDRIXAI INTERNAL ONLY]</code> gekennzeichnet.</li>
+<li><strong>Mandantengrenze.</strong> Jeder Benutzer und jeder <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> trägt eine <code>organisationId</code>. Der mandantenübergreifende Zugriff ist auf den Support-Zugriff beschränkt (siehe unten). Die Durchsetzung findet heute im Browser statt; eine serverseitige Abfrageschicht, die sie durchsetzt, ist geplant.</li>
+<li><strong>Fallschutz.</strong> Eine Person, die einen Fall nicht öffnen kann, erhält dieselbe neutrale Meldung wie bei einem Fall, den es nicht gibt. Eine getippte oder eingefügte <a class="term" href="99-glossary.html#g-accession-number" title="Die dauerhafte Kennung eines Falls, gebildet aus der Fallmaske der Einrichtung. Sie wird auf dem Bildschirm wie eine Patientenkennung behandelt: Sie steht in Patientendaten-Tags, damit Screenshots geschwärzt werden können.">Eingangsnummer</a> beweist nichts, und eine Nachricht macht eine Nummer nur dann zum Link, wenn die lesende Person diesen Fall öffnen kann. Der Server muss auf „Es gibt keinen solchen Fall“ und „Sie dürfen ihn nicht sehen“ dieselbe Antwort geben (zum Beispiel <code>404</code>), ohne Unterschied in Inhalt, Headern oder Zeitverhalten.</li>
+<li><strong>Bildschirme.</strong> Jeder Bildschirm hat seine eigene Berechtigung <code>screen:&lt;name&gt;:open</code>. Startseite und Hubs zeigen nur die Kacheln, die die Person öffnen darf, und die Route prüft erneut.</li>
+<li><strong>Sprach- und Tastaturbefehle</strong> sind keine Zugriffskontrolle und werden nie verwendet, um Zugriff zu gewähren.</li>
+<li><strong>Wo Sie es verwalten.</strong> <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a> und der <a href="02-tier1-primary-prerequisites.html#screen-tab-staff">Reiter Personal</a>. Änderungen an Rollen und Berechtigungen werden protokolliert.</li>
+</ul>
+<h3 id="ch1-mfa"><a class="anchor" href="#ch1-mfa" aria-label="Link to this section">#</a> Multi-Faktor-Authentifizierung und erneute Authentifizierung bei der Abmeldung</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Multi-Faktor-Authentifizierung und erneute Authentifizierung bei der Abmeldung"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Multi-Faktor-Authentifizierung und erneute Authentifizierung bei der Abmeldung</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Browserseite umgesetzt. Der Authenticator für Demonstrationskonten ist <strong>simuliert</strong>. Serverseite geplant.</p>
+<ul>
+<li><strong>Benutzer mit <a class="term" href="99-glossary.html#g-single-sign-on" title="Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.">Single Sign-On</a>.</strong> Der <a class="term" href="99-glossary.html#g-identity-provider" title="Der Dienst, der Personen für Single Sign-On anmeldet, etwa das Microsoft-Entra-Verzeichnis eines Krankenhauses.">Identitätsanbieter</a> verlangt den zweiten Faktor. PathScribe liest das ID-Token und akzeptiert <a class="term" href="99-glossary.html#g-mfa" title="Multi-Faktor-Authentifizierung, die Anmeldung mit einem zweiten Nachweis, etwa einem Code aus einer Authenticator-App, zusätzlich zu einem Passwort.">MFA</a>, wenn <code>amr</code> den Wert <code>mfa</code> enthält oder Methoden aus zwei verschiedenen Familien nennt (Wissen, Besitz, Inhärenz) oder <code>acr</code> eine Multi-Faktor-Klasse nennt. Ein Passwort allein ist keine MFA. Wenn die Organisation MFA verlangt und das Token dies nicht aussagt, wird die Anmeldung mit einer klaren Meldung abgelehnt. Der Anbieter muss so eingestellt sein, dass er diese Claims sendet (Entra: eine Richtlinie für bedingten Zugriff, die MFA verlangt; Okta: eine Authentifizierungsrichtlinie mit einem Besitzfaktor; Keycloak: die Authentifizierungsstufe auf <code>acr</code> abbilden und einen <code>amr</code>-Mapper hinzufügen).</li>
+<li><strong>Richtlinie je Organisation.</strong> In der <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a>: wer gefragt wird (niemand, die Rollen, die Befunde signieren, oder alle; Standard niemand), wie viele Minuten vergehen, bis eine Signatur einen frischen Code braucht (1 bis 720, Standard 30), und wie viele Stunden vergehen, bis der zweite Faktor abläuft und die Sitzung endet (1 bis 72, Standard 12). Gespeichert mit <code>config:session-security:manage</code> und protokolliert.</li>
+<li><strong>Erneute Bestätigung bei einer Signatur.</strong> Wenn der letzte zweite Faktor älter ist als die Step-up-Zeit, fragt das Signieren erneut: einen frischen Code bei Passwortsitzungen oder eine frische Anmeldung beim Anbieter (<code>prompt=login</code>), deren Token MFA erneut bestätigen muss.</li>
+<li><strong>Demonstrationskonten.</strong> Ein <strong>simulierter</strong> zeitbasierter Authenticator (RFC 6238) mit Wiederherstellungscodes, die einmal angezeigt werden. Er ist nur in der <a class="term" href="99-glossary.html#g-demonstration-build" title="Eine Version von PathScribe, die ihre Daten im Browser hält und Demonstrationskonten enthält. Sie verbindet sich nie mit einem echten API-Server.">Demonstrationsversion</a> enthalten. Ein Server-Build hat keinen simulierten Faktor, sodass eine Person, die kein Single Sign-On verwendet und nach MFA gefragt wird, die Meldung erhält, dass sie nicht verfügbar ist, und sich nicht anmelden kann. Das Zurücksetzen einer Registrierung braucht <code>auth:mfa-enrolment:reset</code>.</li>
+<li><strong>Sperre.</strong> Fünf fehlgeschlagene Codes sperren die Prüfung für 15 Minuten. Fünf fehlgeschlagene Passwortanmeldungen sperren eine E-Mail-Adresse für 15 Minuten. Diese Zähler werden heute im Browser geführt; der Server muss sie führen. Bei Single Sign-On wendet der Anbieter seine eigene Sperre an.</li>
+<li><strong>Richtlinie zur Authentifizierung bei der Abmeldung</strong> (Umgesetzt, Demonstration). Je durchführender <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>: ein Passwort bei jeder Abmeldung (der Standard, <code>strict</code>) oder einmal je Sitzung (<code>session</code>, mit einer Dauer von 15, 30, 60 oder 240 Minuten), mit einem optionalen zweiten Faktor. Eine Sitzung endet bei Zeitüberschreitung, Abmeldung oder Rollenwechsel. Der Bildschirm warnt, dass der Modus einmal je Sitzung von dem abweicht, was 21 CFR Part 11 (11.200(a)(1)) für spätere Signaturen erwartet, sodass das Qualitätssystem des Kunden entscheidet.</li>
+<li><strong>Biometrisches Signieren</strong> (WebAuthn, Touch ID oder Windows Hello) ist eine optionale Bestätigung. Jede Person registriert ihr eigenes Gerät, und das Passwort funktioniert immer ebenfalls. Die Serverversion der biometrischen Aufrufe ist geschrieben, aber die Bildschirme verwenden sie noch nicht.</li>
+<li><strong>Nicht umgesetzt:</strong> Einschränkung der Remote-Abmeldung nach Netzwerk, Ablauf einer Abmeldesitzung bei Sperrung des Arbeitsplatzes, SMS und Hardware-Schlüssel als zweiter Faktor, ein serverseitiger Richtlinienspeicher.</li>
+<li><strong>Wo Sie es verwalten.</strong> <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a>.</li>
+</ul>
+<h3 id="ch1-session"><a class="anchor" href="#ch1-session" aria-label="Link to this section">#</a> Sitzungssicherheit</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Sitzungssicherheit"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Sitzungssicherheit</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Zeitüberschreitung bei Inaktivität umgesetzt (Browser). Vom Server gehaltene Sitzung geplant.</p>
+<ul>
+<li><strong>Zeitüberschreitung bei Inaktivität.</strong> Ein organisationsweiter Standard in der <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a>, zur Auswahl 5, 10, 15, 20, 30 oder 60 Minuten. Der Standard ist 15. Ein <a class="term" href="99-glossary.html#g-performing-lab" title="Die Einrichtung, die die Untersuchung ausführt und den Befund ausstellt, im Gegensatz zu einem Einsender, der nur Proben sendet.">durchführendes Labor</a> kann seinen eigenen Wert im <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a> festlegen. Wenn ein <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> geöffnet ist, gilt der Wert des Labors; an anderer Stelle (Startseite, Arbeitsliste) gilt der Wert der Organisation. Bei der Zeitüberschreitung wird die Person abgemeldet, und nicht gespeicherte Entwürfe bleiben erhalten, sie werden nicht verworfen.</li>
+<li><strong>Dasselbe Konto, zweiter Tab.</strong> Die erneute Anmeldung desselben Benutzers in einem anderen Tab löst die frühere Sitzung im selben Browser ab, mit einer Rückfrage.</li>
+<li><strong>Regel des Servers.</strong> Der Server beendet außerdem eine Sitzung, deren Token abgelaufen ist, sodass ein geschlossener oder eingefrorener Browser keine offen halten kann.</li>
+<li><strong>Browserspeicher.</strong> Ist ein API-Server konfiguriert, werden keine Patientendaten in den Browserspeicher geschrieben. Nur Anzeigeeinstellungen, Arbeitsplatzeinstellungen (<a class="term" href="99-glossary.html#g-scan-station" title="Ein benannter Arbeitsplatzaufbau mit seinen Druckern und seiner Anzeige, den eine Person auswählt, damit Etiketten und Scans an den richtigen Ort gehen.">Scanstation</a>, <a class="term" href="99-glossary.html#g-display-profile" title="Ein gespeichertes Layout von Dashboard-Kacheln, das eine Wandanzeige darstellt.">Anzeigeprofil</a>, Fensterpositionen) und die Anmeldesitzung berühren ihn.</li>
+<li><strong>Schutz von Übertragung und Seite.</strong> Die erzeugten Header setzen eine strenge Content-Security-Policy (kein Inline-Skript, kein <code>eval</code>, kein Framing), HSTS bei https-Bereitstellungen, <code>nosniff</code>, eine Richtlinie <code>no-referrer</code> (Adressen können Fallkennungen tragen) und eine eingeschränkte Permissions-Policy. Der HTML-Code von Befunden wird bereinigt, bevor er angezeigt wird. Der Browser hält keinen Schlüssel für KI, Terminologie oder Anbieter, und ein Test lässt den Build fehlschlagen, wenn einer im Frontend auftaucht.</li>
+<li><strong>Fehlerberichte.</strong> Absturzberichte können an Sentry oder an einen eigenen Collector eines Krankenhauses gehen, <strong>standardmäßig aus</strong>. Ein Bericht enthält nur einen Fehlernamen, eine bereinigte Meldung (kein zitierter Text, keine E-Mail-Adressen und keine Folgen von drei oder mehr Ziffern), höchstens zehn Stack-Frames, die Route mit ersetzten numerischen Segmenten und eine Referenz. Er braucht zwei Einstellungen in <code>config.json</code> und für einen US-Kunden einen unterzeichneten Business Associate Agreement mit dem Anbieter, für die <a class="term" href="99-glossary.html#g-eu" title="Europäische Union.">EU</a> und das Vereinigte Königreich einen Auftragsverarbeitungsvertrag und Datenhaltung in der EU. Selbst-Hosting vermeidet beides.</li>
+<li><strong>Wo Sie es verwalten.</strong> <a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a> und <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a>.</li>
+</ul>
+<h3 id="ch1-support"><a class="anchor" href="#ch1-support" aria-label="Link to this section">#</a> Support-Zugriff</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Support-Zugriff"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Support-Zugriff</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Browserseite umgesetzt. Serverseite geplant.</p>
+<p>Das Krankenhaus entscheidet als Verantwortlicher für die Datenverarbeitung, ob der Support von ForMedrixAI seine Daten erreichen darf. „Support-Zugriff“ bedeutet, dass eine Superadmin-Sitzung eine Organisation erreicht, deren Personal die Person nicht angehört.</p>
+<ul>
+<li><strong>Richtlinie je Organisation.</strong> Deaktiviert (der Support erhält nichts, auch nicht Superadmin), <strong>Genehmigung erforderlich</strong> (der Standard) oder Immer erlaubt. Bei Genehmigung erforderlich fragt der Support je Ticket mit einer Begründung von mindestens 10 Zeichen an. Eine genehmigende Person im Krankenhaus (nicht die anfragende) genehmigt oder lehnt ab. Eine Genehmigung gilt für das Zugriffsfenster der Organisation (30 Minuten, 1, 2, 4 oder 8 Stunden; der Standard ist 2) oder kürzer, wenn der Support sie beendet oder das Krankenhaus sie widerruft.</li>
+<li><strong>Der eigene Prüfstrom des Krankenhauses.</strong> Getrennt vom Hauptprüfprotokoll: Anfragen, Entscheidungen, Abläufe, abgelehnte Öffnungen, Öffnungen und Bearbeitungen von Fällen, jede Liste oder Suche, die Fälle offengelegt hat (Fallkennungen; Namen der Suchkriterien, nie Werte), Richtlinienänderungen und Exporte. Jeder Eintrag ist per Hash mit dem vorherigen verkettet, sodass ein geänderter oder entfernter Eintrag die Kette bricht, und der Bildschirm zeigt die Manipulationsprüfung. Der Export erfolgt als <a class="term" href="99-glossary.html#g-csv" title="Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.">CSV</a> oder <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, ein Nur-Text-Datenformat, das von der API, von `config.json` und von Webhooks verwendet wird.">JSON</a>.</li>
+<li><strong>Berechtigungen.</strong> <code>config:support-access:policy</code>, <code>config:support-access:approve</code> und <code>config:support-audit:view</code>, voreingestellt für Admin. Das Öffnen des Falls einer anderen Organisation braucht außerdem <code>platform:cross-tenant-cases:view</code>, das nur Superadmin innehaben kann, und wird protokolliert.</li>
+<li><strong>Nicht umgesetzt (Arbeit am Server):</strong> die IP-Adresse und das Land des Ursprungs (der Browser zeichnet sie leer auf), die Benachrichtigung der Genehmigenden per E-Mail und <a class="term" href="99-glossary.html#g-webhook" title="Eine Webadresse, die ein System aufruft, um ein anderes zu aktualisieren, etwa ein LIS, das eine Statusänderung als JSON sendet.">Webhook</a> (heute eine Meldung in der Anwendung), das Beenden des Zugriffs beim Schließen des Tickets, der PDF-Export des Stroms (CSV und JSON gibt es; eine PDF-Funktion ist im Browser geschrieben), der Strom in einer eigenen, nur anhängenden Tabelle je <a class="term" href="99-glossary.html#g-tenant" title="Der abgetrennte Bereich einer Kundenorganisation innerhalb eines gemeinsam genutzten PathScribe-Dienstes.">Mandant</a> und Support-Sitzungstoken, die an Ticket und Ablauf gebunden sind.</li>
+<li><strong>Wo Sie es verwalten.</strong> <a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriff</a>.</li>
+</ul>
+<h3 id="ch1-audit"><a class="anchor" href="#ch1-audit" aria-label="Link to this section">#</a> Protokollierung zur Nachvollziehbarkeit</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Protokollierung zur Nachvollziehbarkeit"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Protokollierung zur Nachvollziehbarkeit</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Browserseite umgesetzt. Speicherung auf dem Server geplant.</p>
+<ul>
+<li><strong>Was aufgezeichnet wird.</strong> Benutzeraktionen, Abmeldungen, Änderungen (Amendments), Sprachereignisse, Systemereignisse und KI-Aufrufe. Jede Prüfung einer <a class="term" href="99-glossary.html#g-capability" title="Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.">Berechtigung</a> mit hohem Risiko wird aufgezeichnet, ob erlaubt oder abgelehnt. Konfigurationsänderungen durch eine berechtigte Person werden protokolliert. Manche zeichnen die alten und neuen Werte auf (zum Beispiel die <a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> und Überschreibungen der <a class="term" href="99-glossary.html#g-signing-authority" title="Die Arten von Befunden, die eine Person freigeben darf, festgelegt durch die Beteiligungsart und die Regeln des Landes.">Signierbefugnis</a>); bei vielen Einstellungen enthält das <a class="term" href="99-glossary.html#g-protocol" title="Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.">Protokoll</a> nur den Eintrag, dass die Berechtigungsprüfung erlaubt wurde, nicht den neuen Wert. Was jeder Eintrag enthält, siehe <a href="09-appendices.html#screen-audit-log">Systemprotokolle</a>.</li>
+<li><strong>Keine Patientendaten im Detail.</strong> Der Text <code>detail</code> des Prüfprotokolls ist wörtlich Englisch und so gebaut, dass er keine Patientennamen, Geburtsdaten, MRNs oder klinischen Werte enthält. Er verwendet Kennungen und Konfigurationsnamen. Passwörter, Codes und Geheimnisse werden nie aufgezeichnet.</li>
+<li><strong>Entwurf des Servers.</strong> Nur anhängende Tabellen (nur Einfüge- und Leseberechtigung), jede Prüfzeile in derselben Transaktion wie die Änderung geschrieben, die sie aufzeichnet, ein per Hash verketteter Strom für den Support-Zugriff und Point-in-Time-Datensicherungen. Exportierte Prüfarchive auf unveränderlichem Speicher sind eine Option je Krankenhaus. <strong>Geplant:</strong> Nichts davon existiert, bis der Server gebaut ist. Die Browserversion hält das Protokoll im Demonstrationsspeicher.</li>
+<li><strong><a class="term" href="99-glossary.html#g-retention" title="Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.">Aufbewahrung</a>.</strong> Siehe <a href="#ch1-retention">Datenaufbewahrung</a>.</li>
+<li><strong>Wo Sie es lesen.</strong> <a href="09-appendices.html#screen-audit-log">Systemprotokolle</a>, mit den Ansichten für Schnittstellen und Finanzen <a href="07-tier6-interface-engine.html#screen-audit-interfaces">Systemprotokolle: Schnittstellen</a> und <a href="08-tier7-billing-registry.html#screen-audit-financial">Systemprotokolle: Finanzen</a>.</li>
+</ul>
+<h3 id="ch1-phi"><a class="anchor" href="#ch1-phi" aria-label="Link to this section">#</a> Schwärzung von Patientendaten in Support-Screenshots</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Schwärzung von Patientendaten in Support-Screenshots"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Schwärzung von Patientendaten in Support-Screenshots</span></nav>
+
+<p><strong>Status:</strong> Umgesetzt.</p>
+<p>Wenn ein Benutzer eine Verbesserungsanfrage (Enhancement Request) sendet, erstellt die Anwendung einen Screenshot und deckt jedes als Patientendaten gekennzeichnete Element ab, bevor das Bild den Browser verlässt. Alles, was einen Patientennamen, ein <a class="term" href="99-glossary.html#g-dob" title="Datum der Geburt (DOB).">Geburtsdatum</a>, eine <a class="term" href="99-glossary.html#g-mrn" title="Medizinische Aktennummer (Medical Record Number), die Kennung, die eine Einrichtung einem Patienten gibt.">MRN</a> oder nationale Kennung, eine Eingangs- oder Fallnummer oder Kontakt- oder Versicherungsdaten des Patienten zeigt, ist mit <code>data-phi</code> und seiner Art gekennzeichnet. Toasts, die einen <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a> nennen, sind umhüllt, sodass auch sie abgedeckt werden. Personalnamen gelten nicht als Patientendaten. Ein Test liest jede Quelldatei und lässt den Build an einer nicht gekennzeichneten Stelle fehlschlagen, ohne Ausnahmeliste. Grenzen, die Sie einplanen sollten: Freitext, der zufällig eine Kennung enthält (Prüfdetail, Ausnahmegründe der Schnittstelle), kann von keiner Codeprüfung erkannt werden, daher werden diese Zellen als Ganzes abgedeckt; und die Prüfung liest Namen, nicht Typen, sodass ein Wert, der durch eine allgemeine Liste geleitet wird, übersehen werden kann (ein solcher Fall wurde in Batch 368 gefunden und behoben, danach wurden zwanzig Bildschirme in einem Browser geprüft).</p>
+<h3 id="ch1-ai-policy"><a class="anchor" href="#ch1-ai-policy" aria-label="Link to this section">#</a> KI-Anbieterrichtlinie und Hosting-Regionen</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; KI-Anbieterrichtlinie und Hosting-Regionen"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> und Hosting-Regionen</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Prüfung im Browser umgesetzt. Prüfung im Server-Proxy geplant.</p>
+<ul>
+<li><strong>Warum.</strong> Einige Rechtsräume nennen, welche KI-Anbieter erlaubt oder verboten sind. PathScribe ist anbieterneutral und prüft jeden KI-Aufruf, bevor er gesendet wird.</li>
+<li><strong>Die Regel.</strong> Für jeden <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> und optional jede <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>: die erlaubten KI-Dienste und die für jeden Dienst erlaubten Hosting-Regionen. Keine Regel bedeutet, dass jeder Dienst erlaubt ist. Eine Regel der Einrichtung engt die Regel ihres Rechtsraums ein, und der Aufruf muss beide bestehen. Wo eine Regel Regionen begrenzt, wird ein Aufruf abgelehnt, dessen Region nicht aufgezeichnet ist. Die Dienste werden nach der Form der Anfrage benannt: strukturierte Nachrichten (Anthropic), Chat-Vervollständigungen (OpenAI), verwaltete Chat-Vervollständigungen (Azure OpenAI), Modell-Gateway (AWS Bedrock), strukturierter Inhalt (Google Gemini) und benutzerdefiniert (ein selbst gehostetes Modell). Die konfigurierte <a class="term" href="99-glossary.html#g-hosting-region" title="Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.">Hosting-Region</a> wird mit der Einstellung des KI-Anbieters gespeichert.</li>
+<li><strong>Bei Ablehnung.</strong> Die Funktion läuft ohne KI weiter und sagt „KI ist für diesen Rechtsraum nicht verfügbar“, wo sie es kann. Der Aufruf wird nie stattdessen an einen anderen Anbieter gesendet.</li>
+<li><strong>Der Server muss die Prüfung wiederholen.</strong> Eine Prüfung im Browser lässt sich umgehen, daher muss der KI-Proxy des Servers auf jeder Route dieselbe Prüfung vornehmen und ist die, die zählt. Er muss den Dienst und die Region aus der gespeicherten Einstellung wählen, nie aus dem Anfragekörper, mit <code>403</code> und dem Code <code>AI_VENDOR_NOT_ALLOWED</code> antworten und die Ablehnung protokollieren. <strong>Geplant.</strong></li>
+<li><strong>Schlüssel.</strong> Der Browser hält nie einen Schlüssel eines KI-Anbieters. In der Produktion liegen die Schlüssel im Geheimnisspeicher des Servers (zum Beispiel Azure Key Vault). Die gespeicherte Einstellung enthält Anbieter, Modell, Endpunkt und Namen der Bereitstellung, nie einen Schlüssel.</li>
+<li><strong>Was der Server außerdem tun sollte (geplant):</strong> jeden KI-Aufruf protokollieren (wer, <a class="term" href="99-glossary.html#g-case" title="Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.">Fall</a>, geprüfte Einrichtung und Rechtsraum, Dienst, Modell, Hosting-Region, Funktion, Token, Ergebnis; nie den Prompt, der Patientendaten enthalten kann), je Benutzer und Organisation die Rate begrenzen und prüfen, dass für den gewählten Anbieter ein Business Associate Agreement oder ein Auftragsverarbeitungsvertrag vorliegt.</li>
+<li><strong>Offengelegte Lücke.</strong> Im Browser sendet die Anbietereinstellung <code>mock</code> KI-Anfragen über den Proxy an die Anthropic-Route, sodass ein Demonstrationsstandort mit der Einstellung <code>mock</code> den Proxy trotzdem aufruft. Ein Rechtsraum, der Anthropic nicht zulässt, lehnt dies ab.</li>
+<li><strong>Menschliche Prüfung.</strong> KI-Ausgaben sind ein Vorschlag. Die Bildschirme, die sie verwenden, zeigen sie, damit die klinisch tätige Person sie annimmt oder ablehnt; siehe das Kapitel zur KI (Kapitel 5).</li>
+<li><strong>Wo Sie es verwalten.</strong> Die Karte der KI-Anbieterrichtlinie und die Karte der Hosting-Regionen im Reiter <a href="05-tier4-ai-framework.html#screen-tab-ai">KI-Verhalten</a>. Das Ändern einer Regel braucht <code>config:ai-vendor-policy:manage</code> (standardmäßig Admin und Laborleitung), und jede Änderung wird als <code>AI_VENDOR_POLICY_CHANGED</code> protokolliert.</li>
+</ul>
+<h3 id="ch1-retention"><a class="anchor" href="#ch1-retention" aria-label="Link to this section">#</a> Datenaufbewahrung</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; Datenaufbewahrung"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span>Datenaufbewahrung</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Die Einstellungen sind umgesetzt. <strong>Nach ihnen werden noch keine Daten gelöscht</strong>; der Löschauftrag ist Arbeit am Server.</p>
+<p>Die <a href="02-tier1-primary-prerequisites.html#screen-retention">Datenaufbewahrung</a> enthält vier Zeiträume: KI-Vorschläge (Standard 90 Tage), Prüfprotokolle (Standard 365 Tage), Fallmomentaufnahmen (Standard 7 Jahre) und das Befundarchiv (Standard 10 Jahre). Der Bildschirm warnt, dass die Mindestaufbewahrung des Prüfprotokolls 90 Tage beträgt und dass Verkürzungen unter die gesetzlichen Mindestfristen die Freigabe der Compliance-Beauftragten der Institution brauchen. Das Speichern braucht <code>config:retention-policy:manage</code>. Die <a class="term" href="99-glossary.html#g-retention" title="Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.">Aufbewahrung</a> von physischem Probenmaterial und Blöcken wird über die Entsorgungswarteschlange und die Aufbewahrungssperren auf Fallebene abgewickelt, die dem <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a> folgen (RCPath für das Vereinigte Königreich, <a class="term" href="99-glossary.html#g-cap" title="Das College of American Pathologists. Es akkreditiert Labore und veröffentlicht die Krebsprotokolle (Checklisten), denen die synoptischen Befunde von PathScribe folgen.">CAP</a> und <a class="term" href="99-glossary.html#g-clia" title="Clinical Laboratory Improvement Amendments, die US-Bundesvorschriften für Laboruntersuchungen. CLIA legt unter anderem Grenzen für die zytologische Arbeitsmenge fest.">CLIA</a> für die USA). Unveränderliche Befunddokumente im Blob-Speicher sind ein eigener Schutz gegen Löschung. Aufbewahrungsfristen für Datensicherungen: Noch nicht festgelegt.</p>
+<h3 id="ch1-regulatory"><a class="anchor" href="#ch1-regulatory" aria-label="Link to this section">#</a> HIPAA und CLIA: die Kontrollen, die das Produkt hat</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Startseite &gt; Administratorhandbuch &gt; Systemübersicht und Architektur &gt; Sicherheitsmodell &gt; HIPAA und CLIA: die Kontrollen, die das Produkt hat"><span>Startseite</span> <span aria-hidden="true">›</span> <span>Administratorhandbuch</span> <span aria-hidden="true">›</span> <span>Systemübersicht und Architektur</span> <span aria-hidden="true">›</span> <span>Sicherheitsmodell</span> <span aria-hidden="true">›</span> <span><a class="term" href="99-glossary.html#g-hipaa" title="Der US-amerikanische Health Insurance Portability and Accountability Act, der Regeln zum Schutz von Patientengesundheitsdaten festlegt.">HIPAA</a> und <a class="term" href="99-glossary.html#g-clia" title="Clinical Laboratory Improvement Amendments, die US-Bundesvorschriften für Laboruntersuchungen. CLIA legt unter anderem Grenzen für die zytologische Arbeitsmenge fest.">CLIA</a>: die Kontrollen, die das Produkt hat</span></nav>
+
+<p><strong>Status:</strong> Teilweise. Die Tabelle listet Kontrollen auf, die im Browser-Build existieren. Keine Kontrolle schützt echte Patientendaten, solange die Serverseite nicht existiert, und <strong>die Verwendung dieser Kontrollen macht ein Labor nicht konform</strong> mit HIPAA, CLIA oder einem anderen Gesetz. Die Konformität hängt von den Richtlinien, Verträgen, dem Hosting und dem Qualitätssystem des Labors ab.</p>
+<table>
+<thead>
+<tr>
+<th>Bereich</th>
+<th>Was PathScribe hat</th>
+<th>Status</th>
+<th>Wo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Eindeutige Benutzeridentität</td>
+<td>Personaldatensätze, mit <a class="term" href="99-glossary.html#g-single-sign-on" title="Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.">Single Sign-On</a>, das über das dauerhafte Subjekt des Anbieters zugeordnet wird</td>
+<td>Teilweise</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-members">Mitarbeiter</a></td>
+</tr>
+<tr>
+<td>Zugriffskontrolle (minimale Rechte)</td>
+<td>Berechtigungen und Rollen, Geltungsbereich der <a class="term" href="99-glossary.html#g-facility" title="Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.">Einrichtung</a>, keine Umgehung für irgendeine <a class="term" href="99-glossary.html#g-role" title="Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.">Rolle</a>, Fallschutz</td>
+<td>Demonstration</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Rollen</a></td>
+</tr>
+<tr>
+<td>Automatische Abmeldung</td>
+<td>Zeitüberschreitung bei Inaktivität (Standard der Organisation, Überschreibung je Labor); Entwürfe bleiben erhalten</td>
+<td>Umgesetzt (Browser)</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+<tr>
+<td>Authentifizierung der Person</td>
+<td>Single Sign-On, <a class="term" href="99-glossary.html#g-mfa" title="Multi-Faktor-Authentifizierung, die Anmeldung mit einem zweiten Nachweis, etwa einem Code aus einer Authenticator-App, zusätzlich zu einem Passwort.">MFA</a> des Anbieters anhand des Tokens geprüft, erneute Bestätigung bei einer Signatur, optionale Geräteprüfung</td>
+<td>Teilweise</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-session_security">Sitzungssicherheit</a></td>
+</tr>
+<tr>
+<td>Prüfkontrollen</td>
+<td><a class="term" href="99-glossary.html#g-audit-log" title="Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.">Prüfprotokoll</a> von Aktionen, Prüfungen mit hohem Risiko, Konfigurationsänderungen; per Hash verketteter Support-Strom</td>
+<td>Teilweise</td>
+<td><a href="09-appendices.html#screen-audit-log">Systemprotokolle</a></td>
+</tr>
+<tr>
+<td>Sicherheit der Übertragung</td>
+<td>https für jede Serveradresse erforderlich, HSTS, strenge Content-Richtlinie; gegenseitiges <a class="term" href="99-glossary.html#g-tls" title="Transport Layer Security, die Verschlüsselung, die eine Webverbindung schützt und als https erscheint.">TLS</a> für den Standort-Agenten</td>
+<td>Umgesetzt (Browser und Header). Server geplant</td>
+<td><a href="#ch1-prereq-network">Netzwerk</a></td>
+</tr>
+<tr>
+<td>Zugriff von Anbietern</td>
+<td>Vom Krankenhaus kontrollierter, an Tickets gebundener, zeitlich begrenzter Support-Zugriff mit eigener Protokollierung</td>
+<td>Teilweise</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-support_access">Support-Zugriff</a></td>
+</tr>
+<tr>
+<td>Minimale Notwendigkeit in Werkzeugen</td>
+<td>Patientendaten in Support-Screenshots geschwärzt; kein Patiententext in Webadressen, Fehlern oder Hub-Nachrichten; Absturzberichte bereinigt</td>
+<td>Umgesetzt</td>
+<td><a href="#ch1-phi">Schwärzung</a></td>
+</tr>
+<tr>
+<td>Dritte, die Patientendaten verarbeiten</td>
+<td><a class="term" href="99-glossary.html#g-ai-vendor-policy" title="Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.">KI-Anbieterrichtlinie</a> je <a class="term" href="99-glossary.html#g-jurisdiction" title="Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.">Rechtsraum</a>, Regionsgrenzen, vom Server gehaltene Schlüssel; für jeden Anbieter ist ein Business Associate Agreement oder ein Auftragsverarbeitungsvertrag nötig</td>
+<td>Teilweise</td>
+<td><a href="05-tier4-ai-framework.html#screen-tab-ai">KI-Verhalten</a></td>
+</tr>
+<tr>
+<td>Integrität des Befunds</td>
+<td>Ein unveränderliches, mit Hash (<a class="term" href="99-glossary.html#g-sha-256" title="Ein kryptografischer Hash, der eine Datei oder einen Datensatz in einen festen Fingerabdruck umwandelt und zum Erkennen einer Änderung dient.">SHA-256</a>) versehenes Befunddokument je Freigabe, unverändert über jeden Kanal gesendet; versionierte Fallspeicherungen mit Konflikterkennung</td>
+<td>Umgesetzt (Vertrag); Server geplant</td>
+<td>Kapitel 6</td>
+</tr>
+<tr>
+<td>Datenaufbewahrung</td>
+<td>Konfigurierbare Zeiträume; Entsorgungswarteschlange und Aufbewahrungssperren für Proben</td>
+<td>Teilweise</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-retention">Datenaufbewahrung</a></td>
+</tr>
+<tr>
+<td>CLIA: <a class="term" href="99-glossary.html#g-signing-authority" title="Die Arten von Befunden, die eine Person freigeben darf, festgelegt durch die Beteiligungsart und die Regeln des Landes.">Signierbefugnis</a></td>
+<td>Beteiligungsarten und Signierregeln je Land entscheiden, wer signieren darf, mit protokollierten lokalen Überschreibungen</td>
+<td>Umgesetzt</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-participation_types">Teilnahmetypen</a>, <a href="04-tier3-workflow-engines.html#screen-country_signing_rules">Abzeichnungsregeln nach Land</a></td>
+</tr>
+<tr>
+<td>CLIA: Arbeitsmenge und Kompetenz in der Zytologie</td>
+<td>Eine tägliche Arbeitslastgrenze für das GYN-Zytologie-Screening, mit Überschreibungen für Personal und Einrichtung, und die Weiterleitung der Abmeldungen einer neuen Zytologieassistentin an eine Vorgesetzte zur <a class="term" href="99-glossary.html#g-countersign" title="Eine zweite Unterschrift unter einem Befund von einer anderen qualifizierten Person, zum Beispiel eines Pathologen unter der Arbeit eines Zytologieassistenten.">Gegenzeichnung</a>, bis Kompetenzbeurteilungen dokumentiert sind</td>
+<td>Umgesetzt (Browser). Der Server erfasst die Screening-Zeit mit seiner eigenen Uhr; geplant</td>
+<td><a href="04-tier3-workflow-engines.html#screen-cytology_workload_cap">Tägliche Arbeitslastgrenze</a>, <a href="03-tier2-master-dictionaries.html#screen-cytology_compliance_features">Länder- und Laborregeln</a></td>
+</tr>
+<tr>
+<td>Identität der Einrichtung auf Befunden</td>
+<td>Ein Einrichtungsdatensatz enthält seine CLIA- oder ISO-15189-Nummer, die in den Befundköpfen angezeigt wird</td>
+<td>Umgesetzt</td>
+<td><a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Einrichtungsverzeichnis</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nicht umgesetzt oder nicht festgelegt:</strong> Verschlüsselung der SQL-Server-Datenbank im Ruhezustand (im Repository ist weder eine Einstellung noch eine Anforderung geschrieben; die Blob-Container sind als im Ruhezustand verschlüsselt festgelegt); eine Spezifikation für Datensicherung und Notfallwiederherstellung; ein serverseitiger manipulationssicherer Prüfspeicher; ein unabhängiger Penetrationstest oder eine Sicherheitszertifizierung (im Repository ist keine verzeichnet); und jede Aussage zur Konformität.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>

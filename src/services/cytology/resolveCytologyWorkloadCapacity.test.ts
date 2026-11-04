@@ -52,4 +52,10 @@ describe('resolveCytologyWorkloadCapacity — real, per direct guidance\'s own C
     expect(result.status).toBe('ok');
     expect(Number.isNaN(result.utilizationPercent)).toBe(false);
   });
+
+  it('Batch 572: more than 8 hours never raises the limit above the assigned cap', () => {
+    expect(resolveCytologyWorkloadCapacity(101, 10, 100)).toMatchObject({ maxAllowedScu: 100, status: 'exceeded' });
+    expect(resolveCytologyWorkloadCapacity(100, 16, 100)).toMatchObject({ maxAllowedScu: 100, status: 'approaching' });
+    expect(resolveCytologyWorkloadCapacity(40, 8, 80).maxAllowedScu).toBe(80);
+  });
 });

@@ -14,8 +14,11 @@ import '../../../pathscribe.css';
 import { physicianService, facilityService } from '../../../services';
 import type { Physician } from '../../../services';
 import { SuffixSelect } from '../../Common/SuffixSelect';
-import { formatFullDisplayName } from '../../../utils/personName';
+import { formatDisplayNameForLanguage } from '../../../utils/personName';
 import { findDuplicate } from '../../../utils/validateUnique';
+import { recordExport } from '@/services';
+import { pressable, switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Physician imported from services/physicians/IPhysicianService.ts (via
 // the services barrel) rather than redeclared locally — see git history
@@ -23,7 +26,8 @@ import { findDuplicate } from '../../../utils/validateUnique';
 // diverged copy, status: 'Active' | 'Inactive' only, no autoCreated).
 
 function initials(p: Physician) { return (p.givenNames[0] + p.familyNames[0]).toUpperCase(); }
-function fullName(p: Physician) { return formatFullDisplayName(p); }
+/** Batch 514: in the screen's language (Korean: 이서연 선생님). */
+function fullName(p: Physician, language: string) { return formatDisplayNameForLanguage(p, language); }
 
 // No Duplicate action (PS-73, per Pete's duplication framework): a
 // physician is a real, individual person tied to NPI/licence identity.
@@ -49,11 +53,11 @@ const STATUS_LABEL_KEY: Record<'Active' | 'Inactive' | 'Unverified', string> = {
 };
 
 // ─── Toggle ───────────────────────────────────────────────────────────────────
-const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => {
+const Toggle = ({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label?: string }) => {
   const { t } = useTranslation();
   return (
     <div className="ps-conf-toggle-row">
-      <div onClick={() => onChange(!value)} className={`ps-conf-toggle-track ${value ? 'ps-conf-toggle-track--active' : ''}`}>
+      <div {...switchable(value, () => onChange(!value), label ?? t('a11y.fields.active'))} className={`ps-conf-toggle-track ${value ? 'ps-conf-toggle-track--active' : ''}`}>
         <div className="ps-conf-toggle-thumb" />
       </div>
       <span className={`ps-conf-toggle-label ${value ? 'ps-conf-toggle-label--active' : ''}`}>{value ? t('common.active') : t('common.inactive')}</span>
@@ -93,7 +97,7 @@ interface PhysicianModalProps {
 }
 
 const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facilities, existingEntries, onSave, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [draft, setDraft] = useState<Draft>(
     physician
       ? { ...physician, active: physician.status === 'Active' }
@@ -128,7 +132,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
       e.physicianCode = t('common.required');
     } else {
       const codeCollision = findDuplicate(existingEntries, { physicianCode: draft.physicianCode.trim() }, ['physicianCode'], excludeId);
-      if (codeCollision) e.physicianCode = t('physiciansSection.modal.physicianCodeCollision', { code: codeCollision.physicianCode, name: fullName(codeCollision) });
+      if (codeCollision) e.physicianCode = t('physiciansSection.modal.physicianCodeCollision', { code: codeCollision.physicianCode, name: fullName(codeCollision, i18n.language) });
     }
 
     // NPI: optional (confirmed — not every physician has one, e.g. UK
@@ -136,7 +140,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
     // present, never against another blank.
     if (draft.npi.trim()) {
       const npiCollision = findDuplicate(existingEntries, { npi: draft.npi.trim() }, ['npi'], excludeId);
-      if (npiCollision) e.npi = t('physiciansSection.modal.npiCollision', { npi: npiCollision.npi, name: fullName(npiCollision) });
+      if (npiCollision) e.npi = t('physiciansSection.modal.npiCollision', { npi: npiCollision.npi, name: fullName(npiCollision, i18n.language) });
     }
 
     return e;
@@ -157,7 +161,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
       <div className="ps-ms-modal ps-ms-modal--wide">
         <div className="ps-ms-header">
           {mode === 'edit'
-            ? t('physiciansSection.modal.editHeader', { name: formatFullDisplayName(physician!) })
+            ? t('physiciansSection.modal.editHeader', { name: fullName(physician!, i18n.language) })
             : t('physiciansSection.modal.addHeader')}
         </div>
 
@@ -169,11 +173,11 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
               <label className="ps-conf-label" htmlFor="physician-prefix">{t('physiciansSection.modal.prefixLabel')}</label>
               <select id="physician-prefix" className="ps-conf-select" value={draft.namePrefix ?? ''} onChange={e => set('namePrefix', e.target.value)}>
                 <option value="">{t('physiciansSection.modal.prefixNone')}</option>
-                <option value="Mr.">{t('physiciansSection.modal.prefixMr')}</option>
-                <option value="Mrs.">{t('physiciansSection.modal.prefixMrs')}</option>
-                <option value="Ms.">{t('physiciansSection.modal.prefixMs')}</option>
-                <option value="Mx.">{t('physiciansSection.modal.prefixMx')}</option>
-                <option value="Dr.">{t('physiciansSection.modal.prefixDr')}</option>
+                <option value="Mr.">{t('common.honorifics.mr')}</option>
+                <option value="Mrs.">{t('common.honorifics.mrs')}</option>
+                <option value="Ms.">{t('common.honorifics.ms')}</option>
+                <option value="Mx.">{t('common.honorifics.mx')}</option>
+                <option value="Dr.">{t('common.honorifics.dr')}</option>
               </select>
             </div>
             <div className="ps-conf-form-field">
@@ -184,33 +188,33 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.givenNamesLabel')} <span className="ps-conf-required">*</span></label>
-              <input data-phi="name" className={`ps-conf-input ${errors.givenNames ? 'ps-conf-input--error' : ''}`}
+              <input aria-label={t('physiciansSection.modal.givenNamesLabel')} data-phi="name" className={`ps-conf-input ${errors.givenNames ? 'ps-conf-input--error' : ''}`}
                 value={draft.givenNames} onChange={e => set('givenNames', e.target.value)} placeholder={t('physiciansSection.modal.givenNamesPlaceholder')} />
               {errors.givenNames && <span className="ps-conf-error-text" data-phi="name">{errors.givenNames}</span>}
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.familyNamesLabel')} <span className="ps-conf-required">*</span></label>
-              <input data-phi="name" className={`ps-conf-input ${errors.familyNames ? 'ps-conf-input--error' : ''}`}
+              <input aria-label={t('physiciansSection.modal.familyNamesLabel')} data-phi="name" className={`ps-conf-input ${errors.familyNames ? 'ps-conf-input--error' : ''}`}
                 value={draft.familyNames} onChange={e => set('familyNames', e.target.value)} placeholder={t('physiciansSection.modal.familyNamesPlaceholder')} />
               {errors.familyNames && <span className="ps-conf-error-text" data-phi="name">{errors.familyNames}</span>}
             </div>
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('physiciansSection.modal.preferredNameLabel')}</label>
-            <input data-phi="name" className="ps-conf-input" value={draft.preferredName ?? ''} onChange={e => set('preferredName', e.target.value)} placeholder={t('physiciansSection.modal.preferredNamePlaceholder')} />
+            <input aria-label={t('physiciansSection.modal.preferredNameLabel')} data-phi="name" className="ps-conf-input" value={draft.preferredName ?? ''} onChange={e => set('preferredName', e.target.value)} placeholder={t('physiciansSection.modal.preferredNamePlaceholder')} />
           </div>
 
           {/* Physician Code + NPI */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.physicianCodeLabel')} <span className="ps-conf-required">*</span></label>
-              <input className={`ps-conf-input ${errors.physicianCode ? 'ps-conf-input--error' : ''}`}
+              <input aria-label={t('physiciansSection.modal.physicianCodeLabel')} className={`ps-conf-input ${errors.physicianCode ? 'ps-conf-input--error' : ''}`}
                 value={draft.physicianCode} onChange={e => set('physicianCode', e.target.value)} placeholder={t('physiciansSection.modal.physicianCodePlaceholder')} />
               {errors.physicianCode && <span className="ps-conf-error-text">{errors.physicianCode}</span>}
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.npiLabel')}</label>
-              <input className={`ps-conf-input ${errors.npi ? 'ps-conf-input--error' : ''}`}
+              <input aria-label={t('physiciansSection.modal.npiLabel')} className={`ps-conf-input ${errors.npi ? 'ps-conf-input--error' : ''}`}
                 value={draft.npi} onChange={e => set('npi', e.target.value)} placeholder={t('physiciansSection.modal.npiPlaceholder')} />
               {errors.npi && <span className="ps-conf-error-text">{errors.npi}</span>}
             </div>
@@ -219,18 +223,18 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
           {/* Specialty */}
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('physiciansSection.modal.specialtyLabel')}</label>
-            <input className="ps-conf-input" value={draft.specialty} onChange={e => set('specialty', e.target.value)} placeholder={t('physiciansSection.modal.specialtyPlaceholder')} />
+            <input aria-label={t('physiciansSection.modal.specialtyLabel')} className="ps-conf-input" value={draft.specialty} onChange={e => set('specialty', e.target.value)} placeholder={t('physiciansSection.modal.specialtyPlaceholder')} />
           </div>
 
           {/* Phone + Fax */}
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.phoneLabel')}</label>
-              <input className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder={t('physiciansSection.modal.phonePlaceholder')} />
+              <input aria-label={t('physiciansSection.modal.phoneLabel')} className="ps-conf-input" value={draft.phone} onChange={e => set('phone', e.target.value)} placeholder={t('physiciansSection.modal.phonePlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.faxLabel')}</label>
-              <input className="ps-conf-input" value={draft.fax} onChange={e => set('fax', e.target.value)} placeholder={t('physiciansSection.modal.faxPlaceholder')} />
+              <input aria-label={t('physiciansSection.modal.faxLabel')} className="ps-conf-input" value={draft.fax} onChange={e => set('fax', e.target.value)} placeholder={t('physiciansSection.modal.faxPlaceholder')} />
             </div>
           </div>
 
@@ -239,7 +243,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
               landline line, never assumed text-capable. Leave blank if unknown. */}
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('physiciansSection.modal.smsLabel')}</label>
-            <input className="ps-conf-input" value={draft.smsCapablePhone ?? ''} onChange={e => set('smsCapablePhone', e.target.value)} placeholder={t('physiciansSection.modal.smsPlaceholder')} />
+            <input aria-label={t('physiciansSection.modal.smsLabel')} className="ps-conf-input" value={draft.smsCapablePhone ?? ''} onChange={e => set('smsCapablePhone', e.target.value)} placeholder={t('physiciansSection.modal.smsPlaceholder')} />
           </div>
 
           {/* Carrier — real, per direct follow-up: closes the data-model
@@ -265,7 +269,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
             {draft.smsCarrier === 'other' && (
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('physiciansSection.modal.smsCarrierOtherDomainLabel')}</label>
-                <input className="ps-conf-input" value={draft.smsCarrierOtherDomain ?? ''}
+                <input aria-label={t('physiciansSection.modal.smsCarrierOtherDomainLabel')} className="ps-conf-input" value={draft.smsCarrierOtherDomain ?? ''}
                   onChange={e => set('smsCarrierOtherDomain', e.target.value)}
                   placeholder={t('physiciansSection.modal.smsCarrierOtherDomainPlaceholder')} />
               </div>
@@ -276,7 +280,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
           <div className="ps-conf-form-row">
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('physiciansSection.modal.emailLabel')}</label>
-              <input className="ps-conf-input" value={draft.email} onChange={e => set('email', e.target.value)} placeholder={t('physiciansSection.modal.emailPlaceholder')} />
+              <input aria-label={t('physiciansSection.modal.emailLabel')} className="ps-conf-input" value={draft.email} onChange={e => set('email', e.target.value)} placeholder={t('physiciansSection.modal.emailPlaceholder')} />
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label" htmlFor="physician-preferred-contact">{t('physiciansSection.modal.preferredContactLabel')}</label>
@@ -312,7 +316,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
             <label className="ps-conf-label">{t('physiciansSection.modal.facilityAffiliationsLabel')}</label>
             <div className="ps-conf-picker">
               <div className="ps-conf-picker-search-wrap">
-                <input type="text" placeholder={t('physiciansSection.modal.facilitySearchPlaceholder')} value={facilitySearch}
+                <input aria-label={t('physiciansSection.modal.facilityAffiliationsLabel')} data-dirty-ignore data-config-nav type="text" placeholder={t('physiciansSection.modal.facilitySearchPlaceholder')} value={facilitySearch}
                   onChange={e => setFacilitySearch(e.target.value)} className="ps-conf-picker-search" />
               </div>
               <div className="ps-conf-picker-list">
@@ -321,7 +325,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
                   : filteredFacilities.map(c => {
                       const checked = draft.clientIds.includes(c.id);
                       return (
-                        <div key={c.id} onClick={() => toggleFacility(c.id)}
+                        <div key={c.id} {...pressable(() => toggleFacility(c.id))}
                           className={`ps-conf-picker-item ${checked ? 'ps-conf-picker-item--checked' : ''}`}>
                           <div className={`ps-conf-picker-checkbox ${checked ? 'ps-conf-picker-checkbox--checked' : ''}`}>
                             {checked && <span className="ps-conf-picker-check-icon">✓</span>}
@@ -358,7 +362,7 @@ const PhysicianModal: React.FC<PhysicianModalProps> = ({ mode, physician, facili
 
 // ─── Main PhysiciansSection ───────────────────────────────────────────────────
 const PhysiciansSection: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [physicians,   setPhysicians]   = useState<Physician[]>([]);
   const [facilities,   setFacilities]   = useState<{ id: string; name: string }[]>([]);
   const [loading,      setLoading]      = useState(true);
@@ -391,7 +395,7 @@ const PhysiciansSection: React.FC = () => {
   const filtered = physicians.filter(p => {
     const q = search.toLowerCase();
     const matchSearch = !search
-      || fullName(p).toLowerCase().includes(q)
+      || fullName(p, i18n.language).toLowerCase().includes(q)
       || p.physicianCode.toLowerCase().includes(q)
       || p.npi.includes(search)
       || p.specialty.toLowerCase().includes(q);
@@ -430,6 +434,8 @@ const PhysiciansSection: React.FC = () => {
       Facilities: p.clientIds.map(id => facilities.find(c => c.id === id)?.name ?? id).join('; '),
       Status: p.status,
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('physicians', { filename: 'Physicians.csv', rowCount: rows.length });
     downloadCsv('Physicians.csv', toCsv(rows));
   };
 
@@ -467,8 +473,8 @@ const PhysiciansSection: React.FC = () => {
         const familyNames = get(row, 'FamilyNames', 'Family Names', 'LastName', 'Last Name');
         const npi = get(row, 'NPI', 'npi');
         const codeInSheet = get(row, 'PhysicianCode', 'Physician Code');
-        const existing = (npi && physicians.find(p => p.npi === npi))
-          ?? (codeInSheet && physicians.find(p => p.physicianCode.toLowerCase() === codeInSheet.toLowerCase()));
+        const existing = (npi ? physicians.find(p => p.npi === npi) : undefined)
+          ?? (codeInSheet ? physicians.find(p => p.physicianCode.toLowerCase() === codeInSheet.toLowerCase()) : undefined);
 
         let physicianCode = codeInSheet || existing?.physicianCode || '';
         let codeWasGenerated = false;
@@ -523,14 +529,14 @@ const PhysiciansSection: React.FC = () => {
 
   const handleApplyPhysicianImport = async () => {
     if (!physImportPreview) return;
-    await Promise.all(physImportPreview.map(({ existingId, codeWasGenerated, ...draft }) =>
+    await Promise.all(physImportPreview.map(({ existingId, codeWasGenerated: _codeWasGenerated, ...draft }) =>
       existingId ? physicianService.update(existingId, draft) : physicianService.add({ ...draft, autoCreated: false })
     ));
     setPhysImportPreview(null);
     physicianService.getAll().then(res => { if (res.ok) setPhysicians(res.data); });
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('physiciansSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('physiciansSection.loading')} />;
 
   const updateCount = physImportPreview?.filter(r => r.existingId).length ?? 0;
   const newCount = physImportPreview?.filter(r => !r.existingId).length ?? 0;
@@ -564,9 +570,9 @@ const PhysiciansSection: React.FC = () => {
       )}
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('physiciansSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('physiciansSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('physiciansSection.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>
@@ -598,7 +604,7 @@ const PhysiciansSection: React.FC = () => {
                     <div className="ps-conf-identity-cell">
                       <div className="ps-conf-avatar">{initials(p)}</div>
                       <div>
-                        <div className="ps-conf-identity-name" data-phi="name">{fullName(p)}</div>
+                        <div className="ps-conf-identity-name" data-phi="name">{fullName(p, i18n.language)}</div>
                         <div className="ps-conf-identity-sub">{t('physiciansSection.table.codeSub', { code: p.physicianCode })}{p.npi ? t('physiciansSection.table.npiSub', { npi: p.npi }) : ''}</div>
                       </div>
                     </div>

@@ -17,7 +17,8 @@ export interface WsiScanBatchManifestPayload {
   batchId: string;
   batchBarcode: string;
   scannerInstrumentId: string;
-  slides: { slidePosition: string; caseId: string; specimenId: string }[];
+  /** Batch 434: blockId, stainId and slideLabel when the slide came from the scanning queue. */
+  slides: { slidePosition: string; caseId: string; specimenId: string; blockId?: string; stainId?: string; slideLabel?: string }[];
 }
 
 export function buildWsiScanBatchManifestPayload(batch: WsiScanBatch): WsiScanBatchManifestPayload {
@@ -28,6 +29,6 @@ export function buildWsiScanBatchManifestPayload(batch: WsiScanBatch): WsiScanBa
     batchId: batch.id,
     batchBarcode: batch.batchBarcode,
     scannerInstrumentId: batch.scannerInstrumentId,
-    slides: batch.slides.map(s => ({ slidePosition: s.slidePosition, caseId: s.caseId, specimenId: s.specimenId })),
+    slides: batch.slides.map(s => ({ slidePosition: s.slidePosition, caseId: s.caseId, specimenId: s.specimenId, blockId: s.blockId, stainId: s.stainId, slideLabel: s.slideLabel })),
   };
 }

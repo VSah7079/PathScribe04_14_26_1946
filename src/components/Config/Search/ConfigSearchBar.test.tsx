@@ -54,17 +54,27 @@ describe('ConfigSearchBar — real navigation fix (tab + section)', () => {
     expect(onNavigate).toHaveBeenCalledWith('system', 'physicians');
   });
 
-  it('a real entry with no confirmed section (Jurisdiction) still falls back to tab-only navigation, not nothing', () => {
+  it('a real entry with no confirmed section (System Information) still falls back to tab-only navigation, not nothing', () => {
     const onNavigate = vi.fn();
     render(<ConfigSearchBar onNavigate={onNavigate} />);
 
     const input = screen.getByLabelText('Search configuration settings');
-    fireEvent.change(input, { target: { value: 'Jurisdiction' } });
+    fireEvent.change(input, { target: { value: 'System Information' } });
 
-    const result = screen.getByText('Jurisdiction');
+    const result = screen.getByText('System Information');
     fireEvent.click(result);
 
     expect(onNavigate).toHaveBeenCalledWith('system', undefined);
+  });
+
+  it('searching ICD-11 opens System → Code Systems (Batch 595)', () => {
+    const onNavigate = vi.fn();
+    render(<ConfigSearchBar onNavigate={onNavigate} />);
+
+    fireEvent.change(screen.getByLabelText('Search configuration settings'), { target: { value: 'ICD-11' } });
+    fireEvent.click(screen.getByText('Code Systems'));
+
+    expect(onNavigate).toHaveBeenCalledWith('system', 'code_systems');
   });
 
   it('selecting a result also clears the query and closes the results panel', () => {

@@ -60,7 +60,9 @@ export type DelegationError =
   /** delegate(): the case, or the synoptic report being assigned, was not found. */
   | 'caseNotFound'
   /** delegate(): the signed-in user lacks case:delegation:create (Batch 381). */
-  | 'notPermitted';
+  | 'notPermitted'
+  /** delegate(): the recipient is a cytotechnologist; every delegation puts its recipient in a pathologist slot (Batch 441). */
+  | 'recipientIsCytotechnologist';
 
 export interface IDelegationService {
   /** Every delegation record, or one case's. Newest last, as recorded. */

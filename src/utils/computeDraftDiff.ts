@@ -44,6 +44,8 @@
 const NOISE_FIELDS = new Set([
   'id', 'createdAt', 'updatedAt', 'version', 'lastUpdatedFromStation',
   'lastAccessedAt', 'lastAccessedBy', 'firstOpenedAt', 'grossCompletedAt',
+  // Batch 458 (PS-71): what the draft was built from, kept with it for merging; not a change.
+  '__draftBase', '__draftVersion',
 ]);
 
 // Real, human-readable label KEYS for fields a pathologist would

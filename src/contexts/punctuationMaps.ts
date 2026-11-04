@@ -196,12 +196,44 @@ export const PUNCT_MAP_KO: Record<string, string> = {
   '말줄임표':             '\u2026 ',
 };
 
+export const PUNCT_MAP_ES: Record<string, string> = {
+  'punto':               '. ',
+  'coma':                ', ',
+  'cierra interrogaci\u00f3n': '? ',
+  'cierra exclamaci\u00f3n':   '! ',
+  'dos puntos':          ': ',
+  'punto y coma':        '; ',
+  'nueva l\u00ednea':    '\n',
+  'nuevo p\u00e1rrafo':  '\n\n',
+  'abre par\u00e9ntesis':  '(',
+  'cierra par\u00e9ntesis': ') ',
+  'gui\u00f3n':          '-',
+  'raya':                ' \u2014 ',
+  'por ciento':          '% ',
+  'barra':               '/',
+  'barra invertida':     '\\',
+  'abre corchete':       '[',
+  'cierra corchete':     '] ',
+  'abre llave':          '{',
+  'cierra llave':        '} ',
+  'igual':               ' = ',
+  'm\u00e1s':            ' + ',
+  'asterisco':           '*',
+  'arroba':              '@',
+  'almohadilla':         '#',
+  'ampersand':           '&',
+  'tabulaci\u00f3n':     '\t',
+  'espacio':             ' ',
+  'puntos suspensivos':  '\u2026 ',
+};
+
 const PUNCT_MAPS_BY_LANGUAGE: Record<VoiceProfileLanguage, Record<string, string>> = {
   en: PUNCT_MAP_EN,
   fr: PUNCT_MAP_FR,
   de: PUNCT_MAP_DE,
   nl: PUNCT_MAP_NL,
   ko: PUNCT_MAP_KO,
+  es: PUNCT_MAP_ES,
 };
 
 export function getPunctuationMapForLanguage(language: VoiceProfileLanguage): Record<string, string> {

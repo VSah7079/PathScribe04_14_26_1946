@@ -1,0 +1,42 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 657 — User Guide: context-aware help (Help button, /help pages, search, previous/next, related)",
+    "description": "Vitest, 2026-10-23: 5 test files, 22 tests, all passed. Type-check clean. Tests are created by this import (testInfo): no Jira Test keys assigned yet. Full suite: 14,823 passed, 5 failed (since fixed, affected files re-run), one environment error (Firestore emulator not running)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "The Help button opens the article for the open screen, stacks above the Administrator Guide button where both apply, and shows nothing where no article exists",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Help/UserGuideHelpButton.test.tsx (3)\nPASSED: src/services/help/userGuideLinks.test.ts (4)\nNot tested or not built: Not seen in a browser."
+    },
+    {
+      "testInfo": {
+        "summary": "The 'You are here' trail, previous and next step, related actions, contents and search behave as specified",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/help/userGuideNavigation.test.ts (7)\nNot tested or not built: The page component itself is not rendered in a test."
+    },
+    {
+      "testInfo": {
+        "summary": "The published guide, the generated route table and the app's routes stay in step",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T08:00:00Z",
+      "finish": "2026-10-23T12:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/help/userGuide.guard.test.ts (5)\nPASSED: src/services/screens/routeGating.guard.test.ts (3)\nNot tested or not built: Build-time checks of the Markdown (sections, links, wording) run in scripts/user-guide/build.py, not vitest."
+    }
+  ]
+}

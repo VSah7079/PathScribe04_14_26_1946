@@ -2,6 +2,7 @@
 import { ICytologyQcSettingsService, CytologyQcSettingsConfig, DEFAULT_CYTOLOGY_QC_SETTINGS } from './ICytologyQcSettingsService';
 import { storageGet, storageSet } from '../mockStorage';
 import { ServiceResult } from '../types';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'cytologyQcSettings';
 
@@ -26,7 +27,7 @@ let MOCK_CONFIG: CytologyQcSettingsConfig = load();
 const ok    = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const delay = () => new Promise(r => setTimeout(r, 60));
 
-export const mockCytologyQcSettingsService: ICytologyQcSettingsService = {
+const cytologyQcSettingsServiceUnchecked: ICytologyQcSettingsService = {
   async get() {
     await delay();
     return ok({ ...MOCK_CONFIG });
@@ -46,3 +47,8 @@ export const mockCytologyQcSettingsService: ICytologyQcSettingsService = {
     return ok({ ...MOCK_CONFIG });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockCytologyQcSettingsService: ICytologyQcSettingsService = guardConfigWrites(cytologyQcSettingsServiceUnchecked, [
+  ['config:cytology-qc-rates:manage', ['update', 'reset']],
+]);

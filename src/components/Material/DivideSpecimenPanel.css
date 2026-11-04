@@ -1,0 +1,17 @@
+/* Batch 741: Divide specimen and aliquot tracking (fluid decisions 2 and 3). */
+.ps-divide { border: 1px solid var(--ps-border, #334155); border-radius: 8px; padding: 10px 12px; margin: 10px 0; display: flex; flex-direction: column; gap: 8px; }
+.ps-divide-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ps-divide-title { font-weight: 600; }
+.ps-divide-form { display: flex; flex-direction: column; gap: 8px; }
+.ps-divide-field { display: flex; align-items: center; gap: 8px; }
+.ps-divide-field input, .ps-divide-row input, .ps-divide-row select, .ps-divide-next input { min-height: 36px; padding: 4px 8px; }
+.ps-divide-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ps-divide-totals, .ps-divide-record { margin: 0; font-size: 13px; color: var(--ps-text-muted, #94a3b8); }
+.ps-divide-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.ps-divide-aliquots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ps-divide-aliquot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; }
+.ps-divide-aliquot-label { font-weight: 600; }
+.ps-divide-status { color: var(--ps-accent, #38bdf8); }
+.ps-divide-next { display: flex; gap: 6px; align-items: center; }
+.ps-divide-ok { margin: 0; color: var(--ps-success, #10b981); font-size: 13px; }
+.ps-divide-error { margin: 0; color: var(--ps-danger, #ef4444); font-size: 13px; }

@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 631 — Self-collected HPV recall for Australia and New Zealand: priority, repeat collection, wording, link-back, register content",
+    "description": "Vitest, 2026-10-19: full suite 1683 files (1678 passed, 4 skipped, 1 failed); 14,193 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. Not built or tested: sending to NCSR or the New Zealand register (interface engine); sign-off of the codes, target windows and wording by the programmes; a check in a browser with an AU or NZ performing lab."
+  },
+  "tests": [
+    {
+      "testKey": "PS-833",
+      "start": "2026-10-20T02:40:00Z",
+      "finish": "2026-10-20T03:10:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cytology/selfCollectedRecall.test.ts\nPASSED: src/services/cytology/selfCollectedRecallFulfilment.test.ts\nPASSED: src/services/cytology/recallJurisdiction.test.ts\nPASSED: src/services/cytology/buildHpvRegistryResultPayload.test.ts\nPASSED: src/services/cytology/resolveCytologyTriageState.test.ts\nPASSED: src/services/cytology/resolveCaseCytologyRecallNeededMembership.test.ts\nPASSED: src/pages/CytologyWorklistPage/components/SelfCollectedRecallDetail.test.tsx\nPASSED: src/services/hl7/processInboundHpvResultEvent.audit.test.ts\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/typeSafety/explicitAny.guard.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nNot tested: register feeds, programme sign-off, browser check."
+    }
+  ]
+}

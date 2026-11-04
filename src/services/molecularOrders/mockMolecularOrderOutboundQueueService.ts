@@ -4,10 +4,20 @@ import type { ServiceResult } from '../types';
 import type { IMolecularOrderOutboundQueueService } from './IMolecularOrderOutboundQueueService';
 import type { MolecularOrderOutboundQueueEntry } from '@/types/case/MolecularOrderOutboundQueueEntry';
 import { mockAuditService as auditService } from '@/services/auditlog/mockAuditService';
+import { molecularOrderDemoEntries } from './molecularOrderDemoSeed';
 
 const KEY = 'molecular_order_outbound_queue_v1';
 
-const load    = (): MolecularOrderOutboundQueueEntry[] => storageGet<MolecularOrderOutboundQueueEntry[]>(KEY, []);
+// Batch 457: the demo orders (molecularOrderDemoSeed.ts) are the starting
+// queue, so they come back after a Full Reset. They're made on first read and
+// stored, so their times don't move after that.
+const load = (): MolecularOrderOutboundQueueEntry[] => {
+  const stored = storageGet<MolecularOrderOutboundQueueEntry[] | null>(KEY, null);
+  if (stored) return stored;
+  const seeded = molecularOrderDemoEntries();
+  storageSet(KEY, seeded);
+  return seeded;
+};
 const persist = (data: MolecularOrderOutboundQueueEntry[]) => storageSet(KEY, data);
 
 const delay = () => new Promise(r => setTimeout(r, 80));

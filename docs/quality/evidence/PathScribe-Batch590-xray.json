@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 590 — error monitoring sink for PS-469 and scrubber fix (unit and guard tests)",
+    "description": "Vitest, 2026-10-16: errorReporting and runtimeConfig folders 67 passed. Full suite 10045 passed; firestore.rules.test.ts needs the Firebase emulator. No live Sentry project was used (PS-752)."
+  },
+  "tests": [
+    {
+      "testKey": "PS-751",
+      "start": "2026-10-16T21:30:00Z",
+      "finish": "2026-10-16T22:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/errorReporting/sentrySink.test.ts, errorMonitoring.test.ts, monitoringConfig.test.ts, sentryIsolation.guard.test.ts, scrubClientError.test.ts\nPASSED: src/services/runtimeConfig/runtimeConfig.test.ts, runtimeConfig.guard.test.ts"
+    }
+  ]
+}

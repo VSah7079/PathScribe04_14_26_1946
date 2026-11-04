@@ -1,0 +1,9 @@
+Liberation Sans (Regular and Bold), used unmodified by cytology_report.py (Batch 539).
+
+Source: npm package @typopro/dtp-liberation@3.7.5, files TypoPRO-LiberationSans-Regular.ttf and
+TypoPRO-LiberationSans-Bold.ttf. The same font program the browser embedded in cytology PDFs before
+Batch 539 (src/services/documentRendering/embeddedFonts/, removed in Batch 539).
+
+License: SIL Open Font License, Version 1.1 (the font's own name table, ID 13). The OFL permits
+embedding the font in documents and redistributing it unmodified. Full licence text:
+https://openfontlicense.org/open-font-license-official-text/

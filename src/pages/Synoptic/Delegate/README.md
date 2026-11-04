@@ -22,6 +22,28 @@ Case delegation UI.
 - **Still inline:** building the staff and pool lists and filtering them. Not moved this batch.
 - **No listeners yet:** `DELEGATE_PEER_REVIEW`, `DELEGATE_FORMAL_CONSULT` and `DELEGATE_FULL_TRANSFER` don't name any of the seeded delegation types (REASSIGN, POOL, SECOND_OPINION, …), so they're still unwired.
 
+## Batch 610 (#83)
+
+`DelegateModal` takes `presetTypeId` and `presetNonce`: the report page passes the type said by voice, and the dialog chooses it once the type list has loaded (or shows "turned off" when that type is inactive). Confirm by voice is unchanged.
+
 ---
 *See [pages/README.md](../../README.md) for how this folder fits the whole pages/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 567 (WCAG 2.1 AA, 4.1.2)
+
+- `DelegateModal.tsx`: a delegation type's zone can hold a button (clear the recipient), so it is no longer a button. Clicking it still picks the type; the type's name is the button (`aria-pressed`). The clear button has a name.
+
+## Batch 652 (defect fixes)
+
+The dialog holds a list of recipients; a type with `multiAssign` (Teaching Case) accepts several, others one. It calls `delegateToRecipients` (services/delegations), which makes one delegation per person (capability check and audit each).
+
+**Batch 655:** a partly refused Multi-recipient delegation keeps the dialog open and lists who was delegated and who was refused (styles in `delegateResult.css`).

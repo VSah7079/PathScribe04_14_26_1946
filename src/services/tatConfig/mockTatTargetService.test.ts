@@ -1,6 +1,11 @@
 // @vitest-environment happy-dom
 // Batch 353: the TAT target service (was the TAT settings screen's own storage).
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockTatTargetService, TAT_TARGET_STORAGE_KEY } from './mockTatTargetService';
 import { SYSTEM_DEFAULT_TAT_ENTRIES, isSystemDefaultTatEntryId } from './systemDefaultTatEntries';
 import type { TATEntry } from '@/types/quality/TatConfigEntry';

@@ -24,6 +24,11 @@ import type { Facility } from '@/services/facilities/IFacilityService';
 import type { SpecimenEntry } from '@/services/specimenDictionary/specimenTypes';
 import { SearchableCombobox } from '@/components/Common/SearchableCombobox';
 import { findDuplicate } from '@/utils/validateUnique';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
+import { recordExport } from '@/services';
+import { listAllSites } from '@/services/organisation/organisationService';
+import type { Site } from '@/services/organisation/organisationService';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const CrosswalkSection: React.FC = () => {
   const navigate = useNavigate();
@@ -36,7 +41,12 @@ const CrosswalkSection: React.FC = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [newFacilityId, setNewFacilityId] = useState('');
   const [newExternalCode, setNewExternalCode] = useState('');
+  const [newSiteId, setNewSiteId] = useState('');
+  const [sites, setSites] = useState<Site[]>([]);
+  useEffect(() => { void listAllSites().then(setSites); }, []);
   const [newDictionaryEntryId, setNewDictionaryEntryId] = useState('');
+  // PS-128 (Batch 437): a new mapping being typed is unsaved.
+  useReportConfigDirty(showAdd && (newFacilityId !== '' || newExternalCode.trim() !== '' || newDictionaryEntryId !== ''));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   // Real, new — per direct guidance on the Order Types & Inbound Rules
@@ -90,7 +100,7 @@ const CrosswalkSection: React.FC = () => {
     // silent, ambiguous collision at real order-intake time. Same code
     // string is fine across two DIFFERENT facilities — only the exact
     // combination needs to be unique.
-    const collision = findDuplicate(entries, { clientId: newFacilityId, externalCode: newExternalCode.trim() }, ['clientId', 'externalCode']);
+    const collision = findDuplicate(entries.filter(e => (e.siteId ?? '') === newSiteId), { clientId: newFacilityId, externalCode: newExternalCode.trim() }, ['clientId', 'externalCode']);
     if (collision) {
       setError(t('crosswalkSection.addPanel.collisionError', { facility: resolveFacilityName(newFacilityId), code: newExternalCode.trim(), entry: entryName(collision.dictionaryEntryId) }));
       return;
@@ -99,6 +109,7 @@ const CrosswalkSection: React.FC = () => {
     const res = await orderIntakeService.addCrosswalkEntry({
       clientId: newFacilityId,
       externalCode: newExternalCode.trim(),
+      ...(newSiteId ? { siteId: newSiteId } : {}),
       dictionaryEntryId: newDictionaryEntryId,
       createdBy: 'admin',
     });
@@ -107,7 +118,7 @@ const CrosswalkSection: React.FC = () => {
       setError(res.error);
     } else {
       setShowAdd(false);
-      setNewFacilityId(''); setNewExternalCode(''); setNewDictionaryEntryId('');
+      setNewFacilityId(''); setNewExternalCode(''); setNewSiteId(''); setNewDictionaryEntryId('');
       refresh();
     }
   };
@@ -117,6 +128,8 @@ const CrosswalkSection: React.FC = () => {
       Facility: resolveFacilityName(e.clientId), ExternalCode: e.externalCode, ResolvesTo: entryName(e.dictionaryEntryId),
       Source: e.createdBy === 'system' ? 'Auto-learned' : 'Admin-confirmed',
     }));
+    // PS-282 (Batch 437): audited.
+    void recordExport('specimen-code-crosswalk', { filename: 'SpecimenCodeCrosswalk.csv', rowCount: rows.length });
     downloadCsv('SpecimenCodeCrosswalk.csv', toCsv(rows));
   };
 
@@ -167,7 +180,7 @@ const CrosswalkSection: React.FC = () => {
     refresh();
   };
 
-  if (loading) return <div className="ps-conf-section-subtitle">{t('crosswalkSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('crosswalkSection.loading')} />;
 
   const pendingCount = entries.filter(e => e.createdBy === 'system').length;
 
@@ -293,6 +306,13 @@ const CrosswalkSection: React.FC = () => {
             <label className="ps-xwalk-form-field">
               {t('crosswalkSection.addPanel.externalCodeLabel')}
               <input className="ps-conf-input" value={newExternalCode} onChange={e => setNewExternalCode(e.target.value)} placeholder={t('crosswalkSection.addPanel.externalCodePlaceholder')} />
+            </label>
+            <label className="ps-xwalk-form-field">
+              {t('crosswalkSection.addPanel.siteLabel')}
+              <select className="ps-conf-select" value={newSiteId} onChange={e => setNewSiteId(e.target.value)}>
+                <option value="">{t('crosswalkSection.addPanel.siteAll')}</option>
+                {sites.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+              </select>
             </label>
             <label className="ps-xwalk-form-field ps-xwalk-form-field--wide">
               {t('crosswalkSection.addPanel.resolvesToLabel')}

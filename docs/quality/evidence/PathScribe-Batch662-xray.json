@@ -1,0 +1,119 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batches 661-662: sex never defaults, sex at birth (UK), NHS badge (keyboard), NHS status action, voice commands",
+    "description": "Vitest 2026-10-23: full suite run before the last additions (14,866 passed, 2 fixed after); additions covered by targeted runs of registry, Worklist, Common, patients, constants and style-rule suites (394 passed). Type-check clean. Firestore emulator error is environmental."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "Accession sex starts blank, resets blank, imports blank; required before accessioning",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/AccessionPage/accessionSexNoDefault.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Accession end-to-end: sex chosen, case created (two flows)",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/AccessionPage/AccessionPage.e2e.test.tsx"
+    },
+    {
+      "testInfo": {
+        "summary": "Field Requirements: sex is a locked required field",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/fieldRequirements/fieldRequirements.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Report screen voice commands: comment, specimen comment, add synoptic, select specimen",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/reportOpenCommands.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Surgical report request carries signedAt",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/SynopticReportPage/reportSigningTime.guard.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Sex at birth words, NHS codes, English report word, search option and labels",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/patients/patientSexAtBirth.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "NHS number badge: distinct shape per status (✓✓, ◈, !)",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Common/NhsNumberBadge.test.tsx"
+    },
+    {
+      "testInfo": {
+        "summary": "NHS number badge is keyboard-focusable, explains itself on focus, closes on Escape",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Common/NhsNumberBadge.test.tsx"
+    },
+    {
+      "testInfo": {
+        "summary": "Show NHS Number Status action: hotkey, phrases in six languages, role entry, listener (coverage and listener guards)",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Cytology Categories screen no longer sets state after it is closed; test waits for its load",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T22:00:00Z",
+      "finish": "2026-10-23T23:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/System/CytologyCategoriesSection.test.tsx"
+    }
+  ]
+}

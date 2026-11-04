@@ -53,6 +53,8 @@ import {
   CategoryGroup,
   EmptyState,
 } from './ProtocolCardParts';
+import { pressable } from '@/utils/a11y/pressable';
+import { DemoWordingTag } from '@/components/Synoptic/DemoWordingTag';
 
 // protocolGroup()'s return values are a real, closed set of data
 // identifiers compared by strict string equality (see protocolShared.tsx);
@@ -74,13 +76,13 @@ const ProtocolCard: React.FC<{ protocol: Protocol }> = ({ protocol: p }) => {
 
       {/* Collapsed row */}
       <div
-        onClick={() => setOpen(o => !o)}
+        {...pressable(() => setOpen(o => !o))}
         className={`ps-activeprotocols-row${open ? ' ps-activeprotocols-row--open' : ''}`}
       >
         <div className="ps-activeprotocols-cat-bar" style={categoryHueVar(p.category)} />
 
         <div className="ps-activeprotocols-info">
-          <div className="ps-activeprotocols-name" data-phi="name">{p.name}</div>
+          <div className="ps-activeprotocols-name"><span data-phi="name">{p.name}</span><DemoWordingTag templateId={p.id} /></div>
           <div className="ps-activeprotocols-meta">
             <span className="ps-activeprotocols-version">{p.version}</span>
             <span className="ps-activeprotocols-dot">&bull;</span>
@@ -180,7 +182,7 @@ const ActiveProtocolsSection: React.FC = () => {
         {GROUPS.map(g => {
           const active = groupFilter === g;
           return (
-            <button
+            <button data-config-nav
               key={g}
               onClick={() => setGroupFilter(g)}
               className={active ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}

@@ -2026,11 +2026,99 @@ Full licence text: licenses/GPL-3.0.txt
 This dictionary is distributed UNMODIFIED, as a separate data file loaded at run time,
 under the GNU General Public License version 2 or 3 (at the recipient's choice).
 Upstream: https://www.j3e.de/ispell/igerman98/ ; packaging: https://github.com/wooorm/dictionaries (dictionary-de@3.0.0).
-Written offer: for at least three years from the date you received this file, ForMedrixAI LLC will give any
-third party, for no more than the cost of physically performing the distribution, a complete machine-readable
-copy of the corresponding source code of this dictionary, under the same licence. Requests: contact ForMedrixAI LLC.
+Complete corresponding source is provided alongside it: source/de-DE/igerman98-20161207.tar.bz2.
+
+------------------------------------------------------------
+
+[es-ES] base dictionary: dictionary-es@4.0.0 (licence: (GPL-3.0 OR LGPL-3.0 OR MPL-1.1))
+
+****************************************************************************
+  **                                                                        **
+  **          Diccionario para corrección ortográfica en español de         **
+  **                      LibreOffice/Apache OpenOffice                     **
+  **                                                                        **
+  ****************************************************************************
+
+Para: es_ES
+
+  ****************************************************************************
+
+                                  Versión 2.8
+
+SUMARIO
+
+1. AUTOR
+2. LICENCIA
+3. COLABORACIÓN
+4. AGRADECIMIENTOS
+
+
+1. AUTOR
+
+   Este diccionario ha sido desarrollado inicialmente por Santiago Bosio;
+quien actualmente coordina el desarrollo de todos los diccionarios localizados.
+
+   El diccionario es un desarrollo completamente nuevo, y NO ESTÁ BASADO en el
+trabajo de Jesús Carretero y Santiago Rodríguez, ni en la versión adaptada al
+formato de MySpell por Richard Holt.
+
+2. LICENCIA
+
+   Este diccionario para corrección ortográfica, integrado por el fichero
+de afijos y la lista de palabras (es_ES[.aff|.dic]) se distribuye
+bajo un triple esquema de licencias disjuntas: GNU GPL versión 3 o posterior,
+GNU LGPL versión 3 o posterior, ó MPL versión 1.1 o posterior. Puede
+seleccionar libremente bajo cuál de estas licencias utilizará este diccionario.
+En el fichero LICENSE.md encontrá más detalles.
+
+3. COLABORACIÓN
+
+   Este diccionario es resultado del trabajo colaborativo de muchas personas.
+La buena noticia es que ¡usted también puede participar!
+
+   ¿Tiene dudas o sugerencias? ¿Desearía ver palabras agregadas, o que se
+realizaran correcciones? Consulte las indicaciones técnicas publicadas en
+CONTRIBUTING.md. Estaremos encantados de atenderle.
+
+4. AGRADECIMIENTOS
+
+   Hay varias personas que han colaborado con aportes o sugerencias a la
+creación de este diccionario. Se agradece especialmente a:
+
+   - Richard Holt.
+   - Marcelo Garrone.
+   - Kevin Hendricks.
+   - Juan Rey Saura.
+   - Carlos Dávila.
+   - Román Gelbort.
+   - J. Eduardo Moreno.
+   - Gonzalo Higuera Díaz.
+   - Ricardo Palomares Martínez.
+   - Sergio Medina.
+   - Ismael Olea.
+   - Alejandro Moreno.
+   - Alexandro Colorado.
+   - Andrés Sánchez.
+   - Juan Rafael Fernández García.
+   - eksperimental.
+   - Ezequiel (ezeperez26).
+   - KNTRO.
+   - Ricardo Berlasso.
+   - Edward Villegas-Pulgarin (cosmocalibur)
+   - y a todos los integrantes de la comunidad en español que proponen mejoras
+     a este diccionario.
+
+Full licence text: licenses/MPL-1.1.txt
 
 ------------------------------------------------------------
 
 [en-*, ko-KR] medical tier: PathScribe pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/).
+
+[de-DE] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/de/), pending native-speaker review.
+
+[fr-FR] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/fr/), pending native-speaker review.
+
+[nl-NL] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/nl/), pending native-speaker review.
+
+[es-ES] medical tier: PathScribe starter pathology lexicon, authored by ForMedrixAI LLC (spellcheck-data/es/), pending native-speaker review.
 

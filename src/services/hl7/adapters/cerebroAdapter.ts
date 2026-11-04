@@ -7,7 +7,7 @@
 // and the real, named message shape is documented: inbound ADT/ORM/OML
 // to initiate tracking and sync master data (specimen codes, block
 // generation, stain orders), outbound ORU for real-time workflow status
-// (Accessioning -> Grossing -> Processing -> Embedding -> Microtomy/
+// (Accessioning -> Grossing -> Processing -> Embedding -> Microtome/
 // Sectioning -> Staining -> Slide Archival) and chain-of-custody audit
 // trails (timestamps, operator IDs, station locations, scan
 // verifications). CEREBRO-ID/CEREBRO-ID+ drives cassette/slide printing

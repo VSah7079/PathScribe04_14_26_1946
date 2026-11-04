@@ -34,7 +34,7 @@ export function findTatConflict(entries: TATEntry[], draft: Partial<TATEntry>, e
   ) ?? null;
 }
 
-export type TatDraftError = 'typeRequired' | 'hoursRequired' | 'conflict';
+export type TatDraftError = 'typeRequired' | 'hoursRequired' | 'warningInvalid' | 'conflict';
 
 export type BuildTatEntryResult =
   | { ok: true; entry: TATEntry }
@@ -51,6 +51,12 @@ export function buildTatEntry(
 ): BuildTatEntryResult {
   if (!draft.type) return { ok: false, error: 'typeRequired' };
   if (!draft.targetHours || draft.targetHours <= 0) return { ok: false, error: 'hoursRequired' };
+  // Batch 610 (#91): the warning window only exists for frozen sections, and
+  // must be a positive whole number of minutes shorter than the target.
+  const warning = draft.type === 'FROZEN_SECTION' ? (draft.warningMinutes ?? null) : null;
+  if (warning !== null && (!Number.isInteger(warning) || warning <= 0 || warning >= draft.targetHours * 60)) {
+    return { ok: false, error: 'warningInvalid' };
+  }
   const isEdit = mode === 'edit' && !!existing;
   const conflict = findTatConflict(entries, draft, isEdit ? existing!.id : undefined);
   if (conflict) return { ok: false, error: 'conflict', conflict };
@@ -69,6 +75,7 @@ export function buildTatEntry(
       active:                  draft.active ?? true,
       notes:                   draft.notes ?? '',
       createdAt:               isEdit ? existing!.createdAt : now,
+      ...(warning !== null ? { warningMinutes: warning } : {}),
     },
   };
 }

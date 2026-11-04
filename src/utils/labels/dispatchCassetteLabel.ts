@@ -1,3 +1,5 @@
+import { recordSimulatedPrint, simulationAllowed } from '@/services/printing/simulatedPrint';
+import type { BlockType } from '@/types/case/blockPieces';
 // src/utils/labels/dispatchCassetteLabel.ts
 // ─────────────────────────────────────────────────────────────────────────────
 // Real feature, per direct follow-up: Step 4 of the label-printing build
@@ -34,6 +36,8 @@ export interface CassetteLabelDispatchRequest {
   specimenLabel: string;
   blockLabel: string;
   cassetteId: string;
+  /** Batch 737 (spec §11.1): the block's type; a megablock prints on the megablock cassette template. */
+  blockType?: BlockType;
 }
 
 /** Real, dedicated, matrix-block sibling to CassetteLabelDispatchRequest
@@ -79,6 +83,8 @@ export async function dispatchCassetteLabel(
     `[PathScribe] Cassette engrave dispatch — STUB, no real engraver integration wired yet (PS-51 still open). ` +
     `Would engrave: ${request.cassetteId}`,
   );
+  // Batch 606: labelled Simulated result (no engraver integration yet, PS-51).
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'engrave', transport: 'engraver', destination: 'cassette engraver' });
   return { dispatched: true, method: 'stub' };
 }
 
@@ -96,6 +102,7 @@ export async function dispatchMatrixCassetteLabel(
     `[PathScribe] Matrix cassette engrave dispatch — STUB, no real engraver integration wired yet (PS-51 still open). ` +
     `Would engrave: ${request.cassetteId} (shared by specimens ${request.specimenLabels.join(', ')})`,
   );
+  if (simulationAllowed()) recordSimulatedPrint({ kind: 'engrave', transport: 'engraver', destination: 'cassette engraver (matrix block)' });
   return { dispatched: true, method: 'stub' };
 }
 

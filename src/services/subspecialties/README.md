@@ -36,6 +36,26 @@ Pathology subspecialty dictionary — pools, workgroups, member/physician/client
   enforces at most one catch-all per scope (setting it on one pool clears
   it from whichever pool held it before, for the same lab or Global).
 
+## Batch 428: Configuration permissions
+
+- `mockSubspecialtyService`: `add`, `update`, `deactivate`, `reactivate` need `config:subspecialties:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+Who belongs to a subspecialty (`assignUser` / `removeUser`) is part of the staff record, so it needs `config:staff:edit`. The facility service's automatic catch-all subspecialty uses `subspecialtyServiceUnchecked` (already checked as a facility save).
+
+## Batch 431
+
+Saves that give access (a pool member, the Pediatric or Orchestration flag, a facility's authorized pediatric pathologists) now close the person's matching pending access requests (`services/access/closeGrantedAccessRequests.ts`).
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`DEMO_POOL_MEMBERS` (the demo pathologists and the fellow) join every surgical pool. A stored list gets them once (marker `pathscribe_subspecialties_demo_members`), without losing an administrator's own changes.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part C): server versions (PS-514)
+
+The subspecialty service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/DICTIONARIES_CONFIG_API.md`. The mocks are unchanged.

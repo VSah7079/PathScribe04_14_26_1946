@@ -217,6 +217,12 @@ export interface SpecimenDeficiency {
    * at once, not a per-item sign-off — see ManagementReview below.
    */
   managementReviewId?: string;
+  /** Batch 438 (PS-144–148): who owns this CAPA, chosen by the QA lead who
+   *  confirmed its recommendation. */
+  assignedTo?: string;
+  assignedToName?: string;
+  /** Batch 438: the CAPA recommendation it was opened from. */
+  capaRecommendationId?: string;
 }
 
 /**

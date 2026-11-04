@@ -49,6 +49,7 @@
 import type { QaActivityRecord } from '@/types/quality/QaActivityRecord';
 import type { QaSupervisionAssignment } from '@/types/quality/QaSupervisionAssignment';
 import type { ExpectedCaseMixTarget } from '@/types/quality/QaSupervisionAssignmentType';
+import type { CountersignRecord } from '@/types/case/CountersignRecord';
 import type { Subspecialty } from '@/services';
 
 export interface SubspecialtyBreakdownRow {
@@ -81,6 +82,49 @@ export function buildSubspecialtyBreakdown(
     id === '__unspecified__' ? 'Unspecified' : (subspecialties.find(s => s.id === id)?.name ?? id);
   return [...bySubspecialty.entries()]
     .map(([id, b]) => ({ id, name: subspecialtyName(id), total: b.total, concordant: b.concordant, rate: (b.concordant / b.total) * 100 }))
+    .sort((a, b) => a.rate - b.rate);
+}
+
+/** Batch 486: a Cytotech Competency Assessment supervisor's own
+ *  case-mix coverage for their trainee — real cytology sign-out
+ *  activity, not frozen-section teaching cases.
+ *  buildSubspecialtyBreakdown's own QaActivityRecord input is never
+ *  populated by a cytology sign-out (confirmed directly — no
+ *  QaActivityRecord is ever created there; only CountersignRecord is,
+ *  and only completes correctly as of Batch 485's countersign fix), so
+ *  extending that filter alone would still show nothing for a CT
+ *  trainee. Built from CountersignRecord instead: cytology's real
+ *  resident/CT-trainee sign-out record, already carrying a real
+ *  Subspecialty.id (derived from Case.subspecialtyId at release time —
+ *  CountersignRecord.ts's own doc comment).
+ *
+ *  "Clean" here means countersigned with no delta from what the
+ *  trainee released (changedFieldCount falsy) — a real, honest,
+ *  different signal from diagnostic concordance
+ *  (buildSubspecialtyBreakdown's own `outcome`): it says the attending
+ *  didn't need to correct anything, not that an independent reviewer
+ *  reached the same diagnosis. A 'returned' record (the attending
+ *  rejected the release outright) counts as the non-clean bucket too —
+ *  both are real "this needed the attending's attention" outcomes.
+ *  Still-'pending' records are excluded — they have no real outcome
+ *  yet, so counting them either way would misrepresent the trainee's
+ *  own, closed track record. */
+export function buildCytologyCountersignBreakdown(
+  records: CountersignRecord[],
+  subspecialties: Subspecialty[]
+): SubspecialtyBreakdownRow[] {
+  const bySubspecialty = new Map<string, { total: number; clean: number }>();
+  records.filter(r => r.status !== 'pending').forEach(r => {
+    const key = r.subspecialtyId ?? '__unspecified__';
+    const bucket = bySubspecialty.get(key) ?? { total: 0, clean: 0 };
+    bucket.total += 1;
+    if (r.status === 'countersigned' && !r.changedFieldCount) bucket.clean += 1;
+    bySubspecialty.set(key, bucket);
+  });
+  const subspecialtyName = (id: string) =>
+    id === '__unspecified__' ? 'Unspecified' : (subspecialties.find(s => s.id === id)?.name ?? id);
+  return [...bySubspecialty.entries()]
+    .map(([id, b]) => ({ id, name: subspecialtyName(id), total: b.total, concordant: b.clean, rate: (b.clean / b.total) * 100 }))
     .sort((a, b) => a.rate - b.rate);
 }
 

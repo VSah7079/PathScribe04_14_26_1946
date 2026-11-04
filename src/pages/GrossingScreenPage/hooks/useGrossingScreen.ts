@@ -7,19 +7,31 @@
 // with the actual real persistence.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { setBlockPieceMap } from '@/utils/blockPieceRules';
+import type { BlockPiece, BlockType } from '@/types/case/blockPieces';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { specimenDeficiencyService, fieldRequirementService, authorizationService, auditService } from '@/services';
+import { specimenDeficiencyService, fieldRequirementService, authorizationService, auditService, inkColorService, facilityService } from '@/services';
+import { caseLabelStyle } from '@/services/labeling/liveCaseLabelStyle';
 import { resolveFieldRequirements, type ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
 import {
   completeGrossing, missingGrossingItems, specimensForSecondaryReview, type CompleteGrossingRefusal,
 } from '@/services/grossing/grossingCompletion';
+import {
+  recordMarginInkApplication, type RecordMarginInkApplicationInput, type RecordMarginInkApplicationResult,
+} from '@/services/grossing/recordMarginInkApplication';
+import { routeCaseAfterGrossing } from '@/services/grossing/routeCaseAfterGrossing';
+import { resolveInkingValidationSeverity, type InkingValidationResult } from '@/services/grossing/resolveInkingValidationSeverity';
+import { getInkingValidationMode } from '@/services/grossing/inkingSiteSettings';
+import { evaluateInkingGate, gateSpecimensOf, type InkingGateResult } from '@/services/grossing/evaluateInkingGate';
+import type { InkColor } from '@/services/inkColors/IInkColorService';
+import type { Jurisdiction } from '@/types/systemConfig';
 import type { Case } from '@/types/case/Case';
 import type { Specimen } from '@/types/case/Specimen';
 import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 import {
-  addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount,
+  addGrossingBlock, removeGrossingBlock, addGrossingStain, removeGrossingStain, updateGrossingPieceCount, updateGrossingPieceDescription, updateMatrixBlockPieces,
 } from '@/utils/grossingScreenOperations';
 import type { SigningUser, SetConcurrencyConflict } from '@/pages/SynopticReportPage/hooks/sharedHookTypes';
 import { handleConcurrencyConflict } from '@/pages/SynopticReportPage/hooks/sharedHookTypes';
@@ -33,7 +45,7 @@ interface UseGrossingScreenParams {
 }
 
 export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVersionRef, setConcurrencyConflict }: UseGrossingScreenParams) {
-  const [pendingStainRemoval, setPendingStainRemoval] = useState<{ specimenId: string; blockId: string; stainId: string } | null>(null);
+  const [pendingStainRemoval, setPendingStainRemoval] = useState<{ specimenId: string; blockId: string; stainId: string; origin: 'protocol' | 'existing' } | null>(null);
   // Real, per direct request — tracks which specimens already have a
   // real, OPEN def-missing-fixation-completion deficiency, so the
   // "Raise Deficiency" action can show its own real, recorded state
@@ -44,6 +56,55 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   // only reflects whether at least one open one already exists, it
   // never blocks raising another.
   const [specimensWithOpenFixationDeficiency, setSpecimensWithOpenFixationDeficiency] = useState<Set<string>>(new Set());
+
+  // Structured Inking, Module 3 (PS-359 follow-up): the severity engine's
+  // WARN_ONLY/STRICT_ENFORCE advisory display, unblocked this batch by
+  // re-scoping inking_validation_mode from Site to the real, current
+  // Case.order.facilityId (see inkingSiteSettings.ts's own header for why),
+  // plus the active ink-colour palette for the additive Severity 3
+  // margin_ink_color_unmapped check. Display only — this does not change
+  // what blocks Complete grossing (services/grossing/grossingCompletion.ts);
+  // that's a further, separate wiring step, not attempted this batch.
+  const [inkColors, setInkColors] = useState<InkColor[]>([]);
+  // Batch 484 (Gate Logic Engine): a palette read that genuinely fails
+  // (service unreachable/errored) is fail-closed by evaluateInkingGate
+  // below — distinct from the initial empty-array render before the
+  // first successful load, which inkColorsLoaded tracks.
+  const [inkColorsLoaded, setInkColorsLoaded] = useState(false);
+  const [inkPaletteAvailable, setInkPaletteAvailable] = useState(true);
+  useEffect(() => {
+    void inkColorService.getAll()
+      .then(res => { if (res.ok) { setInkColors(res.data); setInkPaletteAvailable(true); } else { setInkPaletteAvailable(false); } setInkColorsLoaded(true); })
+      .catch(() => { setInkPaletteAvailable(false); setInkColorsLoaded(true); });
+  }, []);
+  const activeInkColorCodes = useMemo(
+    () => new Set(inkColors.filter(c => c.active).map(c => c.code.trim().toUpperCase())),
+    [inkColors],
+  );
+  const inkingValidationMode = caseData ? getInkingValidationMode(caseData.order?.facilityId ?? '') : 'WARN_ONLY';
+  const inkingValidation: InkingValidationResult = useMemo(
+    () => resolveInkingValidationSeverity(caseData?.specimens ?? [], inkingValidationMode, { activeInkColorCodes }),
+    [caseData?.specimens, inkingValidationMode, activeInkColorCodes],
+  );
+
+  // Batch 484 (Structured Inking Sign-Out & Grossing Gate Logic Engine;
+  // PS-519 follow-up). Gate A — the real decision this app was still
+  // missing per the comment above (Batch 481's own "display only — this
+  // does not change what blocks Complete grossing... a further, separate
+  // wiring step, not attempted this batch"). This is that wiring step.
+  const [facilityJurisdiction, setFacilityJurisdiction] = useState<Jurisdiction | undefined>(undefined);
+  useEffect(() => {
+    const facilityId = caseData?.order?.facilityId;
+    if (!facilityId) { setFacilityJurisdiction(undefined); return; }
+    void facilityService.getById(facilityId).then(res => { if (res.ok) setFacilityJurisdiction(res.data.jurisdiction); });
+  }, [caseData?.order?.facilityId]);
+  const inkingGate: InkingGateResult = useMemo(() => evaluateInkingGate({
+    caseId: caseData?.id ?? '', facilityId: caseData?.order?.facilityId ?? '', actionContext: 'GROSSING_COMPLETE',
+    specimens: gateSpecimensOf(caseData ?? {}), mode: inkingValidationMode, jurisdiction: facilityJurisdiction,
+    activeInkColorCodes: inkColorsLoaded ? activeInkColorCodes : undefined, paletteAvailable: inkPaletteAvailable,
+  }), [caseData, inkingValidationMode, facilityJurisdiction, activeInkColorCodes, inkColorsLoaded, inkPaletteAvailable]);
+  const [showInkingGateBlock, setShowInkingGateBlock] = useState(false);
+  const [showInkingAdvisoryConfirm, setShowInkingAdvisoryConfirm] = useState(false);
 
   useEffect(() => {
     if (!caseData?.id) return;
@@ -71,16 +132,19 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (!caseData) return;
     const specimen = (caseData.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
     if (!specimen) return;
-    const result = addGrossingBlock(specimen, pathway, caseData.accession?.fullAccession ?? caseData.id);
+    // Batch 715: the new block is labelled in the case's letters/numbers style.
+    const result = addGrossingBlock(specimen, pathway, caseData.accession?.fullAccession ?? caseData.id, await caseLabelStyle(caseData));
     if (result.ok) await persistSpecimen(result.specimen);
   }, [caseData, persistSpecimen]);
 
-  const handleRemoveBlock = useCallback(async (specimenId: string, blockId: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-    if (!caseData) return { ok: false, error: 'No case loaded.' };
+  // Batch 513 (PS-269): a refusal is a reason code, not English text; the
+  // screen words it. `detail` is the operation's own diagnostic, never shown.
+  const handleRemoveBlock = useCallback(async (specimenId: string, blockId: string): Promise<{ ok: true } | { ok: false; reasonCode: 'caseNotLoaded' | 'specimenNotFound' | 'notRemovable'; detail?: string }> => {
+    if (!caseData) return { ok: false, reasonCode: 'caseNotLoaded' };
     const specimen = (caseData.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
-    if (!specimen) return { ok: false, error: 'Specimen not found.' };
+    if (!specimen) return { ok: false, reasonCode: 'specimenNotFound' };
     const result = removeGrossingBlock(specimen, blockId);
-    if (!result.ok) return { ok: false, error: 'error' in result ? result.error : 'Cannot remove this block.' };
+    if (!result.ok) return { ok: false, reasonCode: 'notRemovable', detail: 'error' in result ? result.error : undefined };
     await persistSpecimen(result.specimen);
     return { ok: true };
   }, [caseData, persistSpecimen]);
@@ -106,7 +170,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     if (!specimen) return { ok: true };
     const result = removeGrossingStain(specimen, blockId, stainId, signingUser?.id ?? 'unknown', false);
     if (!result.ok && 'needsConfirmation' in result) {
-      setPendingStainRemoval({ specimenId, blockId, stainId });
+      setPendingStainRemoval({ specimenId, blockId, stainId, origin: result.origin });
       return { needsConfirmation: true };
     }
     if (result.ok) await persistSpecimen(result.specimen);
@@ -132,6 +196,38 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     const result = updateGrossingPieceCount(specimen, blockId, newCount, signingUser?.id ?? 'unknown');
     if (result.ok) await persistSpecimen(result.specimen);
   }, [caseData, signingUser, persistSpecimen]);
+
+  // Batch 659 (finding 8): the piece description of a block, and the pieces of a matrix block.
+  const handleUpdatePieceDescription = useCallback(async (specimenId: string, blockId: string, text: string) => {
+    const specimen = (caseData?.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
+    if (!specimen) return;
+    const result = updateGrossingPieceDescription(specimen, blockId, text, signingUser?.id ?? 'unknown');
+    if (result.ok) await persistSpecimen(result.specimen);
+  }, [caseData, signingUser, persistSpecimen]);
+
+  /** Batch 732 (spec §11.1, §11.2): the block's type and piece map (utils/blockPieceRules.ts). False when not valid. */
+  const handleSetBlockPieceMap = useCallback(async (specimenId: string, blockId: string, blockType: Exclude<BlockType, 'matrix'>, pieces: BlockPiece[]): Promise<boolean> => {
+    const specimen = (caseData?.specimens ?? []).find((sp: Specimen) => sp.id === specimenId);
+    if (!specimen) return false;
+    const result = setBlockPieceMap(specimen, blockId, blockType, pieces);
+    if (!result.ok) return false;
+    await persistSpecimen(result.specimen);
+    return true;
+  }, [caseData, persistSpecimen]);
+
+  const handleUpdateMatrixBlock = useCallback(async (matrixBlockId: string, patch: { pieceCount?: number; pieceDescription?: string }) => {
+    if (!caseData?.id) return;
+    const next = updateMatrixBlockPieces(caseData.matrixBlocks ?? [], matrixBlockId, patch);
+    if (!next) return;
+    setCaseData(prev => prev ? ({ ...prev, matrixBlocks: next } as typeof prev) : prev);
+    try {
+      await caseRouter.updateCase(caseData.id, { matrixBlocks: next }, knownVersionRef.current);
+      knownVersionRef.current = knownVersionRef.current + 1;
+    } catch (e) {
+      if (handleConcurrencyConflict(e, setConcurrencyConflict)) return;
+      console.error('[GrossingScreen] Failed to persist matrix block change:', e);
+    }
+  }, [caseData, setCaseData, knownVersionRef, setConcurrencyConflict]);
 
   // Real, per direct request (ISO 15189 traceability — "duration of
   // fixation... from specimen collection to grossing") — grossing is
@@ -206,7 +302,7 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
   const secondaryReviewSpecimens = caseData ? specimensForSecondaryReview(caseData, grossingRequirements) : [];
   const [completeRefusal, setCompleteRefusal] = useState<CompleteGrossingRefusal | null>(null);
   const [pendingProtocolConfirmation, setPendingProtocolConfirmation] = useState<string[] | null>(null);
-  const [completionReview, setCompletionReview] = useState<{ routedForReview: string[]; reviewNotRaised: string[] } | null>(null);
+  const [completionReview, setCompletionReview] = useState<{ routedForReview: string[]; reviewNotRaised: string[]; routedToPool?: string } | null>(null);
 
   // One completion at a time: a double click, or a command heard twice,
   // must not start a second attempt against the same case version.
@@ -230,8 +326,10 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
       }
       knownVersionRef.current = knownVersionRef.current + 1;
       setCompleteRefusal(null);
-      setCompletionReview(result.routedForReview.length || result.reviewNotRaised.length
-        ? { routedForReview: result.routedForReview, reviewNotRaised: result.reviewNotRaised } : null);
+      // Batch 652: pool routing after grossing, the same call the report page's Gross Complete makes.
+      const routing = await routeCaseAfterGrossing(result.case);
+      setCompletionReview(result.routedForReview.length || result.reviewNotRaised.length || routing.routed
+        ? { routedForReview: result.routedForReview, reviewNotRaised: result.reviewNotRaised, routedToPool: routing.poolName } : null);
       setCaseData(prev => (prev ? ({ ...prev, status: 'gross-complete' } as typeof prev) : prev));
     } catch (e) {
       if (!handleConcurrencyConflict(e, setConcurrencyConflict)) setCompleteRefusal('failed');
@@ -240,20 +338,68 @@ export function useGrossingScreen({ caseData, setCaseData, signingUser, knownVer
     }
   }, [caseData, grossingRequirements, knownVersionRef, signingUser, setCaseData, setConcurrencyConflict]);
 
-  const handleCompleteGrossing = useCallback(() => runCompleteGrossing(false), [runCompleteGrossing]);
+  // Batch 484: the real Gate A decision, ahead of the existing
+  // protocol-requirements check. BLOCK/PALETTE_UNAVAILABLE stop here with
+  // no bypass; a WARN with severity-2 issues needs the "Proceed with
+  // Advisory Note" confirmation below before runCompleteGrossing ever runs.
+  const handleCompleteGrossing = useCallback(() => {
+    if (inkingGate.mode === 'BLOCK' || inkingGate.mode === 'PALETTE_UNAVAILABLE') { setShowInkingGateBlock(true); return; }
+    if (inkingGate.mode === 'WARN' && inkingGate.highestSeverity === 2) { setShowInkingAdvisoryConfirm(true); return; }
+    void runCompleteGrossing(false);
+  }, [inkingGate, runCompleteGrossing]);
+
+  const cancelInkingGateBlock = useCallback(() => setShowInkingGateBlock(false), []);
+  const cancelInkingAdvisory = useCallback(() => setShowInkingAdvisoryConfirm(false), []);
+  const confirmInkingAdvisoryAndComplete = useCallback(async () => {
+    setShowInkingAdvisoryConfirm(false);
+    if (caseData?.id) {
+      await auditService.logEvent({
+        type: 'user', event: 'Inking gate advisory acknowledged', user: signingUser?.name ?? signingUser?.id ?? 'unknown',
+        caseId: caseData.id, confidence: null, facilityId: caseData.order?.facilityId ?? null,
+        detail: `Grossing completed with ${inkingGate.issues.length} unresolved Severity 2 inking issue(s), advisory note acknowledged by ${signingUser?.name ?? signingUser?.id ?? 'unknown'}.`,
+      });
+    }
+    await runCompleteGrossing(false);
+  }, [caseData, inkingGate.issues.length, signingUser, runCompleteGrossing]);
   const confirmCompleteWithoutProtocol = useCallback(async () => {
     setPendingProtocolConfirmation(null);
     await runCompleteGrossing(true);
   }, [runCompleteGrossing]);
   const cancelCompleteWithoutProtocol = useCallback(() => setPendingProtocolConfirmation(null), []);
 
+  // Batch 481 (Structured Inking, Module 2; PS-359 follow-up): records a
+  // margin's first ink application (creating it) or appends a further one
+  // to an existing margin, via the real, capability-checked, version-safe
+  // service built in Batch 480. That service doesn't hand back the updated
+  // case the way recordAutopsyOrganTag.ts does, so on success this re-reads
+  // the case — the same real idiom this hook's own initial load already
+  // uses — rather than reconstructing the new margins locally.
+  const handleRecordMarginInk = useCallback(async (
+    input: RecordMarginInkApplicationInput,
+  ): Promise<RecordMarginInkApplicationResult> => {
+    if (!caseData?.id) return { ok: false, reasonCode: 'caseNotFound' };
+    const result = await recordMarginInkApplication(caseData.id, input, signingUser?.name ?? signingUser?.id ?? 'unknown');
+    if (result.ok) {
+      const fresh = await caseRouter.getCase(caseData.id);
+      if (fresh) {
+        setCaseData(fresh);
+        knownVersionRef.current = (fresh as unknown as { version?: number }).version ?? knownVersionRef.current + 1;
+      }
+    }
+    return result;
+  }, [caseData?.id, signingUser, setCaseData, knownVersionRef]);
+
   return {
     handleAddBlock, handleRemoveBlock, handleAddStain, handleRemoveStain,
     pendingStainRemoval, confirmPendingStainRemoval, cancelPendingStainRemoval,
-    handleUpdatePieceCount, handleRecordFixationEnded, handleConfirmFixativeRatio,
+    handleUpdatePieceCount, handleUpdatePieceDescription, handleUpdateMatrixBlock, handleSetBlockPieceMap, handleRecordFixationEnded, handleConfirmFixativeRatio,
     handleRaiseFixationDeficiency, specimensWithOpenFixationDeficiency,
     missingItems, handleCompleteGrossing, completeRefusal,
     secondaryReviewSpecimens, pendingProtocolConfirmation, confirmCompleteWithoutProtocol, cancelCompleteWithoutProtocol,
     completionReview,
+    handleRecordMarginInk,
+    inkColors, inkingValidation, inkingValidationMode,
+    inkingGate, showInkingGateBlock, cancelInkingGateBlock,
+    showInkingAdvisoryConfirm, cancelInkingAdvisory, confirmInkingAdvisoryAndComplete,
   };
 }

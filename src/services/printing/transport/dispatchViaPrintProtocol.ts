@@ -11,7 +11,7 @@
 import { sendRawPrintJob, type SendPrintJobResult } from './sendRawPrintJob';
 import { sendLprPrintJob } from './sendLprPrintJob';
 import { sendIppPrintJob } from './sendIppPrintJob';
-import type { PrintDestination } from '@/types/printRouting/PrintDestination';
+import type { NetworkPrintDestination as PrintDestination } from '@/types/printRouting/PrintDestination';
 import type { PaperSourceTray, DuplexMode } from '@/types/printing/PrintJob';
 
 /** Real, per PS-279 §2.2.4 — optional and additive. Only IPP (RFC

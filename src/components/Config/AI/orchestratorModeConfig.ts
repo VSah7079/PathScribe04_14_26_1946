@@ -3,8 +3,8 @@
 // Real source of truth for "is AI Orchestrator narrative auto-draft on."
 //
 // Two layers, same "null/unset = inherit" convention used throughout:
-//   1. ORG DEFAULT   — org-wide, admin-editable here, persisted to
-//      localStorage. Falls back to narrativeTemplateConfig.orchestratorEnabled
+//   1. ORG DEFAULT   — org-wide, admin-editable here, kept in the lab
+//      settings store. Falls back to narrativeTemplateConfig.orchestratorEnabled
 //      only if never explicitly set (fresh install).
 //   2. PER-LAB OVERRIDE — Facility.internalAiOrchestratorEnabled on the
 //      facility that actually performs the work (resolved via
@@ -23,6 +23,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { narrativeTemplateConfig } from '../NarrativeTemplates/narrativeTemplateConfig';
+import { readLabSetting, saveLabSetting } from '../../../services/labSettings/labSettingsStore';
 import { facilityService } from '../../../services';
 import { resolvePerformingLabFacilityId } from '../../../services/facilities/IFacilityService';
 
@@ -30,22 +31,16 @@ const ORG_ORCHESTRATOR_MODE_KEY = 'pathscribe_orchestrator_mode';
 
 // ── Org-level default (sync — safe to call from render) ────────────────────
 
+// Batch 431: kept in the lab settings store (services/labSettings/), the one
+// place that changes when the API server holds it (PS-345). Saved as 'true'/
+// 'false', which reads back as a boolean.
 export function getOrgOrchestratorDefault(): boolean {
-  try {
-    const stored = localStorage.getItem(ORG_ORCHESTRATOR_MODE_KEY);
-    if (stored !== null) return stored === 'true';
-  } catch {
-    // localStorage unavailable (SSR / sandboxed env) — ignore
-  }
-  return narrativeTemplateConfig.orchestratorEnabled;
+  const stored = readLabSetting<boolean | null>(ORG_ORCHESTRATOR_MODE_KEY, null);
+  return typeof stored === 'boolean' ? stored : narrativeTemplateConfig.orchestratorEnabled;
 }
 
 export function setOrgOrchestratorDefault(enabled: boolean): void {
-  try {
-    localStorage.setItem(ORG_ORCHESTRATOR_MODE_KEY, String(enabled));
-  } catch {
-    // ignore write failures
-  }
+  saveLabSetting(ORG_ORCHESTRATOR_MODE_KEY, enabled);
 }
 
 // ── Effective, per-case resolution (async — needs a Facility lookup) ───────

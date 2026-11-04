@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 611 \u2014 export server simulation, matrix block comments, organ retention custody, legacy file import, platform authenticator, Smart Capture, MFA enrolment reset",
+    "description": "Vitest, 2026-10-18: full suite 1342 files (1336 passed, 4 skipped, 2 failed); 10,968 tests passed, 33 skipped, 2 failed. firestore.rules.test.ts needs the Firestore emulator (not run). actionSeeds.test.ts expected 149 seeded commands after the Computational Sidecar ids were retired (now 145); fixed, roles folder re-run (29 passed). Type-check clean. Not run: browser check; export server, bulk import server, WebAuthn credential verification, Smart Capture vendor feed, MFA server-side reset (server side or vendor dependent)."
+  },
+  "tests": [
+    {
+      "testKey": "PS-785",
+      "start": "2026-10-18T19:52:00Z",
+      "finish": "2026-10-18T21:05:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Auth/MfaSignInStep.test.tsx\nPASSED: src/components/Common/MaterialCommentThread.test.tsx\nPASSED: src/components/Config/System/MfaPolicyCard.test.tsx\nPASSED: src/components/Config/System/SmartCaptureSection.test.tsx\nPASSED: src/components/Exports/ExportNotices.test.tsx\nPASSED: src/components/Migration/LegacyImportModal.test.tsx\nPASSED: src/components/Profile/BiometricSigningModal.test.tsx\nPASSED: src/components/Signing/SignerConfirmationFields.mfa.test.tsx\nPASSED: src/contexts/AuthContext.mfa.test.tsx\nPASSED: src/pages/MigrationJobsPage.test.tsx\nPASSED: src/pages/MyExportsPage.test.tsx\nPASSED: src/pages/SynopticReportPage/components/SmartCaptureLauncher.test.tsx\nPASSED: src/services/auth/authSession.test.ts\nPASSED: src/services/auth/demo/demoMfaSecret.test.ts\nPASSED: src/services/auth/mfa/mfaAssurance.test.ts\nPASSED: src/services/auth/mfa/mfaPolicy.test.ts\nPASSED: src/services/auth/mfa/mfaService.test.ts\nPASSED: src/services/auth/mfa/totp.test.ts\nPASSED: src/services/auth/signerConfirmation.mfa.test.ts\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/services/autopsy/buildAutopsyCaseTimeline.test.ts\nPASSED: src/services/autopsy/recordAutopsyOrganRetentionDetail.test.ts\nPASSED: src/services/biometric/platformAuthenticator.test.ts\nPASSED: src/services/exports/demoExportApi.test.ts\nPASSED: src/services/exports/exportTracker.test.ts\nPASSED: src/services/material/materialComments.test.ts\nPASSED: src/services/migration/buildDraftCaseFromMigration.test.ts\nPASSED: src/services/migration/importLegacyFile.test.ts\nPASSED: src/services/migration/parseLegacyFile.test.ts\nPASSED: src/services/migration/runLegacyFileImport.test.ts\nPASSED: src/services/roles/actionSeeds.test.ts\nPASSED: src/services/smartCapture/smartCaptureRules.test.ts\nPASSED: src/services/smartCapture/smartCaptureService.test.ts\nPASSED: src/services/smartCapture/smartCaptureSettings.test.ts\nPASSED: src/services/smartCapture/smartCaptureStates.test.ts\nPASSED: src/utils/downloadCapture.test.ts"
+    }
+  ]
+}

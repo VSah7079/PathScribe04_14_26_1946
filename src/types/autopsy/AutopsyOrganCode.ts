@@ -62,3 +62,20 @@ export const AUTOPSY_ORGAN_TO_SECTION: Record<AutopsyOrganCode, AutopsyGrossingS
   bone_marrow: 'musculoskeletal_hematopoietic', skin_subcutis: 'musculoskeletal_hematopoietic',
   musculoskeletal_specimen: 'musculoskeletal_hematopoietic',
 };
+
+const AUTOPSY_ORGAN_CODE_SET: ReadonlySet<string> = new Set(Object.keys(AUTOPSY_ORGAN_TO_SECTION));
+
+/** Batch 468 — parses a comma-separated list of organ tokens (as
+ *  entered in a consent-scope form field) into the canonical
+ *  `AutopsyOrganCode[]` vocabulary, silently dropping any token that
+ *  isn't a recognized organ code rather than throwing: a consent form
+ *  is filled in by clinical staff, not a developer, so an unrecognized
+ *  token (a typo, a jurisdiction-specific term this vocabulary hasn't
+ *  added yet) should never crash the save — it's simply not
+ *  machine-enforceable yet, same as any other free-text scope note. */
+export function parseAutopsyOrganCodeList(input: string): AutopsyOrganCode[] {
+  return input
+    .split(',')
+    .map(s => s.trim().toLowerCase().replace(/[\s-]+/g, '_'))
+    .filter((s): s is AutopsyOrganCode => AUTOPSY_ORGAN_CODE_SET.has(s));
+}

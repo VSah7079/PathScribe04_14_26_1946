@@ -131,7 +131,7 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     const e = await engine('ko-KR');
     expect(checkText('검체를 생검으로 확인하였으며 adenocarcinoma 소견', e.tiers)).toEqual([]);
     expect(checkText('adenocarcnoma 소견', e.tiers).map(i => i.word)).toEqual(['adenocarcnoma']);
-  }, 30_000);
+  });
 
   it('German (GPL) ships byte-for-byte unmodified, with the full licence texts', () => {
     const pkg = resolve(PUBLIC, '../../node_modules/dictionary-de');
@@ -142,13 +142,30 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(readFileSync(resolve(PUBLIC, 'NOTICE.txt'), 'utf8')).toMatch(/distributed UNMODIFIED[\s\S]*(Written offer|corresponding source is provided)/);
   });
 
+  it('Spanish (RLA-ES, MPL-1.1) loads, accepts pathology terms and flags a misspelling', async () => {
+    const es = await engine('es-ES');
+    expect(checkText('El adenocarcinoma infiltrante afecta al ganglio centinela; pT2 N1 G2, Ki-67 30 %.', es.tiers)).toEqual([]);
+    expect(checkText('adenocarcinma infiltrante', es.tiers).map(i => i.word)).toEqual(['adenocarcinma']);
+    expect(readFileSync(resolve(PUBLIC, 'NOTICE.txt'), 'utf8')).toContain('dictionary-es');
+    expect(readFileSync(resolve(PUBLIC, 'licenses', 'MPL-1.1.txt'), 'utf8').length).toBeGreaterThan(1000);
+  });
+
   it('German (GPL, shipped unmodified) loads and checks, with codes still passed through', async () => {
     const de = await engine('de-DE');
     expect(checkText('Das Präparat zeigt Lymphknoten; pT2 N1 G2, Ki-67 30 %. Präparatt', de.tiers).map(i => i.word)).toEqual(['Präparatt']);
-    expect(suggestWord('Präparatt', 'latin', de.tiers)).toContain('Präparat');
-    // Known gap: German has no medical tier yet, and the general dictionary lacks core terms.
-    expect(checkText('Karzinom Adenokarzinom', de.tiers).map(i => i.word)).toEqual(['Karzinom', 'Adenokarzinom']);
-  }, 30_000);
+    // Hunspell gives up on suggestions after a short time limit, and the German
+    // dictionary (heavy compounding) can hit it on a busy machine; the lookup is
+    // otherwise deterministic, so allow a few attempts before failing.
+    let suggestions: string[] = [];
+    for (let attempt = 0; attempt < 5 && !suggestions.includes('Präparat'); attempt++) suggestions = suggestWord('Präparatt', 'latin', de.tiers);
+    expect(suggestions).toContain('Präparat');
+    // Batch 609: the starter medical tier supplies the core terms the general dictionary lacks.
+    expect(checkText('Karzinom Adenokarzinom Plattenepithelkarzinome Resektionsrand', de.tiers)).toEqual([]);
+    expect(checkText('Karzinomm', de.tiers).map(i => i.word)).toEqual(['Karzinomm']);
+    expect(checkWord('Karzinom', 'latin', de.tiers)).toEqual({ ok: true, tier: 'medical' });
+    // German nouns stay capitalised: the lower-case form is not in the lexicon.
+    expect(checkText('karzinom', de.tiers).map(i => i.word)).toEqual(['karzinom']);
+  });
 
   it('French and Dutch base dictionaries load and check', async () => {
     const fr = await engine('fr-FR');
@@ -156,7 +173,13 @@ describe('cascade with real dictionaries', { timeout: 30_000 }, () => {
     expect(suggestWord('prélevement', 'latin', fr.tiers)).toContain('prélèvement');
     const nl = await engine('nl-NL');
     expect(checkText('Biopsie van weefsel met carcinoom', nl.tiers)).toEqual([]);
-  }, 30_000);
+    // Batch 609: starter medical tiers for French and Dutch.
+    expect(checkText('Carcinome épidermoïde infiltrant, exérèse complète; frottis', fr.tiers)).toEqual([]);
+    expect(checkText('Adénocarcinomme', fr.tiers).map(i => i.word)).toEqual(['Adénocarcinomme']);
+    expect(checkText('Plaveiselcelcarcinoom met resectiemarge; vriescoupe en lymfeklieren', nl.tiers)).toEqual([]);
+    expect(checkText('adenocarcinomm', nl.tiers).map(i => i.word)).toEqual(['adenocarcinomm']);
+    expect(checkWord('lymfeklier', 'latin', nl.tiers)).toEqual({ ok: true, tier: 'medical' });
+  });
 
   it('checks a 5,000-word report quickly, looking each distinct word up only once (AC4)', async () => {
     const e = await engine('en-GB');

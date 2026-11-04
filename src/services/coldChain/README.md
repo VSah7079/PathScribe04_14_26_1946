@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/coldChain/
 
 Real, per direct follow-up on the RFP-APLIS-2026-GLOBAL Reference
@@ -72,6 +74,17 @@ stories, not built here.
   supervisor escape hatch. `setColdChainExcursion()`/
   `acknowledgeColdChainExcursion()` added to `IBatchService.ts`.
 
+
+## Batch 610 (part C): Cold chain admin and the Simulated feed (#17, #123)
+
+- **Storage units and condition types are managed in the browser**: Configuration → System → Cold chain (`config:cold-chain:manage`). Both services are wrapped in `guardConfigWrites`; the system condition types (`sct-frozen-tissue`, `sct-fresh-tissue`) cannot be removed.
+- **`simulatedTelemetryFeed.ts`**: `postSimulatedTelemetryReading()` is the one door for a reading when no sensor feed exists. It needs `batch:cold-chain-reading:simulate`, builds the same inbound event a real sensor would send (with `simulated: true`), runs it through `processInboundTelemetryReadingEvent`, and audits "Simulated Temperature Reading" (no patient data). The reading is stored with `simulated: true` and shown with the Simulated badge everywhere.
+- **`processInboundTelemetryReadingEvent`** now reports what an excursion did (`heldBatchId`, `deficienciesRaised`) so the control can say "batch held, 2 CAPA items raised". The CAPA comment starts "Simulated cold-chain" or "Real cold-chain".
+- **`coldChainStatus.ts`**: `summariseReadings()` (none / ok / excursion from the latest reading, with counts) and `recentReadings()`; used by `components/ColdChain/AssetReadingsPanel.tsx` on the storage unit and container views and on the batch detail page.
+- **Still the server's:** the MQTT/IoT endpoint that receives sensor readings, the REST endpoint, and the durable reading store. The browser side is complete and unchanged when they arrive: the real feed sends the same event without `simulated`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-508): server versions of StorageConditionTypeService, StorageUnitService, TelemetryReadingService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/REAGENTS_LABELS_API.md`.

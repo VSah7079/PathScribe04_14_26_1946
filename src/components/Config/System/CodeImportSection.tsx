@@ -158,6 +158,7 @@ const CodeImportSection: React.FC = () => {
 
   const columnSelect = (field: CodeImportField) => (
     <select
+      aria-label={fieldLabel(field)}
       className="ps-conf-select"
       value={mapping[field] ?? ''}
       onChange={e => { setMapping(m => withMappedColumn(m, field, e.target.value)); invalidate(); }}
@@ -217,7 +218,7 @@ const CodeImportSection: React.FC = () => {
         <div className="ps-conf-form-row--3">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('codeImportSection.vocabularyLabel')}</label>
-            <select className="ps-conf-select" value={vocabulary} onChange={e => {
+            <select aria-label={t('codeImportSection.vocabularyLabel')} className="ps-conf-select" value={vocabulary} onChange={e => {
               const v = e.target.value as CodeVocabulary;
               setVocabulary(v);
               setCountry(defaultCountryForVocabulary(v));
@@ -228,7 +229,7 @@ const CodeImportSection: React.FC = () => {
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('codeImportSection.countryLabel')}</label>
-            <select className="ps-conf-select" value={country} onChange={e => { setCountry(e.target.value); invalidate(); }}>
+            <select aria-label={t('codeImportSection.countryLabel')} className="ps-conf-select" value={country} onChange={e => { setCountry(e.target.value); invalidate(); }}>
               <option value="">{t('codeImportSection.anyCountry')}</option>
               <optgroup label={t('billingDictionarySection.modal.countryGroupOperating')}>{IMPORT_COUNTRY_GROUPS.operating.map(countryOption)}</optgroup>
               <optgroup label={t('billingDictionarySection.modal.countryGroupEU')}>{IMPORT_COUNTRY_GROUPS.eu.map(countryOption)}</optgroup>
@@ -237,7 +238,7 @@ const CodeImportSection: React.FC = () => {
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('codeImportSection.siteLabel')}</label>
-            <select className="ps-conf-select" value={siteId} onChange={e => { setSiteId(e.target.value); invalidate(); }}>
+            <select aria-label={t('codeImportSection.siteLabel')} className="ps-conf-select" value={siteId} onChange={e => { setSiteId(e.target.value); invalidate(); }}>
               <option value="">{t('billingDictionarySection.enterpriseWideLabel')}</option>
               {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -245,7 +246,7 @@ const CodeImportSection: React.FC = () => {
         </div>
         <div className="ps-conf-form-field">
           <label className="ps-conf-label">{t('codeImportSection.batchNoteLabel')}</label>
-          <input className="ps-conf-input" value={batchNote} onChange={e => setBatchNote(e.target.value)} placeholder={t('codeImportSection.batchNotePlaceholder')} />
+          <input aria-label={t('codeImportSection.batchNoteLabel')} className="ps-conf-input" value={batchNote} onChange={e => setBatchNote(e.target.value)} placeholder={t('codeImportSection.batchNotePlaceholder')} />
           <span className="ps-conf-hint">{t('codeImportSection.batchNoteHint')}</span>
         </div>
       </div>
@@ -264,7 +265,7 @@ const CodeImportSection: React.FC = () => {
             ))}
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('codeImportSection.mapping.fallbackDateLabel')}</label>
-              <input className="ps-conf-input" type="date" value={fallbackDate} onChange={e => { setFallbackDate(e.target.value); invalidate(); }} />
+              <input aria-label={t('codeImportSection.mapping.fallbackDateLabel')} className="ps-conf-input" type="date" value={fallbackDate} onChange={e => { setFallbackDate(e.target.value); invalidate(); }} />
               <span className="ps-conf-hint">{t('codeImportSection.mapping.fallbackDateHint')}</span>
             </div>
             {OPTIONAL_IMPORT_FIELDS.map(f => (
@@ -275,14 +276,14 @@ const CodeImportSection: React.FC = () => {
             ))}
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('codeImportSection.mapping.defaultLevelLabel')}</label>
-              <select className="ps-conf-select" value={defaultLevel} onChange={e => { setDefaultLevel(e.target.value as BillingRuleVersion['level'] | ''); invalidate(); }}>
+              <select aria-label={t('codeImportSection.mapping.defaultLevelLabel')} className="ps-conf-select" value={defaultLevel} onChange={e => { setDefaultLevel(e.target.value as BillingRuleVersion['level'] | ''); invalidate(); }}>
                 <option value="">{t('codeImportSection.mapping.fromDescription')}</option>
                 {LEVELS.map(l => <option key={l} value={l}>{t(LEVEL_LABEL_KEY[l])}</option>)}
               </select>
             </div>
             <div className="ps-conf-form-field">
               <label className="ps-conf-label">{t('codeImportSection.mapping.defaultBillingTypeLabel')}</label>
-              <select className="ps-conf-select" value={defaultBillingType} onChange={e => { setDefaultBillingType(e.target.value as BillingRuleVersion['billingType']); invalidate(); }}>
+              <select aria-label={t('codeImportSection.mapping.defaultBillingTypeLabel')} className="ps-conf-select" value={defaultBillingType} onChange={e => { setDefaultBillingType(e.target.value as BillingRuleVersion['billingType']); invalidate(); }}>
                 {BILLING_TYPES.map(b => <option key={b} value={b}>{t(`codeImportSection.billingTypes.${b}`)}</option>)}
               </select>
             </div>

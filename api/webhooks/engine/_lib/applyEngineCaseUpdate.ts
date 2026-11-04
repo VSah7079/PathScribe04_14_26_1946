@@ -33,8 +33,10 @@ import type { Specimen } from '../../../../src/types/case/Specimen';
 import type { MatrixBlock } from '../../../../src/types/case/MatrixBlock';
 
 const COLLECTION_NAME = 'cases';
+/** The same collection idempotency.ts claims in, so the two kinds of claim share one key space. */
+const PROCESSED_MESSAGES = 'processed_messages';
 
-export type ApplyEngineCaseUpdateOutcome = 'applied' | 'case-not-found' | 'target-not-found';
+export type ApplyEngineCaseUpdateOutcome = 'applied' | 'case-not-found' | 'target-not-found' | 'already-processed';
 
 export interface ApplyEngineCaseUpdateResult {
   outcome: ApplyEngineCaseUpdateOutcome;
@@ -68,14 +70,32 @@ export type EngineCaseMutation =
  *                the caller report a real 'target-not-found' outcome
  *                distinctly from 'case-not-found'.
  */
+/**
+ * Batch 545 (finding F10, INTERFACE_ENGINE_EDGE.md §4.3): the event's
+ * messageId, claimed in the same transaction as the change. The claim is
+ * written only when the change is, so a not-found, a refusal or a crash
+ * leaves no claim and the engine's redelivery is applied; a messageId
+ * already claimed is 'already-processed' and changes nothing.
+ */
+export interface EngineEventClaim {
+  messageId: string;
+  eventType: string;
+}
+
 export async function applyEngineCaseUpdate(
   caseId: string,
   mutate: (specimens: Specimen[], matrixBlocks: MatrixBlock[]) => EngineCaseMutation,
+  claim?: EngineEventClaim,
 ): Promise<ApplyEngineCaseUpdateResult> {
   const db = getAdminFirestore();
   const ref = db.collection(COLLECTION_NAME).doc(caseId);
+  const claimRef = claim ? db.collection(PROCESSED_MESSAGES).doc(claim.messageId) : null;
 
   return db.runTransaction(async (tx): Promise<ApplyEngineCaseUpdateResult> => {
+    // Every read before any write (Firestore transactions).
+    if (claimRef && (await tx.get(claimRef)).exists) {
+      return { outcome: 'already-processed', caseId };
+    }
     const snap = await tx.get(ref);
     if (!snap.exists) {
       return { outcome: 'case-not-found', caseId };
@@ -100,6 +120,7 @@ export async function applyEngineCaseUpdate(
       version: currentVersion + 1,
       updatedAt: FieldValue.serverTimestamp(),
     });
+    if (claimRef && claim) tx.create(claimRef, { eventType: claim.eventType, claimedAt: new Date().toISOString() });
 
     return { outcome: 'applied', caseId };
   });

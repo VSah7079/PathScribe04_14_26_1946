@@ -26,14 +26,15 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
 import TypeModal from './TypeModal';
-import { mockParticipationTypeService } from '../../../services/participationTypes/mockParticipationTypeService';
+
 import type { ParticipationTypeRecord as ParticipationType, NewParticipationType } from '../../../services/participationTypes/IParticipationTypeService';
 import type { Facility } from '../../../services/facilities/IFacilityService';
 import { getActivePerformingLabs } from '../../../utils/performingLabs';
 import { saveParticipationTypeWithAudit, resolveAuditActor } from '../../../services/participationTypes/saveParticipationType';
 import { getSessionUser } from '../../../services/auth/caseAccessControl';
-import { auditService } from '../../../services';
+import { auditService, participationTypeService } from '@/services';
 import { duplicateParticipationType } from '@/services/duplication/duplicateEntities';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 export type { ParticipationType };
 
@@ -54,7 +55,6 @@ const AttrChip: React.FC<{ label: string; value?: boolean; onColor?: string }> =
 
 // ─── Modal draft type ─────────────────────────────────────────────────────────
 
-type Draft = Omit<ParticipationType, 'id' | 'isSystem'>;
 
 const ParticipationTypesSection: React.FC = () => {
   const { t } = useTranslation();
@@ -68,7 +68,7 @@ const ParticipationTypesSection: React.FC = () => {
 
   const refresh = () => {
     setLoading(true);
-    mockParticipationTypeService.getAll().then(res => {
+    participationTypeService.getAll().then(res => {
       if (res.ok) setTypes(res.data);
       setLoading(false);
     });
@@ -80,7 +80,7 @@ const ParticipationTypesSection: React.FC = () => {
   // overrides (who/when/why) — all logic in
   // services/participationTypes/saveParticipationType.ts; this screen only
   // supplies the session actor and facility names.
-  const handleSave = async (draft: Draft, justifications: Record<string, string>) => {
+  const handleSave = async (draft: NewParticipationType, justifications: Record<string, string>) => {
     setSaving(true);
     try {
       await saveParticipationTypeWithAudit(
@@ -88,12 +88,12 @@ const ParticipationTypesSection: React.FC = () => {
           mode: modal?.mode ?? 'add',
           // Only an edit has a stored record; a duplicate's pre-filled type is not one.
           existing: modal?.mode === 'edit' ? modal.type : undefined,
-          draft: draft as NewParticipationType,
+          draft,
           justifications,
           facilityNames: Object.fromEntries(labs.map(l => [l.id, l.name])),
           actor: resolveAuditActor(getSessionUser()),
         },
-        { typeService: mockParticipationTypeService, auditService },
+        { typeService: participationTypeService, auditService },
       );
       refresh();
       setModal(null);
@@ -134,14 +134,14 @@ const ParticipationTypesSection: React.FC = () => {
 
       {/* Search + filter */}
       <div className="ps-participationtypes__filters">
-        <input
+        <input data-dirty-ignore data-config-nav
           type="text"
           placeholder={t('participationTypesSection.searchPlaceholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="ps-routingrules__search-input"
         />
-        <select value={filter} onChange={e => setFilter(e.target.value as any)}
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={filter} onChange={e => setFilter(e.target.value as any)}
           className="ps-conf-select">
           <option value="all">{t('participationTypesSection.filterAll')}</option>
           <option value="active">{t('common.active')}</option>
@@ -162,7 +162,7 @@ const ParticipationTypesSection: React.FC = () => {
             </thead>
             <tbody>
               {loading && (
-                <tr><td colSpan={5} className="ps-routingrules__empty-row">{t('common.loading')}</td></tr>
+                <tr><td colSpan={5} className="ps-routingrules__empty-row"><LoadingState variant="inline" label={t('common.loading')} /></td></tr>
               )}
               {!loading && filtered.map((pt, i) => (
                 <tr key={pt.id}

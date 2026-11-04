@@ -18,9 +18,9 @@
 // actually released (status flips to 'released' via re-finalize/sign-
 // out), same mechanism already built for the real amendment pipeline.
 // ─────────────────────────────────────────────────────────────────────────────
+import { useOpenCase } from '@/hooks/useOpenCase';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router';
 import '../../pathscribe.css';
 import { lisAmendmentNoticeService, amendmentService } from '@/services';
 
@@ -52,7 +52,7 @@ const BADGE_KEY: Record<TriageItem['kind'], string> = {
 
 export const AmendedAddendaTriageTile: React.FC<{ pathologistId: string }> = ({ pathologistId }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const [items, setItems] = useState<TriageItem[]>([]);
   const [expanded, setExpanded] = useState(true);
 
@@ -96,7 +96,7 @@ export const AmendedAddendaTriageTile: React.FC<{ pathologistId: string }> = ({ 
             <button
               key={`${item.caseId}-${item.kind}-${i}`}
               className="ps-triage-tile-row"
-              onClick={() => navigate(`/case/${item.caseId}/synoptic`)}
+              onClick={() => void openCasePage(item.caseId, 'synoptic')}
             >
               <span className={`ps-triage-tile-badge ps-triage-tile-badge--${item.kind}`}>
                 {t(BADGE_KEY[item.kind])}

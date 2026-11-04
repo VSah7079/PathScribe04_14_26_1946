@@ -16,6 +16,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { ServiceResult } from '../types';
+import type { RecallWindowsByJurisdiction, RecallWindowsConfig } from './recallWindows';
+import type { RecallWordingConfig } from './recallWording';
 
 /** 'co_testing': cytology and HPV are performed together — this app's
  *  own original, real workflow (PS-149 onward): a slide always exists
@@ -53,6 +55,12 @@ export interface CytologyScreeningStrategyConfig {
    *  be determined (no real, honest way to guess an age bracket). */
   screeningStrategy: CytologyScreeningStrategy;
   ageStratifiedRule?: CytologyAgeStratifiedRule;
+  /** Batch 632: target weeks for a self-collected hrHPV recall in Australia and New Zealand (recallWindows.ts). Absent = the defaults. */
+  selfCollectedRecallWindows?: RecallWindowsConfig;
+  /** Batch 640: windows per country (AU, NZ); a country with none uses the shared set above, then the defaults. */
+  selfCollectedRecallWindowsByJurisdiction?: RecallWindowsByJurisdiction;
+  /** Batch 640: wording the lab's administrator has written, per country, kind and language. Absent = the built-in text. */
+  selfCollectedRecallWording?: RecallWordingConfig;
 }
 
 /** Real, per direct guidance: co-testing remains this app's own real,

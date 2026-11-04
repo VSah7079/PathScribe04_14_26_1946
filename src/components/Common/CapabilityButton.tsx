@@ -23,23 +23,27 @@ interface Props {
   children: React.ReactNode;
   /** Other reasons the action isn't available right now. */
   disabled?: boolean;
+  /** Batch 410: the tooltip that says why, when `disabled`. */
+  disabledTitle?: string;
   /** PS-356: what the action touches (a case, a facility, all facilities), for facility scope. */
   context?: CapabilityContext;
+  /** Batch 437: the tooltip when the action is allowed (a refusal shows why instead). */
+  title?: string;
 }
 
-export const CapabilityButton: React.FC<Props> = ({ capability, className, onClick, children, disabled, context }) => {
+export const CapabilityButton: React.FC<Props> = ({ capability, className, onClick, children, disabled, disabledTitle, context, title: allowedTitle }) => {
   const { t } = useTranslation();
   const { decide, loading } = useCapabilities();
   const decision = decide(capability, context);
   const allowed = !!decision?.allowed;
   const label = (key: string) => { const d = capabilityDefinition(key); return d ? t(capabilityLabelKey(d)) : key; };
-  const title = allowed || loading || !decision ? undefined
+  const title = allowed || loading || !decision ? allowedTitle
     : decision.reason === 'outOfScope' || decision.reason === 'facilityUnknown'
       ? t('capabilities.outOfScope', { capability: label(capability) })
       : decision.reason === 'requirementNotGranted'
         ? t('capabilities.requirementMissing', { capability: label(capability), required: decision.missingRequirements.map(label).join(', ') })
         : t('capabilities.notGranted', { capability: label(capability) });
-  if (disabled) return <button className={className} disabled>{children}</button>;
+  if (disabled) return <button className={className} disabled title={disabledTitle}>{children}</button>;
   return (
     <button
       className={`${className}${allowed ? '' : ' ps-cap-btn--denied'}`}

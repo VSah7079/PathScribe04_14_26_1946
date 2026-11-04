@@ -23,7 +23,10 @@ a result — see `VoiceToggleButton.tsx` below.
 
 - **`VoiceSettings.tsx`** — Accent selection + mounts `SpeechConfigTab`
   and (from `Config/System/`) `VoiceSection` — the real consumer of that
-  cross-folder file noted in `Config/System/README.md`. No issues.
+  cross-folder file noted in `Config/System/README.md` — and also
+  `Config/System/FootPedalSection.tsx` (foot pedal bindings; added to this
+  entry in the Batch 496 README audit). `VoiceSection` is wrapped in
+  `ConfigSectionGate` (`voice:deployment`, `config:voice:manage`). No issues.
 - **`VoiceMissPrompt.tsx`** — Shown when a voice command isn't recognised,
   up to 3 fuzzy candidates, auto-dismiss/auto-confirm timing logic clearly
   documented in its own header. Deliberately not shown during dictation
@@ -71,6 +74,38 @@ a result — see `VoiceToggleButton.tsx` below.
 
 `VoiceToggleButton.tsx`: the remaining inline styles moved into `pathscribe.css` classes. Per-instance values (sizes, positions, a colour) are passed as custom properties, and colours are derived with `color-mix()` from `--ps-hue` instead of hex strings built in JSX. The browser checks are listed in the Batch 367 changelog (`src/i18n/README.md`). The app-wide check is `services/styleRules/inlineCss.guard.test.ts`.
 
+## Batch 429: view-only sections, equipment log for the bench
+
+`VoiceSettings.tsx`: the deployment-wide voice switch is view only without `config:voice:manage`; a person's own accent, pedal and voice macros are unchanged.
+
+## Batch 430: personal settings per person; view-only fields
+
+`SpeechConfigTab.tsx` lists your own voice macros and the shared ones, and what you add or import is yours (`addPersonalMacro`, `importPersonalMacros`). Changing a shared macro needs `config:macros:manage`.
+
+## Batch 437
+
+Filter boxes are marked `data-dirty-ignore` (PS-128).
+
 ---
 *See [components/README.md](../README.md) for how this folder fits the whole components/ layer.*
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 506 (PS-477)
+
+`SpeechConfigTab` uses the shared `voiceMacroService` from `@/services`. `VoiceCommandOverlay` and `VoiceMissPrompt` import their services from there too. No change in behaviour.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 565 (WCAG 2.1 AA)
+
+- Contrast of colours set in code raised from the old greys; filter tiles say which is selected (`aria-pressed`) where this folder has them.
+
+## Batch 638
+
+`VoiceSettings.tsx` shows a note under the accent list when Belgian Dutch is chosen: it has not yet been tested by a Belgian speaker.

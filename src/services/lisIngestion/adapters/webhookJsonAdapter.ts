@@ -10,8 +10,10 @@
 //     "updatedAt":       "2026-09-24T15:05:00Z",   required, ISO 8601
 //     "grossText":       "...",                    optional
 //     "microscopicText": "...",                    optional
-//     "diagnosisText":   "..."                     optional
-//   }
+//     "diagnosisText":   "...",                    optional
+//     "placerOrderNumber": "ORD-2026-10091",       optional (Batch 426): ORC-2,
+//     "fillerOrderNumber": "LIS-2026-44912"        optional (Batch 426): ORC-3,
+//   }                                              echoed on the synoptic result
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { AdapterResult, LisPushAdapter, NormalizedLisUpdate } from '../types';
@@ -34,6 +36,7 @@ export const webhookJsonAdapter: LisPushAdapter = {
       const t = typeof o.updatedAt === 'string' ? new Date(o.updatedAt) : null;
       if (!t || isNaN(t.getTime())) return { ok: false, error: 'INVALID_UPDATED_AT' };
       const gross = optionalText(o.grossText), micro = optionalText(o.microscopicText), dx = optionalText(o.diagnosisText);
+      const placer = optionalText(o.placerOrderNumber)?.trim(), filler = optionalText(o.fillerOrderNumber)?.trim();
       updates.push({
         accession: o.accession.trim(),
         lisStatus: o.status.trim(),
@@ -41,6 +44,8 @@ export const webhookJsonAdapter: LisPushAdapter = {
         ...(gross !== undefined ? { grossText: gross } : {}),
         ...(micro !== undefined ? { microscopicText: micro } : {}),
         ...(dx !== undefined ? { diagnosisText: dx } : {}),
+        ...(placer ? { placerOrderNumber: placer } : {}),
+        ...(filler ? { fillerOrderNumber: filler } : {}),
       });
     }
     if (updates.length === 0) return { ok: false, error: 'MISSING_ACCESSION' };

@@ -1,0 +1,8 @@
+/* Batch 720: Grossing screen bench tools. */
+.ps-grossing-bench { margin: 0.75rem 0; padding: 0.75rem 1rem; border: 1px solid var(--ps-border, #d0d7de); border-radius: 8px; }
+.ps-grossing-bench-title { font-size: 1.05rem; margin: 0 0 0.5rem; }
+.ps-grossing-bench-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.ps-grossing-bench-decal { display: inline-flex; gap: 0.4rem; align-items: center; }
+.ps-grossing-bench-hint { font-size: 0.85rem; opacity: 0.8; margin: 0.5rem 0 0; }
+.ps-grossing-bench-message { margin: 0.5rem 0 0; }
+.ps-grossing-bench-message--warning { color: #b45309; }

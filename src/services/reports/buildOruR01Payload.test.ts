@@ -138,3 +138,32 @@ describe('buildOruR01Payload — narrative.diagnosisComment, per direct correcti
     expect(payload?.narrative.diagnosisComment).toBeUndefined();
   });
 });
+
+describe('buildOruR01Payload — Batch 393: the autopsy report as one case-level result', () => {
+  const autopsyCase = (autopsy: any, synopticReports: any[] = []) => makeCase({ autopsy, synopticReports });
+  const fad = { frozenPayload: { sections: [{ label: 'Final Anatomic Diagnosis', text: 'Coronary atherosclerosis.' }] } };
+  const pad = { frozenPayload: { sections: [{ label: 'Provisional Anatomic Diagnosis', text: 'Pending histology.' }] } };
+
+  it('an autopsy case with no synoptic report still sends its FAD, with the autopsy sections', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValueOnce(autopsyCase({ fadSnapshot: fad }) as any);
+    const payload = await buildOruR01Payload('CASE-1', 'autopsy-report', 'FINAL', async () => ({ pdfBase64: 'PDF' }));
+    expect(payload?.instanceId).toBe('autopsy-report');
+    expect(payload?.narrative.autopsySections).toEqual([{ label: 'Final Anatomic Diagnosis', text: 'Coronary atherosclerosis.' }]);
+    expect(payload?.narrative.diagnosisComment).toBeUndefined();
+    expect(payload?.reportPdfBase64).toBe('PDF');
+  });
+  it('the PAD is the preliminary', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValueOnce(autopsyCase({ padSnapshot: pad }) as any);
+    const payload = await buildOruR01Payload('CASE-1', 'autopsy-report', 'PRELIMINARY');
+    expect(payload?.narrative.autopsySections?.[0].label).toBe('Provisional Anatomic Diagnosis');
+  });
+  it('nothing to send before the report for that tier is signed', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValueOnce(autopsyCase({ padSnapshot: pad }) as any);
+    expect(await buildOruR01Payload('CASE-1', 'autopsy-report', 'FINAL')).toBeNull();
+  });
+  it('the case-level id means nothing on a surgical case', async () => {
+    vi.mocked(caseRouter.getCase).mockResolvedValueOnce(makeCase() as any);
+    expect(await buildOruR01Payload('CASE-1', 'autopsy-report', 'FINAL')).toBeNull();
+  });
+});
+

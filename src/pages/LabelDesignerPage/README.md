@@ -19,11 +19,8 @@ still a real, complete page-level component (its own data fetching,
 canvas, full layout), not a small, config-form-shaped section like its
 sibling tabs — a real, deliberate judgment call, not an oversight.
 
-**Real, honest, flagged convention gap**: uses inline `style={{...}}`
-throughout, not this app's own established "no inline CSS, named classes
-only" convention for Config-registered UI (see
-`components/Config/System/README.md`'s own header). Found while auditing
-README coverage, not yet reconciled.
+*Superseded (Batch 367):* this note used to say the page used inline
+`style={{...}}` throughout. It doesn't: see the Batch 367 section below.
 
 ## Batch 367 (PS-74): no inline CSS
 
@@ -32,3 +29,38 @@ README coverage, not yet reconciled.
 ## Batch 368
 
 `LabelDesignerPage.tsx` takes `labelLayoutService` and `facilityService` from `@/services`, and is off the deployment baseline.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`LabelDesignerPage.test.tsx`: real barcodes on the canvas per label type, a bad payload shows a placeholder, and the Export ZPL panel (PS-256). `safeBarcodeSvg` moved to `utils/labels/safeBarcodeSvg.ts`, which now escapes its placeholder text.
+
+## Batch 460 (PS-245)
+
+Selected fields have eight resize handles (pointer capture). Placing, moving, resizing and typing are kept inside the label through `services/labelDesigner/labelFieldGeometry.ts`.
+- Fields past the edge are outlined, with a warning and "Fit to label".
+- The save's refusal is translated.
+- A moved field keeps its grab point.
+
+Tests: `LabelDesignerPage.test.tsx` (handle resize stops at the edge, handles only on the selected field, typed width capped, out-of-bounds warning, fit and refusal).
+
+## Batch 500 (PS-473)
+
+The canvas barcode renders through `sanitizeSvgMarkup`. The page test passes the sanitiser through (it needs happy-dom for its drag tests, where DOMPurify doesn't work); the sanitiser is tested on real Code 128, DataMatrix and QR SVGs under jsdom.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+The design canvas is a named group (`a11y.labelCanvas`); a click on empty canvas, or Escape, clears the selection. `MmInput` takes a `label`.
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 589 — Exact canvas (PS-245)
+
+The canvas border sits outside the label's width and height (`box-sizing: content-box`), drops are measured from inside the border, and the Inspector number boxes re-sync after a value is clamped back to the same number. `labelDesignerCanvas.guard.test.ts` checks the CSS.
+
+## Batch 606
+
+Show rules per field (with a preview that treats a chosen field as empty), version history with restore, and export to ZPL, EPL or DPL. Saved layouts are now used by the printed labels (`services/labelDesigner/savedLayoutRegistry.ts`).

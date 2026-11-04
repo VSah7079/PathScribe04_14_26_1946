@@ -98,6 +98,81 @@ export function computeOverviewKpis(
   };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Peer averages for the Overview KPI tiles (Batch 652). The "peer avg" row used to be three fixed numbers
+// (109, 18, 76) shown to everyone. A peer is another active staff member with the same role and a facility in
+// common; the figures are the mean of each peer's own computeOverviewKpis result, so they use the same definition
+// as the person's own tile. With fewer than MIN_PEER_GROUP peers nothing is shown (never a fabricated figure, and
+// never an average of one or two people that would expose them).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const MIN_PEER_GROUP = 3;
+
+export interface PeerStaffRecord {
+  id: string;
+  roles: string[];
+  status?: string;
+  /** Empty or absent: works at all facilities (same meaning as StaffUser.facilityIds). */
+  facilityIds?: string[];
+}
+
+export interface PeerKpiAverages {
+  peerCount: number;
+  /** False when the peer group is smaller than MIN_PEER_GROUP; the averages are then null. */
+  enough: boolean;
+  casesFinalized30d: number | null;
+  casesInProgress:   number | null;
+  aiAssistedCases30d: number | null;
+}
+
+const facilitiesOverlap = (a?: string[], b?: string[]): boolean =>
+  !a?.length || !b?.length || a.some(f => b.includes(f));
+
+/** Ids of the active staff who share at least one role and at least one facility with `me` (never `me`). */
+export function selectPeerGroup(me: PeerStaffRecord | undefined, staff: PeerStaffRecord[]): string[] {
+  if (!me || me.roles.length === 0) return [];
+  return staff
+    .filter(s => s.id !== me.id
+      && (s.status === undefined || s.status === 'Active')
+      && s.roles.some(r => me.roles.includes(r))
+      && facilitiesOverlap(me.facilityIds, s.facilityIds))
+    .map(s => s.id);
+}
+
+/** The one peer rule both the Overview "Peer avg" and Productivity > Peer Comparison use (Batch 658): the same-role,
+ *  shared-facility group, or nobody when it is smaller than MIN_PEER_GROUP (so no figure can single a person out). */
+export function peerGroupForComparison(me: PeerStaffRecord | undefined, staff: PeerStaffRecord[]): string[] {
+  const ids = selectPeerGroup(me, staff);
+  return ids.length >= MIN_PEER_GROUP ? ids : [];
+}
+
+const mean1 = (values: number[]): number => Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+
+export function computePeerKpiAverages(
+  cases: CaseForDashboardCalc[],
+  me: PeerStaffRecord | undefined,
+  staff: PeerStaffRecord[],
+  now: Date = new Date()
+): PeerKpiAverages {
+  const peerIds = peerGroupForComparison(me, staff);
+  if (peerIds.length === 0) {
+    return { peerCount: selectPeerGroup(me, staff).length, enough: false, casesFinalized30d: null, casesInProgress: null, aiAssistedCases30d: null };
+  }
+  const kpis = peerIds.map(id => computeOverviewKpis(cases, id, now));
+  return {
+    peerCount: peerIds.length,
+    enough: true,
+    casesFinalized30d:  mean1(kpis.map(k => k.casesFinalized30d)),
+    casesInProgress:    mean1(kpis.map(k => k.casesInProgress)),
+    aiAssistedCases30d: mean1(kpis.map(k => k.aiAssistedCases30d)),
+  };
+}
+
+/** The peer figures in the order of the three Overview KPI tiles (finalized, in progress, AI-assisted); null when not enough peers. */
+export function peerValuesByTile(p: PeerKpiAverages): (number | null)[] {
+  return [p.casesFinalized30d, p.casesInProgress, p.aiAssistedCases30d];
+}
+
 export interface RealCaseMixData {
   breast: number;
   gi:     number;
@@ -375,15 +450,24 @@ export type QualityFlagSeverity = 'low' | 'medium' | 'high';
 
 export interface QualityFlagCandidate {
   id: string;
-  kind: 'deficiency' | 'discordance';
+  /** Batch 452 (PS-57): 'caseFlag' is a flag applied to one of the
+   *  pathologist's cases or specimens (a FlagInstance), named from the flag
+   *  catalogue. */
+  kind: 'deficiency' | 'discordance' | 'caseFlag';
   caseId: string;
-  value: string;
+  /** What the row names: the deficiency type, the case type of a
+   *  discordance, or the catalogue flag name. Data, not translated; the
+   *  sentence around it comes from qualityFlagText(). */
+  name: string;
+  /** The specimen it's on; absent for a case-level item. */
+  specimenLabel?: string;
   /** Undefined only reaches here for a discordant activity record with
    *  no severity captured — real, per QaActivityRecord.ts's own doc,
    *  severity is only ever absent when outcome !== 'discordant', so a
    *  discordant record with no severity shouldn't occur in practice;
    *  preserved as a possibility here rather than silently defaulted,
-   *  matching this widget's pre-existing behavior exactly. */
+   *  matching this widget's pre-existing behavior exactly. For a case
+   *  flag it comes from the catalogue's 1-5 severity (catalogueFlagSeverity). */
   severity: QualityFlagSeverity | undefined;
 }
 
@@ -412,6 +496,32 @@ export interface DiscordanceRecordForQualityFlags {
 export interface CaseForQualityFlagsScoping {
   id: string;
   order?: { assignedTo?: string };
+  /** Batch 452 (PS-57): applied flags, in the one FlagInstance shape. */
+  caseFlags?: FlagInstanceForQualityFlags[];
+  specimens?: { label?: string; specimenFlags?: FlagInstanceForQualityFlags[] }[];
+}
+
+export interface FlagInstanceForQualityFlags {
+  id: string;
+  flagDefinitionId: string;
+  appliedAt: string;
+  deletedAt: string | null;
+}
+
+/** The flag catalogue entries the tile needs (services/flags/IFlagService.ts Flag). */
+export interface CatalogueFlagForQualityFlags {
+  id: string;
+  name: string;
+  severity: 1 | 2 | 3 | 4 | 5;
+}
+
+/** Batch 452 (PS-57): the catalogue has no colour field, so the tile's
+ *  colour follows the catalogue's own 1-5 severity: 4-5 high, 3 medium,
+ *  1-2 low (FlagRow colours by these three). */
+export function catalogueFlagSeverity(severity: number | undefined): QualityFlagSeverity {
+  if ((severity ?? 0) >= 4) return 'high';
+  if (severity === 3) return 'medium';
+  return 'low';
 }
 
 /** Real, deliberate severity derivation — SpecimenDeficiency has no real
@@ -439,6 +549,11 @@ function deficiencySeverity(d: DeficiencyForQualityFlags, now: number): QualityF
  * in a short, urgent flag list). Both pools are scored (overdue/reopened
  * deficiencies and high-severity discordances score highest), merged,
  * sorted by score then recency, and sliced to the top `limit` (default 3).
+ *
+ * Batch 452 (PS-57): a third pool, the flags applied to the pathologist's
+ * own cases and specimens (caseFlags / specimenFlags, FlagInstance records),
+ * named and graded from the flag catalogue by flagDefinitionId, as the
+ * PS-57 fix said the tile did; until now it read no case flags at all.
  */
 export function computeTopQualityFlags(
   deficiencies: DeficiencyForQualityFlags[],
@@ -449,6 +564,7 @@ export function computeTopQualityFlags(
   userId: string,
   limit = 3,
   now: number = Date.now(),
+  flagCatalogue: readonly CatalogueFlagForQualityFlags[] = [],
 ): QualityFlagCandidate[] {
   const myCaseIds = new Set(cases.filter(c => c.order?.assignedTo === userId).map(c => c.id));
 
@@ -460,7 +576,8 @@ export function computeTopQualityFlags(
         id: d.id,
         kind: 'deficiency' as const,
         caseId: d.caseId,
-        value: `${deficiencyTypeNameById[d.deficiencyTypeId] ?? d.deficiencyTypeId}${d.specimenLabel ? ` — Specimen ${d.specimenLabel}` : ' — case-level'}`,
+        name: deficiencyTypeNameById[d.deficiencyTypeId] ?? d.deficiencyTypeId,
+        specimenLabel: d.specimenLabel || undefined,
         severity,
         sortKey: d.raisedAt,
         score: severity === 'high' ? 2 : severity === 'medium' ? 1 : 0,
@@ -473,14 +590,73 @@ export function computeTopQualityFlags(
       id: d.id,
       kind: 'discordance' as const,
       caseId: d.caseId,
-      value: `Frozen/Final discordance — ${d.caseType}`,
+      name: d.caseType,
       severity: d.severity,
       sortKey: d.recordedAt,
       score: d.severity === 'high' ? 2 : 1,
     }));
 
-  return [...deficiencyFlags, ...discordanceFlags]
+  // Batch 452 (PS-57): flags applied to the pathologist's own cases and
+  // specimens, named and graded from the flag catalogue by
+  // flagDefinitionId. Removed flags (deletedAt set) are left out; a flag
+  // whose definition is no longer in the catalogue shows its id at low
+  // severity rather than vanishing.
+  const catalogueById = new Map(flagCatalogue.map(f => [f.id, f]));
+  const toFlag = (caseId: string, inst: FlagInstanceForQualityFlags, specimenLabel?: string) => {
+    const def = catalogueById.get(inst.flagDefinitionId);
+    const severity = catalogueFlagSeverity(def?.severity);
+    return {
+      id: inst.id,
+      kind: 'caseFlag' as const,
+      caseId,
+      name: def?.name ?? inst.flagDefinitionId,
+      specimenLabel,
+      severity,
+      sortKey: inst.appliedAt ?? '',
+      score: severity === 'high' ? 2 : severity === 'medium' ? 1 : 0,
+    };
+  };
+  const caseFlagFlags = cases
+    .filter(c => myCaseIds.has(c.id))
+    .flatMap(c => [
+      ...(c.caseFlags ?? []).filter(f => !f.deletedAt && f.flagDefinitionId).map(f => toFlag(c.id, f)),
+      ...(c.specimens ?? []).flatMap(sp => (sp.specimenFlags ?? []).filter(f => !f.deletedAt && f.flagDefinitionId).map(f => toFlag(c.id, f, sp.label || undefined))),
+    ]);
+
+  return [...deficiencyFlags, ...discordanceFlags, ...caseFlagFlags]
     .sort((a, b) => b.score - a.score || b.sortKey.localeCompare(a.sortKey))
     .slice(0, limit)
     .map(({ sortKey: _sortKey, score: _score, ...flag }) => flag);
+}
+
+/** The row's description in the user's language (Batch 452: these were
+ *  English strings built here). `t` is i18next's translate function. */
+export function qualityFlagText(flag: Pick<QualityFlagCandidate, 'kind' | 'name' | 'specimenLabel'>, t: (key: string, params?: Record<string, unknown>) => string): string {
+  const params = { name: flag.name, specimen: flag.specimenLabel };
+  switch (flag.kind) {
+    case 'discordance': return t('contributionDashboard.qualityFlags.discordance', params);
+    case 'caseFlag': return t(flag.specimenLabel ? 'contributionDashboard.qualityFlags.flagSpecimen' : 'contributionDashboard.qualityFlags.flagCase', params);
+    default: return t(flag.specimenLabel ? 'contributionDashboard.qualityFlags.deficiencySpecimen' : 'contributionDashboard.qualityFlags.deficiencyCase', params);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Batch 610 (#87): the dated amounts a person's performance targets are
+// measured against. One entry per case this person signed out: 1 case, and
+// that case's work RVUs. services/performanceTargets/performanceTargetRules.ts
+// turns them into progress for the current and the previous period.
+// ─────────────────────────────────────────────────────────────────────────────
+import type { DatedAmount } from '../services/performanceTargets/performanceTargetRules';
+
+export function computeTargetAmounts(
+  cases: CaseForRvuCalc[],
+  userId: string,
+  versions: RvuTableVersion[] = [],
+  dictionaryEntries: SpecimenEntryForCptResolution[] = [],
+): { cases_monthly: DatedAmount[]; rvu_monthly: DatedAmount[] } {
+  const mine = cases.filter(c => c.order?.assignedTo === userId && c.diagnostic?.finalizedBy === userId && !!c.diagnostic?.issuedDate);
+  return {
+    cases_monthly: mine.map(c => ({ at: c.diagnostic?.issuedDate, amount: 1 })),
+    rvu_monthly: mine.map(c => ({ at: c.diagnostic?.issuedDate, amount: realWorkRvuForCase(c, versions, dictionaryEntries) })),
+  };
 }

@@ -31,6 +31,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { GS1_SEPARATOR } from './gs1DataMatrix';
+import type { SlideLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
 import type { Gs1BuildResult } from './gs1DataMatrix';
 import { mmToDots } from './simpleZplTemplate';
 import type { CassetteLabelLayoutConfig } from '@/services/printSettings/IPrintSettingsService';
@@ -200,25 +201,34 @@ export interface SlideZplFields {
  *  the full accession (AI 21) and slide id (AI 10); the visible text
  *  is limited to what a histotech actually needs to visually confirm
  *  at the microtome without a scanner (specimen/block/level/stain). */
-export function buildSlideZplTemplate(fields: SlideZplFields): string {
+export function buildSlideZplTemplate(
+  fields: SlideZplFields,
+  layout?: SlideLabelLayoutConfig,
+  dpi = 300,
+): string {
   const escapedGs1 = zplEscapeGs1(fields.gs1);
   const specimenBlockLevel = sanitizeZplText(`${fields.specimenLabel}${fields.blockLabel} ${fields.level}`);
   const stain = sanitizeZplText(fields.stainName);
+  // Batch 606 (PS-15 / PS-165): the admin-edited slide layout drives the
+  // module size, text offset and font. With no layout the output is the
+  // original fixed template (module 2, x 70, font 14/12 at 300 dpi).
+  const dotsPerMm = dpi / 25.4;
+  const module = layout ? Math.max(1, Math.round(layout.moduleSizeMm * dotsPerMm)) : 2;
+  const font = layout ? Math.max(6, Math.round(layout.fontHeightMm * dotsPerMm)) : 14;
+  const textX = layout ? 10 + 26 * module + 8 : 70;
+  const line2Y = layout ? 10 + font + 8 : 32;
 
   return [
     '^XA',
     '^CI28',
     '^FO10,8',
-    '^BY2',
-    // Real, conservative module size for this label's own tiny real
-    // area — see this function's own doc comment above. Real, direct
-    // correction, per real Labelary verification (see
-    // buildCassetteZplTemplate's own identical fix above for the full
-    // account): columns/rows omitted (blank), not 0.
-    `^BXN,2,${GS1_RECOMMENDED_ECC_LEVEL},,,1`,
+    `^BY${module}`,
+    // Conservative module size for this label's tiny area; columns/rows
+    // omitted (blank), not 0, per the Labelary verification above.
+    `^BXN,${module},${GS1_RECOMMENDED_ECC_LEVEL},,,1`,
     `^FH^FD${escapedGs1}^FS`,
-    `^FO70,10^A0N,14,14^FD${specimenBlockLevel}^FS`,
-    `^FO70,32^A0N,12,12^FD${stain}^FS`,
+    `^FO${textX},10^A0N,${font},${font}^FD${specimenBlockLevel}^FS`,
+    `^FO${textX},${line2Y}^A0N,${Math.max(6, font - 2)},${Math.max(6, font - 2)}^FD${stain}^FS`,
     '^XZ',
   ].join('\n');
 }

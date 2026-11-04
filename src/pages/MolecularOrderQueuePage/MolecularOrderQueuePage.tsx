@@ -23,25 +23,33 @@
 // parallel demo-only code path. A Positive result against the
 // standalone st-hpv-highrisk-screen assay fires the real reflex
 // genotyping order, visibly, in the same table below.
+//
+// Batch 406: the queue service comes from @/services (off the deployment
+// baseline); ordering and the payload check moved to
+// services/molecularOrders/orderQueueView.ts; times follow the user's language.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { mockMolecularOrderOutboundQueueService } from '@/services/molecularOrders/mockMolecularOrderOutboundQueueService';
+import { useBreadcrumb } from '@/contexts/BreadcrumbContext';
+import { molecularOrderOutboundQueueService, queueEntriesNewestFirst, isMolecularOrderPayload as isMolecularPayload, simulatedResultMessage } from '@/services';
+import { formatDateTime } from '@/utils/formatDate';
 import { processInboundHpvResultEvent } from '@/services/hl7/processInboundHpvResultEvent';
-import type { MolecularOrderOutboundQueueEntry, MolecularOrderPayload, InstrumentOrderPayload } from '@/types/case/MolecularOrderOutboundQueueEntry';
+import type { MolecularOrderOutboundQueueEntry } from '@/types/case/MolecularOrderOutboundQueueEntry';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 const DEMO_ACCESSION = 'S26-5003-CYT-001';
 const DEMO_SPECIMEN_LETTER = 'A';
 const DEMO_ASSAY_STANDALONE = 'st-hpv-highrisk-screen';
 const DEMO_ASSAY_BUNDLED = 'st-hpv-reflex';
 
-function isMolecularPayload(payload: MolecularOrderPayload | InstrumentOrderPayload): payload is MolecularOrderPayload {
-  return 'assayCode' in payload;
-}
-
 const MolecularOrderQueuePage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Batch 495: this page never registered a breadcrumb (same gap fixed on
+  // TumorBoardWorkspacePage/MarginExceptionReviewPage in Batch 492) — AppShell
+  // only shows the breadcrumb bar once crumbs.length > 1.
+  const { pushCrumb } = useBreadcrumb();
+  useEffect(() => { pushCrumb(t('molecularOrderQueue.pageTitle'), '/molecular-order-queue'); }, [pushCrumb, t]);
   const [entries, setEntries] = useState<MolecularOrderOutboundQueueEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [assayChoice, setAssayChoice] = useState<typeof DEMO_ASSAY_STANDALONE | typeof DEMO_ASSAY_BUNDLED>(DEMO_ASSAY_STANDALONE);
@@ -50,8 +58,8 @@ const MolecularOrderQueuePage: React.FC = () => {
   const [lastOutcome, setLastOutcome] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
-    const res = await mockMolecularOrderOutboundQueueService.getAll();
-    if (res.ok) setEntries([...res.data].sort((a, b) => b.queuedAt.localeCompare(a.queuedAt)));
+    const res = await molecularOrderOutboundQueueService.getAll();
+    if (res.ok) setEntries(queueEntriesNewestFirst(res.data));
     setLoading(false);
   }, []);
 
@@ -59,7 +67,7 @@ const MolecularOrderQueuePage: React.FC = () => {
 
   const queueDemoOrder = async () => {
     setBusy(true);
-    await mockMolecularOrderOutboundQueueService.enqueue({
+    await molecularOrderOutboundQueueService.enqueue({
       caseId: DEMO_ACCESSION,
       eventType: 'order.molecular',
       payload: {
@@ -86,13 +94,9 @@ const MolecularOrderQueuePage: React.FC = () => {
       referenceRange: 'Not Detected',
     });
     setBusy(false);
-    setLastOutcome(
-      result.outcome === 'applied'
-        ? (resultChoice === 'Positive' && assayChoice === DEMO_ASSAY_STANDALONE
-            ? t('molecularOrderQueue.resultAppliedWithReflex')
-            : t('molecularOrderQueue.resultApplied'))
-        : t('molecularOrderQueue.resultOutcome', { outcome: result.outcome })
-    );
+    // Batch 669 (mol-3): the outcome line is translated, never the processor's raw code; what it says is decided in the service.
+    const message = simulatedResultMessage(result);
+    setLastOutcome(message.outcomeKey ? t(message.key, { outcome: t(message.outcomeKey) }) : t(message.key));
     await refresh();
   };
 
@@ -106,7 +110,7 @@ const MolecularOrderQueuePage: React.FC = () => {
         <p className="ps-molq-demo-description" data-phi="accession">{t('molecularOrderQueue.demoPanelDescription', { accession: DEMO_ACCESSION })}</p>
 
         <label className="ps-molq-field-label">{t('molecularOrderQueue.assayLabel')}</label>
-        <select className="ps-batch-select" value={assayChoice} onChange={e => setAssayChoice(e.target.value as typeof assayChoice)}>
+        <select aria-label={t('molecularOrderQueue.assayLabel')} className="ps-batch-select" value={assayChoice} onChange={e => setAssayChoice(e.target.value as typeof assayChoice)}>
           <option value={DEMO_ASSAY_STANDALONE}>{t('molecularOrderQueue.assayStandalone')}</option>
           <option value={DEMO_ASSAY_BUNDLED}>{t('molecularOrderQueue.assayBundled')}</option>
         </select>
@@ -116,7 +120,7 @@ const MolecularOrderQueuePage: React.FC = () => {
         </button>
 
         <label className="ps-molq-field-label">{t('molecularOrderQueue.resultLabel')}</label>
-        <select className="ps-batch-select" value={resultChoice} onChange={e => setResultChoice(e.target.value as typeof resultChoice)}>
+        <select aria-label={t('molecularOrderQueue.resultLabel')} className="ps-batch-select" value={resultChoice} onChange={e => setResultChoice(e.target.value as typeof resultChoice)}>
           <option value="Positive">{t('molecularOrderQueue.resultPositive')}</option>
           <option value="Negative">{t('molecularOrderQueue.resultNegative')}</option>
         </select>
@@ -129,7 +133,7 @@ const MolecularOrderQueuePage: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="ps-molq-loading">{t('common.loading')}</div>
+        <LoadingState variant="inline" className="ps-molq-loading" label={t('common.loading')} />
       ) : entries.length === 0 ? (
         <div className="ps-molq-empty">{t('molecularOrderQueue.noEntries')}</div>
       ) : (
@@ -149,7 +153,7 @@ const MolecularOrderQueuePage: React.FC = () => {
               <tr key={entry.id} className={isMolecularPayload(entry.payload) && entry.payload.reflexFromMessageId ? 'ps-molq-row--reflex' : ''}>
                 <td>{entry.eventType === 'order.molecular' ? t('molecularOrderQueue.typeMolecular') : t('molecularOrderQueue.typeInstrument')}</td>
                 <td data-phi="accession">{isMolecularPayload(entry.payload) ? `${entry.payload.accessionNumber}-${entry.payload.specimenLetter}` : entry.payload.masterBarcode}</td>
-                <td>{isMolecularPayload(entry.payload) ? entry.payload.assayCode : entry.payload.instrumentVendor}</td>
+                <td>{isMolecularPayload(entry.payload) ? entry.payload.assayCode : (entry.payload.processorCode ?? entry.payload.masterBarcode)}</td>
                 <td>
                   {isMolecularPayload(entry.payload) ? (
                     entry.payload.reflexFromMessageId
@@ -158,7 +162,7 @@ const MolecularOrderQueuePage: React.FC = () => {
                   ) : '—'}
                 </td>
                 <td>{t(`molecularOrderQueue.status.${entry.status}`)}</td>
-                <td>{new Date(entry.queuedAt).toLocaleString()}</td>
+                <td>{formatDateTime(entry.queuedAt, i18n.language)}</td>
               </tr>
             ))}
           </tbody>

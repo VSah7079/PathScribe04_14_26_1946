@@ -5,7 +5,7 @@
 // processInboundCytologyInstrumentStatusEvent.ts exactly. Same real
 // "ingest our own specification" posture: takes an already-translated,
 // PathScribe-shaped event and applies it through
-// mockBatchService.setStainingInstrumentStatus, the exact same service
+// batchService.setStainingInstrumentStatus, the exact same service
 // every UI action on a Batch already goes through. The real
 // instrument's own raw wire format -> this shape is a real interface-
 // engine concern, deliberately kept out of this file, same real split
@@ -23,7 +23,7 @@
 // deliberately not-yet-built follow-up work.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockBatchService } from '../batches/mockBatchService';
+import { batchService } from '../batches/batchServiceInstance';
 import type { StainingInstrumentStatusEventPayload } from '@/types/events/StainingInstrumentStatusEventPayload';
 
 export interface ProcessInboundStainingInstrumentStatusEventResult {
@@ -48,7 +48,7 @@ export async function processInboundStainingInstrumentStatusEvent(
     return { messageId: payload.messageId, outcome: 'invalid-payload', reason: 'Missing one or more required fields: masterBarcode, status.' };
   }
 
-  const batchRes = await mockBatchService.getByMasterBarcode(payload.masterBarcode);
+  const batchRes = await batchService.getByMasterBarcode(payload.masterBarcode);
   if (!batchRes.ok) {
     return { messageId: payload.messageId, outcome: 'batch-not-found', reason: 'error' in batchRes ? batchRes.error : 'Unknown error.' };
   }
@@ -58,7 +58,7 @@ export async function processInboundStainingInstrumentStatusEvent(
     return { messageId: payload.messageId, outcome: 'wrong-node', batchId: batch.id, reason: `Batch ${batch.masterBarcode} is a '${batch.processingNode}' batch, not 'Staining' — instrument status events only apply to a Staining batch.` };
   }
 
-  const updateRes = await mockBatchService.setStainingInstrumentStatus(batch.id, payload.status);
+  const updateRes = await batchService.setStainingInstrumentStatus(batch.id, payload.status, payload.instrumentCode);
   if (!updateRes.ok) {
     return { messageId: payload.messageId, outcome: 'invalid-payload', batchId: batch.id, reason: 'error' in updateRes ? updateRes.error : 'Unknown error.' };
   }

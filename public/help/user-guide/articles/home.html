@@ -1,0 +1,252 @@
+<h1 id="top">Home Dashboard</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Home Dashboard is the first screen after you sign in. It is a set of tiles, one for each part of PathScribe you are allowed to use. Choose a tile to open that part of the system.</p>
+<p><strong>Intended users.</strong> Everyone who signs in. What you see depends on your role.</p>
+<p><strong>Where it fits.</strong> Home is the starting point of every workflow. From here you go to Accession to log a new specimen, to the Worklist to continue your cases, or to any other area your laboratory has given you.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/home-overview.png" alt="The Home Dashboard with its tiles"><figcaption>The Home Dashboard with its tiles</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">You only see your own tiles</p>
+<p>A tile appears only if your role may open that area. A colleague with a different role will see a different set. If a tile you expect is missing, ask your laboratory manager to check your access.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Welcome back, <em>name</em></td>
+<td>Greets you by your family name.</td>
+</tr>
+<tr>
+<td>Tiles</td>
+<td>One per area of PathScribe. Each has a title and a short, one-line description (kept brief so it fits the tile in every language).</td>
+</tr>
+<tr>
+<td>Registry exception count</td>
+<td>A small count on the tile that leads to registry exceptions, shown when cancer registry submissions need a person to look at them.</td>
+</tr>
+<tr>
+<td>Latest research article</td>
+<td>A line under the welcome greeting showing a recent pathology article chosen for your subspecialty: its title, then the journal and date. Select it to read it in a separate window.</td>
+</tr>
+<tr>
+<td>Paste box</td>
+<td>The faint box under the article line, "Found a better one? Paste the PMID or PubMed link". Paste a PubMed number or link and press Enter (or <strong>Apply</strong>) to show that article instead.</td>
+</tr>
+<tr>
+<td>System status</td>
+<td>At the bottom of the screen. It says "Checking" while PathScribe asks the server, then "Operational", "Degraded" or "Unavailable". If the check itself fails it says "Status unavailable", which means the status is not known, not that the system is fine. It is checked when Home opens and again when you return to the tab after five minutes. In a demo with no server it adds "(demo: simulated)". Beside it is the line "© 2026 PathScribe AI Systems".</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Tile descriptions.</strong> The My Contribution tile reads "Workload • Quality • TAT". The Search tile reads "Find completed and open cases". Bench Contributions reads "Bench throughput and TAT", Intraop Queue "Unlinked intraop entries", Lockbox Drop-Off "After-hours specimen drop-offs", Pathology Workspace "Cytology, molecular, benches", Quality &amp; Compliance "Audit trail and quality queues" and Tumor Board / MDT "Flag cases, manage the agenda".</li>
+<li><strong>From PubMed.</strong> The small badge on the research article line. The dot beside it is a button: its tooltip is "Click to check for a more recent article", and while it works it says "Checking for a more recent article…".</li>
+</ul>
+<figure class="ps-ug-figure"><img src="img/home-pubmed.png" alt="The welcome greeting with the From PubMed article line and the paste box"><figcaption>The welcome greeting with the From PubMed article line and the paste box</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">The article line is automatic, not guidance</p>
+<p>The article is the most recent match from PubMed for pathology (and your subspecialty, when you have one). Nobody at your laboratory has reviewed it, so it is reading, not guidance for patient care. If PathScribe cannot reach PubMed, or your administrator has switched the line off, it simply does not appear.</p>
+</div>
+<ul>
+<li><strong>Paste messages.</strong> "✓ Updated" means your article is now shown. "Couldn't find a PMID or PubMed link in that." means the text had no PubMed number; "Couldn't find that article — check the ID and try again." means PubMed has no article with that number.</li>
+</ul>
+<h3 id="toolbar">Toolbar</h3>
+<p>The Home Dashboard has no toolbar of its own.</p>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tile highlight when you point at it</td>
+<td>The tile you are about to open.</td>
+</tr>
+<tr>
+<td>Number on a tile</td>
+<td>Items on that tile that need someone's attention (for example registry exceptions).</td>
+</tr>
+<tr>
+<td>Green dot, "Operational"</td>
+<td>The server reports that every part it checks is working.</td>
+</tr>
+<tr>
+<td>Amber dot, "Degraded"</td>
+<td>The server reports a part is working below normal. Tell your administrator if it persists.</td>
+</tr>
+<tr>
+<td>Red dot, "Unavailable"</td>
+<td>The server reports a part is not working.</td>
+</tr>
+<tr>
+<td>Empty circle, "Status unavailable"</td>
+<td>The check did not get an answer, so the status is not known.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this screen. Alt+H (Go Home) returns you here from most screens, and Alt+J then H works from every screen. F1 (View Help) opens the guide page for the screen you are on. The <strong>Help</strong> button does the same.</p>
+<h3 id="the-tiles">The tiles</h3>
+<table>
+<thead>
+<tr>
+<th>Tile</th>
+<th>What you do there</th>
+<th>Guide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accession</td>
+<td>Log new specimens and assign grossing templates.</td>
+<td><a href="/help/accession">Accession</a></td>
+</tr>
+<tr>
+<td>Worklist</td>
+<td>View and manage pending pathology cases.</td>
+<td><a href="/help/worklist">Worklist</a></td>
+</tr>
+<tr>
+<td>Bench Contributions</td>
+<td>See accessioning rate, batch throughput, queue aging, stage-to-stage turnaround time and molecular quality control for bench roles.</td>
+<td><a href="/help/bench-contributions">Bench Contributions</a></td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td>System settings and AI preferences (administrators).</td>
+<td>Administrator Guide</td>
+</tr>
+<tr>
+<td>Intraop Queue</td>
+<td>Match unlinked intraoperative entries to a formal accession.</td>
+<td><a href="/help/intraop-queue">Intraop Queue</a></td>
+</tr>
+<tr>
+<td>Lockbox Drop-Off</td>
+<td>Scan specimens dropped off after hours and follow them up in the morning.</td>
+<td><a href="/help/lockbox-drop-off">Lockbox Drop-Off</a></td>
+</tr>
+<tr>
+<td>My Contribution</td>
+<td>Your own workload, quality, turnaround time and trends.</td>
+<td><a href="/help/my-contribution">My Contribution</a></td>
+</tr>
+<tr>
+<td>Pathology Workspace</td>
+<td>Cytology screening, molecular diagnostics, the microtome, embedding and slide distribution workstations, and batch management.</td>
+<td><a href="/help/pathology-workspace">Pathology Workspace</a></td>
+</tr>
+<tr>
+<td>Quality &amp; Compliance</td>
+<td>Activity logs, the audit trail and the quality assurance working queue: deficiencies, reconciliation and corrective action.</td>
+<td><a href="/help/quality">Quality &amp; Compliance</a></td>
+</tr>
+<tr>
+<td>Search</td>
+<td>Find completed and in-progress cases.</td>
+<td><a href="/help/search">Search</a></td>
+</tr>
+<tr>
+<td>Tumor Board / MDT</td>
+<td>Flag a case for tumor board or MDT and manage its agenda listing.</td>
+<td><a href="/help/tumor-board">Tumor Board</a></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Hubs</p>
+<p>Pathology Workspace and Quality &amp; Compliance are hubs: they open a second screen that lists the workstations or queues inside them. They show only the items you may open.</p>
+</div>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Sign in. The Home Dashboard opens.</li>
+<li>Find the tile for the work you want to do.</li>
+<li>Select the tile. The screen for that area opens.</li>
+<li>When you finish, return to Home with Alt+H (or Alt+J then H).</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>Select the round <strong>?</strong> Help button in the top bar, beside the microphone (or press F1) to open the guide page for the screen you are on.</li>
+<li>To reach a case without Home, use the Search screen.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>If a tile you expect is missing, your role does not include that area. Tell your laboratory manager which tile you need and why.</li>
+<li>If a tile shows a number you do not understand, open the tile: the screen explains what needs attention.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If the dashboard does not appear after sign-in, refresh the page.</li>
+<li>If tiles are missing after a refresh, sign out and sign in again.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Looking for Configuration on a tile when your role does not include it. Configuration is for administrators.</li>
+<li>Using Home for every move. Once you know the screen, the keyboard shortcuts are faster.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Accession and Worklist are always shown first because they are used most.</li>
+<li>Use the latest research line to keep up with your subspecialty during quiet moments.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Start the day at the Worklist, then work through your cases.</li>
+<li>Accessioners start at Accession; bench staff start at Bench Contributions or their workstation under Pathology Workspace.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li>Signing in is the step before Home.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/accession">Accession</a>: log a new specimen.</li>
+<li><a href="/help/worklist">Worklist</a>: continue your cases.</li>
+<li><a href="/help/search">Search</a>: find an existing case.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A tile is missing</td>
+<td>Your role does not include that area.</td>
+</tr>
+<tr>
+<td>The latest research line is missing</td>
+<td>PathScribe cannot reach PubMed from your network, none was found for your subspecialty, or your administrator has switched the line off (Configuration &gt; System &gt; Research Feed). It does not affect your work.</td>
+</tr>
+<tr>
+<td>A tile shows a count</td>
+<td>Items on it need attention. Open the tile.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Refresh the page.</li>
+<li>Sign out and sign in again.</li>
+<li>Ask your laboratory manager to confirm your access.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when tiles you should have are missing after you have checked with your manager, or when the dashboard does not load after signing in again. Have your name and the time of the problem ready.</p>

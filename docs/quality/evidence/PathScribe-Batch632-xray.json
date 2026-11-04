@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 632 \u2014 AU/NZ recall: six recommendation codes, configurable target windows, repeat-collection wording and timing",
+    "description": "Vitest, 2026-10-19: full suite 1684 files (1679 passed, 4 skipped, 1 failed); 14,198 tests passed, 33 skipped. The one failing file is firestore.rules.test.ts, which needs the Firestore emulator (not run). Type-check clean. Not built or tested: sending to NCSR or the New Zealand register (interface engine); programme sign-off of codes, windows and wording; a browser check."
+  },
+  "tests": [
+    {
+      "testKey": "PS-834",
+      "start": "2026-10-20T04:00:00Z",
+      "finish": "2026-10-20T04:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cytology/recallWindows.test.ts\nPASSED: src/services/cytology/selfCollectedRecall.test.ts\nPASSED: src/services/cytology/buildHpvRegistryResultPayload.test.ts\nPASSED: src/pages/CytologyWorklistPage/components/SelfCollectedRecallDetail.test.tsx\nPASSED: src/i18n/localeParity.test.ts\nPASSED: src/services/typeSafety/explicitAny.guard.test.ts\nPASSED: src/services/styleRules/fileSize.guard.test.ts\nPASSED: src/services/styleRules/inlineCss.guard.test.ts\nNot tested: register sending, programme sign-off of codes/windows/wording, browser check, the settings card in a browser."
+    }
+  ]
+}

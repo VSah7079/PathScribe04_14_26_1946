@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // "Homepage Changes part 1" — direct request: "Create Pathology Workspace
 // Tile on Home page and move the following into that: Cytology Workspace,
-// Microtomy Workstation - also rename Microtomy Workspace, Embedding
+// Microtome Workstation - also rename Microtome Workspace, Embedding
 // Station - also rename Embedding Workspace, Slide Distribution Station -
 // rename Slide Distribution Workspace." This page is the real destination
 // behind Home's new "Pathology Workspace" tile — a small, second-level hub
@@ -16,7 +16,7 @@
 // guidance, this hub groups by domain ("pathology"), not by shared
 // audience — Molecular Workspace's own molecular-tech bench workflow is
 // genuinely distinct from the other four tiles' histology-bench/
-// cytology-screening audiences, same as Cytology and Microtomy already
+// cytology-screening audiences, same as Cytology and Microtome already
 // not sharing an audience within this same hub. Molecular Order Queue
 // (a separate, deliberately-unmerged page — see services/molecularOrders/
 // README.md) stays on Home, untouched — only "Molecular" itself moved.
@@ -74,6 +74,37 @@ export default function PathologyWorkspacePage() {
   // see this file's own header for why no re-verification was needed.
   const capabilities = useCapabilities();
   const allTiles: SubTile[] = [
+    // Batch 720 (Pete): Grossing runs on its own, here, for the PA and the grossing pathologist.
+    {
+      key: 'grossing',
+      screen: 'grossing',
+      title: t('pathologyWorkspace.grossingTile.title'),
+      description: t('pathologyWorkspace.grossingTile.description'),
+      route: '/workstations/grossing',
+      color: '#E11D48',
+      image: '/grossing.webp',
+    },
+    // Batch 720 (Pete): the Add-On Order Builder is a tile here too, so a PA or pathologist can place an order without opening a report first.
+    {
+      key: 'addOnOrders',
+      screen: 'addOnOrders',
+      title: t('pathologyWorkspace.addOnOrdersTile.title'),
+      description: t('pathologyWorkspace.addOnOrdersTile.description'),
+      route: '/add-on-orders',
+      color: '#0EA5E9',
+      image: '/add_on_orders.webp',
+    },
+    // Batch 721 (Pete, Oct 28): back under Pathology Workspace, beside Grossing and Add-On Orders, so a pathologist reaches it without a
+    // Quality & Compliance tile on Home. No dedicated photo yet: reuses /deficiencies.webp (a disclosed placeholder).
+    {
+      key: 'marginExceptionReview',
+      screen: 'marginExceptionReview',
+      title: t('pathologyWorkspace.marginExceptionReviewTile.title'),
+      description: t('pathologyWorkspace.marginExceptionReviewTile.description'),
+      route: '/margin-exception-review',
+      color: '#DC2626',
+      image: '/deficiencies.webp',
+    },
     {
       key: 'cytology',
       screen: 'cytologyWorkspace',
@@ -81,6 +112,17 @@ export default function PathologyWorkspacePage() {
       description: t('pathologyWorkspace.cytologyTile.description'),
       route: '/cytology-worklist',
       color: '#009E73',
+      image: '/cytology.webp',
+    },
+    // Batch 740 (fluid decision 1): fluids are prepared here; only a handed-off cell block goes to the Microtome.
+    // No dedicated photo yet: reuses /cytology.webp (a disclosed placeholder).
+    {
+      key: 'cytologyPrep',
+      screen: 'cytologyPrep',
+      title: t('pathologyWorkspace.cytologyPrepTile.title'),
+      description: t('pathologyWorkspace.cytologyPrepTile.description'),
+      route: '/workstations/cytology-prep',
+      color: '#0EA5A4',
       image: '/cytology.webp',
     },
     {
@@ -99,12 +141,16 @@ export default function PathologyWorkspacePage() {
       description: t('pathologyWorkspace.embeddingTile.description'),
       route: '/workstations/embedding',
       color: '#F97316',
-      // TODO: still borrowing Worklist's image — no dedicated
-      // Embedding Workspace photo was provided in the Sep 2026 tile-image
-      // refresh (Cytology/Microtomy/Slide Distribution/Molecular all got
-      // their own real photo; this one didn't). Swap in a real image once
-      // one's available — see UPDATE_288_SUMMARY.md.
-      image: '/worklist.webp',
+      // Batch 484 (tracker Section B, "Case tile photo"): this tile was
+      // still borrowing Worklist's image — the Sep 2026 tile-image
+      // refresh gave Cytology/Microtomy/Slide Distribution/Molecular
+      // their own real photo but missed this one (the referenced
+      // UPDATE_288_SUMMARY.md doesn't exist in this repo — standing rule
+      // #6, verify before repeating a claim). public/embedding.webp is a
+      // locally generated placeholder (a paraffin-mold motif in this
+      // tile's own #F97316), not a sourced photograph — swap in a real
+      // one when photography is available.
+      image: '/embedding.webp',
     },
     {
       key: 'slideDistribution',

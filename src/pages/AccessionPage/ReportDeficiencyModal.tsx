@@ -120,7 +120,7 @@ export const ReportDeficiencyModal: React.FC<Props> = ({ context, specimenLabel,
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('accessionPage.deficiencyModal.detail')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={newComment} onChange={e => setNewComment(e.target.value)}
+            <textarea aria-label={t('accessionPage.deficiencyModal.detail')} className="ps-conf-input ps-conf-textarea" value={newComment} onChange={e => setNewComment(e.target.value)}
               placeholder={t('accessionPage.deficiencyModal.detailPlaceholder')} />
           </div>
           <button type="button" className="ps-btn-secondary" onClick={handleAdd} disabled={!newTypeId}>

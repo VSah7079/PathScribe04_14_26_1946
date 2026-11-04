@@ -27,9 +27,8 @@
 // match rather than introducing a second convention.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { getAdminFirestore } from './_lib/firebaseAdmin';
 import { verifyEngineAuth } from './_lib/verifyEngineAuth';
-import { claimMessageId } from './_lib/idempotency';
+import { createWithClaim } from './_lib/idempotency';
 import { logIntegrationError } from './_lib/logIntegrationError';
 import { raiseSpecimenDeficiency } from './_lib/raiseSpecimenDeficiency';
 import type { CassetteDispatchOutcomeEventPayload } from '../../../src/types/events/CassetteDispatchOutcomeEventPayload';
@@ -88,14 +87,11 @@ export default async function handler(request: Request): Promise<Response> {
   const payload = body;
 
   try {
-    const { alreadyProcessed } = await claimMessageId(payload.messageId, EVENT_TYPE);
-    if (alreadyProcessed) {
-      // Real, conventional webhook redelivery response — 200, so the
-      // Engine sees success and stops retrying, exactly as if this
-      // were the first delivery.
-      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
-    }
-
+    // Batch 549 (F10): the record and the claim are written together, so a
+    // crash between them can't leave a claim with no record (the engine's
+    // redelivery would have been answered "already processed" and the event
+    // lost).
+    //
     // Real, per direct guidance's own decision: every outcome is now
     // persisted, not just non-routine ones — a complete, clinical
     // audit trail ("cassette A1 dispatched successfully") is now a
@@ -104,16 +100,22 @@ export default async function handler(request: Request): Promise<Response> {
     // success is unaffected by this change — that filter lives in
     // processCassetteDispatchOutcomeEvent.ts's own logic (only
     // fallback_used/prompted/error ever show a toast), which
-    // usePendingEngineNotifications.ts still calls unchanged; this
+    // the notification side calls unchanged (the browser poll was never
+    // mounted and was removed in Batch 549); this
     // endpoint persisting more data doesn't make that function notify
     // any more often than it already did.
-    const db = getAdminFirestore();
-    await db.collection(NOTIFICATIONS_COLLECTION).doc(payload.messageId).create({
+    const { alreadyProcessed } = await createWithClaim(payload.messageId, EVENT_TYPE, NOTIFICATIONS_COLLECTION, payload.messageId, {
       eventType: EVENT_TYPE,
       caseId: payload.caseId,
       createdAt: new Date().toISOString(),
       payload,
     });
+    if (alreadyProcessed) {
+      // Real, conventional webhook redelivery response — 200, so the
+      // Engine sees success and stops retrying, exactly as if this
+      // were the first delivery.
+      return new Response(JSON.stringify({ status: 'already-processed', messageId: payload.messageId }), { status: 200 });
+    }
 
     // Real, per direct guidance's own explicit symmetry decision: a
     // complete dispatch failure (outcome === 'error') gets the same

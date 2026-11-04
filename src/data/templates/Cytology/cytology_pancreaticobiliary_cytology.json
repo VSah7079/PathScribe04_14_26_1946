@@ -9,6 +9,7 @@
         {
             "id": "specimen",
             "title": "Specimen",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "procedure",
@@ -172,6 +173,7 @@
         {
             "id": "adequacy",
             "title": "Specimen Adequacy",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "adequacy_status",
@@ -242,6 +244,7 @@
         {
             "id": "diagnostic_category",
             "title": "Papanicolaou Society Diagnostic Category",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "pscp_category",
@@ -319,13 +322,15 @@
                     "note": "Optional (+) — informational: Category IV is deliberately split into two subtypes rather than one, since a benign neoplasm (IVA) and a premalignant one (IVB) carry very different clinical management implications despite both being 'neoplastic.' Cite local institutional risk data where available.",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "cytologic_findings",
             "title": "Cytologic Findings",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cellularity",
@@ -492,6 +497,7 @@
         {
             "id": "ancillary_studies",
             "title": "Ancillary Studies",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "cyst_fluid_cea",
@@ -501,7 +507,8 @@
                     "note": "Optional (+) — elevated CEA supports a mucinous cystic lesion (IPMN/MCN) over a serous one",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Cyst fluid CEA: {value} ng/mL."
+                    "narrativeSentenceTemplate": "Cyst fluid CEA: {value} ng/mL.",
+                    "options": []
                 },
                 {
                     "id": "cyst_fluid_amylase",
@@ -511,7 +518,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Cyst fluid amylase: {value}."
+                    "narrativeSentenceTemplate": "Cyst fluid amylase: {value}.",
+                    "options": []
                 },
                 {
                     "id": "molecular_testing_ordered",
@@ -553,13 +561,15 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         },
         {
             "id": "comments",
             "title": "Comment / Correlation",
+            "collapsed": false,
             "fields": [
                 {
                     "id": "radiologic_correlation",
@@ -569,7 +579,8 @@
                     "note": "Optional (+)",
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "Radiologic correlation: {value}."
+                    "narrativeSentenceTemplate": "Radiologic correlation: {value}.",
+                    "options": []
                 },
                 {
                     "id": "comment",
@@ -578,7 +589,8 @@
                     "required": false,
                     "snomed": "",
                     "icd": "",
-                    "narrativeSentenceTemplate": "{value}"
+                    "narrativeSentenceTemplate": "{value}",
+                    "options": []
                 }
             ]
         }

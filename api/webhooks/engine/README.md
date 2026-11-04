@@ -42,7 +42,9 @@ None of the four endpoints authenticate a caller the way a typical app authentic
 
 ## Security rules
 
-`firestore.rules.engine-webhooks.txt` — a fragment, not a full file. **Correction (Batch 324):** the repo-root `firestore.rules` does exist. It covers cases, ancillary staging, the audit log, platform config and (since Batch 320) AI models, but not yet the collections below, so this fragment still needs merging into it. Every collection this folder writes to (`processed_messages`, `integration_errors`) is locked to Admin-SDK-only access; `engraver_devices`/`pending_engine_notifications`/`specimen_deficiencies` (client-read collections owned by sibling folders) are open-read/no-client-write. That open-read posture is a real, disclosed, temporary compromise: this app has **no real Firebase Authentication anywhere** — confirmed directly (`src/contexts/AuthContext.tsx` is a custom, `localStorage`-backed mock with a literal hardcoded array of real people's plaintext email/password credentials; zero calls to `signInWithEmailAndPassword`/`getAuth()` exist anywhere in the codebase). Until real auth exists, `request.auth` is always `null`, so no rule can genuinely distinguish a legitimate reader from anyone else — open-read was the least-bad option, not a real access-control decision.
+`firestore.rules.engine-webhooks.txt` — a fragment, not a full file. **Correction (Batch 324):** the repo-root `firestore.rules` does exist. It covers cases, ancillary staging, the audit log, platform config and (since Batch 320) AI models, but not yet the collections below, so this fragment still needs merging into it. Every collection this folder writes to (`processed_messages`, `integration_errors`) is locked to Admin-SDK-only access; `engraver_devices`/`pending_engine_notifications`/`specimen_deficiencies` (client-read collections owned by sibling folders) are open-read/no-client-write. That open-read posture is a real, disclosed, temporary compromise: this app has **no Firebase Authentication anywhere** (no `signInWithEmailAndPassword`/`getAuth()` call in the codebase). Sign-in since Batch 343 (PS-60) is `services/auth/authSession.ts`: SSO through the hospital's OpenID Connect provider, or, in demo builds only, PBKDF2-hashed demo accounts (`services/auth/demo/demoAccounts.ts`); the old plain-text credential list in `AuthContext.tsx` is gone. None of that issues a Firebase token, so `request.auth` is always `null` here and no rule can distinguish a legitimate reader from anyone else — open-read was the least-bad option, not a real access-control decision. Production is SQL Server behind the ASP.NET Core API server, which will replace these Firestore endpoints and rules.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): `AuthContext.tsx` no longer holds plain-text credentials (Batch 343); sign-in is OIDC SSO or hashed demo accounts.*
 
 ## Admin SDK version (Batch 324, PS-47)
 
@@ -52,5 +54,20 @@ None of the four endpoints authenticate a caller the way a typical app authentic
 - **Checked here:** every file in `api/` type-checks against 14, and the unit tests pass (12 files / 83 tests).
 - **Still needed:** the three `_lib/*.integration.test.ts` files need a Firestore emulator run (`npm run test:integration`, PS-110). This sandbox can't download the emulator.
 
+## Batch 545 — finding F10 fixed
+
+`block-exception.ts` and `material-location.ts` no longer claim the `messageId` before applying the change. They pass it to `applyEngineCaseUpdate`, which checks and records it inside the case update's own transaction:
+- A case or target not found (404), or a failed update, leaves no claim, so the engine's redelivery is applied once the case exists. Before, the redelivery was answered "already processed" and the event was lost.
+- A `messageId` seen before gives `already-processed` and changes nothing.
+
+`cassette-dispatch-outcome.ts` and `engraver-status.ts` claimed first until Batch 549. Since then they write the claim together with their record (see the Batch 549 entry below).
+
+The server contract that replaces these webhooks is `docs/architecture/INTERFACE_ENGINE_EDGE.md`.
+
 ---
 *When this folder's contents change meaningfully, update THIS file.*
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- Finding F10, the remaining two (open since Batch 545): `cassette-dispatch-outcome.ts` writes its record and the messageId claim in one transaction (`_lib/idempotency.ts`, `createWithClaim`); `engraver-status.ts` claims inside `upsertEngraverStatus`'s transaction. No engine webhook claims before it writes, so a crash can't lose an event.
+- Comments no longer point to `usePendingEngineNotifications.ts`, removed in this batch.

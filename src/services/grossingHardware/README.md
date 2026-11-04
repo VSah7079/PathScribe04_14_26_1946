@@ -1,3 +1,5 @@
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/grossingHardware/
 
 Real, per the RFP-APLIS-2026-GLOBAL Story 9 — Grossing Station
@@ -130,6 +132,18 @@ Configuration was not built. *Built in Batch 359: see below.*
   - The two seeded default profiles stay unlinked, since they aren't a specific bench's device.
 - **Export:** `@/services` now exports `grossingHardwareProfileService`.
 
+## Batch 428: Configuration permissions
+
+- `mockGrossingHardwareProfileService`: `create`, `update` need `config:grossing-hardware:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 606
+
+- `captureGrossWeight.ts` (+ test): the specimen form's Capture weight. Scale agent when configured; a labelled simulated reading in the demo when none answers; never over an unstable reading. Audited (source and grams, no patient data).
+
+Batch 616 (part D, PS-506): server version of GrossingHardwareProfileService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.

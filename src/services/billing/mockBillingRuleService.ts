@@ -6,6 +6,7 @@ import type { BillingRuleVersion } from '@/types/billing/BillingRuleVersion';
 import { resolveBillingRuleAt } from './resolveBillingRuleAt';
 import { applyNaturalSunset } from './codeEngine/naturalSunset';
 import { listAllSites, getOrganisation } from '../organisation/organisationService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'billing_rule_versions_v1';
 
@@ -111,6 +112,7 @@ const SEED_VERSIONS: BillingRuleVersion[] = [
   // as the one, universally-correct choice.
   { billingCode: 'PAP-CONVENTIONAL', version: 1, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', cpt: '88164', description: 'Code 88164 — Specimen Level', level: 'specimen', billingType: 'Global', quantityRules: 'per specimen, conventional Pap smear, Bethesda system reporting', country: 'US', createdAt: '2026-01-01T00:00:00.000Z', createdBy: 'system-seed', notes: 'Synthetic description per PS-92; real code verified via direct search. One of several real, valid conventional-Pap codes (88150-88155 non-Bethesda, 88164-88167 Bethesda) depending on the lab\'s own reporting system - confirm against your actual workflow before relying on this default. RVU intentionally left unset.' },
   { billingCode: 'PAP-THINPREP', version: 1, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', cpt: '88175', description: 'Code 88175 — Specimen Level', level: 'specimen', billingType: 'Global', quantityRules: 'per specimen, liquid-based Pap (ThinPrep), automated screening with manual review', country: 'US', createdAt: '2026-01-01T00:00:00.000Z', createdBy: 'system-seed', notes: 'Synthetic description per PS-92; real code verified via direct search. One of several real, valid liquid-based codes (88142/88143 manual screening, 88174/88175 automated) depending on the lab\'s own screening workflow - confirm against your actual workflow before relying on this default. RVU intentionally left unset.' },
+  { billingCode: 'PAP-SUREPATH', version: 1, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', cpt: '88175', description: 'Code 88175 — Specimen Level', level: 'specimen', billingType: 'Global', quantityRules: 'per specimen, liquid-based Pap (SurePath), automated screening with manual review', country: 'US', createdAt: '2026-01-01T00:00:00.000Z', createdBy: 'system-seed', notes: 'Batch 739: SurePath beside ThinPrep. Synthetic description per PS-92; real code verified via direct search. One of several real, valid liquid-based codes (88142/88143 manual screening, 88174/88175 automated) depending on the lab\'s own screening workflow - confirm against your actual workflow before relying on this default. RVU intentionally left unset.' },
   { billingCode: 'HPV-HIGHRISK-SCREEN', version: 1, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', cpt: '87624', description: 'Code 87624 — Specimen Level', level: 'specimen', billingType: 'Global', quantityRules: 'per specimen, high-risk HPV types, pooled result - billed when only the screen is performed', country: 'US', createdAt: '2026-01-01T00:00:00.000Z', createdBy: 'system-seed', notes: 'Synthetic description per PS-92; real code verified via direct search (revised 2025 CPT set). RVU intentionally left unset.' },
   { billingCode: 'HPV-GENOTYPING', version: 1, effectiveFrom: '2026-01-01', effectiveTo: null, status: 'ACTIVE', cpt: '87625', description: 'Code 87625 — Specimen Level', level: 'specimen', billingType: 'Global', quantityRules: 'per specimen, HPV types 16/18 (includes 45 if performed) - individually reported, real reflex test following a positive 87624 screen', country: 'US', createdAt: '2026-01-01T00:00:00.000Z', createdBy: 'system-seed', notes: 'Synthetic description per PS-92; real code verified via direct search. Honest, disclosed limitation: this app has no real, conditional result-based billing logic yet - see the "HPV High-Risk Screening with Reflex Genotyping" Diagnostic Assay entry\'s own notes for how the reflex portion is (and is not yet) handled.' },
   // Real, per direct request ahead of the Billing expert meeting - a
@@ -161,7 +163,7 @@ const importJobRowError = (v: BillingRuleVersion) =>
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockBillingRuleService: IBillingRuleService = {
+const billingRuleServiceUnchecked: IBillingRuleService = {
   async getAll() {
     return ok([...load()].sort((a, b) => a.billingCode.localeCompare(b.billingCode) || (a.siteId ?? '').localeCompare(b.siteId ?? '') || a.version - b.version));
   },
@@ -214,14 +216,11 @@ export const mockBillingRuleService: IBillingRuleService = {
     const newVersion: BillingRuleVersion = {
       ...input,
       version: nextVersion,
-      // Real, per direct guidance's own Four-Eyes Principle
-      // requirement: a new rule change no longer goes live on save.
-      // An explicit status is still honored (the real, initial
-      // migration seed passes 'ACTIVE' directly in its own literal
-      // array below, never through this function, but any future
-      // caller with a genuine reason to bypass DRAFT can still do so
-      // explicitly).
-      status: input.status ?? 'DRAFT',
+      // Four-Eyes Principle: a new rule change never goes live on save.
+      // Batch 428: always a draft. A caller used to be able to pass a
+      // status and skip approval; the seed's ACTIVE rows don't come
+      // through here.
+      status: 'DRAFT',
       createdAt: new Date().toISOString(),
       vocabulary: input.vocabulary ?? 'CPT',
     };
@@ -303,3 +302,13 @@ export const mockBillingRuleService: IBillingRuleService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockBillingRuleService: IBillingRuleService = guardConfigWrites(billingRuleServiceUnchecked, [
+  ['config:billing-rules:manage', ['createVersion', 'submitForApproval', 'retireVersion']],
+  ['config:billing-tables:approve', ['approveVersion', 'rejectVersion']],
+]);
+
+/** Batch 455: the seeded versions, so a demo Full Reset can put them back to
+ *  their seeded state (services/demoReset/demoReset.ts). */
+export const BILLING_RULE_SEED_VERSIONS: readonly BillingRuleVersion[] = SEED_VERSIONS;

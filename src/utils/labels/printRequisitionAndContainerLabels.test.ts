@@ -1,7 +1,13 @@
 // @vitest-environment happy-dom
 //
 // src/utils/labels/printRequisitionAndContainerLabels.test.ts
+import { listSimulatedPrints, resetSimulatedPrintForTests, setSimulatedPrintFailure } from '@/services/printing/simulatedPrint';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { printRequisitionLabel, printContainerLabel, printAllContainerLabels, printDecantContainerLabel } from './printRequisitionAndContainerLabels';
 import { mockPrintSettingsService as printSettingsService } from '@/services/printSettings/mockPrintSettingsService';
 import type { Case } from '@/types/case/Case';
@@ -148,5 +154,54 @@ describe('printDecantContainerLabel — real, direct fix, per direct follow-up (
     const result = await printDecantContainerLabel(makeCase(), 'A', 'Cervical, liquid-based cytology', { label: 'D1', decantType: 'cell_block' } as any);
     expect(result).toBe(true);
     expect(openSpy).toHaveBeenCalled();
+  });
+});
+
+describe('Direct via Interface Engine label routes (Batch 606, PS-63 / PS-131)', () => {
+  async function useDirectEngineProfile(setting: 'containerLabelPrinterProfileId' | 'requisitionLabelPrinterProfileId') {
+    const { mockPrinterProfileService: printerProfileService } = await import('@/services/printerProfiles/mockPrinterProfileService');
+    const profileRes = await printerProfileService.add({
+      printerId: 'IE-ZEBRA-1', model: 'ZT411', dpi: 203, supportsDataMatrix: true, supportsGS1: false,
+      zplVersion: 'II', maxPrintDensity: 8, moduleSize: 4, vendor: 'zebra', bridgeType: 'direct_interface_engine',
+    } as any);
+    if (!profileRes.ok) throw new Error('setup failed');
+    await printSettingsService.update({ [setting]: profileRes.data.id });
+  }
+
+  it('a container label goes to the simulated engine route and no print dialog opens', async () => {
+    resetSimulatedPrintForTests();
+    await useDirectEngineProfile('containerLabelPrinterProfileId');
+    const openSpy = vi.fn();
+    vi.stubGlobal('open', openSpy);
+    expect(await printContainerLabel(makeCase(), { label: 'A', description: 'Skin punch' })).toBe(true);
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(listSimulatedPrints()[0]).toMatchObject({ transport: 'direct_interface_engine', destination: 'IE-ZEBRA-1', outcome: 'delivered' });
+  });
+
+  it('a decant label does too', async () => {
+    resetSimulatedPrintForTests();
+    await useDirectEngineProfile('containerLabelPrinterProfileId');
+    vi.stubGlobal('open', vi.fn());
+    expect(await printDecantContainerLabel(makeCase(), 'A', 'Cervical, liquid-based cytology', { label: 'D1', decantType: 'cell_block' } as any)).toBe(true);
+    expect(listSimulatedPrints()).toHaveLength(1);
+  });
+
+  it('with the failure switch on the label falls back to the browser print dialog', async () => {
+    resetSimulatedPrintForTests();
+    setSimulatedPrintFailure(true);
+    await useDirectEngineProfile('containerLabelPrinterProfileId');
+    const openSpy = vi.fn(() => ({ document: { write: vi.fn(), close: vi.fn() }, focus: vi.fn(), print: vi.fn() }));
+    vi.stubGlobal('open', openSpy);
+    await printContainerLabel(makeCase(), { label: 'A', description: 'Skin punch' });
+    expect(listSimulatedPrints()[0].outcome).toBe('failed');
+    resetSimulatedPrintForTests();
+  });
+
+  it('a requisition label does too', async () => {
+    resetSimulatedPrintForTests();
+    await useDirectEngineProfile('requisitionLabelPrinterProfileId');
+    vi.stubGlobal('open', vi.fn());
+    expect(await printRequisitionLabel(makeCase())).toBe(true);
+    expect(listSimulatedPrints()[0]).toMatchObject({ transport: 'direct_interface_engine' });
   });
 });

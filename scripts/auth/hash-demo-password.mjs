@@ -9,6 +9,10 @@
 //
 // The password never goes into the source. Paste the printed
 // `password: {…}` into the account's entry.
+//
+// Batch 448: a developer tool for changing the built-in starting passwords
+// only. To set or reset someone's password, use Staff → edit → Sign-in
+// password in PathScribe.
 
 import { pbkdf2Sync, randomBytes } from 'node:crypto';
 import { createInterface } from 'node:readline';

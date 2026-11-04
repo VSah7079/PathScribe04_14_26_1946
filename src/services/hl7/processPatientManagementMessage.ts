@@ -45,13 +45,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { parsePatientManagementMessage, type ParsedPatientManagementMessage, type ParsedPatientRef } from './patientManagementParser';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockEncounterService } from '../encounters/mockEncounterService';
-import { mockInterfaceExceptionService } from '../interfaceExceptions/mockInterfaceExceptionService';
+import { patientIndexService } from '../patients/patientServicesInstance';
+import { encounterService } from '../encounters/encounterInstance';
+import { interfaceExceptionService } from '../interfaceExceptions/interfaceExceptionServiceInstance';
 import { caseRouter } from '../cases/CaseRouter';
-import { mockUserService } from '../users/mockUserService';
-import { mockRoleService } from '../roles/mockRoleService';
-import { mockMessageService } from '../messages/mockMessageService';
+import { userService } from '../users/userServiceInstance';
+import { roleService } from '../roles/roleServiceInstance';
+import { messageService } from '../messages/messageServiceInstance';
 import { getClinicalAdmins } from '../../utils/clinicalAdmins';
 
 /** Real, honest actor tag for the audit trail - distinct from a real
@@ -107,11 +107,11 @@ export interface ProcessPatientManagementResult {
  *  disagreeing data. */
 async function resolvePatientId(ref: ParsedPatientRef, organisationId: string): Promise<{ patientId: string; outcome: 'matched' | 'created' | 'ambiguous' }> {
   if (ref.assigningAuthority && ref.identifierValue) {
-    const known = await mockPatientIndexService.resolveByIdentifier(ref.assigningAuthority, ref.identifierValue);
+    const known = await patientIndexService.resolveByIdentifier(ref.assigningAuthority, ref.identifierValue);
     if (known) return { patientId: known, outcome: 'matched' };
   }
 
-  const result = await mockPatientIndexService.resolveOrCreatePatient({
+  const result = await patientIndexService.resolveOrCreatePatient({
     organisationId,
     mrn: ref.identifierValue,
     assigningAuthority: ref.assigningAuthority,
@@ -121,7 +121,7 @@ async function resolvePatientId(ref: ParsedPatientRef, organisationId: string): 
   });
 
   // Real feature, per direct architecture confirmation: 'ambiguous'
-  // already sets needsReview via mockPatientIndexService's own
+  // already sets needsReview via patientIndexService's own
   // createProvisional() — but 'created' produces an ordinary, entirely
   // UNFLAGGED record, since resolveOrCreatePatient() has no way to
   // know this particular call exists only to check whether a match
@@ -131,7 +131,7 @@ async function resolvePatientId(ref: ParsedPatientRef, organisationId: string): 
   // "kept, not deleted; a real, traceable fact" posture, not a
   // silent side effect a human would have no way to find.
   if (result.outcome === 'created') {
-    await mockPatientIndexService.flagForReview(
+    await patientIndexService.flagForReview(
       result.patientId,
       `Created as a byproduct of resolving an inbound ADT patient-management message (identifier "${ref.identifierValue}" / authority "${ref.assigningAuthority}") that referenced no real, known patient — this event never should have created a new identity. Review before treating this as a real, new patient.`
     );
@@ -155,7 +155,7 @@ async function routeToExceptionQueue(
   sourcePatientId?: string,
   targetPatientId?: string
 ): Promise<ProcessPatientManagementResult> {
-  const created = await mockInterfaceExceptionService.create({
+  const created = await interfaceExceptionService.create({
     eventType,
     reason,
     rawMessage: raw,
@@ -179,10 +179,10 @@ async function routeToExceptionQueue(
   // Deep-links straight to the Interfaces pill via a real query
   // param, so acting on an urgent message takes one click, not three.
   if (created.ok) {
-    const [usersRes, rolesRes] = await Promise.all([mockUserService.getAll(), mockRoleService.getAll()]);
+    const [usersRes, rolesRes] = await Promise.all([userService.getAll(), roleService.getAll()]);
     if (usersRes.ok && rolesRes.ok) {
       const clinicalAdmins = getClinicalAdmins(usersRes.data, rolesRes.data);
-      await Promise.all(clinicalAdmins.map(admin => mockMessageService.send({
+      await Promise.all(clinicalAdmins.map(admin => messageService.send({
         senderId: 'u3',
         senderName: 'System Admin',
         recipientId: admin.id,
@@ -228,7 +228,7 @@ export async function processPatientManagementMessage(raw: string, organisationI
       return routeToExceptionQueue('A47', `The OLD identifier (MRG-1) on this A47 does not match any known, existing patient — cannot determine whose identifier to correct.`, raw, parsed);
     }
     if (parsed.target.assigningAuthority && parsed.target.identifierValue) {
-      await mockPatientIndexService.addIdentifier(
+      await patientIndexService.addIdentifier(
         existing.patientId,
         parsed.target.assigningAuthority,
         parsed.target.identifierValue,
@@ -268,7 +268,7 @@ export async function processPatientManagementMessage(raw: string, organisationI
   }
 
   if (parsed.eventType === 'A40') {
-    const { casesRepointed } = await mockPatientIndexService.mergeIntoExistingPatient(source.patientId, target.patientId);
+    const { casesRepointed } = await patientIndexService.mergeIntoExistingPatient(source.patientId, target.patientId);
     return { eventType: 'A40', patientId: target.patientId, casesRepointed };
   }
 
@@ -279,7 +279,7 @@ export async function processPatientManagementMessage(raw: string, organisationI
   // correct, real semantic here, never 'family_relation' (no real
   // ADT event type represents "this newborn belongs to this mother"
   // the way A24 represents identity linkage).
-  await mockPatientIndexService.linkPatients(source.patientId, target.patientId, 'same_person', SYSTEM_ACTOR, 'Real, inbound ADT^A24 link event');
+  await patientIndexService.linkPatients(source.patientId, target.patientId, 'same_person', SYSTEM_ACTOR, 'Real, inbound ADT^A24 link event');
   return { eventType: 'A24', patientId: target.patientId };
 }
 
@@ -334,7 +334,7 @@ export async function processMoveMessage(raw: string, organisationId: string): P
     return routeToExceptionQueue('A43', 'No MRG-5 (Prior Visit Number) present on this A43 message — cannot determine which specific Case to move.', raw, parsed, sourcePatientId, targetPatientId);
   }
 
-  const encounterRes = await mockEncounterService.getByEncounterNumber(organisationId, parsed.priorVisitNumber);
+  const encounterRes = await encounterService.getByEncounterNumber(organisationId, parsed.priorVisitNumber);
   if (!encounterRes.ok || !encounterRes.data) {
     return routeToExceptionQueue('A43', `MRG-5 "${parsed.priorVisitNumber}" does not match any known Encounter for this organisation.`, raw, parsed, sourcePatientId, targetPatientId);
   }
@@ -353,7 +353,7 @@ export async function processMoveMessage(raw: string, organisationId: string): P
   let movedCaseId: string | undefined;
   let anyMoved = false;
   for (const c of matchingCases) {
-    const result = await mockPatientIndexService.moveCaseToPatient(c.id, sourcePatientId, targetPatientId, parsed.recordedAt);
+    const result = await patientIndexService.moveCaseToPatient(c.id, sourcePatientId, targetPatientId, parsed.recordedAt);
     if (result.moved) { anyMoved = true; movedCaseId = c.id; }
   }
 

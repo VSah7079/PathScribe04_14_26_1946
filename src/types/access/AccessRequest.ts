@@ -20,7 +20,8 @@
 // a confusing, inconsistent half-system.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type AccessRequestType = 'pediatric' | 'pool' | 'orchestration';
+// Batch 613: 'patient_cases' asks to see the patient's other cases (services/patientCaseAccess).
+export type AccessRequestType = 'pediatric' | 'pool' | 'orchestration' | 'patient_cases';
 export type AccessRequestStatus = 'pending' | 'granted' | 'denied';
 
 export interface AccessRequest {
@@ -50,10 +51,27 @@ export interface AccessRequest {
   resolvedAt?: string;
   resolvedByUserId?: string;
   resolvedByUserName?: string;
+  /** Batch 432: why it was denied (required when denying). */
+  denialReason?: string;
+
+  /** Batch 613, patient_cases only: the patient identity (Case.patient.id) whose other cases are asked for.
+   *  A grant covers the patient, not a list of cases, and stays open until revoked. */
+  patientId?: string;
+  /** The cases that were out of reach when the request was made (accession numbers; context for the approver). */
+  caseIds?: string[];
+  /** A picklist code (services/patientCaseAccess), and an optional note (required only for "other"). */
+  reasonCode?: string;
+  reasonNote?: string;
+  /** A grant ends when it is revoked; the request stays on file as granted. */
+  revokedAt?: string;
+  revokedByUserId?: string;
+  revokedByUserName?: string;
+  revokeReason?: string;
 }
 
 export type NewAccessRequest = Pick<
   AccessRequest,
   'type' | 'requestingUserId' | 'requestingUserName' | 'organisationId' | 'caseId'
   | 'facilityId' | 'facilityName' | 'poolId' | 'poolName'
+  | 'patientId' | 'caseIds' | 'reasonCode' | 'reasonNote'
 >;

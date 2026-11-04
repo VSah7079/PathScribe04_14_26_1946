@@ -20,16 +20,22 @@
 // dispatches this yet, no real HTTP transport exists).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { codeSystemPolicyService } from '../coding/codeSystemPolicyServiceInstance';
+import { roleOn } from '../coding/codeSystemPolicy';
+import { isoDayOf } from '../coding/codePolicyEnforcement';
+import { getCurrentJurisdiction } from '../retentionPolicy/RetentionPolicy';
 import type { Case } from '@/types/case/Case';
 import type { ServiceChargeRecord } from '@/types/billing/ServiceChargeRecord';
-import { mockPatientIndexService as patientIndexService } from '@/services/patients/mockPatientIndexService';
-import { mockEncounterService } from '@/services/encounters/mockEncounterService';
+import { patientIndexService } from '@/services/patients/patientServicesInstance';
+import { encounterService } from '@/services/encounters/encounterInstance';
 import { validateChargeMetadata } from './validateChargeMetadata';
 import { getOrganisationByHospitalId } from '@/services/organisation/organisationService';
-import { mockFacilityService } from '@/services/facilities/mockFacilityService';
+import { facilityService } from '@/services/facilities/facilityServiceInstance';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
 import { resolveBillingDateOfService, checkMolecularPathologyDosException } from './resolveBillingDateOfService';
-import { mockBillingRuleService } from './mockBillingRuleService';
+import { billingRuleService } from './billingRuleServiceInstance';
+import { resolveSplitTechnicalFacility, resolveChargePerformingFacilityId } from './resolveChargeFacilities';
+import { placeOfServiceCodeService } from './placeOfServiceCodeServiceInstance';
 
 export interface ChargeCaptureLineItem {
   transactionId: string;
@@ -50,6 +56,9 @@ export interface ChargeCaptureLineItem {
    *  disclosed and consistently applied. */
   diagnosisCode?: string;
   performingProvider?: { id?: string; name?: string };
+  /** Batch 618 (PS-336): the lab this charge was performed at. For a split case the technical (TC)
+   *  charge names the technical lab; every other charge names the reporting lab. */
+  performingFacilityId?: string;
   sourceLevel: 'specimen' | 'block';
   sourceLabel: string;
   /** Real, honest EXTENSION beyond the written v1.2 spec (§5.1's own
@@ -122,7 +131,14 @@ export interface ChargeCaptureEventPayload {
   performingFacility?: {
     facilityId: string;
     cliaOrIsoNumber?: string;
+    /** Batch 605: the facility's CMS Place of Service code (two digits) and its current name, from the dictionary. Absent until the admin sets it. */
+    placeOfServiceCode?: string;
+    placeOfServiceName?: string;
   };
+  /** Batch 618 (PS-336): present only on a genuinely split case - the lab that did the technical
+   *  component. Its CLIA number is included because the technical claim needs it (the report
+   *  itself withholds it). */
+  technicalComponentFacility?: { facilityId: string; cliaOrIsoNumber?: string };
   /** Real, honest EXTENSION beyond the written v1.2 spec (§5.1 itself
    *  has no such field) - per direct guidance's own stated principle,
    *  "your system should not adjudicate compliance, but it must
@@ -205,7 +221,7 @@ export async function buildJsonWebhookPayload(
   charges: ServiceChargeRecord[]
 ): Promise<ChargeCaptureEventPayload> {
   const mpr = caseData.patient?.id ? await patientIndexService.getById(caseData.patient.id) : null;
-  const encounterRes = caseData.encounterId ? await mockEncounterService.getById(caseData.encounterId) : null;
+  const encounterRes = caseData.encounterId ? await encounterService.getById(caseData.encounterId) : null;
   const encounter = encounterRes?.ok ? encounterRes.data : null;
 
   // Real, per direct guidance's own billing date-of-service work -
@@ -220,7 +236,7 @@ export async function buildJsonWebhookPayload(
   // Facility.billingDosRule's own doc comment for the full reasoning
   // on migrating this specific field.
   const country = getOrganisationByHospitalId(caseData.originHospitalId ?? '')?.country;
-  const originSiteFacility = caseData.originSiteId ? (await mockFacilityService.getById(caseData.originSiteId)) : null;
+  const originSiteFacility = caseData.originSiteId ? (await facilityService.getById(caseData.originSiteId)) : null;
   const siteOverrideRule = originSiteFacility?.ok ? originSiteFacility.data.billingDosRule : undefined;
   // Real, per direct follow-up - the real performing facility for
   // this case's own CLIA number, resolved the same way every other
@@ -231,11 +247,14 @@ export async function buildJsonWebhookPayload(
   // Facility are two real, different concepts (see Facility.
   // cliaOrIsoNumber's own doc comment), and this payload's own real
   // performingFacility.cliaOrIsoNumber needs the latter.
-  const orderingFacilityRes = caseData.order?.facilityId ? await mockFacilityService.getById(caseData.order.facilityId) : null;
+  const orderingFacilityRes = caseData.order?.facilityId ? await facilityService.getById(caseData.order.facilityId) : null;
   const orderingFacility = orderingFacilityRes?.ok ? orderingFacilityRes.data : null;
   const performingLabFacilityId = orderingFacility ? resolvePerformingLabFacilityId(orderingFacility) : undefined;
-  const performingFacilityRes = performingLabFacilityId ? await mockFacilityService.getById(performingLabFacilityId) : null;
+  const performingFacilityRes = performingLabFacilityId ? await facilityService.getById(performingLabFacilityId) : null;
   const performingLabFacility = performingFacilityRes?.ok ? performingFacilityRes.data : null;
+  // Batch 618 (PS-336): the technical-component lab, when it is a different lab from the reporting lab.
+  const technicalRes = caseData.order?.technicalComponentFacilityId ? await facilityService.getById(caseData.order.technicalComponentFacilityId) : null;
+  const splitTechnical = resolveSplitTechnicalFacility(performingLabFacility ?? undefined, technicalRes?.ok ? technicalRes.data : undefined);
   // Real, honest proxy for "when the test was ordered" - see
   // resolveBillingDateOfService.ts's own doc comment on orderedAt for
   // why this is Case.accession.accessionedAt, not a genuine order
@@ -252,7 +271,10 @@ export async function buildJsonWebhookPayload(
   // for a genuine 'ambiguous' outcome.
   const patientDataScope: 'reference' | 'full' = caseData.patientMatchOutcome === 'matched' ? 'reference' : 'full';
 
-  const icd10 = caseData.order?.icd10Codes ?? [];
+  // Batch 607 (#137): codes in a system the jurisdiction's code-system policy has switched off are left out of the message.
+  const codePolicy = await codeSystemPolicyService.policyFor(performingLabFacility?.jurisdiction ?? getCurrentJurisdiction());
+  const icd10Allowed = roleOn(codePolicy, 'ICD10', isoDayOf(new Date())) !== 'off';
+  const icd10 = icd10Allowed ? (caseData.order?.icd10Codes ?? []) : [];
   const principalCode = icd10[0]?.code;
   const performingProvider = resolvePerformingProvider(caseData);
 
@@ -264,7 +286,7 @@ export async function buildJsonWebhookPayload(
   async function getDosExceptionEligible(billingCode: string, ruleVersion: number, siteId?: string): Promise<boolean | undefined> {
     const cacheKey = `${billingCode}::${ruleVersion}::${siteId ?? ''}`;
     if (dosEligibilityCache.has(cacheKey)) return dosEligibilityCache.get(cacheKey);
-    const res = await mockBillingRuleService.getVersionsForBillingCode(billingCode, siteId);
+    const res = await billingRuleService.getVersionsForBillingCode(billingCode, siteId);
     const match = res.ok ? res.data.find(v => v.version === ruleVersion) : undefined;
     dosEligibilityCache.set(cacheKey, match?.dosExceptionEligible);
     return match?.dosExceptionEligible;
@@ -277,6 +299,11 @@ export async function buildJsonWebhookPayload(
     country, siteOverrideRule, dischargeTime: encounter?.dischargeTime, orderedAt,
   });
 
+  // Batch 605: Place of Service (reference to the versioned dictionary by its code).
+  const posCode = performingLabFacility?.placeOfServiceCodeId || undefined;
+  const posRes = posCode ? await placeOfServiceCodeService.getActiveCode(posCode).catch(() => null) : null;
+  const posName = posRes && posRes.ok ? posRes.data?.name : undefined;
+
   return {
     messageId: nextMessageId(),
     eventType: 'ChargeCaptureReady',
@@ -286,7 +313,9 @@ export async function buildJsonWebhookPayload(
     performingFacility: performingLabFacility ? {
       facilityId: performingLabFacility.id,
       cliaOrIsoNumber: performingLabFacility.cliaOrIsoNumber,
+      ...(posCode ? { placeOfServiceCode: posCode, ...(posName ? { placeOfServiceName: posName } : {}) } : {}),
     } : undefined,
+    ...(splitTechnical ? { technicalComponentFacility: { facilityId: splitTechnical.id, cliaOrIsoNumber: splitTechnical.cliaOrIsoNumber } } : {}),
     patient: {
       patientDataScope,
       identifier: caseData.patient?.mrn ?? '',
@@ -335,8 +364,9 @@ export async function buildJsonWebhookPayload(
         // assigned - falls back to the case-wide, order-level
         // principal code otherwise, the same real, already-disclosed
         // behavior this always had.
-        diagnosisCode: specimen?.coding?.icd10?.[0]?.code ?? principalCode,
+        diagnosisCode: (icd10Allowed ? specimen?.coding?.icd10?.[0]?.code : undefined) ?? principalCode,
         performingProvider,
+        performingFacilityId: resolveChargePerformingFacilityId(c.billingType, performingLabFacility?.id, splitTechnical),
         sourceLevel: c.sourceLevel,
         sourceLabel: c.sourceLabel,
         billingDOS,
@@ -355,7 +385,7 @@ export async function buildJsonWebhookPayload(
       const orderLevel = icd10.map((dx, i) => ({ code: dx.code, description: dx.description, isPrincipal: i === 0 }));
       const orderLevelCodes = new Set(orderLevel.map(d => d.code));
       const specimenLevel = (caseData.specimens ?? [])
-        .flatMap(sp => sp.coding?.icd10 ?? [])
+        .flatMap(sp => icd10Allowed ? (sp.coding?.icd10 ?? []) : [])
         .filter(dx => !orderLevelCodes.has(dx.code))
         .filter((dx, i, arr) => arr.findIndex(d => d.code === dx.code) === i) // real, honest de-dupe across specimens sharing the same code
         .map(dx => ({ code: dx.code, description: dx.description, isPrincipal: false }));

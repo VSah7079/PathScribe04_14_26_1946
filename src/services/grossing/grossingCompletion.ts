@@ -46,9 +46,18 @@ export function blocksExpected(sp: Pick<Specimen, 'protocolSnapshot' | 'decants'
   return !!sp.protocolSnapshot && (sp.decants ?? []).length === 0;
 }
 
+/**
+ * What satisfies the "Grossing protocol attached" rule for a specimen.
+ * The Grossing screen: an attached protocol. The case report page (Batch 398,
+ * Pete): an attached protocol or a Grossing template report, since that page
+ * records grossing on Grossing templates (reportPageProtocolSatisfied).
+ */
+export type ProtocolSatisfied = (sp: Specimen) => boolean;
+const hasProtocol: ProtocolSatisfied = sp => !!sp.protocolSnapshot;
+
 /** The labels (A, B) of the specimens with no protocol attached. */
-export function specimensWithoutProtocol(c: Pick<Case, 'specimens'>): string[] {
-  return specimensOf(c).filter(sp => !sp.protocolSnapshot).map(sp => sp.label);
+export function specimensWithoutProtocol(c: Pick<Case, 'specimens'>, satisfied: ProtocolSatisfied = hasProtocol): string[] {
+  return specimensOf(c).filter(sp => !satisfied(sp)).map(sp => sp.label);
 }
 
 /** Whether the organisation requires a protocol on every specimen (the default). */
@@ -57,21 +66,47 @@ export function protocolRequired(requirements: readonly ResolvedFieldRequirement
 }
 
 /** The specimens that completing grossing now would route for secondary review: none while a protocol is required. */
-export function specimensForSecondaryReview(c: Pick<Case, 'specimens'>, requirements: readonly ResolvedFieldRequirement[]): string[] {
-  return protocolRequired(requirements) ? [] : specimensWithoutProtocol(c);
+export function specimensForSecondaryReview(c: Pick<Case, 'specimens'>, requirements: readonly ResolvedFieldRequirement[], satisfied: ProtocolSatisfied = hasProtocol): string[] {
+  return protocolRequired(requirements) ? [] : specimensWithoutProtocol(c, satisfied);
+}
+
+/**
+ * Every block a per-block rule applies to, with its label: each specimen's own
+ * blocks (A1, A2), then the matrix blocks (one cassette shared by several
+ * specimens, by their own label). Batch 397: matrix blocks used to be left out.
+ */
+export function grossingBlocks(c: Pick<Case, 'specimens' | 'matrixBlocks'>): { label: string; pieceCount?: number; pieceDescription?: string }[] {
+  const own = specimensOf(c).flatMap(sp => (sp.blocks ?? []).map(b => ({ label: `${sp.label}${b.label}`, pieceCount: b.pieceCount, pieceDescription: b.pieceDescription })));
+  const matrix = (c.matrixBlocks ?? []).map(m => ({ label: m.label, pieceCount: m.pieceCount, pieceDescription: m.pieceDescription }));
+  return [...own, ...matrix];
 }
 
 /** The values the Grossing field requirements are checked against (one per specimen, or per block). */
-export function grossingFieldValues(c: Pick<Case, 'specimens'>): Record<string, unknown[]> {
+export function grossingFieldValues(c: Pick<Case, 'specimens' | 'matrixBlocks'>, satisfied: ProtocolSatisfied = hasProtocol): Record<string, unknown[]> {
   const specimens = specimensOf(c);
-  const blocks = specimens.flatMap(sp => sp.blocks ?? []);
+  const blocks = grossingBlocks(c);
   return {
-    protocol: specimens.map(sp => (sp.protocolSnapshot ? 'yes' : '')),
+    protocol: specimens.map(sp => (satisfied(sp) ? 'yes' : '')),
     blocks: specimens.map(sp => (!blocksExpected(sp) ? NOT_APPLICABLE : (sp.blocks ?? []).length > 0 ? 'yes' : '')),
     pieceCount: blocks.map(b => (typeof b.pieceCount === 'number' && b.pieceCount > 0 ? b.pieceCount : '')),
+    pieceDescription: blocks.map(b => b.pieceDescription?.trim() ?? ''),
     fixationEndedAt: specimens.map(sp => sp.processing?.fixationEndedAt ?? ''),
     fixativeRatioConfirmed: specimens.map(sp => (sp.processing?.fixativeToTissueRatioConfirmation ? 'yes' : '')),
   };
+}
+
+/**
+ * Batch 397: which of one block's grossing fields (piece count, piece
+ * description) the organisation requires and it still lacks. The block
+ * editors save as you type, so this only marks the fields; Complete grossing
+ * is what stops on them. Works for an ordinary block and a matrix block.
+ */
+export function blockGrossingFieldsMissing(block: { pieceCount?: number; pieceDescription?: string }, requirements: readonly ResolvedFieldRequirement[]): string[] {
+  const perBlock = requirements.filter(f => f.id === 'pieceCount' || f.id === 'pieceDescription');
+  return missingRequiredFields(perBlock, {
+    pieceCount: [typeof block.pieceCount === 'number' && block.pieceCount > 0 ? block.pieceCount : ''],
+    pieceDescription: [block.pieceDescription?.trim() ?? ''],
+  }).map(f => f.id);
 }
 
 export interface MissingGrossingItem {
@@ -81,10 +116,10 @@ export interface MissingGrossingItem {
 }
 
 /** What's still required before grossing can be completed, and where. */
-export function missingGrossingItems(c: Pick<Case, 'specimens'>, requirements: readonly ResolvedFieldRequirement[]): MissingGrossingItem[] {
+export function missingGrossingItems(c: Pick<Case, 'specimens' | 'matrixBlocks'>, requirements: readonly ResolvedFieldRequirement[], satisfied: ProtocolSatisfied = hasProtocol): MissingGrossingItem[] {
   const specimens = specimensOf(c);
-  const values = grossingFieldValues(c);
-  const blockLabels = specimens.flatMap(sp => (sp.blocks ?? []).map(b => `${sp.label}${b.label}`));
+  const values = grossingFieldValues(c, satisfied);
+  const blockLabels = grossingBlocks(c).map(b => b.label);
   return missingRequiredFields(requirements, values).map(f => {
     const v = values[f.id] ?? [];
     const labels = f.perBlock ? blockLabels : specimens.map(sp => sp.label);
@@ -129,6 +164,35 @@ export interface CompleteGrossingOptions {
 }
 
 /**
+ * Raises a "Grossed without protocol" deficiency (secondary review) for each
+ * named specimen and records any that couldn't be raised. Used by Complete
+ * grossing on the Grossing screen and Gross Complete on the case report page.
+ */
+export async function raiseGrossedWithoutProtocol(
+  c: Pick<Case, 'id' | 'specimens'>, labels: readonly string[],
+  deps: Pick<CompleteGrossingDeps, 'raiseDeficiency' | 'audit' | 'actorName' | 'actorId'>,
+): Promise<{ routedForReview: string[]; reviewNotRaised: string[] }> {
+  const routedForReview: string[] = [];
+  const reviewNotRaised: string[] = [];
+  for (const sp of specimensOf(c).filter(s => labels.includes(s.label))) {
+    const raised = await deps.raiseDeficiency({
+      caseId: c.id, specimenId: sp.id, specimenLabel: sp.label,
+      deficiencyTypeId: GROSSED_WITHOUT_PROTOCOL_DEFICIENCY,
+      comment: `Grossing completed without an attached protocol by ${deps.actorName}; routed for secondary review.`,
+      raisedBy: deps.actorId,
+    }).catch(() => ({ ok: false }));
+    (raised.ok ? routedForReview : reviewNotRaised).push(sp.label);
+  }
+  if (reviewNotRaised.length) {
+    await deps.audit({
+      type: 'user', event: 'Secondary review not raised', user: deps.actorName, caseId: c.id, confidence: null,
+      detail: `Grossing completed without a protocol, but the secondary-review deficiency couldn't be raised for specimen(s) ${reviewNotRaised.join(', ')}.`,
+    });
+  }
+  return { routedForReview, reviewNotRaised };
+}
+
+/**
  * Checks, then moves the case to Gross Complete and records it. With the
  * protocol rule switched off, specimens without a protocol need the user's
  * confirmation (needsConfirmation) and are then routed for secondary review.
@@ -165,22 +229,6 @@ export async function completeGrossing(
   });
   // The case is complete by now; a deficiency that can't be raised is
   // reported back and recorded, never a reason to undo the completion.
-  const routedForReview: string[] = [];
-  const reviewNotRaised: string[] = [];
-  for (const sp of specimens.filter(s => forReview.includes(s.label))) {
-    const raised = await deps.raiseDeficiency({
-      caseId: c.id, specimenId: sp.id, specimenLabel: sp.label,
-      deficiencyTypeId: GROSSED_WITHOUT_PROTOCOL_DEFICIENCY,
-      comment: `Grossing completed without an attached protocol by ${deps.actorName}; routed for secondary review.`,
-      raisedBy: deps.actorId,
-    }).catch(() => ({ ok: false }));
-    (raised.ok ? routedForReview : reviewNotRaised).push(sp.label);
-  }
-  if (reviewNotRaised.length) {
-    await deps.audit({
-      type: 'user', event: 'Secondary review not raised', user: deps.actorName, caseId: c.id, confidence: null,
-      detail: `Grossing completed without a protocol, but the secondary-review deficiency couldn't be raised for specimen(s) ${reviewNotRaised.join(', ')}.`,
-    });
-  }
+  const { routedForReview, reviewNotRaised } = await raiseGrossedWithoutProtocol(c, forReview, deps);
   return { ok: true, case: (updated as Case | undefined) ?? { ...c, status: 'gross-complete' }, routedForReview, reviewNotRaised };
 }

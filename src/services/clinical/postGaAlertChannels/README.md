@@ -19,10 +19,12 @@ This folder is the same three channels, same payload/template logic,
 but routed through this app's one real, generic outbound HTTP transport
 — `services/interfaceDispatch/dispatchInterfaceMessage.ts` →
 `receive_interface_message` (a separate Firebase Functions repository)
-— the same real transport six other transaction types
-(A08/A40/A47/ORU_R01/LIS_SYNC/ORDER_CREATED/REGISTRY_REPORT/PRINT_JOB)
-already use for real dispatch. A new `'CRITICAL_ALERT'` transaction type
+— the same real transport ten other transaction types
+(A08/A40/A47/ORU_R01/LIS_SYNC/ORDER_CREATED/REGISTRY_REPORT/CANCER_REGISTRY_REPORT/PRINT_JOB/WSI_SCAN_MANIFEST,
+`InterfaceTransactionType`) already use for real dispatch. A new `'CRITICAL_ALERT'` transaction type
 was added to that shared union for this.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the transaction-type list was out of date (now ten others).*
 
 **Real, honest limit on what this actually proves.** A dispatch success
 through this module confirms PathScribe's own outbound message reached

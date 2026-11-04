@@ -22,8 +22,11 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
-import { MemoryRouter } from 'react-router';
-import { useConfigDirtyGuard } from '../../components/Config/configDirtyGuardContext';
+import { MemoryRouter, Routes, Route } from 'react-router';
+import { useEffect, useState } from 'react';
+import { useConfigDirtyGuard, useConfigNavigationGuard, useReportConfigDirty } from '../../components/Config/configDirtyGuardContext';
+import { DirtyStateProvider } from '../../contexts/DirtyStateProvider';
+import { useGuardedNavigate } from '../../hooks/useGuardedNavigate';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -61,18 +64,62 @@ vi.mock('../../components/Config/Actions/ActionsTab', () => ({ ActionsTab: () =>
 vi.mock('../../components/Config/System/DemoResetTab', () => ({ default: () => <div>DEMO_TAB</div> }));
 vi.mock('../../components/TemplateBuilder/ReportTemplatesSection', () => ({ default: () => <div>TEMPLATES_TAB</div> }));
 vi.mock('../../components/ValidationStudies/ValidationStudiesSection', () => ({ default: () => <div>VALIDATION_TAB</div> }));
+// Batch 428/429: the refusal banner and the view-only gate are tested on their own; here they pass the tab through.
+vi.mock('../../components/Config/ConfigRefusalBanner', () => ({ default: () => null }));
+vi.mock('../../components/Config/ConfigSectionGate', () => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
 // The one real, confirmed dirty-state producer inside ConfigurationPage's
 // own tab tree (see MacroPanel.tsx) — stood in here with a button so a test
 // can flip it on/off directly, exactly like MacroPanel's own real isDirty.
+// Batch 437: it also stands in for an editor dialog (edits noticed by the
+// page), an inline form reporting its exact state, and a section list.
+const InlineForm = () => {
+  const [value, setValue] = useState('saved');
+  useReportConfigDirty(value !== 'saved');
+  return <input aria-label="inline field" value={value} onChange={e => setValue(e.target.value)} />;
+};
 vi.mock('../../components/Config/Macros/index', () => ({
-  default: () => {
+  // Named, so the hooks lint rule sees a component (Batch 504).
+  default: function MockMacrosSection() {
     const { setDirty } = useConfigDirtyGuard();
+    const guard = useConfigNavigationGuard();
+    const [dialog, setDialog] = useState(false);
+    // Like Cassette Colours: closes only from its own Cancel (no backdrop click, no Escape).
+    const [sticky, setSticky] = useState(false);
+    const [section, setSection] = useState('one');
+    // Like LookupModal: some dialogs close on Escape anywhere in the window.
+    useEffect(() => {
+      if (!dialog) return;
+      const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDialog(false); };
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }, [dialog]);
     return (
       <div>
         MACROS_TAB
         <button onClick={() => setDirty(true)}>make macros dirty</button>
         <button onClick={() => setDirty(false)}>clear macros dirty</button>
+        <button onClick={() => setDialog(true)}>open dialog</button>
+        {dialog && (
+          <div role="dialog" data-testid="dialog-backdrop"
+            onClick={e => { if (e.target === e.currentTarget) setDialog(false); }}
+            onKeyDown={e => { if (e.key === 'Escape') setDialog(false); }}>
+            <input aria-label="dialog field" />
+            <input aria-label="dialog filter" type="search" />
+            <button onClick={() => setDialog(false)}>close dialog</button>
+          </div>
+        )}
+        <button onClick={() => setSticky(true)}>open sticky dialog</button>
+        {sticky && (
+          <div role="dialog" data-testid="sticky-backdrop">
+            <input aria-label="sticky field" />
+            <button>common.save</button>
+            <button onClick={() => setSticky(false)}>common.cancel</button>
+          </div>
+        )}
+        <InlineForm />
+        <button onClick={() => guard(() => setSection('two'))}>inner nav</button>
+        <span>SECTION_{section}</span>
       </div>
     );
   },
@@ -193,5 +240,163 @@ describe('ConfigurationPage — PS-128 dirty-flag guard', () => {
     fireEvent.click(screen.getByText('configuration.tabs.staff'));
     expect(screen.getByText('STAFF_TAB')).toBeTruthy();
     expect(screen.queryByText('configuration.dirtyGuard.title')).toBeNull();
+  });
+});
+
+describe('ConfigurationPage — PS-128 across the whole page (Batch 437)', () => {
+  it('typing in a search box inside a dialog is not an unsaved change', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    fireEvent.input(screen.getByLabelText('dialog filter'), { target: { value: 'abc' } });
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('AI_TAB')).toBeTruthy();   // a filter is not a change
+  });
+
+  it('a dialog edit is guarded, and closing the dialog clears it', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    fireEvent.input(screen.getByLabelText('dialog field'), { target: { value: 'Teal' } });
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('configuration.dirtyGuard.title')).toBeTruthy();
+    fireEvent.click(screen.getByText('common.cancel'));
+    fireEvent.click(screen.getByText('close dialog'));
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('AI_TAB')).toBeTruthy();
+  });
+
+  it('an inline form reports its exact state: typing back to the saved value is clean again', async () => {
+    await renderConfigPage('macros');
+    const field = screen.getByLabelText('inline field');
+    fireEvent.change(field, { target: { value: 'changed' } });
+    fireEvent.click(screen.getByText('inner nav'));
+    expect(screen.getByText('configuration.dirtyGuard.title')).toBeTruthy();
+    expect(screen.getByText('SECTION_one')).toBeTruthy();
+    fireEvent.click(screen.getByText('common.cancel'));
+    fireEvent.change(field, { target: { value: 'saved' } });
+    fireEvent.click(screen.getByText('inner nav'));
+    expect(screen.getByText('SECTION_two')).toBeTruthy();
+  });
+
+  it('leaving Configuration from the header (logo, nav bar, search) asks first, and goes on Discard', async () => {
+    const Logo = () => { const go = useGuardedNavigate(); return <button onClick={() => go('/')}>logo</button>; };
+    render(
+      <MemoryRouter initialEntries={['/configuration?tab=macros']}>
+        <DirtyStateProvider>
+          <Logo />
+          <Routes>
+            <Route path="/" element={<div>HOME</div>} />
+            <Route path="/configuration" element={<ConfigurationPage />} />
+          </Routes>
+        </DirtyStateProvider>
+      </MemoryRouter>
+    );
+    await act(async () => { await new Promise(r => setTimeout(r, 110)); });
+    fireEvent.click(screen.getByText('logo'));
+    expect(screen.getByText('HOME')).toBeTruthy();     // nothing unsaved: straight through
+  });
+
+  it('with unsaved changes the header waits for the answer', async () => {
+    const Logo = () => { const go = useGuardedNavigate(); return <button onClick={() => go('/')}>logo</button>; };
+    render(
+      <MemoryRouter initialEntries={['/configuration?tab=macros']}>
+        <DirtyStateProvider>
+          <Logo />
+          <Routes>
+            <Route path="/" element={<div>HOME</div>} />
+            <Route path="/configuration" element={<ConfigurationPage />} />
+          </Routes>
+        </DirtyStateProvider>
+      </MemoryRouter>
+    );
+    await act(async () => { await new Promise(r => setTimeout(r, 110)); });
+    fireEvent.click(screen.getByText('make macros dirty'));
+    fireEvent.click(screen.getByText('logo'));
+    expect(screen.queryByText('HOME')).toBeNull();
+    expect(screen.getByText('configuration.dirtyGuard.title')).toBeTruthy();
+    fireEvent.click(screen.getByText('common.cancel'));
+    expect(screen.getByText('MACROS_TAB')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('logo'));
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    expect(screen.getByText('HOME')).toBeTruthy();
+  });
+});
+
+describe('ConfigurationPage — closing a dialog from outside (Batch 438)', () => {
+  it('a clean dialog closes on a backdrop click as before', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(screen.queryByTestId('dialog-backdrop')).toBeNull();
+  });
+
+  it('with unsaved edits a backdrop click asks; Keep editing keeps it, Discard closes it', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    fireEvent.input(screen.getByLabelText('dialog field'), { target: { value: 'Teal' } });
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
+    expect(screen.getByText('configuration.dirtyGuard.dialogMessage')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.keepEditing'));
+    expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('dialog-backdrop'));
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    expect(screen.queryByTestId('dialog-backdrop')).toBeNull();
+    // and nothing is left unsaved
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('AI_TAB')).toBeTruthy();
+  });
+
+  it('Escape in a dialog with unsaved edits asks first', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    const field = screen.getByLabelText('dialog field');
+    fireEvent.input(field, { target: { value: 'Teal' } });
+    field.focus();
+    fireEvent.keyDown(field, { key: 'Escape' });
+    expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
+    expect(screen.getByText('configuration.dirtyGuard.dialogMessage')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    expect(screen.queryByTestId('dialog-backdrop')).toBeNull();
+  });
+
+  it('Escape with focus outside the dialog (after Keep editing) still asks for a dialog that listens on the window', async () => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open dialog'));
+    fireEvent.input(screen.getByLabelText('dialog field'), { target: { value: 'Teal' } });
+    (document.activeElement as HTMLElement | null)?.blur();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.keepEditing'));
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    expect(screen.getByTestId('dialog-backdrop')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    expect(screen.queryByTestId('dialog-backdrop')).toBeNull();
+  });
+
+  // PS-128 review (Oct 15, 2026): Discard used to forget the edits and leave such a dialog open.
+  it.each([['a backdrop click'], ['Escape']])('Discard after %s closes a dialog that only closes from its own Cancel', async (how) => {
+    await renderConfigPage('macros');
+    fireEvent.click(screen.getByText('open sticky dialog'));
+    const field = screen.getByLabelText('sticky field');
+    fireEvent.input(field, { target: { value: 'Xyz' } });
+    if (how === 'Escape') { field.focus(); fireEvent.keyDown(field, { key: 'Escape' }); }
+    else fireEvent.click(screen.getByTestId('sticky-backdrop'));
+    expect(screen.getByText('configuration.dirtyGuard.dialogMessage')).toBeTruthy();
+    fireEvent.click(screen.getByText('configuration.dirtyGuard.discardButton'));
+    await act(async () => { await new Promise(r => setTimeout(r, 20)); });
+    expect(screen.queryByTestId('sticky-backdrop')).toBeNull();
+    // nothing is left unsaved: another tab goes straight through
+    fireEvent.click(screen.getByText('configuration.tabs.ai'));
+    expect(screen.getByText('AI_TAB')).toBeTruthy();
+  });
+
+  it('edits are noticed after React has handled them (bubble phase), so the first keystroke is kept', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('src/hooks/useConfigEditTracking.ts', 'utf8');
+    expect(src).toMatch(/addEventListener\('input', onEdit\)/);
+    expect(src).toMatch(/addEventListener\('change', onEdit\)/);
+    expect(src).not.toMatch(/addEventListener\('(input|change)', onEdit, true\)/);
   });
 });

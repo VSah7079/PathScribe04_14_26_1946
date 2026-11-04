@@ -17,7 +17,8 @@
 
 import type { Case } from '@/types/case/Case';
 import type { ServiceResult } from '../types';
-import type { ICaseSearchService } from './ICaseSearchService';
+import type { ICaseSearchService, SynopticProtocolInfo } from './ICaseSearchService';
+import { REPORT_DETAIL_PREVIEW_LIMIT, buildCaseReport, reportNeedsSynopticFields, type CaseSearchReportRequest } from './caseSearchReport';
 import {
   CASE_SEARCH_EXPORT_LIMIT, DEFAULT_CASE_SEARCH_PAGE_SIZE, DEFAULT_CASE_SEARCH_SORT, MAX_CASE_SEARCH_PAGE_SIZE,
   type CaseSearchExportRow, type CaseSearchRequest,
@@ -26,6 +27,12 @@ import {
   caseAccessionInstant, caseSignedOutInstant, compareCases, expandOrganisationCriteria, matchesCaseSearch, pageBounds, patientSortName,
   type CaseSearchFlagInfo, type CaseSearchMatchContext, type CaseSearchReferenceData,
 } from './caseSearchMatching';
+
+/** Batch 437: exportRows' refusal. */
+export const CASE_SEARCH_EXPORT_NOT_PERMITTED = 'EXPORT_NOT_PERMITTED';
+
+/** What a run needs loaded beyond the usual reference data (the protocol questions are only loaded when used). */
+export interface CaseSearchReferenceNeeds { synopticFields?: boolean }
 
 export interface CaseSearchDependencies {
   /** Every case the signed-in user may see, with access rules already applied. */
@@ -36,9 +43,17 @@ export interface CaseSearchDependencies {
    * amendments, countersigns, delegations, subspecialty and TAT resolvers.
    * The API server joins the same tables in SQL.
    */
-  loadReferenceData(): Promise<CaseSearchReferenceData>;
+  loadReferenceData(needs?: CaseSearchReferenceNeeds): Promise<CaseSearchReferenceData>;
+  /** Batch 613: the protocols and their questions (registry). */
+  loadSynopticProtocols?(): Promise<SynopticProtocolInfo[]>;
+  /** Batch 613: the report export's capability, search:case-report:export. */
+  authorizeReportExport?(): Promise<{ allowed: boolean }>;
+  /** Batch 613: records a report export in the audit trail (counts only). */
+  auditReportExport?(entry: { groupBy: string; groupCount: number; rowCount: number; total: number }): void;
   /** Records an export in the audit trail (fire and forget). */
   auditExport(entry: { rowCount: number; total: number }): void;
+  /** Batch 437 (PS-357): the export's capability, search:case-results:export. */
+  authorizeExport?(): Promise<{ allowed: boolean }>;
   /** Batch 372: told which criteria a search used (names only, never values). */
   auditSearch?(entry: { fieldsUsed: string[]; total: number }): void;
   now?: () => Date;
@@ -74,8 +89,8 @@ export function usedCriteria(criteria: object): string[] {
 export function createCaseSearchService(deps: CaseSearchDependencies): ICaseSearchService {
   const now = deps.now ?? (() => new Date());
 
-  const run = async (request: Omit<CaseSearchRequest, 'page' | 'pageSize'>): Promise<ServiceResult<{ cases: Case[]; reference: CaseSearchReferenceData }>> => {
-    const [casesRes, reference] = await Promise.all([deps.loadAccessibleCases(), deps.loadReferenceData()]);
+  const run = async (request: Omit<CaseSearchRequest, 'page' | 'pageSize'>, needs: CaseSearchReferenceNeeds = {}): Promise<ServiceResult<{ cases: Case[]; reference: CaseSearchReferenceData }>> => {
+    const [casesRes, reference] = await Promise.all([deps.loadAccessibleCases(), deps.loadReferenceData({ ...needs, synopticFields: needs.synopticFields || (request.criteria?.synopticValues?.length ?? 0) > 0 })]);
     if (casesRes.ok === false) return casesRes;
     const ctx: CaseSearchMatchContext = { ...reference, timeZone: request.timeZone || 'UTC', now: now() };
     // Batch 354: a chosen Trust includes its sites.
@@ -84,6 +99,15 @@ export function createCaseSearchService(deps: CaseSearchDependencies): ICaseSear
     matched.sort(compareCases(request.sort ?? DEFAULT_CASE_SEARCH_SORT));
     deps.auditSearch?.({ fieldsUsed: usedCriteria(request.criteria ?? {}), total: matched.length });
     return { ok: true, data: { cases: matched, reference } };
+  };
+
+  const runReport = async (request: CaseSearchReportRequest, rowLimit: number, noGroupKey: boolean) => {
+    const res = await run({ criteria: request.criteria, sort: undefined, timeZone: request.timeZone }, { synopticFields: reportNeedsSynopticFields(request) });
+    if (res.ok === false) return res;
+    const { cases, reference } = res.data;
+    const ctx: CaseSearchMatchContext = { ...reference, timeZone: request.timeZone || 'UTC', now: now() };
+    const report = buildCaseReport(cases, { ...request, rowLimit, groupKey: noGroupKey ? undefined : request.groupKey }, ctx);
+    return { ok: true as const, data: report };
   };
 
   return {
@@ -97,12 +121,33 @@ export function createCaseSearchService(deps: CaseSearchDependencies): ICaseSear
     },
 
     async exportRows(request) {
+      // Batch 437 (PS-357): a refusal makes no rows.
+      if (deps.authorizeExport && !(await deps.authorizeExport()).allowed) return { ok: false, error: CASE_SEARCH_EXPORT_NOT_PERMITTED };
       const res = await run(request);
       if (res.ok === false) return res;
       const { cases, reference } = res.data;
       const rows = cases.slice(0, CASE_SEARCH_EXPORT_LIMIT).map(c => toCaseSearchExportRow(c, reference.flagsById));
       deps.auditExport({ rowCount: rows.length, total: cases.length });
       return { ok: true, data: { rows, total: cases.length, truncated: cases.length > rows.length } };
+    },
+
+    report(request) {
+      return runReport(request, request.rowLimit ?? REPORT_DETAIL_PREVIEW_LIMIT, false);
+    },
+
+    async exportReport(request) {
+      if (deps.authorizeReportExport && !(await deps.authorizeReportExport()).allowed) return { ok: false, error: CASE_SEARCH_EXPORT_NOT_PERMITTED };
+      // A grouped file holds the groups only; a list file holds every case, up to the export limit.
+      const res = await runReport(request, request.groupBy === 'none' ? CASE_SEARCH_EXPORT_LIMIT : 0, true);
+      if (res.ok === false) return res;
+      deps.auditReportExport?.({
+        groupBy: res.data.groupBy, groupCount: res.data.groups.length, rowCount: res.data.rows.length, total: res.data.total,
+      });
+      return res;
+    },
+
+    async listSynopticProtocols() {
+      return { ok: true, data: (await deps.loadSynopticProtocols?.()) ?? [] };
     },
   };
 }

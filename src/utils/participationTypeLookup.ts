@@ -10,7 +10,7 @@
 // performing labs."
 //
 // Matters more here than for a typical admin-screen lookup:
-// mockParticipationTypeService's own delay() simulates a real ~60ms network
+// participationTypeService's own delay() simulates a real ~60ms network
 // round trip. Fine for a Config screen render, but calling it unmemoized
 // directly in the sign-out hot path would add a genuine, repeated 60ms of
 // latency to every single finalize/sign-out attempt for no reason —
@@ -29,14 +29,14 @@
 // didn't reach the sign-out check until the page was reloaded. Every save
 // of participation types now calls invalidateParticipationTypeLookup().
 // ─────────────────────────────────────────────────────────────────────────────
-import { mockParticipationTypeService } from '../services/participationTypes/mockParticipationTypeService';
+import { participationTypeService } from '../services/participationTypes/participationTypeServiceInstance';
 import type { ParticipationTypeRecord } from '../services/participationTypes/IParticipationTypeService';
 
 let participationTypeLookupPromise: Promise<ParticipationTypeRecord[]> | null = null;
 
 export function getParticipationTypeLookup(): Promise<ParticipationTypeRecord[]> {
   if (!participationTypeLookupPromise) {
-    participationTypeLookupPromise = mockParticipationTypeService.getAll()
+    participationTypeLookupPromise = participationTypeService.getAll()
       .then(res => (res.ok ? res.data : []))
       .catch(() => []);
     participationTypeLookupPromise.catch(() => { participationTypeLookupPromise = null; });

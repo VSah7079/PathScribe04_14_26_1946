@@ -2,6 +2,8 @@
 import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ContainerType, IContainerTypeService } from './IContainerTypeService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'container_types';
 
@@ -12,11 +14,11 @@ const STORAGE_KEY = 'container_types';
 // regardless of what Demo Reset's key list says.
 const CONTAINER_TYPE_VERSION = '3'; // bumped: added capacityMl/defaultFixativeId/isPrefilled, size-specific jars/buckets, SurePath/CytoLyt/EM vial entries, per direct guidance
 const VERSION_KEY = 'pathscribe_mock_container_types_version';
-const storedVersion = typeof localStorage !== 'undefined' ? localStorage.getItem(VERSION_KEY) : CONTAINER_TYPE_VERSION;
+const storedVersion = typeof dataStorage !== 'undefined' ? dataStorage.getItem(VERSION_KEY) : CONTAINER_TYPE_VERSION;
 if (storedVersion !== CONTAINER_TYPE_VERSION) {
   try {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, CONTAINER_TYPE_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, CONTAINER_TYPE_VERSION);
   } catch { /* SSR / sandboxed env — ignore */ }
 }
 
@@ -206,7 +208,7 @@ const persist = (data: ContainerType[]) => storageSet(STORAGE_KEY, data);
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data  });
 const err = <T>(msg: string): ServiceResult<T> => ({ ok: false, error: msg });
 
-export const mockContainerTypeService: IContainerTypeService = {
+const containerTypeServiceUnchecked: IContainerTypeService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -235,6 +237,11 @@ export const mockContainerTypeService: IContainerTypeService = {
     return ok({ ...types[idx] });
   },
 
-  async deactivate(id) { return mockContainerTypeService.update(id, { status: 'Inactive' }); },
-  async reactivate(id) { return mockContainerTypeService.update(id, { status: 'Active'   }); },
+  async deactivate(id) { return containerTypeServiceUnchecked.update(id, { status: 'Inactive' }); },
+  async reactivate(id) { return containerTypeServiceUnchecked.update(id, { status: 'Active'   }); },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockContainerTypeService: IContainerTypeService = guardConfigWrites(containerTypeServiceUnchecked, [
+  ['config:container-types:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

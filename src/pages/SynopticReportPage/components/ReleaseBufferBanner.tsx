@@ -18,7 +18,7 @@
 // (caseData.finalizedBy === currentUserId) — a non-signer still sees
 // the real countdown and status (the real, intended "educational
 // access"), just not an action that was never theirs to take. Defense
-// in depth: mockReportReleaseService.recall() itself now also refuses
+// in depth: reportReleaseService.recall() itself now also refuses
 // a mismatched performedBy.userId, so this UI gate isn't the only
 // thing standing between a non-signer and a real recall.
 //
@@ -37,7 +37,7 @@
 // how batch 168's TerminologyAlertBanner.tsx (also fully inline
 // originally) was handled.
 //
-// i18n note: `result.reason` (from mockReportReleaseService.recall(),
+// i18n note: `result.reason` (from reportReleaseService.recall(),
 // a shared, multi-consumer service) stays literal English — same
 // precedent as leaving referenceCheckService.ts's own reference labels
 // untranslated in batch 178, since converting one shared .ts service's
@@ -46,8 +46,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import type { Case } from '@/types/case/Case';
-import { mockReportReleaseService } from '@/services/reportRelease/mockReportReleaseService';
+
 import { useReleaseBufferCountdown, formatRemaining } from '../hooks/useReleaseBufferCountdown';
+import { reportReleaseService } from '@/services';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
+import { onReleaseCountdownEnd, RELEASE_RECHECK_MS } from '@/services/reportRelease/releaseCountdown';
 
 interface ReleaseBufferBannerProps {
   caseData: Case | null | undefined;
@@ -56,7 +59,7 @@ interface ReleaseBufferBannerProps {
    *  comment for the real bug that naming confusion caused. */
   currentUserId?: string;
   currentUserName?: string;
-  setCaseData: (updater: (prev: Case | null | undefined) => Case | null | undefined) => void;
+  setCaseData: (updater: (prev: Case | null) => Case | null) => void;
   showToast?: (message: string, kind?: import('@/utils/toastPolicy').ToastKind) => void;
 }
 
@@ -66,6 +69,8 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
   const { t } = useTranslation();
   const [recalling, setRecalling] = useState(false);
   const releasingRef = useRef(false);
+  // Batch 555: once the API server releases held reports, the page asks it again until it has.
+  const [recheck, setRecheck] = useState(0);
 
   const isPendingRelease = caseData?.status === 'pending-release';
   const expiresAt = caseData?.releaseBufferExpiresAt;
@@ -81,20 +86,27 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
   useEffect(() => {
     if (!isPendingRelease || !caseData?.id || remainingMs > 0 || releasingRef.current) return;
     releasingRef.current = true;
-    mockReportReleaseService.checkAndReleaseIfExpired(caseData.id).then(result => {
-      if (result.released) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const caseId = caseData.id;
+    onReleaseCountdownEnd(caseId, {
+      releaseIfExpired: id => reportReleaseService.checkAndReleaseIfExpired(id),
+      readStatus: async id => { const { caseRouter } = await import('@/services/cases/CaseRouter'); return (await caseRouter.getCase(id))?.status; },
+    }).then(outcome => {
+      if (outcome === 'released') {
         setCaseData(prev => prev ? ({ ...prev, status: 'finalized' as const, releasedAt: new Date().toISOString(), releaseBufferExpiresAt: undefined, releaseBufferDurationMinutes: undefined, preReleaseBufferStatus: undefined }) : prev);
         showToast?.(t('releaseBufferBanner.releaseExpiredToast'));
+      } else if (outcome === 'waiting') {
+        timer = setTimeout(() => setRecheck(n => n + 1), RELEASE_RECHECK_MS);
       }
-      releasingRef.current = false;
-    });
-  }, [isPendingRelease, caseData?.id, remainingMs, setCaseData, showToast]);
+    }).catch(() => undefined).finally(() => { releasingRef.current = false; });
+    return () => { if (timer) clearTimeout(timer); };
+  }, [isPendingRelease, caseData?.id, remainingMs, setCaseData, showToast, t, recheck]);
 
   const handleRecall = useCallback(async () => {
     if (!caseData?.id) return;
     setRecalling(true);
     try {
-      const result = await mockReportReleaseService.recall(caseData.id, {
+      const result = await reportReleaseService.recall(caseData.id, {
         userId: currentUserId ?? 'unknown',
         userName: currentUserName ?? 'Unknown User',
       });
@@ -113,7 +125,7 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
     } finally {
       setRecalling(false);
     }
-  }, [caseData?.id, currentUserId, currentUserName, setCaseData, showToast]);
+  }, [caseData?.id, currentUserId, currentUserName, setCaseData, showToast, t]);
 
   // Real, per direct follow-up ("the actions list is out of sync...
   // voice control... has to be flawless"): the real, other half of the
@@ -121,7 +133,7 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
   // that side dispatches this same event (see SynopticReportPage.tsx's
   // own onAction switch), this side is what actually calls the real
   // handler. Safe to wire globally, not gated on isRealSigner here
-  // too — mockReportReleaseService.recall() itself already refuses a
+  // too — reportReleaseService.recall() itself already refuses a
   // mismatched performedBy.userId independently of this component's
   // own UI-level button gating (see that service's own doc comment).
   useEffect(() => {
@@ -144,9 +156,10 @@ export const ReleaseBufferBanner: React.FC<ReleaseBufferBannerProps> = ({
               components={{ bold: <strong />, countdown: <strong className="ps-release-buffer-countdown" /> }}
             />
           </span>
-          <button className="ps-btn-secondary" disabled={recalling} onClick={handleRecall}>
+          {/* Batch 649: greyed without report:release:recall (the release service checks it again). */}
+          <CapabilityButton capability="report:release:recall" context={{ caseId: caseData?.id ?? null, facilityId: caseData?.order?.facilityId ?? null }} className="ps-btn-secondary" disabled={recalling} onClick={() => { void handleRecall(); }}>
             {recalling ? t('releaseBufferBanner.recallingLabel') : t('releaseBufferBanner.recallButtonLabel')}
-          </button>
+          </CapabilityButton>
         </>
       ) : (
         // Real feature, per direct specification, Phase 4 (spec §15b —

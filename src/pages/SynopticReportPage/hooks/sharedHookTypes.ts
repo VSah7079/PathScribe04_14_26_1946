@@ -12,7 +12,8 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
-import { mockAuditService } from '@/services/auditlog/mockAuditService';
+import { auditService } from '@/services';
+
 
 export type SigningUser = ReturnType<typeof useAuth>['user'];
 
@@ -71,7 +72,7 @@ export function handleConcurrencyConflict(
 ): boolean {
   if (e instanceof ConcurrencyConflictError) {
     setConcurrencyConflict({ actualVersion: e.actualVersion, blockOverride: options?.blockOverride });
-    mockAuditService.logEvent({
+    auditService.logEvent({
       type: 'system',
       event: 'Concurrency conflict detected',
       detail: `${options?.actionName ?? 'save'}: expected version ${e.expectedVersion}, found ${e.actualVersion} — ${options?.blockOverride ? 'blocked, no override offered' : 'shown to user, override available'}`,

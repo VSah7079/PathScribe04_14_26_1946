@@ -8,40 +8,43 @@
 // (and the block-selection/priority/routing/submit controls around it)
 // lives in OrderSummaryRoutingPanel, per the spec's own Right Panel
 // split.
+//
+// Batch 403 (PS-359): a recut's level depth follows the organisation's Field
+// Requirements (page "addOnOrder"): starred when required, "Still required"
+// under Add, and Add off until it is given. "add to order" by voice
+// (ADD_ON_ADD_TO_ORDER) does exactly what the button does. The stain filter and
+// the line building moved to utils/addOnOrderOperations.ts; IHC panel names are
+// shown in the user's language.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StainType } from '@/services/stains/IStainService';
 import { IHC_PANEL_PRESETS, type AddOnOrderKind, type ControlMode } from '@/types/case/AddOnOrder';
-import type { AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
+import { buildAddOnLines, filterStainsForKind, missingPanelStainNames, type AddOnOrderLineInput } from '@/utils/addOnOrderOperations';
+import { actionRegistryService, addOnLineMissing, addOnOrderFieldRequired } from '@/services';
+import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
+import { formatList } from '@/utils/formatList';
 
 export interface OrderBuilderPanelProps {
   stainTypes: StainType[];
   onAddLines: (lines: AddOnOrderLineInput[]) => void;
+  requirements: readonly ResolvedFieldRequirement[];
 }
 
-const KIND_CATEGORY_FILTER: Record<AddOnOrderKind, StainType['category'][] | null> = {
-  recut: null, // any real stain can be recut/leveled
-  special_stain: ['Special Stain'],
-  ihc: ['IHC', 'Immunofluorescence'],
-  molecular: ['Molecular'],
-};
-
-const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAddLines }) => {
-  const { t } = useTranslation();
+const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAddLines, requirements }) => {
+  const { t, i18n } = useTranslation();
   const [orderKind, setOrderKind] = useState<AddOnOrderKind>('recut');
   const [search, setSearch] = useState('');
   const [selectedStainId, setSelectedStainId] = useState('');
   const [selectedPanelId, setSelectedPanelId] = useState('');
   const [levelDepthMicrons, setLevelDepthMicrons] = useState<string>('4');
+  // Batch 732 (spec §11.3): a level range, and how many levels go on each slide.
+  const [levelCount, setLevelCount] = useState<string>('1');
+  const [levelsPerSlide, setLevelsPerSlide] = useState<string>('1');
   const [controlMode, setControlMode] = useState<ControlMode>('none');
 
-  const availableStains = useMemo(() => {
-    const filter = KIND_CATEGORY_FILTER[orderKind];
-    const bySearch = stainTypes.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
-    return filter ? bySearch.filter(s => filter.includes(s.category)) : bySearch;
-  }, [stainTypes, orderKind, search]);
+  const availableStains = useMemo(() => filterStainsForKind(stainTypes, orderKind, search), [stainTypes, orderKind, search]);
 
   const selectedStain = stainTypes.find(s => s.id === selectedStainId);
   const selectedPanel = IHC_PANEL_PRESETS.find(p => p.id === selectedPanelId);
@@ -53,27 +56,24 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
     setControlMode('none');
   };
 
+  const lines = buildAddOnLines({ orderKind, stain: selectedStain, panel: orderKind === 'ihc' ? selectedPanel : undefined, stainTypes, levelDepth: levelDepthMicrons, controlMode, levelCount, levelsPerSlide });
+  // Batch 669 (ws-20): a panel stain that is not in the stain dictionary is left out; the builder says so instead of dropping it without a word.
+  const panelMissingNames = orderKind === 'ihc' && selectedPanel ? missingPanelStainNames(selectedPanel, stainTypes) : [];
+  const missing = lines.length === 0 ? [] : [...new Set(lines.flatMap(l => addOnLineMissing(l, requirements)))];
+  const canAdd = lines.length > 0 && missing.length === 0;
+
   const handleAdd = () => {
-    if (orderKind === 'ihc' && selectedPanel) {
-      const lines: AddOnOrderLineInput[] = selectedPanel.stainTypeIds
-        .map(id => stainTypes.find(s => s.id === id))
-        .filter((s): s is StainType => Boolean(s))
-        .map(stainType => ({ stainType, orderKind: 'ihc', controlMode: controlMode === 'none' ? undefined : controlMode, panelId: selectedPanel.id, panelName: selectedPanel.name }));
-      if (lines.length > 0) onAddLines(lines);
-      setSelectedPanelId('');
-      return;
-    }
-    if (!selectedStain) return;
-    const line: AddOnOrderLineInput = {
-      stainType: selectedStain,
-      orderKind,
-      levelDepthMicrons: orderKind === 'recut' && levelDepthMicrons ? Number(levelDepthMicrons) : undefined,
-      controlMode: controlMode === 'none' ? undefined : controlMode,
-    };
-    onAddLines([line]);
+    if (!canAdd) return;
+    onAddLines(lines);
+    setSelectedPanelId('');
     setSelectedStainId('');
     setSearch('');
   };
+  const addRef = useRef(handleAdd);
+  addRef.current = handleAdd;
+  useEffect(() => actionRegistryService.onAction((actionId: string) => {
+    if (actionId === 'ADD_ON_ADD_TO_ORDER') addRef.current();
+  }), []);
 
   const canShowControlToggle = selectedStain?.requiresTargetControl || (orderKind === 'ihc' && selectedPanel);
 
@@ -95,7 +95,7 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
           <div className="ps-addon-picker-grid">
             {IHC_PANEL_PRESETS.map(panel => (
               <button key={panel.id} type="button" className={`ps-addon-picker-chip${selectedPanelId === panel.id ? ' ps-addon-picker-chip--active' : ''}`} onClick={() => { setSelectedPanelId(prev => prev === panel.id ? '' : panel.id); setSelectedStainId(''); }}>
-                {panel.name}
+                {t(`addOnOrder.panels.${panel.id}`)}
               </button>
             ))}
           </div>
@@ -123,8 +123,12 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
 
       {orderKind === 'recut' && (
         <>
-          <label className="ps-addon-field-label">{t('addOnOrder.builder.levelDepth')}</label>
-          <input className="ps-addon-field-input" type="number" min={1} value={levelDepthMicrons} onChange={e => setLevelDepthMicrons(e.target.value)} />
+          <label className="ps-addon-field-label" htmlFor="addon-level-depth">{t('addOnOrder.builder.levelDepth')}{addOnOrderFieldRequired(requirements, 'levelDepth') && <span className="ps-conf-required"> *</span>}</label>
+          <input id="addon-level-depth" className="ps-addon-field-input" type="number" min={1} value={levelDepthMicrons} onChange={e => setLevelDepthMicrons(e.target.value)} />
+          <label className="ps-addon-field-label" htmlFor="addon-level-count">{t('addOnOrder.builder.levelCount')}</label>
+          <input id="addon-level-count" className="ps-addon-field-input" type="number" min={1} value={levelCount} onChange={e => setLevelCount(e.target.value)} />
+          <label className="ps-addon-field-label" htmlFor="addon-levels-per-slide">{t('addOnOrder.builder.levelsPerSlide')}</label>
+          <input id="addon-levels-per-slide" className="ps-addon-field-input" type="number" min={1} value={levelsPerSlide} onChange={e => setLevelsPerSlide(e.target.value)} />
         </>
       )}
 
@@ -141,7 +145,17 @@ const OrderBuilderPanel: React.FC<OrderBuilderPanelProps> = ({ stainTypes, onAdd
         </>
       )}
 
-      <button type="button" className="ps-btn-primary ps-addon-add-btn" disabled={orderKind === 'ihc' ? !selectedPanel && !selectedStain : !selectedStain} onClick={handleAdd}>
+      {panelMissingNames.length > 0 && (
+        <p className="ps-addon-warning-banner" role="alert">
+          {t(lines.length === 0 ? 'addOnOrder.builder.panelStainsMissingAll' : 'addOnOrder.builder.panelStainsMissing', { stains: formatList(panelMissingNames, i18n.language), count: panelMissingNames.length })}
+        </p>
+      )}
+      {missing.length > 0 && (
+        <p className="ps-field-still-required" role="status">
+          {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.addOnOrder.${id}`)), i18n.language) })}
+        </p>
+      )}
+      <button type="button" className="ps-btn-primary ps-addon-add-btn" disabled={!canAdd} onClick={handleAdd}>
         {t('addOnOrder.builder.addToCart')}
       </button>
     </div>

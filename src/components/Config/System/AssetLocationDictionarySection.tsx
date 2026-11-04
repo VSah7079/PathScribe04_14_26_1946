@@ -18,6 +18,8 @@ import { assetLocationDictionaryService } from '../../../services';
 import { caseRouter } from '../../../services/cases/CaseRouter';
 import type { AssetLocationEntry, AssetLocationType } from '@/types/assetLocation/AssetLocationEntry';
 import { resolveMortuaryStorageOccupancy } from '@/services/autopsy/resolveMortuaryStorageOccupancy';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // Real, persisted enum values stay as the option value/stored data;
 // only the on-screen label is translated — same `{ value, labelKey }`
@@ -60,11 +62,11 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, allLocations, on
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('assetLocationDictionarySection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className="ps-conf-input" value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('assetLocationDictionarySection.modal.namePlaceholder')} />
+            <input aria-label={t('assetLocationDictionarySection.modal.nameLabel')} className="ps-conf-input" value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('assetLocationDictionarySection.modal.namePlaceholder')} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('assetLocationDictionarySection.modal.locationTypeLabel')}</label>
-            <select className="ps-conf-select" value={draft.locationType} onChange={e => set('locationType', e.target.value as AssetLocationType)}>
+            <select aria-label={t('assetLocationDictionarySection.modal.locationTypeLabel')} className="ps-conf-select" value={draft.locationType} onChange={e => set('locationType', e.target.value as AssetLocationType)}>
               {(Object.keys(LOCATION_TYPE_LABEL_KEY) as AssetLocationType[]).map(lt => (
                 <option key={lt} value={lt}>{t(LOCATION_TYPE_LABEL_KEY[lt])}</option>
               ))}
@@ -72,7 +74,7 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, allLocations, on
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('assetLocationDictionarySection.modal.parentLocationLabel')}</label>
-            <select className="ps-conf-select" value={draft.parentLocationId ?? ''} onChange={e => set('parentLocationId', e.target.value || undefined)}>
+            <select aria-label={t('assetLocationDictionarySection.modal.parentLocationLabel')} className="ps-conf-select" value={draft.parentLocationId ?? ''} onChange={e => set('parentLocationId', e.target.value || undefined)}>
               <option value="">{t('assetLocationDictionarySection.modal.noneOption')}</option>
               {allLocations.filter(l => l.id !== entry?.id).map(l => (
                 <option key={l.id} value={l.id}>{l.name}</option>
@@ -81,12 +83,12 @@ const EditorModal: React.FC<EditorModalProps> = ({ mode, entry, allLocations, on
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('assetLocationDictionarySection.modal.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} />
+            <textarea aria-label={t('assetLocationDictionarySection.modal.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('assetLocationDictionarySection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('assetLocationDictionarySection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -164,7 +166,7 @@ const AssetLocationDictionarySection: React.FC = () => {
     if (res.ok) setLocations(prev => prev.map(l => l.id === id ? res.data : l));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('assetLocationDictionarySection.loading')}</div>;
+  if (loading) return <LoadingState label={t('assetLocationDictionarySection.loading')} />;
 
   const dictionaryHeaders = [
     t('assetLocationDictionarySection.table.headers.name'),
@@ -193,14 +195,14 @@ const AssetLocationDictionarySection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <button className={tab === 'dictionary' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('dictionary')}>{t('assetLocationDictionarySection.tabs.dictionary')}</button>
-        <button className={tab === 'occupancy' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('occupancy')}>{t('assetLocationDictionarySection.tabs.occupancy')}</button>
+        <button data-config-nav className={tab === 'dictionary' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('dictionary')}>{t('assetLocationDictionarySection.tabs.dictionary')}</button>
+        <button data-config-nav className={tab === 'occupancy' ? 'ps-btn-primary' : 'ps-btn-ghost-dark'} onClick={() => setTab('occupancy')}>{t('assetLocationDictionarySection.tabs.occupancy')}</button>
       </div>
 
       {tab === 'dictionary' && (
         <>
           <div className="ps-conf-form-row">
-            <input type="text" placeholder={t('assetLocationDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
+            <input data-dirty-ignore data-config-nav type="text" placeholder={t('assetLocationDictionarySection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)} className="ps-conf-search" />
           </div>
           <div className="ps-conf-table-wrap">
             <div className="ps-conf-table-scroll">
@@ -253,7 +255,7 @@ const AssetLocationDictionarySection: React.FC = () => {
       {tab === 'occupancy' && (
         <div className="ps-conf-table-wrap">
           {occupancyLoading ? (
-            <div className="ps-conf-loading">{t('assetLocationDictionarySection.occupancy.loading')}</div>
+            <LoadingState label={t('assetLocationDictionarySection.occupancy.loading')} />
           ) : (
             <div className="ps-conf-table-scroll">
               <table className="ps-conf-table">

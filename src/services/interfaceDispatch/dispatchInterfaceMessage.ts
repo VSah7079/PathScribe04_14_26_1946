@@ -30,13 +30,32 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { resolveServiceEndpoint } from '@/utils/serviceEndpoint';
+import { checkRegistryPayloadBoundary } from './registryPayloadBoundary';
+import { deploymentInstance } from '../deployment/deploymentInstance';
+import { appEnv } from '@/services/runtimeConfig/runtimeEnv';
+import { isEngineSimulated, simulateEngineReceive } from '../mockInterfaceEngine/simulatedEngineReceiver';
 
 // 'CRITICAL_ALERT' added per direct follow-up ("Can the interface
 // engine be used for any post GA modification to fully implement this
 // feature?") — used only by the new, deliberately NOT-yet-wired
 // services/clinical/postGaAlertChannels/ module; no currently-active
 // call site produces it yet. See that folder's own README.
-export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT';
+// Batch 434: 'WSI_SCAN_MANIFEST', the slides loaded on a slide scanner
+// (services/digitalPathology/wsiScanBatchWorkflow.ts).
+// Batch 518 (PS-122): 'ACCESSION_EVENT' (order.accessioned / order.deficiency.created),
+// 'REFERRAL_MANIFEST' and 'MOLECULAR_ORDER', for the three queues that store
+// their message and are now sent from Audit Log → Interfaces → Outbound.
+// The development receiver (functions/main.py) accepts them, and
+// docs/architecture/INTERFACE_TRANSACTIONS.md lists them.
+export type InterfaceTransactionType = 'A08' | 'A40' | 'A47' | 'ORU_R01' | 'LIS_SYNC' | 'ORDER_CREATED' | 'REGISTRY_REPORT' | 'CANCER_REGISTRY_REPORT' | 'PRINT_JOB' | 'CRITICAL_ALERT' | 'WSI_SCAN_MANIFEST'
+  | 'ACCESSION_EVENT' | 'REFERRAL_MANIFEST' | 'MOLECULAR_ORDER'
+  // Batch 669 (mol-7): a verified molecular plate's worklist for the instrument (services/molecular/dispatchMolecularWorklist.ts).
+  | 'MOLECULAR_WORKLIST'
+  // Batch 520 (PS-280): a signed report PDF to fax or drop as a file. The interface server
+  // delivers it and answers only once it is delivered (services/delivery/deliverReport.ts).
+  | 'REPORT_DELIVERY'
+  // Batch 605: hardware orders, scan events and charges (simulated engine in the demo).
+  | 'BLOCK_ORDER' | 'SLIDE_ORDER' | 'SPECIMEN_LABEL' | 'MATERIAL_SCAN_EVENT' | 'CHARGE_DFT' | 'CHARGE_JSON' | 'FINANCIAL_CLASS';
 
 export interface InterfaceDispatchEnvelope {
   queueEntryId: string;
@@ -87,9 +106,9 @@ export interface InterfaceDispatchResult {
 export const INTERFACE_RECEIVER = resolveServiceEndpoint({
   name: 'interface engine',
   envVar: 'VITE_INTERFACE_RECEIVER_ENDPOINT',
-  configured: (import.meta as any).env?.VITE_INTERFACE_RECEIVER_ENDPOINT,
+  configured: appEnv().VITE_INTERFACE_RECEIVER_ENDPOINT,
   devDefault: 'http://localhost:8080/',
-  isProduction: !!(import.meta as any).env?.PROD,
+  isProduction: !!import.meta.env.PROD,
 });
 
 // Real, per direct follow-up ("We are logging interface errors with
@@ -125,6 +144,12 @@ export async function dispatchInterfaceMessage(
     dispatchedAt: new Date().toISOString(),
     payload,
   };
+  // Batch 424: registry payloads cross only within their instance's lane (test data to test
+  // systems on a validation instance, real data to live registers on production).
+  const refused = checkRegistryPayloadBoundary(transactionType, payload, deploymentInstance.role);
+  if (refused) return { ok: false, errorCode: 'DISPATCH_REJECTED', error: refused };
+  // Batch 605: the demo has no engine; the simulated one answers and keeps what it got.
+  if (isEngineSimulated()) return simulateEngineReceive(envelope);
   if (INTERFACE_RECEIVER.ok === false) {
     return { ok: false, errorCode: 'DISPATCH_UNREACHABLE', error: INTERFACE_RECEIVER.message };
   }

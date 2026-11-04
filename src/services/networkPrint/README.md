@@ -38,3 +38,7 @@ A small list at the bottom left of the screen (`components/Printing/NetworkPrint
 
 ---
 *See [services/README.md](../README.md) for the rest of the services layer.*
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).

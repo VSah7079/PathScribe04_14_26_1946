@@ -1,5 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockQaActivityTypeService } from './mockQaActivityTypeService';
+import { qaFieldSchemaProblem } from './qaFieldSchemaRules';
 
 // Real, minimal localStorage mock - same established pattern every
 // other storage-backed service test in this app uses (confirmed
@@ -15,18 +21,28 @@ beforeEach(() => {
 });
 
 describe('mockQaActivityTypeService', () => {
-  it('seeds six real, distinct activity types by default', async () => {
+  it('seeds nine real, distinct activity types by default', async () => {
     const res = await mockQaActivityTypeService.getAll();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     // Real, per PS-324: two new seed entries added this session
     // (Surgical Post-Sign-Out Peer Review, Surgical Biopsy-to-Resection
-    // Correlation) — six is the current, real count, not four.
-    expect(res.data.length).toBe(6);
+    // Correlation). Batch 439 added three more (pre-sign-out peer review,
+    // clinical-pathologic correlation, outside consult correlation).
+    expect(res.data.length).toBe(9);
     expect(res.data.map(t => t.id)).toEqual(expect.arrayContaining([
       'qa-activity-frozen-final', 'qa-activity-cyto-histo', 'qa-activity-abnormal-finding-confirmation', 'qa-activity-gyn-cytology-secondary-screening',
       'qa-activity-surgical-peer-review', 'qa-activity-surgical-biopsy-resection',
+      'qa-activity-pre-signout-peer-review', 'qa-activity-clinical-pathologic-correlation', 'qa-activity-outside-consult',
     ]));
+  });
+
+  it('Batch 439: a browser that stored its list before still gets the new standard types', async () => {
+    const { storageGet, storageSet } = await import('../mockStorage');
+    const stored = storageGet<{ id: string }[]>('qa_activity_types', []);
+    storageSet('qa_activity_types', stored.filter(t => t.id !== 'qa-activity-outside-consult'));
+    const res = await mockQaActivityTypeService.getAll();
+    expect(res.ok && res.data.some(t => t.id === 'qa-activity-outside-consult')).toBe(true);
   });
 
   it('the seeded Frozen vs Final type has teachingOnboardingEnabled true and a real field schema', async () => {
@@ -61,20 +77,30 @@ describe('mockQaActivityTypeService', () => {
     expect(res.ok).toBe(true);
     const all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.length).toBe(7); // 6 real seeds (PS-324) + this one
+    expect(all.data.length).toBe(10); // 9 real seeds (PS-324, Batch 439) + this one
   });
 
-  it('deactivate/reactivate toggle the real active flag', async () => {
-    await mockQaActivityTypeService.deactivate('qa-activity-cyto-histo');
+  it('deactivate/reactivate toggle a custom type\'s active flag', async () => {
+    const created = await mockQaActivityTypeService.add({ name: 'Custom toggle', tabScope: 'custom', fields: [{ id: 'x', label: 'X', type: 'text', required: false, options: [] }], teachingOnboardingEnabled: false, active: true, createdBy: 'user-1' });
+    if (!created.ok) throw new Error('add failed');
+    await mockQaActivityTypeService.deactivate(created.data.id);
     let all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).toBe(false);
-
-    await mockQaActivityTypeService.reactivate('qa-activity-cyto-histo');
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(false);
+    await mockQaActivityTypeService.reactivate(created.data.id);
     all = await mockQaActivityTypeService.getAll();
     if (!all.ok) return;
-    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).toBe(true);
+    expect(all.data.find(t => t.id === created.data.id)?.active).toBe(true);
   });
+
+  it('Batch 428: a standard type can\'t be switched off (the service refuses, not only the screen)', async () => {
+    const res = await mockQaActivityTypeService.deactivate('qa-activity-cyto-histo');
+    expect(res.ok).toBe(false);
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) return;
+    expect(all.data.find(t => t.id === 'qa-activity-cyto-histo')?.active).not.toBe(false);
+  });
+
 
   it('update rejects an unknown id', async () => {
     const res = await mockQaActivityTypeService.update('not-real', { name: 'X' });
@@ -97,5 +123,27 @@ describe('mockQaActivityTypeService', () => {
     expect(frozenFinal?.jurisdictions).toEqual(expect.arrayContaining(['GB_EW', 'GB_SCT', 'GB_NIR']));
     expect(frozenFinal?.jurisdictions).not.toContain('UK');
     expect(frozenFinal?.jurisdictions).not.toContain('EU');
+  });
+});
+
+describe('mockQaActivityTypeService — field schema (Batch 516, PS-125)', () => {
+  it('every seeded activity already satisfies the field rules, so editing one never trips over its own seed', async () => {
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) throw new Error('getAll failed');
+    for (const type of all.data) expect(qaFieldSchemaProblem(type.fields, type.fields), type.id).toBeNull();
+  });
+
+  it('refuses an update that removes or retypes a saved field; allows relabel, optional and additions', async () => {
+    const all = await mockQaActivityTypeService.getAll();
+    if (!all.ok) throw new Error('getAll failed');
+    const type = all.data.find(t => t.tabScope === 'custom') ?? all.data[0];
+    const [first, ...rest] = type.fields;
+    expect(await mockQaActivityTypeService.update(type.id, { fields: rest.length ? rest : [] })).toMatchObject({ ok: false });
+    const retyped = { ...first, type: first.type === 'text' ? 'longtext' as const : 'text' as const, options: [] };
+    expect(await mockQaActivityTypeService.update(type.id, { fields: [retyped, ...rest] })).toEqual({ ok: false, error: 'fieldRetyped' });
+    const relabelled = { ...first, label: `${first.label} (revised)`, required: false };
+    const added = { id: 'batch516_extra', label: 'Extra', type: 'text' as const, required: false, options: [] };
+    const res = await mockQaActivityTypeService.update(type.id, { fields: [relabelled, ...rest, added] });
+    expect(res.ok && res.data.fields.map(f => f.id)).toEqual([first.id, ...rest.map(f => f.id), 'batch516_extra']);
   });
 });

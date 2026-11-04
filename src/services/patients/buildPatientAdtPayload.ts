@@ -27,7 +27,6 @@
 // being sent, which they are not.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { mockPatientIndexService } from './mockPatientIndexService';
 import type { PatientIdentifier } from './IPatientIndexService';
 
 interface PatientIdentitySnapshot {
@@ -44,9 +43,11 @@ interface PatientIdentitySnapshot {
 }
 
 async function snapshotPatient(patientId: string): Promise<PatientIdentitySnapshot | null> {
-  const record = await mockPatientIndexService.getById(patientId);
+  // Loaded when used: the instance and the ADT queue import each other (Batch 671).
+  const { patientIndexService } = await import('./patientServicesInstance');
+  const record = await patientIndexService.getById(patientId);
   if (!record) return null;
-  const identifiersRes = await mockPatientIndexService.listIdentifiersForPatient(patientId);
+  const identifiersRes = await patientIndexService.listIdentifiersForPatient(patientId);
   return {
     patientId: record.id,
     mrn: record.mrn,

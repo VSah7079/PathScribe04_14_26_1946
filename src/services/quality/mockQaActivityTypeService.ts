@@ -31,7 +31,16 @@ import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { IQaActivityTypeService } from './IQaActivityTypeService';
 import type { QaActivityType } from '@/types/quality/QaActivityType';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { standardQaTypeChangeRefusal } from './standardQaTypeRules';
+import { withMissingSeedRecords } from '../mockSeedMerge';
+import { PRE_SIGN_OUT_PEER_REVIEW_ACTIVITY_TYPE_ID } from './peerReviewRules';
+import { CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID } from './capaRecommendationRules';
+import { OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID } from '../consultAccess/outsideConsultRules';
+import { qaFieldSchemaProblem } from './qaFieldSchemaRules';
 
+import { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID } from './qaActivityTypeIds';
+export { FROZEN_FINAL_ACTIVITY_TYPE_ID, ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID, GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID, CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID, SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID, SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID, FPPE_ACTIVITY_TYPE_ID, CYTOTECH_COMPETENCY_ACTIVITY_TYPE_ID };
 const STORAGE_KEY = 'qa_activity_types';
 
 // PS-113, Stage 5. Real, stable id of the "Frozen vs Final
@@ -45,21 +54,21 @@ const STORAGE_KEY = 'qa_activity_types';
 // against this specific activity (ReconciliationTab.tsx,
 // qualityCalculations.ts, QualityTab.tsx, AuditLogPage.tsx,
 // ContributionDashboardPage.tsx, DiscordanceReconciliationModal.tsx).
-export const FROZEN_FINAL_ACTIVITY_TYPE_ID = 'qa-activity-frozen-final';
-export const ABNORMAL_FINDING_CONFIRMATION_ACTIVITY_TYPE_ID = 'qa-activity-abnormal-finding-confirmation';
-export const GYN_CYTOLOGY_SECONDARY_SCREENING_ACTIVITY_TYPE_ID = 'qa-activity-gyn-cytology-secondary-screening';
+
+
+
 // Real, per direct follow-up wiring the real recording UI for CYT-QA-04's
 // own candidate detection (PS-218) into this already-existing, already-
 // seeded activity type — exported the same way every other real
 // activity type id above already is, rather than a second, informal
 // string literal repeated at each real call site.
-export const CYTO_HISTO_CORRELATION_ACTIVITY_TYPE_ID = 'qa-activity-cyto-histo';
+
 // PS-324. The real surgical-pathology consumer of PS-117's generic
 // case-selection engine and PS-118's generic review-capture workbench
 // — exported the same way every other real activity type id above
 // already is.
-export const SURGICAL_PEER_REVIEW_ACTIVITY_TYPE_ID = 'qa-activity-surgical-peer-review';
-export const SURGICAL_BIOPSY_RESECTION_CORRELATION_ACTIVITY_TYPE_ID = 'qa-activity-surgical-biopsy-resection';
+
+
 
 /** Real, deliberate translation of the old ReconciliationRecord's own
  *  fixed frozenCategory/finalCategory/frozenDx/finalDx properties into
@@ -281,15 +290,129 @@ const SEED_TYPES: QaActivityType[] = [
     createdAt: '2026-09-19T00:00:00.000Z',
     createdBy: 'system-seed',
   },
+  // Batch 439 (PS-144): independent peer review before sign-out. Pete (Oct 2):
+  // a single prospective discordance is consultation working as designed, so
+  // severity alone recommends nothing (no rule). A disagreement left
+  // unresolved recommends a CAPA (capaRecommendationRules); consensus
+  // reached never does. Written by services/quality/peerReviewService.ts.
+  {
+    id: PRE_SIGN_OUT_PEER_REVIEW_ACTIVITY_TYPE_ID,
+    name: 'Pre-Sign-Out Peer Review',
+    description: 'A second, independent pathologist reviews the case before sign-out, by default for a first-time malignancy (judged from the patient\'s prior cases). Agreement, disagreement resolved by consensus, or disagreement left unresolved. Only an unresolved disagreement recommends a CAPA, which the QA lead confirms or dismisses.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'primaryDiagnosis', label: 'Primary Pathologist\'s Diagnosis', type: 'text', required: false, options: [] },
+      { id: 'reviewerDiagnosis', label: 'Reviewer\'s Independent Diagnosis', type: 'text', required: true, options: [] },
+      { id: 'consensusDiagnosis', label: 'Consensus Diagnosis', type: 'text', required: false, options: [] },
+      { id: 'trigger', label: 'Trigger', type: 'dropdown', required: true, options: [
+        { id: 'first-time-malignancy', label: 'First-Time Malignancy' },
+        { id: 'requested', label: 'Requested by the Pathologist' },
+      ] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
+  // Batch 439 (PS-145): the pathologist's decision on a clinical-pathologic
+  // mismatch suggestion. A mismatch they resolve (the clinician corrected the
+  // history, say) recommends nothing; one left unresolved recommends a CAPA.
+  {
+    id: CLINICAL_PATHOLOGIC_CORRELATION_ACTIVITY_TYPE_ID,
+    name: 'Clinical-Pathologic Correlation',
+    description: 'The pathologist\'s decision on a suggested mismatch between the order\'s clinical indication or history and the microscopic findings. Not a mismatch, a mismatch resolved, or a mismatch left unresolved; only the last recommends a CAPA.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'clinicalIndication', label: 'Clinical Indication', type: 'text', required: false, options: [] },
+      // Batch 685: the words the flag quoted from each side, and whether each was found in the case text.
+      { id: 'evidenceClinical', label: 'Quoted from the Clinical Side', type: 'text', required: false, options: [] },
+      { id: 'evidenceClinicalFound', label: 'Clinical Quote Found in the Record', type: 'dropdown', required: false, options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }] },
+      { id: 'evidencePathology', label: 'Quoted from the Pathology Side', type: 'text', required: false, options: [] },
+      { id: 'evidencePathologyFound', label: 'Pathology Quote Found in the Record', type: 'dropdown', required: false, options: [{ id: 'yes', label: 'Yes' }, { id: 'no', label: 'No' }] },
+      { id: 'mismatchKind', label: 'Kind of Mismatch', type: 'dropdown', required: false, options: [
+        { id: 'unexpected-malignancy', label: 'Unexpected Malignancy' },
+        { id: 'expected-malignancy-absent', label: 'Expected Malignancy Not Found' },
+        { id: 'site-or-organ', label: 'Site or Organ Does Not Match' },
+        // Batch 530: autopsy (Batch 523) was missing from the list.
+        { id: 'cause-of-death', label: 'Cause of Death or Major Diagnosis Differs' },
+        { id: 'other', label: 'Other' },
+      ] },
+      { id: 'suggestionSource', label: 'Suggested By', type: 'dropdown', required: false, options: [
+        { id: 'ai', label: 'AI Evaluation' },
+        { id: 'rule', label: 'Rule-Based Check' },
+        { id: 'pathologist', label: 'The Pathologist' },
+      ] },
+      // Batch 530 (PS-554): the resolution status, the risk the rules gave it, and the quick reason.
+      { id: 'resolutionStatus', label: 'Resolution Status', type: 'dropdown', required: false, options: [
+        { id: 'RESOLVED', label: 'Resolved' },
+        { id: 'UNRESOLVED', label: 'Unresolved (corrective action recommended)' },
+        { id: 'DEFERRED', label: 'Deferred to secondary review' },
+        { id: 'LOGGED', label: 'Logged at sign-out (low risk, not reviewed)' },
+      ] },
+      { id: 'risk', label: 'Risk', type: 'dropdown', required: false, options: [
+        { id: 'high', label: 'High (held sign-out)' },
+        { id: 'low', label: 'Low' },
+      ] },
+      { id: 'quickReason', label: 'Reason', type: 'dropdown', required: false, options: [
+        { id: 'expected-variation', label: 'Expected variation' },
+        { id: 'clinical-context-reviewed', label: 'Clinical context reviewed' },
+        { id: 'preop-nonspecific', label: 'Pre-op diagnosis non-specific' },
+      ] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
+  // Batch 439 (PS-148): how an outside consultant's opinion compares with the
+  // report. A major discordance on a report already released recommends a
+  // CAPA (postSignOutOnly); before release it is consultation working.
+  {
+    id: OUTSIDE_CONSULT_CORRELATION_ACTIVITY_TYPE_ID,
+    name: 'Outside Consult Correlation',
+    description: 'The pathologist\'s assessment of an outside consultant\'s opinion against the case diagnosis: agrees, minor difference, or major discordance. A major discordance on a report already released recommends a CAPA, which the QA lead confirms or dismisses.',
+    tabScope: 'standard',
+    jurisdictions: ['US', 'CA', 'GB_EW', 'GB_SCT', 'GB_NIR', 'IE', 'BE', 'NL', 'DE', 'FR', 'AU', 'NZ', 'KR'],
+    fields: [
+      { id: 'consultant', label: 'Consultant', type: 'text', required: true, options: [] },
+      { id: 'consultantOpinion', label: 'Consultant\'s Opinion', type: 'longtext', required: true, options: [] },
+      { id: 'caseDiagnosis', label: 'Case Diagnosis', type: 'text', required: false, options: [] },
+    ],
+    teachingOnboardingEnabled: false,
+    active: true,
+    capaTriggerRule: { triggerSeverities: ['high'], deficiencyTypeId: 'def-outside-consult-discordance', postSignOutOnly: true },
+    createdAt: '2026-10-02T00:00:00.000Z',
+    createdBy: 'system-seed',
+  },
 ];
 
-const load    = (): QaActivityType[] => storageGet<QaActivityType[]>(STORAGE_KEY, SEED_TYPES);
+// Batch 439: standard types added after a browser stored its list still
+// appear (types are deactivated, never deleted, so a missing id is new).
+// Batch 530: and fields (or dropdown options) added to a seeded type after it
+// was stored are added to the stored copy; nothing stored is changed.
+export function withSeedFieldsAdded(types: QaActivityType[], seed: readonly QaActivityType[]): QaActivityType[] {
+  return types.map(t => {
+    const s = seed.find(x => x.id === t.id);
+    if (!s) return t;
+    const fields = t.fields.map(f => {
+      const sf = s.fields.find(x => x.id === f.id);
+      if (!sf) return f;
+      const missing = sf.options.filter(o => !f.options.some(x => x.id === o.id));
+      return missing.length ? { ...f, options: [...f.options, ...missing] } : f;
+    });
+    const added = s.fields.filter(sf => !t.fields.some(f => f.id === sf.id));
+    return added.length || fields.some((f, i) => f !== t.fields[i]) ? { ...t, fields: [...fields, ...added] } : t;
+  });
+}
+const load    = (): QaActivityType[] => withSeedFieldsAdded(withMissingSeedRecords(storageGet<QaActivityType[] | null>(STORAGE_KEY, null), SEED_TYPES).records, SEED_TYPES);
 const persist = (data: QaActivityType[]) => storageSet(STORAGE_KEY, data);
 
 const ok  = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = <T>(error: string): ServiceResult<T> => ({ ok: false, error });
 
-export const mockQaActivityTypeService: IQaActivityTypeService = {
+const qaActivityTypeServiceUnchecked: IQaActivityTypeService = {
   async getAll() {
     return ok([...load()]);
   },
@@ -297,6 +420,8 @@ export const mockQaActivityTypeService: IQaActivityTypeService = {
   async add(type) {
     if (!type.name.trim()) return err('A real activity name is required.');
     if (type.fields.length === 0) return err('A real activity needs at least one field.');
+    // Batch 516 (PS-125): a complete field set (labels, unique ids, options on choice fields).
+    { const problem = qaFieldSchemaProblem(null, type.fields); if (problem) return err(problem); }
     const types = load();
     const newType: QaActivityType = {
       ...type,
@@ -311,6 +436,12 @@ export const mockQaActivityTypeService: IQaActivityTypeService = {
     const types = load();
     const idx = types.findIndex(t => t.id === id);
     if (idx === -1) return err(`Activity type ${id} not found.`);
+    // Batch 428: a standard type can't be switched off or made custom.
+    { const refusal = standardQaTypeChangeRefusal(types[idx], changes); if (refusal) return err(refusal); }
+    // Batch 516 (PS-125, Pete): past QA records keep their answers under each
+    // field's id, so a saved field is never removed or retyped and a saved
+    // option is never removed (qaFieldSchemaRules.ts).
+    if (changes.fields) { const problem = qaFieldSchemaProblem(types[idx].fields, changes.fields); if (problem) return err(problem); }
     const updated = { ...types[idx], ...changes };
     const withUpdate = [...types];
     withUpdate[idx] = updated;
@@ -319,10 +450,15 @@ export const mockQaActivityTypeService: IQaActivityTypeService = {
   },
 
   async deactivate(id) {
-    return mockQaActivityTypeService.update(id, { active: false });
+    return qaActivityTypeServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id) {
-    return mockQaActivityTypeService.update(id, { active: true });
+    return qaActivityTypeServiceUnchecked.update(id, { active: true });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockQaActivityTypeService: IQaActivityTypeService = guardConfigWrites(qaActivityTypeServiceUnchecked, [
+  ['config:qa-types:manage', ['add', 'update', 'deactivate', 'reactivate']],
+]);

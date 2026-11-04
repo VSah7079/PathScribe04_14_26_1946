@@ -25,9 +25,25 @@ export const EQUIPMENT_LINK_INVALID = 'equipmentLinkInvalid';
 
 /** Kinds of equipment. Stored values; labels come from equipmentKinds.<kind>. */
 export const EQUIPMENT_KINDS = [
-  'analyser', 'stainer', 'tissue_processor', 'slide_scanner', 'camera', 'scale', 'label_printer', 'engraver', 'storage_unit', 'other',
+  // Batch 739 (fluid decision 4): 'lbc_processor', a liquid-based cytology processor (ThinPrep, SurePath and others).
+  'analyser', 'stainer', 'tissue_processor', 'lbc_processor', 'slide_scanner', 'camera', 'scale', 'label_printer', 'engraver', 'storage_unit', 'other',
 ] as const;
 export type EquipmentKind = typeof EQUIPMENT_KINDS[number];
+
+/** Batch 406 (Pete): what physically fits in a deck slot. */
+export const DECK_RACK_TYPES = ['sample_tube_rack', 'extraction_plate', 'reagent_cartridge'] as const;
+export type DeckRackType = typeof DECK_RACK_TYPES[number];
+
+/** Batch 406 (Pete): one position on an analyser's deck, from its instrument
+ *  profile. The id goes into the deck-location barcode
+ *  (LOC-INST-<code>-<id>), so it is letters, digits and "_" (e.g. SLOT_A1). */
+export interface DeckSlot {
+  id: string;
+  /** Which deck or bay it is on (e.g. "Deck 1"). */
+  deck?: string;
+  /** The rack or plate types permitted here. */
+  rackTypes: DeckRackType[];
+}
 
 export interface Equipment {
   id: ID;
@@ -47,7 +63,20 @@ export interface Equipment {
   maintenanceIntervalDays?: number;
   /** Batch 360: how often it needs calibration, in days. Unset = not scheduled. */
   calibrationIntervalDays?: number;
+  /** Batch 730: the acceptable temperature range for a temperature check (a refrigerator, freezer, water bath, processor).
+   *  Either end may be unset. A check outside it is a Fail. */
+  temperatureMinCelsius?: number;
+  temperatureMaxCelsius?: number;
+  /** Batch 732 (spec §11.1): a stainer or slide scanner that takes large-format slides (megablock sections). */
+  supportsLargeFormat?: boolean;
+  /** Batch 763: a stainer's or slide scanner's QC sign-off (services/stainQc/): auto-accept, the instrument's own
+   *  (through the interface engine), or a PathScribe sign-off. Unset: the lab's default in Configuration. */
+  qcMode?: import('../stainQc/stainQcTypes').QcMode;
   status: 'Active' | 'Inactive';
+  /** Batch 406: an analyser's deck layout (its instrument profile). Racks
+   *  loaded for it are placed in one of these slots; see
+   *  services/molecular/deckSlots.ts. */
+  deckSlots?: DeckSlot[];
 }
 
 export type EquipmentDraft = Omit<Equipment, 'id'>;

@@ -8,9 +8,128 @@ The main organ-system CAP/RCPath synoptic protocol templates. Both US CAP and UK
 - `colon_resection.json`, `colorectal_further_investigations.json`, `colorectal_local_excision.json`, `colorectal_resection_b.json`
 - `kidney_biopsy.json`, `kidney_resection.json`
 - `lung_adeno.json`, `lung_resection.json`
+- `mohs_micrographic_surgery.json` (PathScribe-authored; see Batch 463 below)
+- `neck_dissection.json`
+- `oral_cavity_resection.json`
 - `prostate_biopsy.json`, `prostate_needle_biopsy.json`, `prostate_radical_prostatectomy.json`, `prostate_resection.json`, `prostate_turp_enucleation.json`
 - `skin_melanoma_bx.json`
 - `wilms_biopsy.json`, `wilms_resection.json`
 
+*(This listing was missing `mohs_micrographic_surgery.json`, `neck_dissection.json`, and `oral_cavity_resection.json` before Batch 490 — a stale gap from when each was added, not a sign they didn't exist; corrected here per CLAUDE.md rule 6.)*
+
+## Batch 461: Anatomical map (PathScribe)
+
+`prostate_radical_prostatectomy.json`, `prostate_resection.json`, `prostate_needle_biopsy.json` and `prostate_biopsy.json` gain a section **Anatomical map (PathScribe)** with PathScribe-authored questions and real values (not CAP wording):
+- prostatectomy and resection: sectors with tumour, with extraprostatic extension and at a positive margin (checkboxes over the 41 PI-RADS v2.1 sectors, `psmap_sector_<id>`), Grade Group (`psmap_gg_1..5`), seminal vesicle invasion (`psmap_sv_*`);
+- needle biopsy: **Core results**, a results grid (`partGrid`) with a row per part: site (`psmap_site_<id>`), carcinoma, Gleason primary and secondary, Grade Group, % involvement, length.
+
+These questions draw the anatomical map: **the map's data comes from these synoptic answers**. Copies keep the ids, so a lab's copy draws the map too; a lab's own template binds its questions in Configuration → Organ maps.
+
+## Batch 462: Anatomical map (PathScribe), breast
+
+`breast_invasive.json`, `breast_dcis_resection.json` and `breast_surgical_excision.json` gain a section **Anatomical map (PathScribe)**: the specimen side (`psmap_side_right|left`); **Tumour foci** (`psmap_breast_foci`, six numbered rows: type `psmap_ftype_invasive|dcis|calcifications`, clock `psmap_clock_1..12|central`, distance from nipple cm, size mm); **Margin distances** (`psmap_breast_margins`, a row per oriented margin: invasive and DCIS distance in mm, 0 = on ink). **The breast map's data comes from these synoptic answers.**
+
+## Batch 463
+
+`mohs_micrographic_surgery.json` (new): PathScribe's Mohs Micrographic Surgery synoptic (source PathScribe; labs copy and change it). Case: site, tumour type, pre-operative size, stain. **Mohs stages** (`psmap_mohs_stages`, `spatialStageCanvas`, default histology from the tumour type). Final: defect size, closure, billing reference. Comments.
+
+## Batch 463b
+
+`mohs_micrographic_surgery.json`: the Mohs stages question is required.
+
+## Batch 464
+
+"Anatomical map (PathScribe)" sections: **Colorectal Local Excision** — Paris classification, invasive carcinoma, depth (Haggitt / Kikuchi), deep and lateral margin distances (mm), adenoma at the lateral margin (`psmap_crp_*`); **Colorectal Resection B** and **Colon Resection** — tumour position (quadrants), CRM closest distance and where, plane of mesorectal excision, relation to the peritoneal reflection, distal margin distance (`psmap_rec_*`).
+
+## Batch 465
+
+PathScribe's head and neck synoptics (source PathScribe, category `HEAD_NECK`): **`oral_cavity_resection.json`** — procedure, laterality, tumour subsites (`psmap_oc_subsites`, checkboxes), size, type, grade, depth of invasion (`psmap_oc_doiMm`), PNI, LVI, worst pattern of invasion, peripheral and deep margin distances (`psmap_oc_peripheralMarginMm`, `psmap_oc_deepMarginMm`), dysplasia at the mucosal margin, bone margin, pT, comments; **`neck_dissection.json`** — side, type, structures, the levels grid `psmap_nd_levels` (20 fixed rows `R_Ia`…`L_VII`; nodes positive, examined, largest deposit mm, ENE `psmap_nd_ene_absent/minor/major`), totals, pN, comments.
+
+## Batch 465b
+
+`neck_dissection.json`: nodes positive can't exceed nodes examined (`notMoreThan`). Total nodes positive and examined are calculated from the levels grid (`sumOf`).
+
+## Batch 466
+
+- **`kidney_resection.json`:** a new "Anatomical map (PathScribe)" section (`psmap_ren_*`) with procedure, kidney, pole(s), lateral/medial, aspect, extent (AJCC 8th compartments), renal vein and ureteral margin status, and the soft tissue and parenchymal margin distances. The lymph node counts are whole numbers.
+- **`neck_dissection.json`:** the level counts and totals are whole numbers.
+
+## Batch 466b
+
+- **`kidney_resection.json`:**
+  - Renal vein and ureter margin questions are hidden for a partial nephrectomy, unless added under "Add non-standard margin" (new question).
+  - The parenchymal question is hidden for a radical nephrectomy.
+  - Lymph nodes positive can't exceed lymph nodes examined.
+- **Lung, Prostate and Wilms Resection, and Neck Dissection (totals):** positive can't exceed examined.
+
+## Batch 466d
+
+`colorectal_local_excision.json`: the Margins section is now CAP's two blocks. All three questions are calculated from the anatomical map and locked, and bind themselves through the `psmap_crp_derived_*` ids:
+- "Invasive carcinoma margins", shown unless invasive carcinoma is "Not identified";
+- "Margin(s) involved by invasive carcinoma";
+- "Adenoma (non-invasive) margins".
+
+The placeholder questions `peripheral_margin_involvement`, `deep_margin_involvement` and `distance_to_deep_margin_mm` are removed; the distances are the map's own questions.
+
+## Batch 467 — In-house molecular orders
+
+`lung_adeno.json`: "EGFR Mutation Status" is filled from the EGFR mutation PCR result (positive → Detected, negative → Not Detected).
+
+## Batch 467b — Molecular orders: send-out results, plate, sign-out, instrument
+
+- **`colorectal_further_investigations.json`.** The molecular questions get PathScribe-authored labels and values; the option ids are kept, so the seeded answers keep their meaning.
+  - BRAF V600E, KRAS and NRAS: Mutation detected / not detected / Test failed / Not tested.
+  - MSI: MSI-H / MSI-L / MSS / Test failed / Not tested.
+  - Each is bound to its test (`molecularResult`). MSI positive means MSI-H and negative means MSS; MSI-L is entered by hand.
+- **`breast_invasive.json`.** HER2 ISH Status is bound to HER2 FISH (positive = amplified).
+
+## Batch 490 — real clinical option content + `reportingRole` tagging, all ~20 templates
+
+Every template in this folder (except `mohs_micrographic_surgery.json`, `colorectal_further_investigations.json`, and `wilms_biopsy.json`, which needed no changes) had its generic "Option 1/2/3…" placeholders for margin status, grade, and T/N/M staging fields replaced with real AJCC 8th-edition/WHO/CAP-style clinical content, and `reportingRole: 'pT'|'pN'|'pM'` (the tagging mechanism in `services/reports/synopticResultPayload.ts`, unused in any shipped template before this batch) set on the literal/canonical staging field in each template — never a derived-finding field that would collide with it (e.g. `colon_resection.json`'s `local_invasion` keeps real content but no role; its `t_stage` carries `pT` instead). SNOMED/ICD codes were left `""` rather than invented wherever not confidently known.
+
+`wilms_resection.json`'s and `wilms_biopsy.json`'s stage fields (NWTS-5/COG, SIOP Stage I–V) get real content but deliberately no `reportingRole` — that staging scheme isn't AJCC TNM or FIGO, so no value in the closed `SynopticReportingRole` enum correctly describes it.
+
+Disclosed, minor, accepted under time constraints: `prostate_resection.json`'s `stage_category_c` (pM) is only partly filled; `colon_resection.json`'s `stage_category_a`/`stage_category_b` have more placeholder option slots than AJCC categories needed (unused trailing slots left visible rather than deleted); `colorectal_resection_b.json`'s `highest_node_involved` was left untouched (ambiguous).
+
+See `src/i18n/README.md`'s Batch 490 entry for the margin-distance extraction layer this work feeds (`services/marginExtraction/`).
+
+## Batch 519 (PS-494): free-text lymph node counts
+
+Seven templates mark their lymph node counts `nodeCount: true` (free text that takes a whole number, "cannot be determined" or "at least N", in all five UI languages; anything else blocks draft save and sign-out):
+- `breast_invasive.json`: positive categories A, B and C (`number_ln_macrometastases`, `number_ln_micrometastases`, `number_ln_itc`) and the sentinel subset each `notMoreThan` total examined; `total_ln_examined.atLeastSumOf` = A + B + C.
+- `breast_dcis_resection.json`: total examined.
+- `colon_resection.json`, `colorectal_local_excision.json`, `colorectal_resection_b.json`, `lung_adeno.json`, `prostate_radical_prostatectomy.json`: positive `notMoreThan` examined.
+- Labels: lung's examined count is "Total Number Examined"; the prostatectomy's counts are "Number of Lymph Nodes Examined" and "Number of Positive Lymph Nodes" (they were placeholders).
+
+The files keep their original formatting (2-space indent; the five that escape the em dash still do).
+
+**Not changed (known, deliberate):** about 1,500 (fewer since Batches 738 and 753) "Field N" / "Option N" placeholder labels remain across 19 of these templates. They are the generic wording that stands in until a CAP/RCPath content licence is in place (`docs/product/FEATURE_OVERVIEW.md`, corrected in Batch 496); Batch 490 filled margins, grade and TNM only.
+
 ---
-*See [data/README.md](../../README.md) for the full verification notes covering all 27 templates across `data/templates/`.*
+*See [data/README.md](../../README.md) for the full verification notes covering the templates across `data/templates/` (written when there were 27; there are 31 now).*
+
+## Batch 738 (Pete, Oct 30, 2026): colon resection wording
+
+`colon_resection.json`: every remaining placeholder ("Option 1…", "Category A", "Margin Status A") replaced with PathScribe-authored wording using standard nomenclature (WHO tumour types, AJCC 8th edition categories); **not CAP text**, per the licensing note in `services/templates/templateService.ts` (Pete chose PathScribe's own wording). Questions that only apply in some cases are shown only then (`visibleWhen`): mesorectal envelope for an anterior or abdominoperineal resection, rectal location for a rectal or rectosigmoid tumour, submucosal depth for a submucosal tumour, closest-margin distances when the margins are negative, involved margins when positive, nodes with tumour when nodes are positive, deposit count when deposits are present, distant sites for pM1. Optional now: site not specified, site cannot be determined, budding score, dysplasia margins, TNM descriptors, pT suffix, ancillary studies, comments. The unused trailing pT and pN options were removed. Option ids are unchanged, so stored answers keep their meaning. The other 18 generic templates still carry placeholder options.
+
+## Batch 753 (Pete, Oct 31, 2026): prostate needle biopsy and radical prostatectomy wording
+
+`prostate_needle_biopsy.json` and `prostate_radical_prostatectomy.json`: every placeholder section title, question and answer ("Option 1…", "Field 2", "Category A", "Overall Grade A", "Secondary Finding A", "Reference Code A") replaced with **PathScribe-authored wording**, written for Video 9. Pete's condition: no exposure to CAP or RCPath copyright. So the text is PathScribe's own plain wording built on standard nomenclature that no protocol owns: ISUP/WHO Grade Groups and Gleason patterns, WHO tumour type names, TNM category codes (pT2, pT3a, pN0). No CAP or RCPath question text, answer text, notes, explanations or instructions were copied. The question set and order these files kept through the earlier licensing clean-up (see the note in `services/templates/templateService.ts`) were kept again so stored answers keep their meaning; option ids are unchanged except where a list was shortened.
+
+- Needle biopsy (US spelling): sites as Right side, Left side, Midline or transition zone, Targeted lesion, Site not stated; the four histologic type questions became dropdowns (they were text boxes carrying options); the overall Grade Group lists for systematic and targeted biopsies have six answers (eleven unused placeholders removed, and the targeted one became a dropdown); the two "cannot be determined" boxes became optional tick boxes (they were required text boxes); Case summary and Comments are optional.
+- Radical prostatectomy (UK spelling, `en-GB`): questions shown only when they apply (`visibleWhen`): the side of the seminal vesicles and lymph nodes when received, the other tumour type when Other is ticked, the Gleason patterns and score when grading applies, the extent and location of extraprostatic extension when present, and the positive-margin details when the margin is positive. Grade Group stays shown and required. Three required questions no longer carry the note "Optional".
+- Tests: `services/templates/prostateChecklistWording.test.ts` (no placeholder left, distinct answers, and every answer the Video 9 cases carry is one the checklist offers).
+
+The other 16 generic templates with placeholder options still carry them.
+
+## Batch 755a (Pete, Oct 31, 2026): plain names and the "Demo wording" tag
+
+The `name` of every file here changed from "Generic Template — …" to a plain name: Breast, invasive carcinoma (resection); Breast, ductal carcinoma in situ (resection); Breast surgical excision; Colon resection; Colorectal resection (UK layout); Colorectal local excision; Colorectal further investigations; Kidney resection; Kidney biopsy; Lung adenocarcinoma; Lung resection; Prostate needle biopsy; Prostate biopsy (UK layout); Prostate resection; Radical prostatectomy; Prostate, transurethral resection or enucleation; Skin melanoma biopsy; Wilms tumor resection; Wilms tumor biopsy. On screen each shows a "Demo wording" tag and none can be copied, until a pathologist has reviewed its wording (`docs/architecture/DEMO_CHECKLISTS.md`). Ids, questions and answers are unchanged.
+
+## Batch 755b part 1 (Pete, Nov 1, 2026): breast invasive and the two UK-layout checklists
+
+PathScribe's own wording, not CAP or RCPath text. `breast_invasive.json` (US spelling) and `colorectal_resection_b.json` / `prostate_biopsy.json` (UK spelling; "Colorectal resection (UK layout)", "Prostate biopsy (UK layout)") have no placeholder questions or answers left; option ids are kept, and follow-up questions show only when their answer applies. Made with `scratchpad/b755/breast.py` and `uk.py` during the batch (not kept in the repo). Pinned by `services/templates/checklistWording755b.test.ts`.
+
+## Batch 755b part 2 (Pete, Nov 1, 2026): eight more checklists; five off the case list
+
+PathScribe's own wording, not CAP or RCPath text, for `breast_dcis_resection.json`, `lung_adeno.json`, `kidney_resection.json`, `lung_resection.json`, `skin_melanoma_bx.json`, `prostate_resection.json` (US spelling) and `colorectal_local_excision.json`, `colorectal_further_investigations.json` (UK). Option ids kept; option lists that had a meaningless length (lung tumour focality's 13, lung type's 41) were shortened, and the demo answers that pointed past the end (S26-4403's `stage_category_a_opt_12`) fixed. Still placeholder, and so left off the case checklist list (`offeredOnCasePicker()`): `breast_surgical_excision`, `kidney_biopsy`, `prostate_turp_enucleation`, `wilms_resection`, `wilms_biopsy`.

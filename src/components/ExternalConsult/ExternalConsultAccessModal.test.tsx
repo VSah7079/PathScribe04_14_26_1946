@@ -24,11 +24,23 @@ import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import type { Case } from '@/types/case/Case';
 import type { ConsultToken } from '@/services/consultAccess/IConsultTokenService';
 
-const { getByCaseId, issue, revoke } = vi.hoisted(() => ({
+const { getByCaseId, issue, revoke, getOpinionsByCaseId, assessOpinion } = vi.hoisted(() => ({
   getByCaseId: vi.fn(), issue: vi.fn(), revoke: vi.fn(),
+  getOpinionsByCaseId: vi.fn(async () => ({ ok: true, data: [] })), assessOpinion: vi.fn(async () => ({ ok: true, data: {} })),
 }));
-vi.mock('@/services', () => ({
-  consultTokenService: { getByCaseId, issue, revoke },
+vi.mock('@/services', async () => {
+  const rules = await vi.importActual<typeof import('@/services/consultAccess/outsideConsultRules')>('@/services/consultAccess/outsideConsultRules');
+  return {
+    consultTokenService: { getByCaseId, issue, revoke, getOpinionsByCaseId, assessOpinion },
+    outsideConsultAssessmentProblem: rules.assessmentProblem,
+    OUTSIDE_CONSULT_ASSESSMENTS: rules.OUTSIDE_CONSULT_ASSESSMENTS,
+  };
+});
+const caps = vi.hoisted(() => ({ reveal: true, issue: true }));
+vi.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ loading: false, has: (c: string) => (c === 'case:consult-link:reveal-identity' ? caps.reveal : c === 'case:consult-link:issue' ? caps.issue : true), decide: () => null }) }));
+// Batch 439: the assess button is a CapabilityButton; its permission check is tested on its own.
+vi.mock('@/components/Common/CapabilityButton', () => ({
+  CapabilityButton: ({ children, onClick, className, disabled, disabledTitle }: { children: React.ReactNode; onClick: () => void; className: string; disabled?: boolean; disabledTitle?: string }) => <button className={className} onClick={onClick} disabled={disabled} title={disabledTitle}>{children}</button>,
 }));
 
 const CASE = {
@@ -41,9 +53,9 @@ const CASE = {
   }],
 } as unknown as Case;
 
-function makeToken(overrides: Partial<ConsultToken> = {}): ConsultToken {
+function makeToken(overrides: Partial<ConsultToken & { token: string }> = {}): ConsultToken & { token: string } {
   return {
-    id: 'ctok-1', token: 'ct_abc123',
+    id: 'ctok-1', token: 'ct_abc123', tokenHash: 'h',
     scope: { caseId: 'case-1', caseAccessionNumber: 'S26-1234' },
     issuedByUserId: 'u1', issuedByName: 'Dr. Attending',
     // Real, deliberately far-future expiresAt — resolveConsultTokenStatus()
@@ -74,7 +86,7 @@ async function renderModal(onClose = vi.fn()) {
 describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
   it('shows the load-bearing disclosure banner and the case label on open', async () => {
     await renderModal();
-    expect(screen.getByText(/Demo\/pilot only — not real security\./)).not.toBeNull();
+    expect(screen.getByText(/Demo only — no PathScribe server serves this link yet\./)).not.toBeNull();
     expect(screen.getByText('S26-1234 · Roe, Jane')).not.toBeNull();
   });
 
@@ -102,8 +114,53 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
       issuedByUserId: 'u1', issuedByName: 'Dr. Attending', consultantIdentifier: 'Dr. Jane Reviewer',
     }));
     expect(screen.getByText('Link Created')).not.toBeNull();
-    const linkInput = screen.getByDisplayValue(/\/consult\/ct_abc123$/) as HTMLInputElement;
-    expect(linkInput.value.endsWith('/consult/ct_abc123')).toBe(true);
+    // Batch 522: the token goes after `#`, out of server logs.
+    const linkInput = screen.getByDisplayValue(/\/consult#ct_abc123$/) as HTMLInputElement;
+    expect(linkInput.value.endsWith('/consult#ct_abc123')).toBe(true);
+  });
+
+  it('the identity opt-in is off by default and is sent only when ticked (Batch 669, access-11)', async () => {
+    issue.mockResolvedValue({ ok: true, data: makeToken() });
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    const box = screen.getByRole('checkbox') as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(issue.mock.calls[0][0]).not.toHaveProperty('revealIdentity');
+
+    cleanup(); issue.mockClear();
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    fireEvent.click(screen.getByRole('checkbox'));
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(issue).toHaveBeenCalledWith(expect.objectContaining({ revealIdentity: true }));
+  });
+
+  it('someone who may reveal identity but not issue links sees a disabled Issue button with the reason, not a dead end (Batch 669)', async () => {
+    caps.issue = false;
+    await renderModal();
+    const btn = screen.getByText('+ Issue New Consult Link') as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    expect(btn.title).toBe('Requires permission to issue consult links.');
+    caps.issue = true;
+  });
+
+  it('shows what is left of a link after the signed opinion (Batch 669)', async () => {
+    getByCaseId.mockResolvedValue({ ok: true, data: [makeToken({ signedAt: new Date(Date.now() - 3_600_000).toISOString(), viewsAfterSignature: 2 })] });
+    await renderModal();
+    expect(screen.getByText('After the signed opinion: 1 view or 47 hours left.')).not.toBeNull();
+  });
+
+  it('without the reveal-identity capability the opt-in is greyed out (Batch 669)', async () => {
+    caps.reveal = false;
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    expect((screen.getByRole('checkbox') as HTMLInputElement).disabled).toBe(true);
+    caps.reveal = true;
   });
 
   it('a Specific Slides scope requires at least one slide, then issues with the real selected slide id', async () => {
@@ -139,7 +196,34 @@ describe('ExternalConsultAccessModal — real render/behavior coverage', () => {
     fireEvent.click(screen.getByText('Revoke'));
     await act(async () => {});
 
-    expect(revoke).toHaveBeenCalledWith('ctok-1', 'u1');
+    // Batch 522: the service takes the revoker from the session.
+    expect(revoke).toHaveBeenCalledWith('ctok-1');
     expect(getByCaseId).toHaveBeenCalledTimes(2);
+  });
+
+  it('a refused issue shows the translated reason, not a code (Batch 522)', async () => {
+    issue.mockResolvedValue({ ok: false, error: 'CONSULT_LINK_NOT_PERMITTED' });
+    await renderModal();
+    fireEvent.click(screen.getByText('+ Issue New Consult Link'));
+    fireEvent.change(screen.getByPlaceholderText(/Dr\. Jane Reviewer/), { target: { value: 'Dr. Jane Reviewer' } });
+    fireEvent.click(screen.getByText('Issue Link'));
+    await act(async () => {});
+    expect(screen.getByText(/You don't have permission to issue consult links/)).not.toBeNull();
+    expect(screen.queryByText('CONSULT_LINK_NOT_PERMITTED')).toBeNull();
+  });
+
+  // Batch 439 (PS-148): opinions sent back, and assessing one.
+  it('lists a signed opinion and records the assessment; a major discordance needs a note', async () => {
+    getByCaseId.mockResolvedValue({ ok: true, data: [] });
+    getOpinionsByCaseId.mockResolvedValueOnce({ ok: true, data: [{ id: 'op-1', tokenId: 't', caseId: 'case-1', consultantIdentifier: 'Dr Outside', signedStatus: 'Signed', opinionText: 'Favour partial mole.', submittedAt: '2026-10-02T10:00:00Z' }] } as never);
+    await renderModal();
+    expect(screen.getByText('Favour partial mole.')).toBeTruthy();
+    fireEvent.click(screen.getByText('Major discordance'));
+    await act(async () => { fireEvent.click(screen.getByText('Record assessment')); });
+    expect(screen.getByText('Say what differs.')).toBeTruthy();
+    expect(assessOpinion).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('What differs'), { target: { value: 'We reported no molar change.' } });
+    await act(async () => { fireEvent.click(screen.getByText('Record assessment')); });
+    expect(assessOpinion).toHaveBeenCalledWith('op-1', { assessment: 'major-discordance', note: 'We reported no molar change.' });
   });
 });

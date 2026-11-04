@@ -8,9 +8,22 @@
  */
 
 import { EnhancementRequestPayload } from '../../enhancementRequestService';
+import { VALIDATION_CATEGORY, hasValidationLinks } from '../../feedback/validationRouting';
+
+const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** The study and template an 'AI / Template validation' item names, as label/value rows (none when nothing was linked). */
+function validationRows(payload: EnhancementRequestPayload): { label: string; value: string }[] {
+  const l = payload.validationLinks;
+  if (payload.category !== VALIDATION_CATEGORY || !hasValidationLinks(l)) return [];
+  return [
+    ...(l.studyId ? [{ label: 'Validation study', value: `${l.studyName ?? l.studyId} (${l.studyId})` }] : []),
+    ...(l.templateId ? [{ label: 'Template', value: `${l.templateName ?? l.templateId} (${l.templateId}${l.templateVersion ? `, version ${l.templateVersion}` : ''})` }] : []),
+  ];
+}
 
 export function buildEnhancementSubject(payload: EnhancementRequestPayload): string {
-  const tag      = payload.mode === 'qa' ? 'QA Feedback' : 'Enhancement Request';
+  const tag      = payload.mode === 'qa' ? (payload.category === VALIDATION_CATEGORY ? 'Validation Feedback' : 'QA Feedback') : 'Enhancement Request';
   const priority = payload.priority ? ` [${payload.priority}]` : '';
   return `[pathscribe] ${tag}${priority} — ${payload.title}`;
 }
@@ -23,7 +36,11 @@ export function buildEnhancementHtml(payload: EnhancementRequestPayload): string
   const ts         = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
   const priority   = payload.priority ? ` &nbsp;|&nbsp; Priority: <strong>${payload.priority}</strong>` : '';
 
-  const metaBlock = payload.metadata ? `
+  const linkBlock = validationRows(payload).map(r => `
+        <tr><td style="padding:0 0 4px 0;font-size:12px;color:#555555;font-family:Arial,sans-serif;">
+          <strong>${r.label}:</strong> ${escapeHtml(r.value)}
+        </td></tr>`).join('');
+  const metaBlock = linkBlock + (payload.metadata ? `
         <tr><td style="padding:0 0 4px 0;font-size:12px;color:#555555;font-family:Arial,sans-serif;">
           <strong>Submitted by:</strong> ${payload.metadata.userName} (${payload.metadata.userRole})
         </td></tr>
@@ -32,7 +49,7 @@ export function buildEnhancementHtml(payload: EnhancementRequestPayload): string
         </td></tr>
         <tr><td style="padding:0 0 4px 0;font-size:12px;color:#555555;font-family:Arial,sans-serif;">
           <strong>Browser:</strong> ${payload.metadata.browser} &nbsp;·&nbsp; ${payload.metadata.os} &nbsp;·&nbsp; v${payload.metadata.appVersion}
-        </td></tr>` : '';
+        </td></tr>` : '');
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -123,7 +140,7 @@ export function buildEnhancementHtml(payload: EnhancementRequestPayload): string
       <tr>
         <td style="background-color:#f8fafc;padding:14px 28px;border-top:1px solid #e2e8f0;border-radius:0 0 8px 8px;">
           <p style="margin:0;font-size:11px;color:#94a3b8;font-family:Arial,sans-serif;">
-            Sent via pathscribe AI &nbsp;·&nbsp; ${isQA ? 'QA team + admin notified' : 'Product team notified'}
+            Sent via pathscribe AI &nbsp;·&nbsp; ${isQA ? (payload.category === VALIDATION_CATEGORY ? 'Validation recipients + admin notified' : 'QA team + admin notified') : 'Product team notified'}
           </p>
         </td>
       </tr>
@@ -149,6 +166,8 @@ export function buildEnhancementText(payload: EnhancementRequestPayload): string
     '',
     payload.description,
     '',
+    ...validationRows(payload).map(r => `${r.label.padEnd(12)} : ${r.value}`),
+    ...(validationRows(payload).length ? [''] : []),
     payload.metadata ? [
       '---',
       `Submitted by : ${payload.metadata.userName} (${payload.metadata.userRole})`,

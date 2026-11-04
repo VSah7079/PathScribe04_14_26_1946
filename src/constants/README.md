@@ -1,3 +1,25 @@
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+## Batch 645
+
+`lockboxActionGroup.ts`: the 7 Role Dictionary actions of Lockbox Drop-Off (group F36: go to it, focus the scan field, mark the next drop urgent, show Drop-Off, show the Overnight folder, mark accessioned, link a placeholder), `LockboxActionId` and `LOCKBOX_VOICE_CONTEXT` (`LOCKBOX`). Added through `addedActionGroups.ts`; `systemActions.ts` (over 1,000 lines) did not grow. Grants in `defaultActionGrants.ts`: Accessioner all 7; Admin go to, show the folder and mark accessioned. The last two have no voice phrase or hotkey and are classified in `services/actionRegistry/permissionOnlyActions.ts`.
+
+## Batch 637
+
+`resultRegistryActionGroup.ts`: the 8 Role Dictionary actions added by Batches 620 to 636 (group F35: manual hrHPV result and its approve/reject, the two CSMS eligibility answers, the AI history reading run and flag, make a registry batch file). `addedActionGroups.ts` gathers it with the Outbound Queue group and is spread into `ACTION_GROUPS`, so `systemActions.ts` stays at 1,308 lines. Grants in `defaultActionGrants.ts`; classified in `services/actionRegistry/permissionOnlyActions.ts`. See `docs/product/ACTIONS_COVERAGE.md`.
+
+## Batch 619 (part Q)
+
+`outboundQueueActionGroup.ts`: the Outbound Queue's six Role Dictionary actions (group F34, `outboundQueue.*`), spread into `ACTION_GROUPS` so `systemActions.ts` (over 1,000 lines) does not grow. `defaultActionGrants.ts` grants them to Admin. Classified in `services/actionRegistry/permissionOnlyActions.ts`.
+
+## Batch 601
+
+`systemActions.ts` gained six groups (89 open/filter/move commands); `defaultActionGrants.ts` grants them (`VIEW_ALL`, `VIEW_BASIC`).
+
+## Batch 600
+
+`systemActions.ts` gained seven groups (60 commands) and `defaultActionGrants.ts` holds what each built-in role starts with. `DEFAULT_ROLE_PERMISSIONS` merges them in.
+
 # src/constants/
 
 Five files — voice/action registries, macros, and a manually-maintained
@@ -89,6 +111,11 @@ honest, self-documented confidence levels (explicitly flags which
 entries are "verified" against the Admin Guide vs. "placeholder"
 best-guesses for tabs that were never documented) — a genuinely mature
 pattern, not something needing correction here.
+*(Since closed: Batch 449 replaced the last placeholder entries, and
+`configSearchCoverage.test.ts` now fails if any entry is
+`'placeholder'`; every entry today is `'verified'`. Since Batch 431 most
+entries are generated from the sidebar section lists rather than
+hand-maintained. Checked in the Batch 496 README audit.)*
 
 **Real, per direct follow-up ("did we work on this yet? Per-facility
 Specimen Deficiencies" → the config search bug this surfaced): five
@@ -142,3 +169,109 @@ consuming side of this fix.
 - **Batch 379:** `grossing.completeConfirm` (F24+PS051) and `grossing.completeCancel` (F24+PS052), answering the Grossing screen's "complete without a protocol?" confirmation.
 
 - **Batch 382:** `diagnosis.recordDiscordance` (F17+PS059), `billing.confirmPostSignoutChange` (F24+PS053) and `billing.correctAppliedCode` (F24+PS054): the reconciliation, post-sign-out reason and applied-code correction modals' buttons.
+- **Batch 383:** `case.recordAutopsyAuthorization` (F19+PS014), `case.releaseAutopsyBody` (F19+PS015), `specimen.continueFixativeGate` (F20+PS011) and `specimen.continuePreAnalyticGate` (F20+PS012): the two autopsy forms' and the two sign-out gates' buttons.
+- **Batch 384:** `messages.submitSecureEmail` (F18+PS025): the Secure email window's Send button.
+- **Batch 388:** `VOICE_CONTEXT.MICROTOMY` for the Microtome workstation (used by the two new `MICROTOMY_*` actions in `services/actionRegistry/`).
+- **Batch 401:** `VOICE_CONTEXT.EMBEDDING` for the Embedding station (used by the two new `EMBEDDING_*` actions in `services/actionRegistry/`).
+- **Batch 402:** `VOICE_CONTEXT.SLIDE_DISTRIBUTION` for the Slide distribution station (used by the two new `SLIDE_DIST_*` actions).
+- **Batch 403:** `VOICE_CONTEXT.ADD_ON_ORDER` for the Add-On Orders page.
+- **Batch 404:** `VOICE_CONTEXT.BATCH_MANAGEMENT` for Batch Management.
+- **Batch 405:** `VOICE_CONTEXT.MOLECULAR` for the molecular plate builder.
+
+## Batch 399
+
+`configSearchIndex.ts`: Intraoperative critical results is searchable in Configuration.
+
+## Batch 431: the Configuration search covers everything
+
+Pete: "I was searching for Field Requirements, but the system couldn't find any entries." `configSearchIndex.ts` now adds one entry for every tab and every System, Cytology, Staff and Synoptic Library section, generated from the sidebar lists (`Config/System/systemSections.ts`, `Config/Cytology/cytologySections.ts`), to the hand-written entries. `configSearchCoverage.test.ts` fails if a section can't be found or an entry points at a section that doesn't exist. `CONFIG_TABS` is shared with ConfigurationPage.
+
+## Batch 438
+
+`configSearchIndex.ts`: `sys-revision-reasons`, so Configuration search finds Revision Reasons.
+
+## Batch 439
+
+`configSearchIndex.ts`: `sys-peer-review-gate`.
+
+## Batch 442
+
+`configSearchIndex.ts`: the Discordance Trend Policy section is searchable ("discordance trend", "threshold", "rolling window", …).
+
+## Batch 447
+
+`configSearchIndex.ts`: the Feedback section is searchable ("qa feedback", "feedback button", "bug report", …).
+
+## Batch 449
+
+`configSearchIndex.ts`:
+- **Inner tabs:** `TEMPLATE_SECTIONS` and `VALIDATION_SECTIONS` give the Report Templates and Validation Studies inner tabs generated entries (with their tab as context), so search opens them directly.
+- **Removed:** "API mode" (removed in Batch 444) and "Voice AI" (no such switch).
+- **Macros and Validation Studies:** real descriptions replace developer notes.
+- **Action Registry:** describes "every registered action" instead of a fixed, wrong count.
+- **New entry:** the staff Sign-in password (search "password", "locked out", …).
+
+`configSearchCoverage.test.ts`: the two new inner-tab lists must be covered, there are no placeholder entries, and no label or description in any language reads like a developer note.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`configSearchIndex.ts`: the Correlation window section (PS-156).
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+`configSearchIndex.ts`: new entry `sys-biopsy-resection-correlation`, so configuration search finds the new section.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+`configSearchIndex.ts`: new entry `sys-follow-up-tracking`.
+
+## Batch 461
+
+`configSearchIndex.ts`: `sys-organ-maps` (Configuration → System → Organ maps), with synonyms such as "anatomical map", "pi-rads", "map colours".
+
+## Batch 491 — new entry sys-tumor-board-rules (PS-359 follow-up)
+
+`configSearchIndex.ts`: new entry `sys-tumor-board-rules` (Configuration → System → Tumor Board Auto-Flag Rules), with synonyms such as "tumor board", "mdt", "auto-flag", "margin threshold", "rule engine", "close margin".
+
+## Batch 533
+
+`configSearchIndex.ts`: `cyt-preliminary-signature` (finds the urgent-preliminary signature setting).
+
+## Batch 536
+
+`configSearchIndex.ts`: entries for System → AI Instructions (`sys-ai-instructions`) and the AI vendor policy (`ai-vendor-policy`).
+
+## Batch 595
+
+`configSearchIndex.ts`: the `sys-jurisdiction` entry now opens System → Code Systems (`section: 'code_systems'`); before, it described a setting that had no screen.
+
+- Batch 612 (part A): `configSearchIndex.ts` gains `sys-interface-dictionary`.
+
+- **Batch 617:** `systemActions.ts` gained a group, Related Cases, Case Access, Search Reports & Follow-up (16 entries, keys F33+PS001 to PS016); `defaultActionGrants.ts` has their default grants. The roles list is 371 entries. See `docs/product/ACTIONS_COVERAGE.md`.
+
+## Batch 638
+
+`voiceProfiles.ts`: new dictation option Nederlands (België), recognition language nl-BE, Dutch commands (PS-347).
+
+- Batch 663: `worklistRowActionGroup.ts` (Go to Row, Open Case by Accession) and, from Batch 662, `patientBannerActionGroup.ts` (Show NHS Number Status), both spread into the role dictionary through `addedActionGroups.ts`.
+
+- Batch 664: `caseTeamActionGroup.ts` (Add Collaborator, `caseTeam.addCollaborator`, key F37+PS002), spread into the dictionary through `addedActionGroups.ts`; granted with the view commands (the save checks `case:team:manage`).
+
+## Batch 669h (footer)
+
+Config search entries `protocols-library` and `tpl-builder` no longer say "CAP-compliant" (text in locales: "structured on CAP and RCPath protocols").
+
+## Batch 720
+`grossingBenchActionGroup.ts`: four Grossing screen actions (F38+PS001 to PS004), spread through `addedActionGroups.ts`; granted in `defaultActionGrants.ts` to Pathologist, Fellow, Resident and Pathologists Assistant.
+
+## Batch 728
+
+- `configSearchIndex.ts`: `sys-research-cases`.
+
+## Batch 762
+
+`requisitionActionGroup.ts` (new): the Requisition Inbox action group (F39+PS001–006), spread through `addedActionGroups.ts`; `defaultActionGrants.ts`: Accessioner gets all six, the case-access roles Show the case's requisition.
+
+## Batch 763
+
+`stainQcActionGroup.ts` (new): the Stain & Scan QC action group (F40+PS001–005), spread through `addedActionGroups.ts`; `defaultActionGrants.ts`: Histotechnologist and Lab Director (and the override for Lab Director). Superadmin receives every action (`services/roles/actionSeeds.ts` `ALL_ACTION_IDS`). `configSearchIndex.ts`: `sys-stain-qc`.

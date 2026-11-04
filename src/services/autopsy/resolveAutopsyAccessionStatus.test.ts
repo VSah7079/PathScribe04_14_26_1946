@@ -5,7 +5,7 @@ import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 function baseCase(overrides: Partial<AutopsyCaseDetails>): AutopsyCaseDetails {
   return {
     jurisdiction: 'US',
-    caseAuthority: 'medicolegal_forensic',
+    caseAuthority: 'statutory_judicial',
     scope: 'full',
     addenda: [],
     ancillaryHold: { active: false },
@@ -39,17 +39,25 @@ describe('resolveAutopsyAccessionStatus', () => {
   it('a real hospital-consented case with real, active consent on file is fully_authorized', () => {
     const result = resolveAutopsyAccessionStatus(baseCase({
       caseAuthority: 'hospital_consented',
-      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '2026-09-01T10:00:00Z', consentScope: ['full'] },
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '2026-09-01T10:00:00Z', status: 'active', consentScope: ['full'], excludedOrgans: [], retentionPermitted: true },
     }));
     expect(result).toBe('fully_authorized');
   });
 
-  it('a real hospital-consented case with a real, present revokedOrNarrowedAt reverts to temporary \u2014 matching the gate\u2019s own conservative default exactly', () => {
+  it('Batch 468: a real hospital-consented case with status \u2018narrowed\u2019 is still fully_authorized \u2014 narrowed consent only constrains what\u2019s examined/retained, never blocks gross exam', () => {
+    const result = resolveAutopsyAccessionStatus(baseCase({
+      caseAuthority: 'hospital_consented',
+      hospitalConsent: { consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner', consentGivenAt: '2026-09-01T10:00:00Z', status: 'narrowed', consentScope: ['full'], excludedOrgans: ['brain'], retentionPermitted: true },
+    }));
+    expect(result).toBe('fully_authorized');
+  });
+
+  it('a real hospital-consented case with status \u2018revoked\u2019 reverts to temporary \u2014 matching the gate\u2019s own criteria exactly', () => {
     const result = resolveAutopsyAccessionStatus(baseCase({
       caseAuthority: 'hospital_consented',
       hospitalConsent: {
         consentingRelativeName: 'Jane Doe', consentingRelativeRelationship: 'spouse_or_partner',
-        consentGivenAt: '2026-09-01T10:00:00Z', consentScope: ['full'], revokedOrNarrowedAt: '2026-09-02T09:00:00Z',
+        consentGivenAt: '2026-09-01T10:00:00Z', status: 'revoked', consentScope: ['full'], excludedOrgans: [], retentionPermitted: true,
       },
     }));
     expect(result).toBe('temporary');

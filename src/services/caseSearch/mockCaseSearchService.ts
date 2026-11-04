@@ -10,6 +10,7 @@
 // countersigns, delegations, subspecialty and turnaround resolvers. The API
 // server joins the same data in SQL.
 import type { Case } from '@/types/case/Case';
+import type { ServiceResult } from '../types';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockDelegationService } from '../delegations/mockDelegationService';
 import { mockTatTargetService } from '../tatConfig/mockTatTargetService';
@@ -19,7 +20,6 @@ import { testSpecimenRouting } from '../cases/casePoolAssignmentService';
 import { getSessionUser } from '../auth/caseAccessControl';
 import { mockPhysicianService } from '../physicians/mockPhysicianService';
 import { mockFlagService } from '../flags/mockFlagService';
-import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockSpecimenDictionaryService } from '../specimenDictionary/mockSpecimenDictionaryService';
 import { mockStainTypeService } from '../stains/mockStainTypeService';
 import { mockFacilityService } from '../facilities/mockFacilityService';
@@ -28,8 +28,14 @@ import { parentFacilityIdMap } from '../facilities/facilityHierarchy';
 import { mockAmendmentService } from '../reports/mockAmendmentService';
 import { deriveSubspecialtyFromProtocols } from '../reportTemplates/TemplateRoutingService';
 import { isUrgentCase } from '@/utils/caseUrgency';
-import { createCaseSearchService } from './createCaseSearchService';
+import { createCaseSearchService, type CaseSearchReferenceNeeds } from './createCaseSearchService';
+import type { SynopticProtocolInfo } from './ICaseSearchService';
+import { buildSynopticFieldCatalogue, type SynopticFieldCatalogue } from './synopticValueCriteria';
+import { getTemplateCached, listTemplatesCached } from '../templates/templateService';
 import type { CaseSearchReferenceData } from './caseSearchMatching';
+import { recordDocumentOutput } from '../printing/recordDocumentOutput';
+import { DESTINATION } from '../printing/documentOutputAudit';
+import { EXPORT_CHECKS } from '../printing/exportGate';
 
 /** A case's subspecialty when it doesn't record one: from its protocols, else from specimen routing rules. */
 function derivedSubspecialty(c: Case, performingLabId: string | undefined): string | undefined {
@@ -56,11 +62,31 @@ async function loadTatResolver(): Promise<CaseSearchReferenceData['tatTargetHour
   });
 }
 
-async function loadReferenceData(): Promise<CaseSearchReferenceData> {
-  const [physicians, flags, dictionary, stains, facilities, amendments, countersigns, delegations, tatTargetHoursOf] = await Promise.all([
+/** Batch 613: the protocols and their searchable questions, from the protocol registry. A protocol that fails to load is skipped. */
+async function loadSynopticProtocols(): Promise<SynopticProtocolInfo[]> {
+  const list = await listTemplatesCached().catch(() => []);
+  const details = await Promise.all(list.map(p => getTemplateCached(p.id).catch(() => null)));
+  const out: SynopticProtocolInfo[] = [];
+  details.forEach((d, i) => {
+    if (!d) return;
+    const catalogue = buildSynopticFieldCatalogue([{ id: list[i].id, sections: d.template.sections ?? [] }]);
+    const fields = [...(catalogue.get(list[i].id)?.values() ?? [])];
+    if (fields.length) out.push({ templateId: list[i].id, name: list[i].name, fields });
+  });
+  return out;
+}
+
+async function loadSynopticCatalogue(): Promise<SynopticFieldCatalogue> {
+  const protocols = await loadSynopticProtocols();
+  return new Map(protocols.map(p => [p.templateId, new Map(p.fields.map(f => [f.id, f] as const))] as const));
+}
+
+async function loadReferenceData(needs: CaseSearchReferenceNeeds = {}): Promise<CaseSearchReferenceData> {
+  const [physicians, flags, dictionary, stains, facilities, amendments, countersigns, delegations, tatTargetHoursOf, synopticFields] = await Promise.all([
     mockPhysicianService.getAll(), mockFlagService.getAll(), mockSpecimenDictionaryService.getAll(),
     mockStainTypeService.getAll(), mockFacilityService.getAll(), mockAmendmentService.getAll(),
     mockCountersignService.getAll(), mockDelegationService.list().then(r => (r.ok ? r.data : [])).catch(() => []), loadTatResolver().catch(() => undefined),
+    needs.synopticFields ? loadSynopticCatalogue().catch(() => undefined) : Promise.resolve(undefined),
   ]);
 
   const physicianNamesById = new Map<string, string[]>();
@@ -113,42 +139,62 @@ async function loadReferenceData(): Promise<CaseSearchReferenceData> {
     delegateesByCaseId,
     subspecialtyOf: derivedSubspecialty,
     tatTargetHoursOf,
+    ...(synopticFields ? { synopticFields } : {}),
   };
 }
 
-export const mockCaseSearchService = createCaseSearchService({
-  loadAccessibleCases() {
-    const user = getSessionUser();
-    return caseRouter.getAll(undefined, { includeOrchestration: user?.canViewOrchestration === true, userId: user?.id });
-  },
+/** The cases the signed-in user may see (access rules applied). */
+export function loadCasesForSessionUser(): Promise<ServiceResult<Case[]>> {
+  const user = getSessionUser();
+  return caseRouter.getAll(undefined, { includeOrchestration: user?.canViewOrchestration === true, userId: user?.id });
+}
 
-  loadReferenceData,
+/**
+ * The search service over a given set of cases. The signed-in user's own service is the default below.
+ * Batch 613: a scheduled report also builds a recipient's share (the owner's cases that recipient may see) this way.
+ */
+export function createMockCaseSearchServiceOver(loadAccessibleCases: () => Promise<ServiceResult<Case[]>>) {
+  return createCaseSearchService({
+    loadAccessibleCases,
 
-  // Batch 372: a search run by support is recorded in the support audit
-  // stream of each organisation support can currently reach.
-  auditSearch({ fieldsUsed }) {
-    const user = getSessionUser();
-    if (user?.role !== 'superadmin') return;
-    void (async () => {
-      const [{ recordSearch }, { supportAccessService }, { mockFacilityService }, { readSessionProfile }] = await Promise.all([
-        import('../supportAccess/supportAccessGate'), import('../supportAccess/defaultSupportAccessService'),
-        import('../facilities/mockFacilityService'), import('../auth/sessionProfile'),
-      ]);
-      const facilities = await mockFacilityService.getAll();
-      await recordSearch({ ...user, name: readSessionProfile()?.name }, fieldsUsed, facilities.ok ? facilities.data.filter(f => f.isEnterprise) : [], supportAccessService);
-    })().catch(() => {});
-  },
+    loadReferenceData,
+    loadSynopticProtocols,
 
-  auditExport({ rowCount, total }) {
-    const user = getSessionUser();
-    // Audit detail stays literal English and carries no patient data.
-    mockAuditService.logEvent({
-      type: 'user',
-      event: 'Case Search Export',
-      detail: `Exported ${rowCount} of ${total} matching cases from Search to CSV`,
-      user: user ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.id : 'unknown',
-      caseId: null,
-      confidence: null,
-    }).catch(() => {});
-  },
-});
+    // Batch 372: a search run by support is recorded in the support audit
+    // stream of each organisation support can currently reach.
+    auditSearch({ fieldsUsed }) {
+      const user = getSessionUser();
+      if (user?.role !== 'superadmin') return;
+      void (async () => {
+        const [{ recordSearch }, { supportAccessService }, { mockFacilityService }, { readSessionProfile }] = await Promise.all([
+          import('../supportAccess/supportAccessGate'), import('../supportAccess/defaultSupportAccessService'),
+          import('../facilities/mockFacilityService'), import('../auth/sessionProfile'),
+        ]);
+        const facilities = await mockFacilityService.getAll();
+        await recordSearch({ ...user, name: readSessionProfile()?.name }, fieldsUsed, facilities.ok ? facilities.data.filter(f => f.isEnterprise) : [], supportAccessService);
+      })().catch(() => {});
+    },
+
+    // PS-282 (Batch 437): recorded as a document export (the export entry
+    // every download now makes), with how many of the matches it held.
+    auditExport({ rowCount, total }) {
+      void recordDocumentOutput({
+        action: 'export', document: 'case-search', destination: DESTINATION.download(`case search CSV (${rowCount} of ${total} matches)`),
+        status: 'success', format: 'csv', rowCount,
+      });
+    },
+    authorizeExport: EXPORT_CHECKS['case-search'],
+
+    // Batch 613: the report file, recorded the same way, with the grouping and counts only.
+    auditReportExport({ groupBy, groupCount, rowCount, total }) {
+      void recordDocumentOutput({
+        action: 'export', document: 'case-search-report',
+        destination: DESTINATION.download(`case search report CSV (grouped by ${groupBy}, ${groupCount} groups, ${rowCount} of ${total} cases)`),
+        status: 'success', format: 'csv', rowCount: groupBy === 'none' ? rowCount : groupCount,
+      });
+    },
+    authorizeReportExport: EXPORT_CHECKS['case-search-report'],
+  });
+}
+
+export const mockCaseSearchService = createMockCaseSearchServiceOver(loadCasesForSessionUser);

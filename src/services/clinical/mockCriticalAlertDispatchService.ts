@@ -3,12 +3,14 @@ import { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { CriticalAlertDispatchRecord } from '@/types/clinical/CriticalAlertDispatch';
 import type { ICriticalAlertDispatchService } from './ICriticalAlertDispatchService';
+import { CRITICAL_ALERT_DEMO_DISPATCHES } from './criticalAlertDemoSeed';
 
 const STORAGE_KEY = 'critical_alert_dispatches_v1';
 
 const ok  = <T>(data: T):     ServiceResult<T> => ({ ok: true,  data });
 
-const load    = (): CriticalAlertDispatchRecord[] => storageGet<CriticalAlertDispatchRecord[]>(STORAGE_KEY, []);
+// Batch 456: until anything is stored (a fresh browser, or after a Full Reset), the demo alert (criticalAlertDemoSeed.ts).
+const load    = (): CriticalAlertDispatchRecord[] => storageGet<CriticalAlertDispatchRecord[]>(STORAGE_KEY, CRITICAL_ALERT_DEMO_DISPATCHES);
 const persist = (records: CriticalAlertDispatchRecord[]) => storageSet(STORAGE_KEY, records);
 
 export const mockCriticalAlertDispatchService: ICriticalAlertDispatchService = {

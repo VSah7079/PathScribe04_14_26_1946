@@ -65,6 +65,9 @@ export interface MolecularWorklistWellMapping {
   specimen_uuid: string | null;
   control_info?: MolecularWorklistControlInfo;
   accession_number?: string;
+  /** Batch 467b: the in-house molecular order this sample well holds (spec wellBindingContract), for the instrument
+   *  or interface engine to echo back with its result. */
+  order_id?: string;
   container_barcode?: string;
   aliquot_volume_ul?: number;
 }

@@ -1,0 +1,23 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 587 — review tests (Playwright) for PS-73, 89, 146, 327, 341, 470",
+    "description": "Playwright review tests (Chromium, demo on the Vite dev server) at Batch 587: 7 passed, 0 skipped. Run 2026-10-16."
+  },
+  "tests": [
+    {
+      "testKey": "PS-735",
+      "start": "2026-10-16T15:00:00Z",
+      "finish": "2026-10-16T15:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: e2e/review/ps-73.facility-duplicate.spec.ts › Steps 1–3\nPASSED: e2e/review/ps-89.code-import.spec.ts › Steps 1–4\nPASSED: e2e/review/ps-146.revision-reasons-capa.spec.ts › Steps 1–2"
+    },
+    {
+      "testKey": "PS-736",
+      "start": "2026-10-16T15:00:00Z",
+      "finish": "2026-10-16T15:30:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: e2e/review/ps-327.signing-authority-overrides.spec.ts › Step 7\nPASSED: e2e/review/ps-341.country-signing-rules.spec.ts › Steps 1–3\nPASSED: e2e/review/ps-470.lint-cleanup.spec.ts › Step 2\nPASSED: e2e/review/ps-470.lint-cleanup.spec.ts › Step 3"
+    }
+  ]
+}

@@ -21,6 +21,12 @@ import { storageGet, storageSet } from '../mockStorage';
 import type { IntraoperativeEntry, IntraopSpecimen, MilestoneEntry, MatchCandidate, MilestoneType, SkipReason, EntryMatch, FrozenCategory, MergeResolutionContext, PreparationType, PreparationOutput } from '@/types/intraop/IntraoperativeEntry';
 import type { DigitalAsset } from '@/types/case/Material';
 import type { IIntraoperativeService } from './IIntraoperativeService';
+import type { VerbalReportInput } from '@/types/intraop/IntraoperativeEntry';
+import { carryIntraopFindingsToCase } from './carryIntraopFindingsToCase';
+import { buildVerbalReportLog, verbalReportAuditDetail, verbalReportProblems } from './verbalReport';
+
+/** Batch 399: a verbal report missing who received it, their role, the read-back or a required reason. */
+export const VERBAL_REPORT_INCOMPLETE = 'VERBAL_REPORT_INCOMPLETE';
 import { caseRouter } from '../cases/CaseRouter';
 import { mockAuditService } from '../auditlog/mockAuditService';
 import { mockCriticalResultNotificationService } from '../clinical/mockCriticalResultNotificationService';
@@ -28,6 +34,9 @@ import { mockFacilityService } from '../facilities/mockFacilityService';
 import { mockLocationService } from '../locations/mockLocationService';
 import { localLiveUpdateService } from '../liveUpdates/localLiveUpdateService';
 import type { IntraopChangeKind } from '../liveUpdates/liveUpdateContract';
+import { dataStorage } from '../browserData/dataStorage';
+import { authorizationService } from '../authorization/defaultAuthorizationService';
+import { OR_BOARD_DEMO_ID_PREFIX, OR_BOARD_DEMO_NOT_PERMITTED } from './orBoardDemo';
 
 /** PS-262: what the API server will do after each committed write — tell
  *  the live boards and queues that something changed (ids only, no PHI). */
@@ -45,10 +54,10 @@ const STORAGE_KEY = 'intraop_entries';
 const INTRAOP_VERSION = '5'; // bumped: added MERGED_TAT_SEED batch for the linkage TAT trend chart
 const VERSION_KEY = 'pathscribe_mock_intraop_version';
 try {
-  const storedVersion = localStorage.getItem(VERSION_KEY);
+  const storedVersion = dataStorage.getItem(VERSION_KEY);
   if (storedVersion !== INTRAOP_VERSION) {
-    localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-    localStorage.setItem(VERSION_KEY, INTRAOP_VERSION);
+    dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+    dataStorage.setItem(VERSION_KEY, INTRAOP_VERSION);
   }
 } catch { /* SSR / sandboxed env — ignore */ }
 
@@ -663,7 +672,27 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     };
     entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
     persist(entries);
+    // Batch 659: a diagnosis added after the merge reaches the case too (replaces this session's earlier findings).
+    const mergedCase = entries[idx].mergedIntoCaseId;
+    if (mergedCase) await carryIntraopFindingsToCase(entries[idx], mergedCase, entries[idx].performedBy.userName).catch(() => {});
     announceIntraopChange('diagnosis.rendered', entries[idx], specimenId);
+    return ok({ ...entries[idx] });
+  },
+
+  async setSpecimenUrgency(sessionId: string, specimenId: string, urgency: 'STAT' | 'ROUTINE'): Promise<ServiceResult<IntraoperativeEntry>> {
+    const entries = load();
+    const idx = entries.findIndex(e => e.id === sessionId);
+    if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
+    const specIdx = entries[idx].specimens.findIndex(s => s.id === specimenId);
+    if (specIdx === -1) return err(`Specimen ${specimenId} not found in session ${sessionId}`);
+    if (entries[idx].specimens[specIdx].frozenDiagnosisRenderedAt) {
+      return err('The frozen diagnosis has already been rendered, so the clock has stopped and the urgency cannot change.');
+    }
+    const updatedSpecimens = [...entries[idx].specimens];
+    updatedSpecimens[specIdx] = { ...updatedSpecimens[specIdx], urgency };
+    entries[idx] = { ...entries[idx], specimens: updatedSpecimens };
+    persist(entries);
+    announceIntraopChange('specimen.progressed', entries[idx], specimenId);
     return ok({ ...entries[idx] });
   },
 
@@ -690,12 +719,13 @@ export const mockIntraoperativeService: IIntraoperativeService = {
   },
 
   async seedOrBoardDemoData(locationId: string, facilityId: string | undefined, orNumberPrefix: string): Promise<ServiceResult<IntraoperativeEntry[]>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
     const now = Date.now();
     const minutesAgo = (m: number) => new Date(now - m * 60_000).toISOString();
     // Real, kept clearly distinguishable from any real session id —
     // an entries.filter below uses this exact prefix to remove any
     // previous demo run's own sessions before seeding fresh ones.
-    const demoId = (suffix: string) => `demo-orboard-${suffix}`;
+    const demoId = (suffix: string) => `${OR_BOARD_DEMO_ID_PREFIX}${suffix}`;
 
     const patients = [
       { name: 'Bennett, Alicia', mrn: 'DEMO-10041', surgeon: 'Dr. Alvarez' },
@@ -732,13 +762,25 @@ export const mockIntraoperativeService: IIntraoperativeService = {
       makeEntry(3, 25, [{ milestone: 'gross_logged', minutesAgo: 24 }, { milestone: 'touch_prep_performed', minutesAgo: 22 }, { milestone: 'frozen_section_cut', minutesAgo: 19 }], { text: 'Benign fibroadenoma. No malignancy identified.', minutesAgo: 1 }),
     ];
 
-    const entries = load().filter(e => !e.id.startsWith('demo-orboard-'));
+    const entries = load().filter(e => !e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX));
     persist([...entries, ...demoEntries]);
     for (const demo of demoEntries) announceIntraopChange('session.created', demo);
     return ok(demoEntries);
   },
 
+  async removeOrBoardDemoData(): Promise<ServiceResult<number>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
+    const entries = load();
+    const demo = entries.filter(e => e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX));
+    if (demo.length === 0) return ok(0);
+    persist(entries.filter(e => !e.id.startsWith(OR_BOARD_DEMO_ID_PREFIX)));
+    // The boards re-read when told a specimen left them; a removed demo session leaves them the same way.
+    for (const d of demo) announceIntraopChange('specimen.dismissed', d, d.specimens[0]?.id);
+    return ok(demo.length);
+  },
+
   async advanceDemoSpecimen(sessionId: string, specimenId: string): Promise<ServiceResult<{ entry: IntraoperativeEntry; advanced: boolean }>> {
+    if (!(await authorizationService.enforce('config:or-board-demo:run')).allowed) return err(OR_BOARD_DEMO_NOT_PERMITTED);
     const entries = load();
     const idx = entries.findIndex(e => e.id === sessionId);
     if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
@@ -773,6 +815,8 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     const entries = load();
     const idx = entries.findIndex(e => e.id === entryId);
     if (idx === -1) return err(`Intraoperative session ${entryId} not found`);
+    // Batch 659: a case id typed by hand must be a real case.
+    if (resolution.matchType === 'manual' && !(await caseRouter.getCase(caseId))) return err(`Case ${caseId} was not found`);
     entries[idx] = { ...entries[idx], status: 'merged', mergedIntoCaseId: caseId, mergedAt: new Date().toISOString() };
     persist(entries);
     announceIntraopChange('session.merged', entries[idx]);
@@ -813,27 +857,45 @@ export const mockIntraoperativeService: IIntraoperativeService = {
     // one. Best-effort, same real "never block the merge itself"
     // posture as the audit log call above.
     if (entries[idx].verbalReportLog) {
+      // Batch 399: the person who actually received the report, their role,
+      // the read-back and any "Surgeon unavailable" reason go with it. Before,
+      // the session's surgeon was recorded as the recipient whoever took the call.
+      const v = entries[idx].verbalReportLog!;
       await mockCriticalResultNotificationService.migrateIntraopVerbalReport({
         caseId,
         surgeon: entries[idx].surgeon,
-        note: entries[idx].verbalReportLog.note,
-        notifiedAt: entries[idx].verbalReportLog.timestamp,
-        notifiedBy: entries[idx].performedBy,
+        note: v.note,
+        notifiedAt: v.timestamp,
+        notifiedBy: v.reportedBy ?? entries[idx].performedBy,
+        receivedBy: v.receivedBy,
+        recipientRole: v.recipientRole,
+        readBackConfirmed: v.readBackConfirmed,
+        criticalResult: v.critical?.flagged,
+        surgeonUnavailable: v.surgeonUnavailable,
       }).catch(() => {});
     }
+
+    // Batch 652: frozen diagnoses and photo links go onto the case, labelled
+    // intraoperative, never into the final diagnosis. Best-effort like the above.
+    await carryIntraopFindingsToCase(entries[idx], caseId, resolution.performedBy).catch(() => {});
 
     return ok({ ...entries[idx] });
   },
 
-  async recordVerbalReport(sessionId: string, note?: string): Promise<ServiceResult<IntraoperativeEntry>> {
+  async recordVerbalReport(sessionId: string, input: VerbalReportInput): Promise<ServiceResult<IntraoperativeEntry>> {
     const entries = load();
     const idx = entries.findIndex(e => e.id === sessionId);
     if (idx === -1) return err(`Intraoperative session ${sessionId} not found`);
-    entries[idx] = {
-      ...entries[idx],
-      verbalReportLog: { timestamp: new Date().toISOString(), note: note?.trim() || '(no note recorded)' },
-    };
+    // Batch 399: the rules every verbal report meets (who, role, read-back,
+    // and a reason when a critical result didn't go to the operating surgeon).
+    if (verbalReportProblems(input).length > 0) return err(VERBAL_REPORT_INCOMPLETE);
+    const log = buildVerbalReportLog(input, new Date().toISOString());
+    entries[idx] = { ...entries[idx], verbalReportLog: log };
     persist(entries);
+    await mockAuditService.logEvent({
+      type: 'user', event: 'Intraop verbal report logged', detail: verbalReportAuditDetail(log),
+      user: input.reportedBy?.userName ?? 'unknown', caseId: null, confidence: null,
+    }).catch(() => {});
     announceIntraopChange('verbal.reported', entries[idx]);
     return ok({ ...entries[idx] });
   },

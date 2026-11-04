@@ -20,17 +20,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseCsv, toCsv, downloadCsv, isCsvFile, readFileAsText } from '@/utils/csv';
-import { mockModifierDictionaryService } from '@/services/billing/mockModifierDictionaryService';
+import { formatDate as formatLocaleDate } from '@/utils/formatDate';
+import { modifierDictionaryService } from '@/services';
 import type { ModifierTableVersion } from '@/services/billing/ModifierTableVersion';
-import { parseModifierUploadRows, DEFAULT_CPT_MODIFIERS, type CptModifierEntry } from '@/services/billing/cptModifierDictionary';
+import { parseModifierUploadRows, modifierUploadTemplateRows, MODIFIER_UPLOAD_TEMPLATE_FILENAME, type CptModifierEntry } from '@/services/billing/cptModifierDictionary';
 import { getSessionUser } from '@/services/auth/caseAccessControl';
+import { LoadingState } from '@/components/Common/LoadingState';
 
-const TEMPLATE_EXAMPLE_ROWS = DEFAULT_CPT_MODIFIERS.slice(0, 2).map(m => ({ Code: m.code, Description: m.description }));
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+// Batch 452: dates in the user's language (was a hard-coded 'en-US').
+const formatDate = (iso: string, language: string) => formatLocaleDate(iso, language);
 
 /** Real, per direct follow-up: "why do I always have to use a CSV
  *  file to correct a single entry" - a real, single-entry edit modal,
@@ -47,11 +45,11 @@ const EntryModal: React.FC<{ entry: CptModifierEntry; onSave: (e: CptModifierEnt
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('modifierDictionarySection.entryModal.codeLabel')}</label>
-            <input className="ps-conf-input" value={entry.code} disabled />
+            <input aria-label={t('modifierDictionarySection.entryModal.codeLabel')} className="ps-conf-input" value={entry.code} disabled />
           </div>
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('modifierDictionarySection.entryModal.descriptionLabel')}</label>
-            <input className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} autoFocus />
+            <input aria-label={t('modifierDictionarySection.entryModal.descriptionLabel')} className="ps-conf-input" value={description} onChange={e => setDescription(e.target.value)} autoFocus />
           </div>
           <p className="ps-billing-reason-hint">
             {t('modifierDictionarySection.entryModal.disclosure')}
@@ -69,7 +67,7 @@ const EntryModal: React.FC<{ entry: CptModifierEntry; onSave: (e: CptModifierEnt
 };
 
 const ModifierDictionarySection: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [versions, setVersions] = useState<ModifierTableVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOlder, setShowOlder] = useState(false);
@@ -88,7 +86,7 @@ const ModifierDictionarySection: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<CptModifierEntry | null>(null);
 
   const refresh = useCallback(() => {
-    mockModifierDictionaryService.getAllVersions().then(res => {
+    modifierDictionaryService.getAllVersions().then(res => {
       if (res.ok) setVersions(res.data);
       setLoading(false);
     });
@@ -110,13 +108,13 @@ const ModifierDictionarySection: React.FC = () => {
    *  createVersion, submitted for approval - just built from the
    *  active version's own entries with one row changed, rather than a
    *  freshly parsed spreadsheet. Never activates immediately; see
-   *  mockModifierDictionaryService.ts's own createVersion. */
+   *  modifierDictionaryService.ts's own createVersion. */
   const handleSaveEntry = async (entry: CptModifierEntry) => {
     if (!activeVersion) return;
     setBusy(true);
     const user = getSessionUser();
     const newEntries = activeVersion.entries.map(e => e.code === entry.code ? entry : e);
-    const res = await mockModifierDictionaryService.createVersion({
+    const res = await modifierDictionaryService.createVersion({
       label: `Manual edit — ${entry.code}`,
       effectiveDate: new Date().toISOString(),
       entries: newEntries,
@@ -147,40 +145,50 @@ const ModifierDictionarySection: React.FC = () => {
       if (problems.length > 0) setUploadError(problems.slice(0, 5).map(p => t('modifierDictionarySection.upload.missingCodeRow', { row: p.row })).join(' '));
       setUploadPreview(entries);
       setUploadFileName(file.name);
-      if (!uploadLabel) setUploadLabel(`Upload — ${file.name.replace(/\.csv$/i, '')}`);
+      if (!uploadLabel) setUploadLabel(t('modifierDictionarySection.upload.defaultLabel', { name: file.name.replace(/\.csv$/i, '') }));
     } catch {
       setUploadError(t('modifierDictionarySection.upload.readError'));
     }
   };
 
+  // Batch 452 (Pete, Oct 4): every failure is shown. Before, an invalid
+  // effective date threw out of this handler (new Date('').toISOString())
+  // and a service refusal or thrown error left the screen unchanged.
   const handleApplyUpload = async () => {
     if (!uploadPreview || uploadPreview.length === 0) return;
     if (!confirmLicensed) { setUploadError(t('modifierDictionarySection.upload.confirmLicenseRequired')); return; }
+    const effective = new Date(uploadEffectiveDate);
+    if (isNaN(effective.getTime())) { setUploadError(t('modifierDictionarySection.upload.invalidEffectiveDate')); return; }
     setBusy(true);
-    const user = getSessionUser();
-    const res = await mockModifierDictionaryService.createVersion({
-      label: uploadLabel.trim() || uploadFileName,
-      effectiveDate: new Date(uploadEffectiveDate).toISOString(),
-      entries: uploadPreview,
-      uploadedBy: user?.id ?? 'admin',
-      licenseStatus: 'licensed',
-      sourceFileName: uploadFileName,
-    });
-    if (res.ok === false) { setBusy(false); setUploadError(res.error); return; }
-    setBusy(false);
-    setToast(t('modifierDictionarySection.toast.uploadSubmitted', { label: res.data.label }));
-    setUploadPreview(null);
-    setUploadFileName('');
-    setUploadLabel('');
-    setConfirmLicensed(false);
-    refresh();
+    try {
+      const user = getSessionUser();
+      const res = await modifierDictionaryService.createVersion({
+        label: uploadLabel.trim() || uploadFileName,
+        effectiveDate: effective.toISOString(),
+        entries: uploadPreview,
+        uploadedBy: user?.id ?? 'admin',
+        licenseStatus: 'licensed',
+        sourceFileName: uploadFileName,
+      });
+      if (res.ok === false) { setUploadError(t('modifierDictionarySection.upload.saveFailed', { reason: res.error })); return; }
+      setToast(t('modifierDictionarySection.toast.uploadSubmitted', { label: res.data.label }));
+      setUploadPreview(null);
+      setUploadFileName('');
+      setUploadLabel('');
+      setConfirmLicensed(false);
+      refresh();
+    } catch (e) {
+      setUploadError(t('modifierDictionarySection.upload.saveFailed', { reason: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleDownloadTemplate = () => {
-    downloadCsv('ModifierDictionaryTemplate.csv', toCsv(TEMPLATE_EXAMPLE_ROWS));
+    downloadCsv(MODIFIER_UPLOAD_TEMPLATE_FILENAME, toCsv(modifierUploadTemplateRows()));
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('modifierDictionarySection.loading')}</div>;
+  if (loading) return <LoadingState label={t('modifierDictionarySection.loading')} />;
 
   return (
     <div>
@@ -200,6 +208,10 @@ const ModifierDictionarySection: React.FC = () => {
       </div>
 
       {toast && <p className="ps-billing-reason-hint">{toast}</p>}
+      {/* Batch 452 (PS-48 follow-up): a refusal before any preview opens
+          (wrong file type, empty file, unreadable file) was set but never
+          shown, because it only rendered inside the preview. */}
+      {uploadError && !uploadPreview && <p className="ps-conf-error-text" role="alert">{uploadError}</p>}
       {pendingCount > 0 && (
         <p className="ps-billing-reason-hint">
           {t('modifierDictionarySection.pendingApproval', { count: pendingCount })}
@@ -215,8 +227,8 @@ const ModifierDictionarySection: React.FC = () => {
             </div>
             <span className="ps-billing-reason-hint">
               {activeVersion.licenseStatus === 'licensed'
-                ? t('modifierDictionarySection.activeVersion.effectiveLicensed', { date: formatDate(activeVersion.effectiveDate) })
-                : t('modifierDictionarySection.activeVersion.effectiveSynthetic', { date: formatDate(activeVersion.effectiveDate) })}
+                ? t('modifierDictionarySection.activeVersion.effectiveLicensed', { date: formatDate(activeVersion.effectiveDate, i18n.language) })
+                : t('modifierDictionarySection.activeVersion.effectiveSynthetic', { date: formatDate(activeVersion.effectiveDate, i18n.language) })}
             </span>
           </div>
           <div className="ps-conf-table-scroll">
@@ -238,7 +250,7 @@ const ModifierDictionarySection: React.FC = () => {
 
       {olderVersions.length > 0 && (
         <div className="ps-conf-form-field">
-          <button className="ps-conf-btn-row" onClick={() => setShowOlder(o => !o)}>
+          <button data-config-nav className="ps-conf-btn-row" onClick={() => setShowOlder(o => !o)}>
             {showOlder
               ? t('modifierDictionarySection.olderVersions.toggleHide', { count: olderVersions.length })
               : t('modifierDictionarySection.olderVersions.toggleShow', { count: olderVersions.length })}
@@ -258,7 +270,7 @@ const ModifierDictionarySection: React.FC = () => {
                   {olderVersions.map(v => (
                     <tr key={v.id} className="ps-conf-tr">
                       <td className="ps-conf-td">{v.label}</td>
-                      <td className="ps-conf-td">{formatDate(v.effectiveDate)}</td>
+                      <td className="ps-conf-td">{formatDate(v.effectiveDate, i18n.language)}</td>
                       <td className="ps-conf-td">{v.licenseStatus === 'licensed' ? t('modifierDictionarySection.olderVersions.license.licensed') : t('modifierDictionarySection.olderVersions.license.synthetic')}</td>
                       <td className="ps-conf-td">
                         {v.approvalStatus === 'PENDING_APPROVAL' ? t('modifierDictionarySection.olderVersions.status.pending')
@@ -284,11 +296,11 @@ const ModifierDictionarySection: React.FC = () => {
               <div className="ps-conf-form-row">
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('modifierDictionarySection.uploadModal.versionLabel')}</label>
-                  <input className="ps-conf-input" value={uploadLabel} onChange={e => setUploadLabel(e.target.value)} />
+                  <input aria-label={t('modifierDictionarySection.uploadModal.versionLabel')} className="ps-conf-input" value={uploadLabel} onChange={e => setUploadLabel(e.target.value)} />
                 </div>
                 <div className="ps-conf-form-field">
                   <label className="ps-conf-label">{t('modifierDictionarySection.uploadModal.effectiveFrom')}</label>
-                  <input className="ps-conf-input" type="date" value={uploadEffectiveDate} onChange={e => setUploadEffectiveDate(e.target.value)} />
+                  <input aria-label={t('modifierDictionarySection.uploadModal.effectiveFrom')} className="ps-conf-input" type="date" value={uploadEffectiveDate} onChange={e => setUploadEffectiveDate(e.target.value)} />
                 </div>
               </div>
               <div className="ps-conf-table-wrap">

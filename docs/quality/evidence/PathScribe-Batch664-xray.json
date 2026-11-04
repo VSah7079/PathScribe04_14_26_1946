@@ -1,0 +1,97 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 664: Add Collaborator, Edit Field, Cancel, Orchestration Sign Out and Next, template rights by capability",
+    "description": "Batch 664: Add Collaborator, Edit Field, Cancel, Orchestration Sign Out and Next, template rights by capability"
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "collaboratorCommand.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cases/collaboratorCommand.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "collaboratorVoice.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/cases/collaboratorVoice.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "editFieldCommand.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/voice/editFieldCommand.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "voiceCancel.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/voice/voiceCancel.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "dictationDiscard.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/voice/dictationDiscard.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "signOutAndNext.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/signOutAndNext.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "bottomBarActions.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/bottomBarActions.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "templatePublishingRules.test.ts",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-24T04:50:20.523774Z",
+      "finish": "2026-10-24T04:50:20.523774Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/templates/templatePublishingRules.test.ts"
+    }
+  ]
+}

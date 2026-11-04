@@ -1,0 +1,88 @@
+/* src/components/Touch/touchLayout.css
+   Touch spec T2 (Batch 735): the touch layout for station screens, set once here rather than screen by screen.
+   It applies inside TouchLayoutScope when the layout is on (Auto on a touch device, or the workstation override).
+   Targets at least 44 x 44 px (WCAG 2.5.5), primary actions 48 px, 8 px between targets (4 px margin each side),
+   16 px text in fields (stops iPad Safari zooming in). */
+
+.ps-touch-scope { display: contents; }
+
+.ps-touch :is(button, [role="button"], [role="tab"], select, summary, a[href]) {
+  min-height: 44px;
+  min-width: 44px;
+  margin: 4px;
+  touch-action: manipulation;
+}
+/* Text on buttons and chips readable at arm's length. */
+.ps-touch :is(button, [role="button"], [role="tab"]) { font-size: 14px; }
+
+.ps-touch :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]), select, textarea) {
+  font-size: 16px;
+  min-height: 44px;
+  margin: 4px;
+}
+.ps-touch textarea { min-height: 88px; }
+
+/* A checkbox or radio is tapped through its whole label row. */
+.ps-touch label:has(> input[type="checkbox"]),
+.ps-touch label:has(> input[type="radio"]) {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px;
+  padding-inline-end: 6px;
+  cursor: pointer;
+}
+.ps-touch input[type="checkbox"],
+.ps-touch input[type="radio"] { width: 24px; height: 24px; flex-shrink: 0; margin: 0; }
+
+/* Primary actions (Complete grossing, Print/Etch Next, Confirm, Submit…) are larger still. */
+.ps-touch :is(button[class*="primary"], button[type="submit"], button[class*="confirm"]) {
+  min-height: 48px;
+  padding-inline: 20px;
+  font-size: 15px;
+}
+
+/* Table rows grow with their buttons; keep the cells' contents on the row's centre line. */
+.ps-touch :is(td, th) { vertical-align: middle; }
+
+/* Tooltip shown on a tap (tapTitle.ts). */
+.ps-touch-tip {
+  position: fixed;
+  inset-inline-start: clamp(12px, calc(var(--tip-x) - 140px), calc(100vw - 292px));
+  top: calc(var(--tip-y) + 16px);
+  max-width: 280px;
+  z-index: 9500;
+  background: #0f172a;
+  border: 1px solid rgba(94, 234, 212, 0.5);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e2e8f0;
+  font-size: 15px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* T6: a window taller than what the keyboard leaves visible scrolls, so its field and Save button can both be
+   brought into view (centred while it fits, top-aligned once it does not). */
+.ps-touch .ps-overlay { overflow-y: auto; align-items: flex-start; padding-block: 16px; box-sizing: border-box; }
+.ps-touch .ps-overlay > :is([role="dialog"], [role="alertdialog"]) { margin-block: auto; flex-shrink: 0; }
+
+/* T6: when a form is too tall for the field and its Save button to both show above the keyboard, a copy of the
+   Save button sits just above the keyboard (useKeyboardKeepVisible). */
+.ps-touch-save-dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: var(--dock-bottom, 0px);
+  z-index: 9400;
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 16px;
+  background: rgba(13, 20, 36, 0.96);
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+.ps-touch-save-dock .ps-btn-primary { min-height: 48px; padding-inline: 24px; font-size: 15px; }
+
+/* The Microtome's batch-print tick box sits in a label so its whole cell is the target. */
+.ps-microtomy-select-cell { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; cursor: pointer; }
+.ps-touch .ps-microtomy-select-cell { min-width: 44px; padding-inline-end: 0; }

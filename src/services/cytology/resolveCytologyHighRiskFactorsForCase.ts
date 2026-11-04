@@ -70,11 +70,17 @@ export function resolveCytologyHighRiskFactorsForCase(
   patientEncounters: { diagnoses?: EncounterDiagnosis[] }[],
   currentSpecimenPersistentContactBleeding: boolean | undefined,
   asOfDate: Date,
+  /** Batch 608 (#47): the procedure half, recorded at accessioning (CytologyScreeningRecord.priorCervicalProcedure). */
+  currentSpecimenPriorCervicalProcedure?: 'none' | 'leep' | 'cold_knife_conization' | 'cryotherapy' | 'other_excision_or_biopsy',
 ): CytologyHighRiskFactors {
   const hpvFactors = resolveHpvHighRiskFactors(currentSpecimenHpv.hpvResult, currentSpecimenHpv.hpvGenotypeDetail);
   const priorAbnormalPapWithinLookback = resolvePriorAbnormalPapFactor(otherCasesReviewsForThisPatient, asOfDate);
   const immunocompromised = resolveImmunocompromisedFactorFromEncounters(patientEncounters);
-  const priorCervicalProcedureOrBiopsy = resolvePriorCervicalProcedureFactorFromEncounters(patientEncounters);
+  // Batch 608 (#47): a recorded procedure counts alongside the diagnosis-history half;
+  // an explicit 'none' is a definite "no" for that half only.
+  const procedureRecorded = currentSpecimenPriorCervicalProcedure === undefined ? undefined : currentSpecimenPriorCervicalProcedure !== 'none';
+  const fromDiagnoses = resolvePriorCervicalProcedureFactorFromEncounters(patientEncounters);
+  const priorCervicalProcedureOrBiopsy = procedureRecorded === undefined ? fromDiagnoses : combineHighRiskBooleanSignals(fromDiagnoses, procedureRecorded);
   const abnormalBleedingPattern = resolveAbnormalBleedingPatternFactorFromEncounters(patientEncounters);
   const inUteroDesExposure = resolveInUteroDesExposureFactorFromEncounters(patientEncounters);
   // Real, per direct follow-up closing PS-211's own remaining gap:

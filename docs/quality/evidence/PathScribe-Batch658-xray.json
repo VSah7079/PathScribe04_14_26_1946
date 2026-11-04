@@ -1,0 +1,64 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 658 — Orchestration sign-out reachable, Downtime Reason, F1 help, shared peer rule, role labels",
+    "description": "Vitest, 2026-10-23: full suite 14,834 passed, 1 failed (a test of the old sign-out rule, since updated and re-run), 33 skipped; one environment error (Firestore emulator not running). Type-check clean. Tests are created by this import (testInfo)."
+  },
+  "tests": [
+    {
+      "testInfo": {
+        "summary": "Orchestration Sign Out Case shows from draft reports once grossing is done",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T12:00:00Z",
+      "finish": "2026-10-23T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/reports/bottomBarActions.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Downtime accession is refused without a reason",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T12:00:00Z",
+      "finish": "2026-10-23T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/accessioning/downtimeReasonRule.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "View Help is F1 and a function key works while typing",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T12:00:00Z",
+      "finish": "2026-10-23T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/actionRegistry/shortcutResolution.test.ts\nPASSED: src/services/actionRegistry/actionsCoverage.guard.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Overview and Productivity use one peer group rule",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T12:00:00Z",
+      "finish": "2026-10-23T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/pages/contributionDashboardCalculations.test.ts"
+    },
+    {
+      "testInfo": {
+        "summary": "Role labels and the person's own role display",
+        "type": "Generic",
+        "projectKey": "PS"
+      },
+      "start": "2026-10-23T12:00:00Z",
+      "finish": "2026-10-23T14:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/services/caseSearch/pathologistRoleLabels.test.ts\nPASSED: src/services/staff/roleDisplayName.test.ts"
+    }
+  ]
+}

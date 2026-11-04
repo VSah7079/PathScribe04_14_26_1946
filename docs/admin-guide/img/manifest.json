@@ -1,0 +1,1577 @@
+{
+ "tab-ai": {
+  "id": "tab-ai",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai.png"
+ },
+ "tab-macros": {
+  "id": "tab-macros",
+  "kind": "config-tab",
+  "path": "/configuration?tab=macros",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-macros.png"
+ },
+ "tab-templates": {
+  "id": "tab-templates",
+  "kind": "config-tab",
+  "path": "/configuration?tab=templates",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-templates.png"
+ },
+ "tab-staff": {
+  "id": "tab-staff",
+  "kind": "config-tab",
+  "path": "/configuration?tab=staff",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-staff.png"
+ },
+ "tab-protocols": {
+  "id": "tab-protocols",
+  "kind": "config-tab",
+  "path": "/configuration?tab=protocols",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-protocols.png"
+ },
+ "tab-system": {
+  "id": "tab-system",
+  "kind": "config-tab",
+  "path": "/configuration?tab=system",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-system.png"
+ },
+ "tab-cytology": {
+  "id": "tab-cytology",
+  "kind": "config-tab",
+  "path": "/configuration?tab=cytology",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-cytology.png"
+ },
+ "tab-tat": {
+  "id": "tab-tat",
+  "kind": "config-tab",
+  "path": "/configuration?tab=tat",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-tat.png"
+ },
+ "tab-validation": {
+  "id": "tab-validation",
+  "kind": "config-tab",
+  "path": "/configuration?tab=validation",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-validation.png"
+ },
+ "tab-voice": {
+  "id": "tab-voice",
+  "kind": "config-tab",
+  "path": "/configuration?tab=voice",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-voice.png"
+ },
+ "tab-actions": {
+  "id": "tab-actions",
+  "kind": "config-tab",
+  "path": "/configuration?tab=actions",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-actions.png"
+ },
+ "staff-members": {
+  "id": "staff-members",
+  "kind": "staff",
+  "path": "/configuration?tab=staff&section=members",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "staff-members.png"
+ },
+ "staff-roles": {
+  "id": "staff-roles",
+  "kind": "staff",
+  "path": "/configuration?tab=staff&section=roles",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "staff-roles.png"
+ },
+ "staff-credentialing": {
+  "id": "staff-credentialing",
+  "kind": "staff",
+  "path": "/configuration?tab=staff&section=credentialing",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "staff-credentialing.png"
+ },
+ "templates-templates": {
+  "id": "templates-templates",
+  "kind": "templates",
+  "path": "/configuration?tab=templates&section=templates",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-templates.png"
+ },
+ "templates-parts": {
+  "id": "templates-parts",
+  "kind": "templates",
+  "path": "/configuration?tab=templates&section=parts",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-parts.png"
+ },
+ "templates-routing": {
+  "id": "templates-routing",
+  "kind": "templates",
+  "path": "/configuration?tab=templates&section=routing",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-routing.png"
+ },
+ "validation-studies": {
+  "id": "validation-studies",
+  "kind": "validation",
+  "path": "/configuration?tab=validation&section=studies",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "validation-studies.png"
+ },
+ "validation-dashboard": {
+  "id": "validation-dashboard",
+  "kind": "validation",
+  "path": "/configuration?tab=validation&section=dashboard",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "validation-dashboard.png"
+ },
+ "validation-reports": {
+  "id": "validation-reports",
+  "kind": "validation",
+  "path": "/configuration?tab=validation&section=reports",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "validation-reports.png"
+ },
+ "protocols-active": {
+  "id": "protocols-active",
+  "kind": "protocols",
+  "path": "/configuration?tab=protocols&section=active",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-active.png"
+ },
+ "protocols-review": {
+  "id": "protocols-review",
+  "kind": "protocols",
+  "path": "/configuration?tab=protocols&section=review",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-review.png"
+ },
+ "protocols-all": {
+  "id": "protocols-all",
+  "kind": "protocols",
+  "path": "/configuration?tab=protocols&section=all",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-all.png"
+ },
+ "system-print_settings": {
+  "id": "system-print_settings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=print_settings",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-print_settings.png"
+ },
+ "system-label_designer": {
+  "id": "system-label_designer",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=label_designer",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-label_designer.png"
+ },
+ "system-simulated_print": {
+  "id": "system-simulated_print",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=simulated_print",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-simulated_print.png"
+ },
+ "system-printer_profiles": {
+  "id": "system-printer_profiles",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=printer_profiles",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-printer_profiles.png"
+ },
+ "system-scan_stations": {
+  "id": "system-scan_stations",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=scan_stations",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-scan_stations.png"
+ },
+ "system-site_agents": {
+  "id": "system-site_agents",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=site_agents",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-site_agents.png"
+ },
+ "system-workstations": {
+  "id": "system-workstations",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=workstations",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-workstations.png"
+ },
+ "system-bi_feed": {
+  "id": "system-bi_feed",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=bi_feed",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-bi_feed.png"
+ },
+ "system-scope_reference": {
+  "id": "system-scope_reference",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=scope_reference",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-scope_reference.png"
+ },
+ "system-equipment": {
+  "id": "system-equipment",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=equipment",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-equipment.png"
+ },
+ "system-grossing_hardware": {
+  "id": "system-grossing_hardware",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=grossing_hardware",
+  "group": "Workstation & Hardware",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-grossing_hardware.png"
+ },
+ "system-cassette_colors": {
+  "id": "system-cassette_colors",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cassette_colors",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cassette_colors.png"
+ },
+ "system-cassette_routing_rules": {
+  "id": "system-cassette_routing_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cassette_routing_rules",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cassette_routing_rules.png"
+ },
+ "system-container_types": {
+  "id": "system-container_types",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=container_types",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-container_types.png"
+ },
+ "system-reagent_lots": {
+  "id": "system-reagent_lots",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=reagent_lots",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-reagent_lots.png"
+ },
+ "system-workstation_groups": {
+  "id": "system-workstation_groups",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=workstation_groups",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-workstation_groups.png"
+ },
+ "system-action_groups": {
+  "id": "system-action_groups",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=action_groups",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-action_groups.png"
+ },
+ "system-stains": {
+  "id": "system-stains",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=stains",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-stains.png"
+ },
+ "system-ink_colors": {
+  "id": "system-ink_colors",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=ink_colors",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-ink_colors.png"
+ },
+ "system-inking_validation_mode": {
+  "id": "system-inking_validation_mode",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=inking_validation_mode",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-inking_validation_mode.png"
+ },
+ "system-vendor_integrations": {
+  "id": "system-vendor_integrations",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=vendor_integrations",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-vendor_integrations.png"
+ },
+ "system-cytology_qc_rules": {
+  "id": "system-cytology_qc_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cytology_qc_rules",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cytology_qc_rules.png"
+ },
+ "system-or_suite_terminals": {
+  "id": "system-or_suite_terminals",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=or_suite_terminals",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-or_suite_terminals.png"
+ },
+ "system-intraop_critical_results": {
+  "id": "system-intraop_critical_results",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=intraop_critical_results",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-intraop_critical_results.png"
+ },
+ "system-display_profiles": {
+  "id": "system-display_profiles",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=display_profiles",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-display_profiles.png"
+ },
+ "system-migration_field_mappings": {
+  "id": "system-migration_field_mappings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=migration_field_mappings",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-migration_field_mappings.png"
+ },
+ "system-batch_registry_feed": {
+  "id": "system-batch_registry_feed",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=batch_registry_feed",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-batch_registry_feed.png"
+ },
+ "system-cancer_registry_settings": {
+  "id": "system-cancer_registry_settings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cancer_registry_settings",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cancer_registry_settings.png"
+ },
+ "system-flags": {
+  "id": "system-flags",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=flags",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-flags.png"
+ },
+ "system-grossing_route_overrides": {
+  "id": "system-grossing_route_overrides",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=grossing_route_overrides",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-grossing_route_overrides.png"
+ },
+ "system-specimens": {
+  "id": "system-specimens",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=specimens",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-specimens.png"
+ },
+ "system-asset_locations": {
+  "id": "system-asset_locations",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=asset_locations",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-asset_locations.png"
+ },
+ "system-smart_capture": {
+  "id": "system-smart_capture",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=smart_capture",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-smart_capture.png"
+ },
+ "system-cold_chain": {
+  "id": "system-cold_chain",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cold_chain",
+  "group": "Lab Materials & Workflows",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cold_chain.png"
+ },
+ "system-governing_bodies": {
+  "id": "system-governing_bodies",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=governing_bodies",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-governing_bodies.png"
+ },
+ "system-abnormal_trigger_rules": {
+  "id": "system-abnormal_trigger_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=abnormal_trigger_rules",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-abnormal_trigger_rules.png"
+ },
+ "system-participation_types": {
+  "id": "system-participation_types",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=participation_types",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-participation_types.png"
+ },
+ "system-country_signing_rules": {
+  "id": "system-country_signing_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=country_signing_rules",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-country_signing_rules.png"
+ },
+ "system-code_systems": {
+  "id": "system-code_systems",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=code_systems",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-code_systems.png"
+ },
+ "system-protocols": {
+  "id": "system-protocols",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=protocols",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-protocols.png"
+ },
+ "system-organ_maps": {
+  "id": "system-organ_maps",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=organ_maps",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-organ_maps.png"
+ },
+ "system-departments": {
+  "id": "system-departments",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=departments",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-departments.png"
+ },
+ "system-subspecialties": {
+  "id": "system-subspecialties",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=subspecialties",
+  "group": "Clinical Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-subspecialties.png"
+ },
+ "system-billing_dictionary": {
+  "id": "system-billing_dictionary",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=billing_dictionary",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-billing_dictionary.png"
+ },
+ "system-dft_export_preview": {
+  "id": "system-dft_export_preview",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=dft_export_preview",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-dft_export_preview.png"
+ },
+ "system-code_import": {
+  "id": "system-code_import",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=code_import",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-code_import.png"
+ },
+ "system-billing_type_triggers": {
+  "id": "system-billing_type_triggers",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=billing_type_triggers",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-billing_type_triggers.png"
+ },
+ "system-modifier_dictionary": {
+  "id": "system-modifier_dictionary",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=modifier_dictionary",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-modifier_dictionary.png"
+ },
+ "system-jurisdiction_payment_mappings": {
+  "id": "system-jurisdiction_payment_mappings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=jurisdiction_payment_mappings",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-jurisdiction_payment_mappings.png"
+ },
+ "system-master_payment_types": {
+  "id": "system-master_payment_types",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=master_payment_types",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-master_payment_types.png"
+ },
+ "system-ncci_edit_rules": {
+  "id": "system-ncci_edit_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=ncci_edit_rules",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-ncci_edit_rules.png"
+ },
+ "system-pending_approvals": {
+  "id": "system-pending_approvals",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=pending_approvals",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-pending_approvals.png"
+ },
+ "system-rvu_code_map": {
+  "id": "system-rvu_code_map",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=rvu_code_map",
+  "group": "Financial & Revenue Lookups",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-rvu_code_map.png"
+ },
+ "system-fonts": {
+  "id": "system-fonts",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=fonts",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-fonts.png"
+ },
+ "system-contribution_settings": {
+  "id": "system-contribution_settings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=contribution_settings",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-contribution_settings.png"
+ },
+ "system-retention": {
+  "id": "system-retention",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=retention",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-retention.png"
+ },
+ "system-delegation_types": {
+  "id": "system-delegation_types",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=delegation_types",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delegation_types.png"
+ },
+ "system-document_style": {
+  "id": "system-document_style",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=document_style",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-document_style.png"
+ },
+ "system-external_resources": {
+  "id": "system-external_resources",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=external_resources",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-external_resources.png"
+ },
+ "system-field_requirements": {
+  "id": "system-field_requirements",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=field_requirements",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-field_requirements.png"
+ },
+ "system-release_buffer": {
+  "id": "system-release_buffer",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=release_buffer",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-release_buffer.png"
+ },
+ "system-concordance_review_settings": {
+  "id": "system-concordance_review_settings",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=concordance_review_settings",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-concordance_review_settings.png"
+ },
+ "system-delivery_rules": {
+  "id": "system-delivery_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=delivery_rules",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_rules.png"
+ },
+ "system-billing_release": {
+  "id": "system-billing_release",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=billing_release",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-billing_release.png"
+ },
+ "system-us_epath": {
+  "id": "system-us_epath",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=us_epath",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-us_epath.png"
+ },
+ "system-cosd_destination": {
+  "id": "system-cosd_destination",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=cosd_destination",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-cosd_destination.png"
+ },
+ "system-history_extraction": {
+  "id": "system-history_extraction",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=history_extraction",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-history_extraction.png"
+ },
+ "system-delivery_schedules": {
+  "id": "system-delivery_schedules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=delivery_schedules",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_schedules.png"
+ },
+ "system-print_routing_rules": {
+  "id": "system-print_routing_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=print_routing_rules",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-print_routing_rules.png"
+ },
+ "system-qa_config_center": {
+  "id": "system-qa_config_center",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=qa_config_center",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-qa_config_center.png"
+ },
+ "system-biopsy_resection_correlation": {
+  "id": "system-biopsy_resection_correlation",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=biopsy_resection_correlation",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-biopsy_resection_correlation.png"
+ },
+ "system-tumor_board_rules": {
+  "id": "system-tumor_board_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=tumor_board_rules",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-tumor_board_rules.png"
+ },
+ "system-follow_up_tracking": {
+  "id": "system-follow_up_tracking",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=follow_up_tracking",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-follow_up_tracking.png"
+ },
+ "system-revision_reasons": {
+  "id": "system-revision_reasons",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=revision_reasons",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-revision_reasons.png"
+ },
+ "system-peer_review_gate": {
+  "id": "system-peer_review_gate",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=peer_review_gate",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-peer_review_gate.png"
+ },
+ "system-clinical_mismatch_rules": {
+  "id": "system-clinical_mismatch_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=clinical_mismatch_rules",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-clinical_mismatch_rules.png"
+ },
+ "system-ai_instructions": {
+  "id": "system-ai_instructions",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=ai_instructions",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-ai_instructions.png"
+ },
+ "system-qa_trend_policy": {
+  "id": "system-qa_trend_policy",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=qa_trend_policy",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-qa_trend_policy.png"
+ },
+ "system-feedback": {
+  "id": "system-feedback",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=feedback",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-feedback.png"
+ },
+ "system-research_feed": {
+  "id": "system-research_feed",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=research_feed",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-research_feed.png"
+ },
+ "system-session_security": {
+  "id": "system-session_security",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=session_security",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-session_security.png"
+ },
+ "system-support_access": {
+  "id": "system-support_access",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=support_access",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-support_access.png"
+ },
+ "system-template_governance": {
+  "id": "system-template_governance",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=template_governance",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-template_governance.png"
+ },
+ "system-simulated_mail": {
+  "id": "system-simulated_mail",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=simulated_mail",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-simulated_mail.png"
+ },
+ "system-performance_targets": {
+  "id": "system-performance_targets",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=performance_targets",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-performance_targets.png"
+ },
+ "system-client_sla": {
+  "id": "system-client_sla",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=client_sla",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-client_sla.png"
+ },
+ "system-jurisdiction_overview": {
+  "id": "system-jurisdiction_overview",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=jurisdiction_overview",
+  "group": "Administration & Compliance",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-jurisdiction_overview.png"
+ },
+ "system-assist_lis_polling": {
+  "id": "system-assist_lis_polling",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=assist_lis_polling",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-assist_lis_polling.png"
+ },
+ "system-case_mask_config": {
+  "id": "system-case_mask_config",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=case_mask_config",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-case_mask_config.png"
+ },
+ "system-case_routing": {
+  "id": "system-case_routing",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=case_routing",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-case_routing.png"
+ },
+ "system-clients": {
+  "id": "system-clients",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=clients",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-clients.png"
+ },
+ "system-crosswalk": {
+  "id": "system-crosswalk",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=crosswalk",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-crosswalk.png"
+ },
+ "system-outbound_message_preview": {
+  "id": "system-outbound_message_preview",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=outbound_message_preview",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-outbound_message_preview.png"
+ },
+ "system-interface_dictionary": {
+  "id": "system-interface_dictionary",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=interface_dictionary",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-interface_dictionary.png"
+ },
+ "system-physicians": {
+  "id": "system-physicians",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=physicians",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-physicians.png"
+ },
+ "system-routing_rules": {
+  "id": "system-routing_rules",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=routing_rules",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-routing_rules.png"
+ },
+ "system-deficiencies": {
+  "id": "system-deficiencies",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=deficiencies",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-deficiencies.png"
+ },
+ "system-terminology": {
+  "id": "system-terminology",
+  "kind": "system",
+  "path": "/configuration?tab=system&section=terminology",
+  "group": "Integrations",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-terminology.png"
+ },
+ "cytology-cytology_categories": {
+  "id": "cytology-cytology_categories",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_categories",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_categories.png"
+ },
+ "cytology-non_gyn_cytology_categories": {
+  "id": "cytology-non_gyn_cytology_categories",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=non_gyn_cytology_categories",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-non_gyn_cytology_categories.png"
+ },
+ "cytology-cytology_nomenclature": {
+  "id": "cytology-cytology_nomenclature",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_nomenclature",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_nomenclature.png"
+ },
+ "cytology-cytology_screening_strategy": {
+  "id": "cytology-cytology_screening_strategy",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_screening_strategy",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_screening_strategy.png"
+ },
+ "cytology-cytology_routing": {
+  "id": "cytology-cytology_routing",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_routing",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_routing.png"
+ },
+ "cytology-cytology_registry": {
+  "id": "cytology-cytology_registry",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_registry",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_registry.png"
+ },
+ "cytology-cytology_qc_settings": {
+  "id": "cytology-cytology_qc_settings",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_qc_settings",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_qc_settings.png"
+ },
+ "cytology-cytology_compliance_features": {
+  "id": "cytology-cytology_compliance_features",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_compliance_features",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_compliance_features.png"
+ },
+ "cytology-cytology_workload_cap": {
+  "id": "cytology-cytology_workload_cap",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_workload_cap",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_workload_cap.png"
+ },
+ "cytology-cytology_instrumentation": {
+  "id": "cytology-cytology_instrumentation",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_instrumentation",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_instrumentation.png"
+ },
+ "cytology-snomed_histology_severity_mapping": {
+  "id": "cytology-snomed_histology_severity_mapping",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=snomed_histology_severity_mapping",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-snomed_histology_severity_mapping.png"
+ },
+ "cytology-cytology_histology_correlation": {
+  "id": "cytology-cytology_histology_correlation",
+  "kind": "cytology",
+  "path": "/configuration?tab=cytology&section=cytology_histology_correlation",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "cytology-cytology_histology_correlation.png"
+ },
+ "screen-facility-dictionary": {
+  "id": "screen-facility-dictionary",
+  "kind": "screen",
+  "path": "/configuration?tab=system&section=clients",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "screen-facility-dictionary.png"
+ },
+ "screen-audit-log": {
+  "id": "screen-audit-log",
+  "kind": "screen",
+  "path": "/audit",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-audit-log.png"
+ },
+ "screen-audit-interfaces": {
+  "id": "screen-audit-interfaces",
+  "kind": "screen",
+  "path": "/audit?tab=interfaces",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-audit-interfaces.png"
+ },
+ "screen-audit-financial": {
+  "id": "screen-audit-financial",
+  "kind": "screen",
+  "path": "/audit?tab=financial",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-audit-financial.png"
+ },
+ "screen-batch-management": {
+  "id": "screen-batch-management",
+  "kind": "screen",
+  "path": "/batch-management",
+  "group": "",
+  "status": "ok",
+  "heading": "📦 Batch Management",
+  "file": "screen-batch-management.png"
+ },
+ "screen-migration-jobs": {
+  "id": "screen-migration-jobs",
+  "kind": "screen",
+  "path": "/migration-jobs",
+  "group": "",
+  "status": "ok",
+  "heading": "Historical Data Migration Jobs",
+  "file": "screen-migration-jobs.png"
+ },
+ "screen-my-exports": {
+  "id": "screen-my-exports",
+  "kind": "screen",
+  "path": "/my-exports",
+  "group": "",
+  "status": "ok",
+  "heading": "My exports",
+  "file": "screen-my-exports.png"
+ },
+ "screen-quality-assurance": {
+  "id": "screen-quality-assurance",
+  "kind": "screen",
+  "path": "/quality-assurance",
+  "group": "",
+  "status": "ok",
+  "heading": "✓ Quality Assurance",
+  "file": "screen-quality-assurance.png"
+ },
+ "screen-margin-exception-review": {
+  "id": "screen-margin-exception-review",
+  "kind": "screen",
+  "path": "/margin-exception-review",
+  "group": "",
+  "status": "ok",
+  "heading": "Margin Exception Review",
+  "file": "screen-margin-exception-review.png"
+ },
+ "screen-cytology-qc-queue": {
+  "id": "screen-cytology-qc-queue",
+  "kind": "screen",
+  "path": "/cytology-qc-queue",
+  "group": "",
+  "status": "ok",
+  "heading": "Cytology QC Peer Review Queue",
+  "file": "screen-cytology-qc-queue.png"
+ },
+ "screen-lockbox-drop-off": {
+  "id": "screen-lockbox-drop-off",
+  "kind": "screen",
+  "path": "/lockbox-drop-off",
+  "group": "",
+  "status": "ok",
+  "heading": "Lockbox Drop-Off",
+  "file": "screen-lockbox-drop-off.png"
+ },
+ "screen-home": {
+  "id": "screen-home",
+  "kind": "screen",
+  "path": "/",
+  "group": "",
+  "status": "ok",
+  "heading": "Welcome back, Pete Nimmo",
+  "file": "screen-home.png"
+ },
+ "screen-audit-log-errors": {
+  "id": "screen-audit-log-errors",
+  "kind": "screen",
+  "path": "/audit?tab=errors",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-audit-log-errors.png"
+ },
+ "screen-embedding-station": {
+  "id": "screen-embedding-station",
+  "kind": "screen",
+  "path": "/workstations/embedding",
+  "group": "",
+  "status": "ok",
+  "heading": "🧊 Embedding Station",
+  "file": "screen-embedding-station.png"
+ },
+ "screen-microtomy-workstation": {
+  "id": "screen-microtomy-workstation",
+  "kind": "screen",
+  "path": "/workstations/microtomy",
+  "group": "",
+  "status": "ok",
+  "heading": "🔬 Microtomy Workstation",
+  "file": "screen-microtomy-workstation.png"
+ },
+ "screen-slide-distribution-station": {
+  "id": "screen-slide-distribution-station",
+  "kind": "screen",
+  "path": "/workstations/slide-distribution",
+  "group": "",
+  "status": "ok",
+  "heading": "📬 Slide Distribution Station",
+  "file": "screen-slide-distribution-station.png"
+ },
+ "screen-outbound-queue": {
+  "id": "screen-outbound-queue",
+  "kind": "screen",
+  "path": "/outbound-queue",
+  "group": "",
+  "status": "ok",
+  "heading": "Outbound Queue",
+  "file": "screen-outbound-queue.png"
+ },
+ "screen-mock-interface-engine": {
+  "id": "screen-mock-interface-engine",
+  "kind": "screen",
+  "path": "/dev/mock-interface-engine",
+  "group": "",
+  "status": "ok",
+  "heading": "Mock Interface Engine (PS-239)",
+  "file": "screen-mock-interface-engine.png"
+ },
+ "screen-mock-emr": {
+  "id": "screen-mock-emr",
+  "kind": "screen",
+  "path": "/mock-emr?case=S26-4403",
+  "group": "",
+  "status": "ok",
+  "heading": "WILLIAMS, Helen",
+  "file": "screen-mock-emr.png"
+ },
+ "protocols-build": {
+  "id": "protocols-build",
+  "kind": "flow",
+  "path": "/configuration?tab=protocols&section=active",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-build.png"
+ },
+ "protocols-upload": {
+  "id": "protocols-upload",
+  "kind": "flow",
+  "path": "/configuration?tab=protocols&section=active",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-upload.png"
+ },
+ "protocols-editor": {
+  "id": "protocols-editor",
+  "kind": "flow",
+  "path": "/configuration?tab=protocols&section=active",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "protocols-editor.png"
+ },
+ "screen-interface-engines": {
+  "id": "screen-interface-engines",
+  "kind": "screen",
+  "path": "/audit?tab=interfaces",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-interface-engines.png"
+ },
+ "screen-outbound-dispatches": {
+  "id": "screen-outbound-dispatches",
+  "kind": "screen",
+  "path": "/audit?tab=interfaces",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-outbound-dispatches.png"
+ },
+ "screen-outbound-interface-dlq": {
+  "id": "screen-outbound-interface-dlq",
+  "kind": "screen",
+  "path": "/audit?tab=interfaces",
+  "group": "",
+  "status": "ok",
+  "heading": "System Logs",
+  "file": "screen-outbound-interface-dlq.png"
+ },
+ "system-delivery_rules-edit": {
+  "id": "system-delivery_rules-edit",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=delivery_rules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_rules-edit.png"
+ },
+ "system-delivery_rules-test": {
+  "id": "system-delivery_rules-test",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=delivery_rules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_rules-test.png"
+ },
+ "system-delivery_schedules-edit": {
+  "id": "system-delivery_schedules-edit",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=delivery_schedules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_schedules-edit.png"
+ },
+ "system-delivery_schedules-test": {
+  "id": "system-delivery_schedules-test",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=delivery_schedules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-delivery_schedules-test.png"
+ },
+ "system-print_routing_rules-edit": {
+  "id": "system-print_routing_rules-edit",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=print_routing_rules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-print_routing_rules-edit.png"
+ },
+ "system-print_routing_rules-test": {
+  "id": "system-print_routing_rules-test",
+  "kind": "flow",
+  "path": "/configuration?tab=system&section=print_routing_rules",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "system-print_routing_rules-test.png"
+ },
+ "tab-ai-provider": {
+  "id": "tab-ai-provider",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai-provider.png"
+ },
+ "tab-ai-vendor-policy": {
+  "id": "tab-ai-vendor-policy",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai-vendor-policy.png"
+ },
+ "tab-ai-orchestrator": {
+  "id": "tab-ai-orchestrator",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai-orchestrator.png"
+ },
+ "tab-ai-models": {
+  "id": "tab-ai-models",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai-models.png"
+ },
+ "tab-ai-model-settings": {
+  "id": "tab-ai-model-settings",
+  "kind": "config-tab",
+  "path": "/configuration?tab=ai",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "tab-ai-model-settings.png"
+ },
+ "templates-parts-builder": {
+  "id": "templates-parts-builder",
+  "kind": "flow",
+  "path": "/configuration?tab=templates&section=parts",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-parts-builder.png"
+ },
+ "templates-routing-rule": {
+  "id": "templates-routing-rule",
+  "kind": "flow",
+  "path": "/configuration?tab=templates&section=routing",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-routing-rule.png"
+ },
+ "templates-routing-test": {
+  "id": "templates-routing-test",
+  "kind": "flow",
+  "path": "/configuration?tab=templates&section=routing",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-routing-test.png"
+ },
+ "templates-templates-editor": {
+  "id": "templates-templates-editor",
+  "kind": "flow",
+  "path": "/configuration?tab=templates&section=templates",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-templates-editor.png"
+ },
+ "templates-templates-inspector": {
+  "id": "templates-templates-inspector",
+  "kind": "flow",
+  "path": "/configuration?tab=templates&section=templates",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "templates-templates-inspector.png"
+ },
+ "validation-studies-new": {
+  "id": "validation-studies-new",
+  "kind": "flow",
+  "path": "/configuration?tab=validation&section=studies",
+  "group": "",
+  "status": "ok",
+  "heading": "Configuration",
+  "file": "validation-studies-new.png"
+ }
+}

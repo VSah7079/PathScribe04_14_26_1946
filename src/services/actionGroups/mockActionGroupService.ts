@@ -2,6 +2,8 @@
 import { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { ActionGroup, IActionGroupService } from './IActionGroupService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
+import { dataStorage } from '../browserData/dataStorage';
 
 const STORAGE_KEY = 'action_groups';
 
@@ -9,11 +11,11 @@ const STORAGE_KEY = 'action_groups';
 // convention, built in from day one.
 const ACTION_GROUP_VERSION = '1';
 const VERSION_KEY = 'pathscribe_mock_action_groups_version';
-if (typeof localStorage !== 'undefined') {
+if (typeof dataStorage !== 'undefined') {
   try {
-    if (localStorage.getItem(VERSION_KEY) !== ACTION_GROUP_VERSION) {
-      localStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
-      localStorage.setItem(VERSION_KEY, ACTION_GROUP_VERSION);
+    if (dataStorage.getItem(VERSION_KEY) !== ACTION_GROUP_VERSION) {
+      dataStorage.removeItem('pathscribe_mock_' + STORAGE_KEY);
+      dataStorage.setItem(VERSION_KEY, ACTION_GROUP_VERSION);
     }
   } catch { /* SSR / sandboxed env — ignore */ }
 }
@@ -28,7 +30,7 @@ const SEED_ACTION_GROUPS: ActionGroup[] = [];
 const load    = (): ActionGroup[] => storageGet<ActionGroup[]>(STORAGE_KEY, SEED_ACTION_GROUPS);
 const persist = (data: ActionGroup[]) => storageSet(STORAGE_KEY, data);
 
-export const mockActionGroupService: IActionGroupService = {
+const actionGroupServiceUnchecked: IActionGroupService = {
   async getAll(): Promise<ServiceResult<ActionGroup[]>> {
     return { ok: true, data: load() };
   },
@@ -58,10 +60,15 @@ export const mockActionGroupService: IActionGroupService = {
   },
 
   async deactivate(id: ID): Promise<ServiceResult<ActionGroup>> {
-    return mockActionGroupService.update(id, { status: 'Inactive' });
+    return actionGroupServiceUnchecked.update(id, { status: 'Inactive' });
   },
 
   async reactivate(id: ID): Promise<ServiceResult<ActionGroup>> {
-    return mockActionGroupService.update(id, { status: 'Active' });
+    return actionGroupServiceUnchecked.update(id, { status: 'Active' });
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockActionGroupService: IActionGroupService = guardConfigWrites(actionGroupServiceUnchecked, [
+  ['config:action-groups:manage', ['create', 'update', 'deactivate', 'reactivate']],
+]);

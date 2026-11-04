@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { useVoice } from '../../contexts/VoiceProvider';
 
-const IS_DEV = (import.meta as any).env?.DEV ?? false;
+const IS_DEV = import.meta.env.DEV ?? false;
 
 export const VoiceToggleButton: React.FC = () => {
   const { t } = useTranslation();
@@ -15,7 +15,7 @@ export const VoiceToggleButton: React.FC = () => {
   const isAi      = phase === 'ai'    || (phase === 'dictate' && commandPhase === 'ai');
   const isDictate = phase === 'dictate';
 
-  const color = isStandby  ? '#475569'
+  const color = isStandby  ? '#8794a8' // Batch 565: #475569 was 2.4:1 (a control's icon needs 3:1)
               : isDictate  ? '#22c55e'
               : isAi       ? '#0891B2'
               :               '#f59e0b';  // local = amber
@@ -40,7 +40,7 @@ export const VoiceToggleButton: React.FC = () => {
         onMouseEnter={() => setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
       >
-        <button disabled className="vtb-btn vtb-btn--disabled">
+        <button disabled className="vtb-btn vtb-btn--disabled" aria-label={t('voiceToggleButton.disabledForDeployment')}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
             <rect x="9" y="2" width="6" height="12" rx="3"/>
@@ -70,6 +70,8 @@ export const VoiceToggleButton: React.FC = () => {
         type="button"
         onClick={toggleVoice}
         title={(!aiAvailable && IS_DEV) ? undefined : title}
+        aria-label={title}
+        aria-pressed={!isStandby}
         className={`vtb-btn${isStandby ? ' vtb-btn--standby' : ''}`}
         style={{ '--vtb-color': color } as React.CSSProperties}
       >

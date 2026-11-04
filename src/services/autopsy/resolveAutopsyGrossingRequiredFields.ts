@@ -20,7 +20,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { EditorTemplate, EditorField } from '../../components/Config/Protocols/SynopticEditor';
-import { isVisible } from '../../components/Config/Protocols/SynopticEditor';
+import { isVisible } from '../templates/fieldVisibility';
 
 /** Real, per direct guidance's own confirmed Tier 1 + Tier 2 logic.
  *  A real field is currently required if EITHER its own, real,

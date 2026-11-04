@@ -1,28 +1,27 @@
 // src/pages/WorklistPage/WorklistPage.tsx
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { useReviewQueueCounts } from '@/hooks/useReviewQueueCounts';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { caseRouter } from '@/services/cases/CaseRouter';
-import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService } from '@/services';
+import { externalResourceService, facilityService, actionRegistryService, wsiScanBatchService, aiScreeningResultService, specimenDictionaryService, flagService, caseViewTrackingService } from '@/services';
 import { resolvePerformingLabFacilityId } from '@/services/facilities/IFacilityService';
-import { getSessionUser, resolvePediatricAccess, resolveOrchestrationAccess } from '@/services/auth/caseAccessControl';
+import { getSessionUser } from '@/services/auth/caseAccessControl';
 import type { Case } from '@/types/case/Case';
 import { useNavigate, useLocation } from 'react-router';
-import { toast } from 'react-toastify';
 import { useLogout } from '@hooks/useLogout';
 import WorklistTable      from '../../components/Worklist/WorklistTable';
 import ResourcesModal     from './ResourcesModal';
+import { toQuickLinks, type ResourceQuickLink } from '@/services/externalResources/externalResourceUrl';
 import LogoutWarningModal from '@/components/Common/LogoutWarningModal';
 import { VOICE_CONTEXT } from '../../constants/systemActions';
-import { useAuditLog } from '../../components/Audit/useAuditLog';
 import { PoolClaimModal } from '../../components/Worklist/PoolClaimModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSystemConfig } from '@/contexts/SystemConfigContext';
-import { getFacilityDateParts } from '@/utils/facilityTime';
-import { isUrgentCase } from '@/utils/caseUrgency';
 import { AmendedAddendaTriageTile } from './AmendedAddendaTriageTile';
 import { PendingGrossingTriageTile } from './PendingGrossingTriageTile';
-import { flagService }    from '@/services';
-import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService } from '@/services';
+import { amendmentService, lisAmendmentNoticeService, informalReviewService, delegationService, peerReviewService, loadCytologyReviewTray, takeCytologyReview, loadFollowUpCaseIdsForUser, loadOpenSlaBreaches, type SlaBreachKind } from '@/services';
+import ConfirmModal from '@/components/Common/ConfirmModal';
 import { pendingDelegationsTo } from '@/services/delegations/delegationRules';
 import type { AmendmentType } from '@/types/reports/AmendmentRecord';
 import type { WsiScanSlide } from '@/services/digitalPathology/IWsiScanBatchService';
@@ -31,27 +30,15 @@ import { worklistViews, resolveWorklistView, type WorklistView } from '@/service
 import { useCapabilities } from '@/hooks/useCapabilities';
 import CytologyQcQueuePage from '../CytologyQcQueuePage';
 import SurgicalQaWorklistPage from '../SurgicalQaWorklistPage';
-import { resolveCaseHasSpecimenCategory } from '@/services/specimenDictionary/resolveCaseHasSpecimenCategory';
-import { resolveCaseDisciplineBranch } from '@/services/specimenDictionary/resolveCaseDisciplineBranch';
-import { caseViewTrackingService } from '@/services';
+import { computeWorklistTileCounts, filterWorklistCases, type WorklistCountDeps } from '@/services/worklist/worklistTileCounts';
+import { usePoolAssignmentTimeout } from './hooks/usePoolAssignmentTimeout';
 import { SlideDetailDrawer } from '@/components/Worklist/SlideDetailDrawer';
 import { resolveDigitalReadinessBadge, resolveDpTriageBadge } from '@/services/digitalPathology/resolveWorklistDpBadges';
 import { Flag }           from '@/services/flags/IFlagService';
+import { initialWorklistContext } from '@/services/worklist/worklistContext'; import { getSessionFlag, setSessionFlag } from '@/utils/uiPreferences'; import { ROW_COMMAND_EVENTS, resolveRowCommand } from '@/services/worklist/rowCommands';
 
-// Single source of truth for both the page title above the table and
-// every filter tile's own label — previously two separate hardcoded
-// copies (this map, plus each tile's own inline label string below)
-// that had already drifted apart in several real, confirmed places:
-// 'urgent' read "Urgent Cases" here vs. "Urgent" on the tile, 'draft'
-// read "Draft Cases" vs. "Draft", 'amended' read "Amended Cases" vs.
-// the tile's "Amendment & Addenda", 'grosscomplete' had an extra
-// "— Awaiting Microscopic" suffix, and 'countersign' wasn't in this
-// map at all — selecting that tile silently fell back to the generic
-// "Active Cases" title. One shared map makes this kind of drift
-// structurally impossible going forward, not just fixed for today.
-// Real filter-state keys ('all', 'urgent', etc.) stay untouched here —
-// they drive filtering/routing — only the displayed label is
-// resolved via i18n, at render time, through this locale-key map.
+// One map for the page title above the table and every filter tile's label, so the two cannot drift apart.
+// Filter-state keys ('all', 'urgent', ...) drive filtering and routing; only the displayed label is resolved through i18n.
 const FILTER_LABEL_KEY: Record<string, string> = {
   all:           'worklistPage.filterLabel.all',
   urgent:        'worklistPage.filterLabel.urgent',
@@ -67,6 +54,7 @@ const FILTER_LABEL_KEY: Record<string, string> = {
   // shortened the one long word, not dropped either type.
   delegated:     'worklistPage.filterLabel.delegated',
   countersign:   'worklistPage.filterLabel.countersign',
+  collaborating: 'worklistPage.filterLabel.collaborating',
   // Real feature, per direct specification: Post-Sign-Out Release
   // Buffer. Same real "queue that's specifically mine" pattern as
   // countersign above — where a pathologist finds a case they might
@@ -85,6 +73,9 @@ const FILTER_LABEL_KEY: Record<string, string> = {
   finalizing:    'worklistPage.filterLabel.finalizing',
   amended:       'worklistPage.filterLabel.amended',
   informalreview: 'worklistPage.filterLabel.informalreview',
+  peerreview:    'worklistPage.filterLabel.peerreview',
+  followup:      'worklistPage.filterLabel.followup',
+  cytologyreview: 'worklistPage.filterLabel.cytologyreview',
   completed:     'worklistPage.filterLabel.completed',
   physician:     'worklistPage.filterLabel.physician',
   accessioned:   'worklistPage.filterLabel.accessioned',
@@ -111,35 +102,14 @@ const WorklistPage: React.FC = () => {
   const handleLogout = useLogout();
   const { user } = useAuth();
   const { config } = useSystemConfig();
-  const { log: _log }  = useAuditLog();
-  // _log unused — useAuditLog() is wired up but nothing in this file
-  // actually calls it. Flagged rather than removed, since audit logging
-  // is a deliberate, consistent pattern everywhere else in this app —
-  // this looks like a real gap (no worklist action, filter change, or
-  // case-open event gets logged here), not something intentionally
-  // left out.
+  // Batch 659: no audit hook here; a claim is audited by poolCaseActions and a case open by the report page.
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
   const location  = useLocation();
 
-  // Real, per direct investigation: synopticLoader.ts and FullReportPage.tsx
-  // both now redirect here with these two params when a direct case-URL
-  // navigation is blocked by a real pediatric/orchestration restriction —
-  // see caseAccessControl.ts's resolvePediatricAccess/
-  // resolveOrchestrationAccess for the enforcement itself. This just
-  // surfaces why the user landed back on the Worklist instead of the
-  // case they tried to open, then cleans the URL so a refresh doesn't
-  // re-show the same toast.
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const denied = params.get('accessDenied');
-    if (!denied) return;
-    if (denied === 'pediatric') {
-      toast.error(t('worklistPage.toast.pediatricRestricted'));
-    } else if (denied === 'orchestration') {
-      toast.error(t('worklistPage.toast.orchestrationRestricted'));
-    }
-    navigate('/worklist', { replace: true });
-  }, [location.search, navigate, t]);
+  // Batch 396: synopticLoader.ts and FullReportPage.tsx no longer redirect
+  // here with the restriction in the address; a case the reader can't open shows the neutral
+  // "no access" screen instead (components/CaseUnavailable).
 
   // Batch 375 (Pete): the Cytology QC Peer Review Queue and Surgical
   // Post-Sign-Out QA live here as views beside the case list, shown to whoever
@@ -152,36 +122,40 @@ const WorklistPage: React.FC = () => {
   const view: WorklistView | null = capabilities.loading
     ? null
     : resolveWorklistView(viewChoice ?? new URLSearchParams(location.search).get('view'), allowedViews);
+  const queueCounts = useReviewQueueCounts(
+    { cytologyQc: allowedViews.includes('cytologyQc'), surgicalQa: allowedViews.includes('surgicalQa') },
+    view,
+  );
 
   // contextFilter: which data source (LIS or Outreach) — the "home" context
-  // Sticky for the session — restored from sessionStorage on mount
+  // Sticky for the session — restored from the session flags on mount
   const [contextFilter, setContextFilter] = useState<'lis' | 'outreach'>(
-    () => (sessionStorage.getItem('ps_worklist_context') as 'lis' | 'outreach') ?? 'lis'
+    () => initialWorklistContext(location.search, getSessionFlag('ps_worklist_context')) // Batch 703: ?context= wins
   );
   // Persist whenever it changes
   React.useEffect(() => {
-    sessionStorage.setItem('ps_worklist_context', contextFilter);
+    setSessionFlag('ps_worklist_context', contextFilter);
   }, [contextFilter]);
 
   // Real, per direct follow-up ("Surg Path, Cytology and Autopsy...
   // almost belong together" — three real, established discipline
   // branches this app's own work already files under). Same real
-  // sessionStorage persistence pattern as contextFilter right above.
+  // per-session persistence as contextFilter right above.
   // 'all' is the real, unchanged default — "the worklist automatically
   // opens and had everything" stays true; branch narrowing is
   // something a real user opts into, not the default.
   const [branchFilter, setBranchFilter] = useState<'all' | 'surgpath' | 'cytology' | 'autopsy'>(
-    () => (sessionStorage.getItem('ps_worklist_branch') as any) ?? 'all'
+    () => (getSessionFlag('ps_worklist_branch') as 'all' | 'surgpath' | 'cytology' | 'autopsy' | null) ?? 'all'
   );
   React.useEffect(() => {
-    sessionStorage.setItem('ps_worklist_branch', branchFilter);
+    setSessionFlag('ps_worklist_branch', branchFilter);
   }, [branchFilter]);
 
   // activeFilter:  which sub-filter within that context
-  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases'>('all');
+  const [activeFilter, setActiveFilter]       = useState<'all' | 'completed' | 'urgent' | 'physician' | 'pool' | 'delegated' | 'inprogress' | 'amended' | 'draft' | 'finalizing' | 'accessioned' | 'grosscomplete' | 'countersign' | 'pendingrelease' | 'needsrevision' | 'informalreview' | 'peerreview' | 'cytologyreview' | 'onhold' | 'dp' | 'gyncyto' | 'nongyncyto' | 'autopsy' | 'newcases' | 'followup' | 'collaborating'>('all');
   const [realCases, setRealCases]             = useState<Case[]>([]);
+  usePoolAssignmentTimeout(realCases, setRealCases);
 
-  // Note: orchestrator mode flag read via localStorage when needed at case open
   const [delegatedToMeCount, setDelegatedToMeCount] = useState(0);
   const [delegatedCaseIds, setDelegatedCaseIds]     = useState<string[]>([]);
   // Amendment & Addenda — live open drafts + pending LIS notices, not a
@@ -225,6 +199,19 @@ const WorklistPage: React.FC = () => {
   // above (which tracks amendment/addendum/correction work, not
   // informal peer-review asks).
   const [informalReviewCaseIds, setInformalReviewCaseIds] = useState<Set<string>>(new Set());
+  // Batch 439 (PS-144): cases with a peer review waiting on this pathologist
+  // (their independent read, or a consensus they are part of).
+  const [peerReviewCaseIds, setPeerReviewCaseIds] = useState<Set<string>>(new Set());
+  // Batch 454: my signed-out cases with a follow-up due soon or overdue.
+  const [followUpCaseIds, setFollowUpCaseIds] = useState<Set<string>>(new Set());
+  // Batch 610 (#164): open cases past a client SLA target right now (set in Configuration → System → Client SLA).
+  const [slaBreaches, setSlaBreaches] = useState<ReadonlyMap<string, SlaBreachKind>>(new Map());
+  // Batch 440: positive GYN cytology waiting for a pathologist — the open
+  // ones anyone may take, plus the viewer's own (loadCytologyReviewTray).
+  // Kept apart from realCases so open cases don't join the viewer's All list.
+  const [cytologyReviewCases, setCytologyReviewCases] = useState<Case[]>([]);
+  const [cytologyReviewState, setCytologyReviewState] = useState<Map<string, 'open' | 'mine'>>(new Map());
+  const [cytologyTake, setCytologyTake] = useState<{ caseId: string; error?: string } | null>(null);
   const [physicianFilter, setPhysicianFilter] = useState<string>('');
   const [physicianPrompt, setPhysicianPrompt] = useState<string | null>(null);
   const [isResourcesOpen, setIsResourcesOpen] = useState(false);
@@ -232,23 +219,14 @@ const WorklistPage: React.FC = () => {
   const CURRENT_USER_ID   = user?.id   ?? 'PATH-001';
   const CURRENT_USER_NAME = user?.name ?? 'Dr. Sarah Johnson';
 
-  // Measure available height for the table container.
-  // We get the wrapper's top offset from the viewport and subtract from var(--app-height, 100vh).
-  // This is immune to any parent overflow/flex chain issues.
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const [tableHeight, setTableHeight] = useState<number>(400);
-  useEffect(() => {
-    const measure = () => {
-      if (!wrapperRef.current) return;
-      const top = wrapperRef.current.getBoundingClientRect().top;
-      const available = window.innerHeight - top - 16; // 16px bottom breathing room
-      setTableHeight(Math.max(200, available));
-    };
-    // Small delay so the tiles/header have rendered and settled
-    const t = setTimeout(measure, 50);
-    window.addEventListener('resize', measure);
-    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
-  }, []);
+  // Height for the table container: from its top edge to the bottom of the window.
+  // Batch 395: re-measured whenever the window or anything above the table
+  // changes size, so the table always reaches the bottom of the window.
+  // Batch 416 (Pete: "too much dead space in the worklist"): the table fills
+  // the space left below the tiles with CSS (.ps-table-scroll-wrap--fill), not a
+  // measured height. This page is exactly window-height, so the measurement
+  // never heard that the tiles above had changed and stuck at its 400 px start.
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Pool claim modal state
   const [claimModal, setClaimModal] = useState<{ caseId: string; summary: string; poolName: string } | null>(null);
@@ -264,28 +242,9 @@ const WorklistPage: React.FC = () => {
     }).catch(() => {});
   }, []);
 
-  // Load cases via the unified CaseRouter (routes LIS / Orchestrator by case ID prefix)
-  // Also load client pediatric thresholds so we can filter cases the user can't access
-  const [clientThresholds, setClientThresholds] = useState<Record<string, number | null>>({});
-  const [clientAuthorized, setClientAuthorized] = useState<Record<string, string[]>>({});
-  const [thresholdsLoaded, setThresholdsLoaded] = useState(false);
-  useEffect(() => {
-    import('@/services').then(({ facilityService }) => {
-      facilityService.getAll().then(res => {
-        if (!res.ok) return;
-        const threshMap: Record<string, number | null> = {};
-        const authMap: Record<string, string[]> = {};
-        for (const c of res.data) {
-          threshMap[c.id] = (c as any).pediatricAgeThreshold ?? null;
-          authMap[c.id] = (c as any).authorizedPediatricPathologistIds ?? [];
-        }
-        setClientThresholds(threshMap);
-        setClientAuthorized(authMap);
-        setThresholdsLoaded(true);
-      }).catch(() => setThresholdsLoaded(true));
-    });
-  }, [location.key]);
-
+  // Load cases via the unified CaseRouter (routes LIS / Orchestrator by case ID prefix).
+  // Batch 452: the facility pediatric thresholds loaded here only fed the
+  // tile counts' access check, which is gone (counts match the redacted rows).
   useEffect(() => {
     // Load cases from both services via the unified router
     caseRouter.listCasesForUser(user?.id ?? 'current')
@@ -378,6 +337,56 @@ const WorklistPage: React.FC = () => {
     }).catch(() => {});
   }, [user?.id, location.key]);
 
+  useEffect(() => {
+    if (!user?.id) { setPeerReviewCaseIds(new Set()); return; }
+    peerReviewService.getOpenForUser(user.id).then(res => {
+      if (res.ok) setPeerReviewCaseIds(new Set(res.data.map(r => r.caseId)));
+    }).catch(() => {});
+  }, [user?.id, location.key]);
+
+  useEffect(() => {
+    if (!user?.id) { setFollowUpCaseIds(new Set()); return; }
+    loadFollowUpCaseIdsForUser(user.id).then(setFollowUpCaseIds).catch(() => {});
+  }, [user?.id, location.key]);
+
+  // Batch 610 (#164): a client SLA breach on an open case, shown as a badge on its row.
+  useEffect(() => {
+    let cancelled = false;
+    loadOpenSlaBreaches(realCases).then(m => { if (!cancelled) setSlaBreaches(m); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [realCases]);
+
+  const canTakeCytologyReview = capabilities.has('cytology:pathologist-review:take');
+  const refreshCytologyReview = useCallback(() => {
+    if (!user?.id || !canTakeCytologyReview) { setCytologyReviewCases([]); setCytologyReviewState(new Map()); return; }
+    loadCytologyReviewTray(user.id).then(refs => {
+      setCytologyReviewCases(refs.map(r => r.caseData));
+      setCytologyReviewState(new Map(refs.map(r => [r.caseData.id, r.state])));
+    }).catch(() => {});
+  }, [user?.id, canTakeCytologyReview]);
+  useEffect(() => { refreshCytologyReview(); }, [refreshCytologyReview, location.key]);
+
+  // A Cytology Review case opens in the Cytology Workspace; an open one is taken first.
+  const openCytologyReviewCase = useCallback((caseId: string): boolean => {
+    const state = cytologyReviewState.get(caseId);
+    if (!state) return false;
+    if (state === 'mine') void openCasePage(caseId, 'cytology');
+    else setCytologyTake({ caseId });
+    return true;
+  }, [cytologyReviewState, openCasePage]);
+  const confirmCytologyTake = async () => {
+    if (!cytologyTake) return;
+    const res = await takeCytologyReview(cytologyTake.caseId);
+    if (res.ok === false) {
+      setCytologyTake({ caseId: cytologyTake.caseId, error: t(`worklistPage.cytologyReview.errors.${res.error}`, { defaultValue: t('worklistPage.cytologyReview.errors.generic') }) });
+      refreshCytologyReview();
+      return;
+    }
+    const caseId = cytologyTake.caseId;
+    setCytologyTake(null);
+    void openCasePage(caseId, 'cytology');
+  };
+
   // Real fix, per direct follow-up: "A case could be sitting in the
   // queue for an informal review." Confirmed directly: delegatedCaseIds
   // / amendmentAddendaCaseIds / informalReviewCaseIds were only ever
@@ -398,6 +407,8 @@ const WorklistPage: React.FC = () => {
       ...delegatedCaseIds,
       ...amendmentAddendaCaseIds.keys(),
       ...informalReviewCaseIds,
+      ...peerReviewCaseIds,
+      ...followUpCaseIds,
     ]);
     const existingIds = new Set(realCases.map(c => c.id));
     const missingIds = [...referencedIds].filter(id => id && !existingIds.has(id));
@@ -413,50 +424,11 @@ const WorklistPage: React.FC = () => {
         });
       })
       .catch(() => {});
-  }, [delegatedCaseIds, amendmentAddendaCaseIds, informalReviewCaseIds, realCases, user?.id]);
+  }, [delegatedCaseIds, amendmentAddendaCaseIds, informalReviewCaseIds, peerReviewCaseIds, followUpCaseIds, realCases, user?.id]);
 
-  // Auto-clear the "Access requested" badge for any case that is no longer restricted
-  useEffect(() => {
-    if (!thresholdsLoaded || realCases.length === 0) return;
-    try {
-      const stored = localStorage.getItem('pathscribe_ped_requested');
-      if (!stored) return;
-      const requested: string[] = JSON.parse(stored);
-      const stillRestricted = requested.filter(caseId => {
-        const c = realCases.find((rc: any) => rc.id === caseId);
-        if (!c) return false; // case gone — clear it
-        return !canViewCase(c); // keep only if still restricted
-      });
-      if (stillRestricted.length !== requested.length) {
-        localStorage.setItem('pathscribe_ped_requested', JSON.stringify(stillRestricted));
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Real, honest justification: canViewCase is genuinely called inside this effect, but its definition (a plain function, not memoized) sits later in this file - adding it here is a real TypeScript TS2448 compile error (block-scoped variable used before its declaration), same real constraint as SynopticReportPage.tsx's openAmendmentDraft case. The safe fix is moving canViewCase's definition earlier, but that's a real reordering operation deserving its own careful pass, not bundled into this lint sweep.
-  }, [thresholdsLoaded, realCases]);
-
-  // Mirrors the pediatric auto-clear effect above, for the separate
-  // Orchestration request key (pathscribe_orch_requested — see
-  // WorklistTable.tsx). Kept as its own effect rather than merged into one
-  // generic "restricted requests" effect for the same reason the two
-  // localStorage keys were kept separate: different grant path, no shared
-  // data shape worth unifying yet.
-  useEffect(() => {
-    if (!thresholdsLoaded || realCases.length === 0) return;
-    try {
-      const stored = localStorage.getItem('pathscribe_orch_requested');
-      if (!stored) return;
-      const requested: string[] = JSON.parse(stored);
-      const stillRestricted = requested.filter(caseId => {
-        const c = realCases.find((rc: any) => rc.id === caseId);
-        if (!c) return false; // case gone — clear it
-        return !canViewCase(c); // keep only if still restricted
-      });
-      if (stillRestricted.length !== requested.length) {
-        localStorage.setItem('pathscribe_orch_requested', JSON.stringify(stillRestricted));
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- Same real TDZ justification as the pediatric auto-clear effect above.
-  }, [thresholdsLoaded, realCases]);
+  // Batch 431: the "access requested" badges come from the person's own
+  // pending access requests (WorklistTable.tsx), so the browser markers this
+  // page used to tidy up are gone.
 
   // Quick Links Data — real admin-managed resources, resolved for this
   // viewer's own organisation (Config -> System -> External Resources).
@@ -475,7 +447,7 @@ const WorklistPage: React.FC = () => {
   // applied across every visible case instead of one. A viewer whose
   // worklist spans several performing labs' pools sees each of those
   // labs' own resources, not just the first one or none at all.
-  const [quickLinks, setQuickLinks] = useState<{ protocols: { title: string; url: string }[]; references: { title: string; url: string }[]; systems: { title: string; url: string }[] }>({ protocols: [], references: [], systems: [] });
+  const [quickLinks, setQuickLinks] = useState<Record<'protocols' | 'references' | 'systems', ResourceQuickLink[]>>({ protocols: [], references: [], systems: [] });
 
   useEffect(() => {
     const session = getSessionUser();
@@ -497,11 +469,7 @@ const WorklistPage: React.FC = () => {
         organisationId: session.organisationId!,
         performingLabFacilityIds: Array.from(labIds),
       }).then(resolved => {
-        setQuickLinks({
-          protocols: resolved.protocols.map(r => ({ title: r.title, url: r.url })),
-          references: resolved.references.map(r => ({ title: r.title, url: r.url })),
-          systems: resolved.systems.map(r => ({ title: r.title, url: r.url })),
-        });
+        setQuickLinks(toQuickLinks(resolved));
       });
     }).catch(() => {});
   }, [realCases]);
@@ -537,355 +505,43 @@ const WorklistPage: React.FC = () => {
   }, [displayOrder]); // fires once displayOrder arrives from the table
 
 
-  // Returns true if the current user is allowed to see this case. Real,
-  // per direct investigation: delegates to caseAccessControl.ts's
-  // resolvePediatricAccess/resolveOrchestrationAccess — the same real
-  // functions synopticLoader.ts and FullReportPage.tsx now enforce
-  // against — rather than its own, separate implementation. This used
-  // to independently re-implement the same Option C pediatric gate with
-  // OR instead of the documented AND (Facility.
-  // authorizedPediatricPathologistIds's own doc comment, IFacilityService.ts:
-  // "Both this AND canViewPediatric... must be true") — exactly the kind
-  // of drift a single, shared source of truth prevents.
-  const canViewCase = React.useCallback((c: any): boolean => {
-    if (!thresholdsLoaded) return false;
-
-    if (!resolveOrchestrationAccess(user as any, c).granted) return false;
-
-    const facilityId = c?.order?.facilityId;
-    const facility = facilityId ? {
-      id: facilityId,
-      pediatricAgeThreshold: clientThresholds[facilityId] ?? null,
-      authorizedPediatricPathologistIds: clientAuthorized[facilityId] ?? [],
-    } : null;
-    return resolvePediatricAccess(user as any, c, facility).granted;
-  }, [thresholdsLoaded, user, clientThresholds, clientAuthorized]);
-
-  // Split by reporting mode
-  const lisCases  = React.useMemo(() => realCases.filter(c => (c as any).reportingMode !== 'orchestrator'), [realCases]);
-  const orchCases = React.useMemo(() => realCases.filter(c => (c as any).reportingMode === 'orchestrator'),  [realCases]);
-
-  // filteredCases (below) handles the LIS/Outreach split explicitly —
-  // a prior displayCases = realCases variable was fully superseded by
-  // it and has been removed.
-
-  // Outreach sub-counts (always from orchCases regardless of active filter)
-  const orchAssignedCount = React.useMemo(() => orchCases.filter(c => c.status !== 'pool').length,                                    [orchCases]);
-  const orchUrgentCount   = React.useMemo(() => orchCases.filter(c => isUrgentCase(c) && c.status !== 'pool').length, [orchCases]);
-  const orchPoolCount     = React.useMemo(() => orchCases.filter(c => c.status === 'pool').length,                                    [orchCases]);
-  const hasUrgentPool     = React.useMemo(() => orchCases.some(c => c.status === 'pool' && isUrgentCase(c)),             [orchCases]);
-  // Real fix (PS-305) — same real mismatch as lisTotalCount below,
-  // Outreach side: the Outreach tile is meant to answer "how many
-  // cases are in the Outreach queue, period," same question "All
-  // Cases" answers while contextFilter === 'outreach'.
-  const orchTotalCount    = orchAssignedCount + orchPoolCount;
-
-  // Source cases — driven by contextFilter (which worklist is "home")
-  const sourceCases = contextFilter === 'outreach' ? orchCases : lisCases;
-
-  // Real fix (PS-307 — "Worklist filter counts are incorrect"):
-  // confirmed live — filteredCases (below) applies the branch check
-  // (Surg Path/Cytology/Autopsy) UNCONDITIONALLY, before any status
-  // filter, so picking e.g. Surg Path and then clicking the Urgent
-  // tile only ever showed Surg Path's urgent cases. But every status
-  // tile's own count (Urgent, Pool, Countersign, Needs Revision,
-  // etc.) was computed straight from sourceCases/statsCases — the
-  // real, full, branch-UNfiltered population — so the tile could read
-  // "7" while clicking it showed 4 rows, with zero indication the
-  // other 3 belonged to a different branch. Branch-scoping this one
-  // shared array (rather than each individual count) fixes every
-  // status tile in the row at once, the same way sourceCases itself
-  // already does for contextFilter. Deliberately NOT applied to
-  // stats.allBranches/surgpathBranch/cytologyBranch/autopsy (the
-  // branch TAB counts themselves, further below) — those must keep
-  // counting every branch, unfiltered, or all four tabs would
-  // collapse to the same number the moment one was selected.
-  const branchFilteredSourceCases = React.useMemo(
-    () => branchFilter === 'all'
-      ? sourceCases
-      : sourceCases.filter(c => resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === branchFilter),
-    [sourceCases, branchFilter, specimenDictionary],
-  );
-
-  // Real count for the countersign filter tab — derived from already-
-  // loaded case data, same as the filter branch itself; no separate
-  // fetch needed.
-  const countersignPendingCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'pending-countersign'
-      && c?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'))
-    ).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // Real feature, per direct specification: Post-Sign-Out Release
-  // Buffer. Scoped to the current user's own signed cases
-  // (caseData.finalizedBy — the real signer, per the Phase 4 fix that
-  // gates the actual Recall action the same way), same reasoning as
-  // countersignPendingCount immediately above: a system-wide count of
-  // every pending-release case wouldn't be actionable for this
-  // specific viewer, since only the real signer can recall one.
-  const pendingReleaseCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'pending-release' && c.finalizedBy === user?.id).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // Real, per direct guidance ("Yes we should scope 'Return to
-  // Trainee'/'Reject with Notes'... one unified tile instead of
-  // two"): deliberately counts BOTH real sides of the same real
-  // event — cases returned TO this user (they're the resident,
-  // order.assignedTo now points back to them via
-  // syncPrimaryAssignee()) OR returned BY this user (they're the
-  // attending who sent it back, still awaiting the resident's
-  // revision). A given viewer is usually only ever on one side for
-  // any real case, but the same real filter/tile correctly serves
-  // both.
-  const needsRevisionCount = useMemo(
-    () => branchFilteredSourceCases.filter((c: any) => c.status === 'returned'
-      && (c.order?.assignedTo === user?.id || c.returnedBy === user?.id)
-    ).length,
-    [branchFilteredSourceCases, user?.id]
-  );
-
-  // filteredCases — applies sub-filter within the current context
-  // thresholdsLoaded + clientThresholds must be deps since canViewCase gates on them.
-  const filteredCases = React.useMemo(() => {
-    return sourceCases.filter(c => {
-      // Real, per direct follow-up ("Surg Path, Cytology and
-      // Autopsy... almost belong together") — an independent, real
-      // constraint that combines with (never replaces) the status
-      // filter below: a real case must match both the selected
-      // branch AND the selected status to appear at all.
-      if (branchFilter !== 'all' && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) !== branchFilter) {
-        return false;
-      }
-      // Deliberately NOT excluding restricted cases here (canViewCase used to
-      // gate this, fully hiding them) — a case the user can't view still
-      // needs to appear, redacted, in WorklistTable so they can actually see
-      // it exists and use the request-access flow. A fully-excluded case can
-      // never be requested. WorklistTable's isRestricted/restrictionKind
-      // already handle redaction for both pediatric and Orchestration; this
-      // list just needs to let them through.
-      if (activeFilter === 'pool')       return c.status === 'pool';
-      if (activeFilter === 'all')        return true;
-      // Real, per direct follow-up recalling a real, prior
-      // requirement ("I do not want to send the Pathologist to
-      // multiple worklist") — deliberately placed BEFORE the pool
-      // catch-all line right below, so a real pool case that
-      // qualifies isn't silently excluded before ever reaching this
-      // check. "Their assigned cases and pool cases... related to
-      // those" means both real statuses genuinely qualify here.
-      if (activeFilter === 'gyncyto')    return resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'GYN_CYTOLOGY');
-      if (activeFilter === 'nongyncyto') return resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'NON_GYN_CYTOLOGY');
-      if (activeFilter === 'autopsy')    return !!(c as any).autopsy;
-      // Real, per direct follow-up recalling the messaging system's
-      // own unread pattern — same real "before the pool catch-all"
-      // placement as the specialty filters above, so a real new pool
-      // case genuinely counts.
-      if (activeFilter === 'newcases')   return !viewedCaseIds.has(c.id);
-      if (c.status === 'pool')           return activeFilter === 'urgent' && isUrgentCase(c);
-      if (activeFilter === 'urgent')     return isUrgentCase(c);
-      if (activeFilter === 'draft')      return c.status === 'draft';
-      if (activeFilter === 'inprogress') return c.status === 'in-progress';
-      if (activeFilter === 'amended')    return amendmentAddendaCaseIds.has(c.id);
-      if (activeFilter === 'informalreview') return informalReviewCaseIds.has(c.id);
-      if (activeFilter === 'accessioned')   return c.status === 'accessioned';
-      if (activeFilter === 'grosscomplete') return c.status === 'gross-complete';
-      if (activeFilter === 'onhold')        return (c.caseHolds ?? []).some(h => h.active);
-      // Real, per direct follow-up ("I want a DP Tile to filter away
-      // non DP cases") — a real case counts as DP-relevant when it
-      // has real digital slide data, a real AI screening result, or
-      // both; never a fabricated distinction between the two.
-      if (activeFilter === 'dp')            return wsiSlidesByCaseId.has(c.id) || dpResultByCaseId.has(c.id);
-      if (activeFilter === 'physician')  return (c.order?.requestingProvider ?? '').toLowerCase().includes(physicianFilter.toLowerCase());
-      // Real fix: this branch previously only checked c.status ===
-      // 'finalized' with no real "today" restriction at all, despite
-      // this filter's own title being "Completed Today" - the visible
-      // table happened to look correct anyway, since WorklistTable's
-      // own, separate filteredCases memo re-filters this same list a
-      // second time with the real, correct facility-timezone "today"
-      // check. But THIS filteredCases (not WorklistTable's) is also
-      // used directly below for voice navigation (next/previous/first/
-      // last case) and the worklistCaseIds passed to the report page -
-      // both of which were silently operating over every finalized
-      // case ever, not just today's, whenever this filter was active.
-      // Matches the same real logic as stats.completedToday above.
-      if (activeFilter === 'completed') {
-        if (c.status !== 'finalized' || !c.updatedAt) return false;
-        const updateParts = getFacilityDateParts(c.updatedAt, config.facilityTimezone);
-        const todayParts = getFacilityDateParts(new Date(), config.facilityTimezone);
-        return updateParts.year === todayParts.year &&
-               updateParts.month === todayParts.month &&
-               updateParts.day === todayParts.day;
-      }
-      // Real fix found while adding the countersign filter below: this
-      // branch was missing entirely — the "Delegated to Me" tab showed a
-      // real count badge (delegatedToMeCount, delegatedCaseIds both
-      // genuinely fetched above) but selecting it fell through to
-      // `return true` and showed every case, not just delegated ones.
-      if (activeFilter === 'delegated')  return delegatedCaseIds.includes(c.id);
-      // Cases genuinely awaiting THIS user's countersign — real case
-      // data already has everything needed (status + participants[]),
-      // no separate countersignService fetch required for this filter.
-      if (activeFilter === 'countersign') return c.status === 'pending-countersign'
-        && (c as any)?.participants?.some((p: any) => p.status === 'active' && p.staffId === user?.id && p.participationTypeIds?.includes('attending'));
-      // Real feature, per direct specification: Post-Sign-Out Release
-      // Buffer. Same real scoping reasoning as pendingReleaseCount's
-      // own comment above.
-      if (activeFilter === 'pendingrelease') return c.status === 'pending-release' && (c as any).finalizedBy === user?.id;
-      // Real, per direct guidance: same real dual-sided scoping as
-      // needsRevisionCount above.
-      if (activeFilter === 'needsrevision') return c.status === 'returned'
-        && ((c as any).order?.assignedTo === user?.id || (c as any).returnedBy === user?.id);
-      return true;
-    });
-  }, [sourceCases, activeFilter, physicianFilter, amendmentAddendaCaseIds, informalReviewCaseIds, delegatedCaseIds, user?.id, config.facilityTimezone, branchFilter, specimenDictionary, wsiSlidesByCaseId, dpResultByCaseId, viewedCaseIds]);
-
-  // Stats — always from sourceCases so tile counts match the current context.
-  // Real fix (PS-307): branch-scoped, same real reasoning and same
-  // shared array as branchFilteredSourceCases above — every status
-  // tile (Pool, Urgent, New Cases, etc.) reads from this so its count
-  // matches what selecting it actually shows once a Surg Path/
-  // Cytology/Autopsy branch is also selected. The three branch TAB
-  // counts (surgpathBranch/cytologyBranch/allBranches, and the
-  // Autopsy tab's own `autopsy` field) below deliberately use
-  // statsCasesAllBranches instead, unfiltered — they're what a real
-  // Surg Path/Cytology/Autopsy/All Cases choice would each total, so
-  // filtering them by whichever branch happens to be selected right
-  // now would collapse all four tabs to the same number.
-  const statsCasesAllBranches = sourceCases;
-  const statsCases   = branchFilteredSourceCases;
-  // Real, per direct follow-up recalling the messaging system's own
-  // "unread + urgent → red" pattern (AppShell.tsx's own ps-unread-urgent).
-  const hasUrgentNewCase = React.useMemo(
-    () => statsCases.some(c => canViewCase(c) && !viewedCaseIds.has(c.id) && isUrgentCase(c)),
-    [statsCases, viewedCaseIds],
-  );
-  const nonPoolStats = React.useMemo(() => statsCases.filter(c => c.status !== 'pool' && canViewCase(c)),
-    [statsCases, canViewCase]);
-  // Urgent cases sitting in the pool — previously invisible in the
-  // Urgent tile's own count entirely (stats.urgent below deliberately
-  // excludes pool cases, same as every other tile). A real, confirmed
-  // gap: the tile could read "4" with 2 more urgent cases waiting,
-  // unassigned, with zero indication they existed. Same statsCases
-  // source as the main urgent count, just the pool half of it.
-  //
-  // Real fix, per direct follow-up: this was previously named
-  // urgentRestrictedCount and displayed as "X Restricted" — genuinely
-  // misleading, since this app has a real, separate "Restricted
-  // Patient" concept (pediatric access gating) that this has nothing
-  // to do with. Renamed to say what it actually counts.
-  const urgentPoolCount = React.useMemo(
-    () => statsCases.filter(c => c.status === 'pool' && canViewCase(c) && isUrgentCase(c)).length,
-    [statsCases, canViewCase]);
-
-  // LIS counts — always fixed, never switch with context
-  const lisNonPool      = React.useMemo(() => lisCases.filter(c => c.status !== 'pool' && canViewCase(c)),
-    [lisCases, canViewCase]);
-  const lisNonPoolCount = lisNonPool.length;
-  const lisUrgentCount  = React.useMemo(() => lisNonPool.filter(c => isUrgentCase(c)).length, [lisNonPool]);
-  const lisPoolCount    = React.useMemo(() => lisCases.filter(c => c.status === 'pool').length, [lisCases]);
-  // Real fix (PS-305 — "Selecting 'LIS' filter should make LIS Cases
-  // count match total case count"): confirmed live — with the LIS
-  // filter active and the "All Cases" branch tab selected, the LIS
-  // Cases tile showed lisNonPoolCount (pool cases excluded) while the
-  // "All Cases" tab right next to it showed stats.allBranches, which
-  // is computed from the exact same sourceCases but WITHOUT excluding
-  // pool status — so the two adjacent numbers genuinely disagreed by
-  // however many cases sat in the LIS pool. Same real mismatch on the
-  // Outreach side (orchAssignedCount vs. stats.allBranches while
-  // contextFilter === 'outreach'). The LIS/Outreach tiles are meant to
-  // answer "how many cases are in this queue, period" — same question
-  // "All Cases" answers — so the tile itself was the wrong number, not
-  // the branch tab; fixed by having the tile add its own pool count
-  // back in rather than changing what "All Cases" counts (which also
-  // feeds the Surg Path/Cytology/Autopsy branch tabs and must keep
-  // including pool cases for THOSE to stay correct, per PS-306/307).
-  const lisTotalCount   = lisNonPoolCount + lisPoolCount;
-  const hasUrgentLisPool = React.useMemo(() => lisCases.some(c => c.status === 'pool' && isUrgentCase(c)), [lisCases]);
-  const stats = {
-    total:          nonPoolStats.length,
-    pool:           statsCases.filter(c => c.status === 'pool').length,
-    outreach:       orchCases.length,
-    urgent:         nonPoolStats.filter(c => isUrgentCase(c)).length,
-    inProgress:     nonPoolStats.filter(c => c.status === 'in-progress').length,
-    amended:        nonPoolStats.filter(c => amendmentAddendaCaseIds.has(c.id)).length,
-    informalReview: nonPoolStats.filter(c => informalReviewCaseIds.has(c.id)).length,
-    draft:          nonPoolStats.filter(c => c.status === 'draft').length,
-    finalizing:     nonPoolStats.filter(c => c.status === 'finalizing').length,
-    accessioned:    nonPoolStats.filter(c => c.status === 'accessioned').length,
-    grossComplete:  nonPoolStats.filter(c => c.status === 'gross-complete').length,
-    // Real feature, per direct follow-up: "add a tile in their
-    // worklist for Cases on Hold." Reads Case.caseHolds directly —
-    // the same real data every case already carries, no separate
-    // service query needed (unlike informalReviewCaseIds below, which
-    // does need one).
-    onHold:         nonPoolStats.filter(c => (c.caseHolds ?? []).some(h => h.active)).length,
-    // Real, per direct follow-up ("I want a DP Tile to filter away
-    // non DP cases") — same real dp-relevant test as the filter
-    // condition above, never a second, separate definition of
-    // "DP-relevant" that could drift from it.
-    dpRelevant:     nonPoolStats.filter(c => wsiSlidesByCaseId.has(c.id) || dpResultByCaseId.has(c.id)).length,
-    // Real, per direct follow-up recalling a real, prior requirement
-    // ("I do not want to send the Pathologist to multiple worklist")
-    // — deliberately computed from statsCases (the real, full,
-    // access-controlled set BEFORE pool exclusion), not nonPoolStats,
-    // since "their assigned cases and pool cases... related to
-    // those" means a real pool case genuinely counts here too —
-    // matching the same real base set the filter condition above
-    // uses, never a second, separate count that could drift from it.
-    gynCytology:    statsCases.filter(c => canViewCase(c) && resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'GYN_CYTOLOGY')).length,
-    nonGynCytology: statsCases.filter(c => canViewCase(c) && resolveCaseHasSpecimenCategory(c.specimens, specimenDictionary, 'NON_GYN_CYTOLOGY')).length,
-    // Real fix (PS-307): this `autopsy` field doubles as the Autopsy
-    // BRANCH TAB's own count (rendered next to All Cases/Surg Path/
-    // Cytology below), not a status-row tile, so — unlike every other
-    // field in this object — it deliberately reads from
-    // statsCasesAllBranches (branch-unfiltered), same real reasoning
-    // as cytologyBranch/surgpathBranch/allBranches just below.
-    autopsy:        statsCasesAllBranches.filter(c => canViewCase(c) && !!(c as any).autopsy).length,
-    // Real, per direct follow-up recalling the messaging system's
-    // own unread pattern — a real case counts as "new" when this
-    // real user has never opened it, computed from statsCases (the
-    // real, full, access-controlled set) so a real new pool case
-    // counts too, same real posture as the specialty tiles above.
-    newCases:       statsCases.filter(c => canViewCase(c) && !viewedCaseIds.has(c.id)).length,
-    // Real, per direct follow-up ("Surg Path, Cytology and
-    // Autopsy... almost belong together") — the real branch tab
-    // counts, computed the exact same way the branch filter itself
-    // classifies a case, never a second, separate definition. Real
-    // fix (PS-307): branch-UNfiltered (statsCasesAllBranches) is
-    // correct and unchanged here — these ARE the per-branch totals,
-    // so they must count every branch regardless of which one (if
-    // any) happens to be selected right now.
-    cytologyBranch: statsCasesAllBranches.filter(c => canViewCase(c) && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === 'cytology').length,
-    surgpathBranch: statsCasesAllBranches.filter(c => canViewCase(c) && resolveCaseDisciplineBranch(c.specimens, specimenDictionary, !!(c as any).autopsy) === 'surgpath').length,
-    // Real, per direct follow-up — the same, real pool-inclusive base
-    // population as the three branch counts above, so "All Cases"
-    // genuinely equals their real sum, never a different, smaller
-    // (nonPoolStats-based) total that would visibly not add up. Real
-    // fix (PS-307): also branch-UNfiltered (statsCasesAllBranches),
-    // same reasoning — "All Cases" must stay the real total across
-    // every branch no matter which branch tab is currently active,
-    // or selecting Surg Path would make "All Cases" itself shrink to
-    // the Surg Path count instead of staying the real grand total.
-    allBranches:    statsCasesAllBranches.filter(c => canViewCase(c)).length,
-    completedToday: nonPoolStats.filter(c => {
-      if (c.status !== 'finalized') return false;
-      if (!c.updatedAt) return false;
-      const updateParts = getFacilityDateParts(c.updatedAt, config.facilityTimezone);
-      const todayParts = getFacilityDateParts(new Date(), config.facilityTimezone);
-      return updateParts.year === todayParts.year &&
-             updateParts.month === todayParts.month &&
-             updateParts.day === todayParts.day;
-    }).length,
+  // Tile counts and the list each tile opens (PS-305/PS-307/PS-309) — the
+  // deciding logic lives in services/worklist/worklistTileCounts.ts, so a
+  // tile's count and its click are computed from the same rules.
+  // Batch 452: no access check here; counts include restricted cases,
+  // which the list shows as redacted rows (canViewCase decides the redaction).
+  const worklistCountDeps: WorklistCountDeps = {
+    specimenDictionary,
+    userId: user?.id,
+    viewedCaseIds,
+    amendmentAddendaCaseIds,
+    informalReviewCaseIds,
+    peerReviewCaseIds,
+    followUpCaseIds,
+    delegatedCaseIds,
+    wsiSlidesByCaseId,
+    dpResultByCaseId,
+    facilityTimezone: config.facilityTimezone,
+    now: new Date(),
   };
 
+  // filteredCases — context, then branch, then the active status filter.
+  const filteredCases = React.useMemo(
+    () => filterWorklistCases(
+      { cases: realCases, contextFilter, branchFilter, activeFilter, physicianFilter, cytologyReviewCases },
+      worklistCountDeps,
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [realCases, contextFilter, cytologyReviewCases, activeFilter, physicianFilter, amendmentAddendaCaseIds, informalReviewCaseIds, peerReviewCaseIds, followUpCaseIds, delegatedCaseIds, user?.id, config.facilityTimezone, branchFilter, specimenDictionary, wsiSlidesByCaseId, dpResultByCaseId, viewedCaseIds],
+  );
 
-
-  // Computational voice action registration removed — COMP_VOICE/
-  // COMP_EVENT no longer export anything to register (both removed
-  // along with the Sidecar/ordering apparatus). This was the source
-  // of the dangling "open sidecar" etc. voice commands — registered
-  // as sayable, but with no handler left to respond when invoked.
+  const tileCounts = computeWorklistTileCounts(
+    { cases: realCases, contextFilter, branchFilter, cytologyReviewCount: cytologyReviewCases.length },
+    worklistCountDeps,
+  );
+  const { stats, urgentPoolCount, hasUrgentNewCase, countersignPendingCount, collaboratingCount, pendingReleaseCount, needsRevisionCount } = tileCounts;
+  const { urgentCount: lisUrgentCount, poolCount: lisPoolCount, totalCount: lisTotalCount, hasUrgentPool: hasUrgentLisPool } = tileCounts.lis;
+  const { urgentCount: orchUrgentCount, poolCount: orchPoolCount, totalCount: orchTotalCount, hasUrgentPool } = tileCounts.outreach;
 
   useEffect(() => {
     actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST);
@@ -911,7 +567,7 @@ const WorklistPage: React.FC = () => {
     const pageUp      = () => setSelectedIndex(i => { const n = clamp(ensureSelection(i) - 10); syncId(n); return n; });
     const first       = () => syncId(0);
     const last        = () => syncId(clamp(filteredCases.length - 1));
-    const refresh     = () => window.location.reload();
+    const refresh     = () => { caseRouter.listCasesForUser(user?.id ?? 'current').then(setRealCases).catch(() => {}); };
 
     // TTS helper — reads text aloud via Web Speech Synthesis
     const speak = (text: string) => {
@@ -1026,6 +682,10 @@ const WorklistPage: React.FC = () => {
     const filterAutopsy    = () => { setActiveFilter('autopsy');    setSelectedIndex(-1); setSelectedCaseId(null); };
     const filterNewCases   = () => { setActiveFilter('newcases');   setSelectedIndex(-1); setSelectedCaseId(null); };
     const clearFilter     = () => { setActiveFilter('all');       setSelectedIndex(-1); setSelectedCaseId(null); };
+    // Batch 650: "pool cases" (Alt+Shift+P) and "awaiting countersign" (Alt+A) choose those tiles, as clicking them does.
+    const filterPool        = () => { setActiveFilter('pool');        setSelectedIndex(-1); setSelectedCaseId(null); };
+    const filterCountersign = () => { setActiveFilter('countersign'); setSelectedIndex(-1); setSelectedCaseId(null); };
+    const filterCollaborating = () => { setActiveFilter('collaborating'); setSelectedIndex(-1); setSelectedCaseId(null); };
 
     // Sort commands — forward to WorklistTable's internal sort system via custom events
     const sortDate     = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_TABLE_SORT_APPLY', { detail: { key: 'accessionDate', dir: 'desc' } }));
@@ -1053,16 +713,13 @@ const WorklistPage: React.FC = () => {
     // in WorklistTable.tsx applies for mouse clicks - voice-driven
     // navigation needs to stay consistent, not silently bypass it.
     const openCaseId = (id: string) => {
-      // Real, per direct follow-up recalling the messaging system's
-      // own unread pattern — voice-driven navigation records a real
-      // view exactly the same way the real, mouse-click onBeforeNavigate
-      // hook does, never a second path that could leave voice-opened
-      // cases permanently "new."
+      // Voice-driven opens record a view like a click does, so they are never left "new".
       if (user?.id) caseViewTrackingService.recordView(user.id, id);
+      if (activeFilter === 'cytologyreview' && openCytologyReviewCase(id)) return;
       if (activeFilter === 'informalreview') {
-        navigate(`/report/${id}`, { state: { fromFilter: activeFilter, openInternalNotes: true } });
+        void openCasePage(id, 'report', { state: { fromFilter: activeFilter, openInternalNotes: true } });
       } else {
-        navigate(`/case/${id}/synoptic`, { state: worklistState });
+        void openCasePage(id, 'synoptic', { state: worklistState });
       }
     };
 
@@ -1084,6 +741,9 @@ const WorklistPage: React.FC = () => {
       openCaseId(filteredCases[idx].id);
     };
 
+    // Batch 663: "go to row 7", "open accession A26-4660" (services/worklist/rowCommands.ts)
+    const rowCmd = (e: Event) => { const r = resolveRowCommand(e.type, (e as CustomEvent<{ transcript?: string }>).detail?.transcript ?? '', filteredCases); if (r) { syncId(r.index); if (r.open) openCaseId(r.open); } };
+    ROW_COMMAND_EVENTS.forEach(n => window.addEventListener(n, rowCmd));
     window.addEventListener('PATHSCRIBE_TABLE_NEXT',             next);
     window.addEventListener('PATHSCRIBE_TABLE_PREVIOUS',         previous);
     window.addEventListener('PATHSCRIBE_TABLE_PAGE_DOWN',        pageDown);
@@ -1100,6 +760,9 @@ const WorklistPage: React.FC = () => {
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_AUTOPSY',    filterAutopsy);
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_NEWCASES',   filterNewCases);
     window.addEventListener('PATHSCRIBE_TABLE_CLEAR_FILTER',     clearFilter);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_POOL',        filterPool);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_COUNTERSIGN', filterCountersign);
+    window.addEventListener('PATHSCRIBE_TABLE_FILTER_PARTICIPATING', filterCollaborating);
     window.addEventListener('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', filterPhysician);
     window.addEventListener('PATHSCRIBE_READ_FLAGS',             readFlags);
     window.addEventListener('PATHSCRIBE_READ_SPECIMEN',          readSpecimen);
@@ -1120,6 +783,7 @@ const WorklistPage: React.FC = () => {
     // for anymore.
 
     return () => {
+      ROW_COMMAND_EVENTS.forEach(n => window.removeEventListener(n, rowCmd));
       window.removeEventListener('PATHSCRIBE_TABLE_NEXT',             next);
       window.removeEventListener('PATHSCRIBE_TABLE_PREVIOUS',         previous);
       window.removeEventListener('PATHSCRIBE_TABLE_PAGE_DOWN',        pageDown);
@@ -1136,6 +800,9 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_AUTOPSY',    filterAutopsy);
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_NEWCASES',   filterNewCases);
       window.removeEventListener('PATHSCRIBE_TABLE_CLEAR_FILTER',     clearFilter);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_POOL',        filterPool);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_COUNTERSIGN', filterCountersign);
+      window.removeEventListener('PATHSCRIBE_TABLE_FILTER_PARTICIPATING', filterCollaborating);
       window.removeEventListener('PATHSCRIBE_TABLE_FILTER_PHYSICIAN', filterPhysician);
       window.removeEventListener('PATHSCRIBE_READ_FLAGS',             readFlags);
       window.removeEventListener('PATHSCRIBE_READ_SPECIMEN',          readSpecimen);
@@ -1151,7 +818,7 @@ const WorklistPage: React.FC = () => {
       window.removeEventListener('PATHSCRIBE_NAV_PREVIOUS_CASE',      prevCase);
       window.removeEventListener('PATHSCRIBE_PAGE_OPEN_RESOURCES',    openResources);
     };
-  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId]);
+  }, [filteredCases, selectedIndex, navigate, realCases, selectedCaseId, activeFilter, openCytologyReviewCase, allFlags, dpResultByCaseId, openCasePage, user?.id, wsiSlidesByCaseId]);
 
   // Batch 375: hoisted out of the JSX; the table now renders only in the case view, and a hook can't be conditional.
   const handleDisplayOrder = useCallback((ids: string[]) => setDisplayOrder(ids), []);
@@ -1201,17 +868,16 @@ const WorklistPage: React.FC = () => {
                     const showBadge = contextFilter === 'outreach';
                     return (
                       <button
-                        className="ps-wl-mode-tile"
+                        type="button"
+                        // Batch 568: on/off colours from modifier classes (pathscribe.css), not values set here.
+                        className={`ps-wl-mode-tile ps-wl-mode-tile--lis${isActive ? ' ps-wl-mode-tile--active' : ''}`}
+                        aria-pressed={isActive}
                         title={isActive ? t('worklistPage.lisTile.currently') : t('worklistPage.lisTile.switch')}
                         onClick={() => { setViewChoice('cases'); setContextFilter('lis'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{
-                          '--tile-bg': isActive ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.04)',
-                          '--tile-border': isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.14)',
-                        } as React.CSSProperties}
                       >
                         <div className="ps-wl-mode-tile__main">
-                          <div className="ps-wl-mode-tile__label" style={{ '--tile-label-color': isActive ? '#e2e8f0' : '#8899aa' } as React.CSSProperties}>{t('worklistPage.lisCasesLabel')}</div>
-                          <div className="ps-wl-mode-tile__count" style={{ '--tile-count-color': '#e2e8f0' } as React.CSSProperties}>{lisTotalCount}</div>
+                          <div className="ps-wl-mode-tile__label">{t('worklistPage.lisCasesLabel')}</div>
+                          <div className="ps-wl-mode-tile__count">{lisTotalCount}</div>
                         </div>
                         {showBadge && (lisUrgentCount > 0 || lisPoolCount > 0) && (
                           <div className="ps-wl-mode-tile__badges">
@@ -1229,18 +895,15 @@ const WorklistPage: React.FC = () => {
                     const poolColor = hasUrgentPool ? '#EF4444' : '#F97316';
                     return (
                       <button
-                        className="ps-wl-mode-tile"
+                        type="button"
+                        className={`ps-wl-mode-tile ps-wl-mode-tile--outreach${isActive ? ' ps-wl-mode-tile--active' : ''}`}
+                        aria-pressed={isActive}
                         title={isActive ? t('worklistPage.outreachTile.currently') : t('worklistPage.outreachTile.switch')}
                         onClick={() => { setViewChoice('cases'); setContextFilter('outreach'); setActiveFilter('all'); setSelectedIndex(-1); setSelectedCaseId(null); }}
-                        style={{
-                          '--tile-bg': isActive ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.05)',
-                          '--tile-border': isActive ? '#F59E0B' : 'rgba(245,158,11,0.18)',
-                          '--tile-shadow': isActive ? '0 0 12px rgba(245,158,11,0.4)' : 'none',
-                        } as React.CSSProperties}
                       >
                         <div className="ps-wl-mode-tile__main">
-                          <div className="ps-wl-mode-tile__label" style={{ '--tile-label-color': isActive ? '#F59E0B' : '#8899aa' } as React.CSSProperties}>{t('worklistPage.outreachLabel')}</div>
-                          <div className="ps-wl-mode-tile__count" style={{ '--tile-count-color': '#F59E0B' } as React.CSSProperties}>{orchTotalCount}</div>
+                          <div className="ps-wl-mode-tile__label">{t('worklistPage.outreachLabel')}</div>
+                          <div className="ps-wl-mode-tile__count">{orchTotalCount}</div>
                         </div>
                         {showBadge && (orchUrgentCount > 0 || orchPoolCount > 0) && (
                           <div className="ps-wl-mode-tile__badges">
@@ -1259,9 +922,14 @@ const WorklistPage: React.FC = () => {
                       className={`ps-wl-mode-tile ps-wl-queue-tile${view === v ? ' ps-wl-queue-tile--active' : ''}`}
                       aria-pressed={view === v}
                       onClick={() => { setViewChoice(v); setSelectedIndex(-1); setSelectedCaseId(null); }}
+                      title={t(`worklistPage.queues.${v}`)}
                     >
                       <div className="ps-wl-mode-tile__main">
                         <div className="ps-wl-queue-tile__label">{t(`worklistPage.queues.${v}`)}</div>
+                        {/* Batch 396 (Pete): how many items wait in this queue. */}
+                        {queueCounts[v as 'cytologyQc' | 'surgicalQa'] !== null && (
+                          <div className="ps-wl-mode-tile__count ps-wl-queue-tile__count">{queueCounts[v as 'cytologyQc' | 'surgicalQa']}</div>
+                        )}
                       </div>
                     </button>
                   ))}
@@ -1337,6 +1005,7 @@ const WorklistPage: React.FC = () => {
                   { key: 'pool',       label: activeFilter === 'pool'       ? backToLabel : t(FILTER_LABEL_KEY.pool),      count: stats.pool,           color: '#F97316', bg: 'rgba(249,115,22,0.05)',  border: 'rgba(38,217,74,0.18)',  activeBg: 'rgba(249,115,22,0.18)',  activeBorder: '#26D94A',  glow: '0 0 12px rgba(38,217,74,0.4)',  sublabel: undefined },
                   { key: 'delegated',  label: activeFilter === 'delegated'  ? backToLabel : t(FILTER_LABEL_KEY.delegated), count: delegatedToMeCount,   color: '#E4F042', bg: 'rgba(228,240,66,0.05)',  border: 'rgba(228,240,66,0.18)',  activeBg: 'rgba(228,240,66,0.18)',  activeBorder: '#E4F042',  glow: '0 0 12px rgba(228,240,66,0.4)',  sublabel: undefined },
                   { key: 'countersign', label: activeFilter === 'countersign' ? backToLabel : t(FILTER_LABEL_KEY.countersign), count: countersignPendingCount, color: '#AB1CE3', bg: 'rgba(171,28,227,0.05)', border: 'rgba(171,28,227,0.18)', activeBg: 'rgba(171,28,227,0.18)', activeBorder: '#AB1CE3', glow: '0 0 12px rgba(171,28,227,0.4)', sublabel: undefined },
+                  { key: 'collaborating', label: activeFilter === 'collaborating' ? backToLabel : t(FILTER_LABEL_KEY.collaborating), count: collaboratingCount, color: '#F472B6', bg: 'rgba(244,114,182,0.05)', border: 'rgba(244,114,182,0.18)', activeBg: 'rgba(244,114,182,0.18)', activeBorder: '#F472B6', glow: '0 0 12px rgba(244,114,182,0.4)', sublabel: undefined },
                   // Real feature, per direct specification: Post-Sign-Out
                   // Release Buffer. Same real "queue that's specifically
                   // mine" pattern as countersign immediately above — where
@@ -1428,6 +1097,11 @@ const WorklistPage: React.FC = () => {
                   // "Needs Review" tile used that green before it was
                   // removed) or grosscomplete's cyan.
                   { key: 'informalreview', label: activeFilter === 'informalreview' ? backToLabel : t(FILTER_LABEL_KEY.informalreview), count: stats.informalReview, color: '#8B5CF6', bg: 'rgba(139,92,246,0.05)',  border: 'rgba(139,92,246,0.18)',  activeBg: 'rgba(139,92,246,0.18)',  activeBorder: '#8B5CF6',  glow: '0 0 12px rgba(139,92,246,0.4)',  sublabel: undefined },
+                  // Batch 439 (PS-144): peer reviews waiting on this pathologist. Shown only when there are some.
+                  { key: 'peerreview', label: activeFilter === 'peerreview' ? backToLabel : t(FILTER_LABEL_KEY.peerreview), count: stats.peerReview, color: '#F59E0B', bg: 'rgba(245,158,11,0.05)',  border: 'rgba(245,158,11,0.18)',  activeBg: 'rgba(245,158,11,0.18)',  activeBorder: '#F59E0B',  glow: '0 0 12px rgba(245,158,11,0.4)',  sublabel: undefined },
+                  { key: 'followup', label: activeFilter === 'followup' ? backToLabel : t(FILTER_LABEL_KEY.followup), count: stats.followUp, color: '#DC2626', bg: 'rgba(220,38,38,0.05)',  border: 'rgba(220,38,38,0.18)',  activeBg: 'rgba(220,38,38,0.18)',  activeBorder: '#DC2626',  glow: '0 0 12px rgba(220,38,38,0.4)',  sublabel: undefined },
+                  // Batch 440: positive GYN cytology waiting for a pathologist. Shown only when there are some.
+                  { key: 'cytologyreview', label: activeFilter === 'cytologyreview' ? backToLabel : t(FILTER_LABEL_KEY.cytologyreview), count: stats.cytologyReview, color: '#EF4444', bg: 'rgba(239,68,68,0.05)',  border: 'rgba(239,68,68,0.18)',  activeBg: 'rgba(239,68,68,0.18)',  activeBorder: '#EF4444',  glow: '0 0 12px rgba(239,68,68,0.4)',  sublabel: undefined },
                 ] as const)
                   // Real, per direct guidance ("let's not display
                   // tiles with 0 entries" — deliberately scoped to
@@ -1439,12 +1113,13 @@ const WorklistPage: React.FC = () => {
                   // active and its count later drops to 0 — the table
                   // below just shows its own real "no cases" state,
                   // it doesn't reset or break.
-                  .filter(tile => tile.key !== 'needsrevision' || tile.count > 0)
+                  .filter(tile => (tile.key !== 'needsrevision' && tile.key !== 'peerreview' && tile.key !== 'followup' && tile.key !== 'cytologyreview') || tile.count > 0)
                   .map(tile => {
                   const isActive = activeFilter === tile.key;
                   return (
                     <button
                       key={tile.key}
+                      aria-pressed={isActive}
                       className="ps-wl-filter-tile"
                       title={isActive ? t('worklistPage.tileTitleActive', { label: tile.label }) : t('worklistPage.tileTitleInactive', { label: tile.label })}
                       onClick={() => { setActiveFilter(isActive ? 'all' : tile.key as any); setSelectedIndex(-1); setSelectedCaseId(null); }}
@@ -1454,7 +1129,7 @@ const WorklistPage: React.FC = () => {
                         '--tile-shadow': isActive ? tile.glow : 'none',
                       } as React.CSSProperties}
                     >
-                      <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa' } as React.CSSProperties}>
+                      <div className="ps-wl-filter-tile__label" style={{ '--tile-label-color': isActive ? tile.color : '#8899aa', '--tile-label-mix': isActive ? '55%' : '100%' } as React.CSSProperties}>
                         {tile.label}
                       </div>
                       <div className="ps-wl-filter-tile__count" style={{ '--tile-count-color': tile.color } as React.CSSProperties}>
@@ -1490,13 +1165,13 @@ const WorklistPage: React.FC = () => {
               </div>
             )}
 
-            {/* Worklist table — height measured from viewport top offset */}
+            {/* Worklist table: fills the rest of the page (CSS flex, Batch 416) */}
             <AmendedAddendaTriageTile pathologistId={user?.id ?? ''} />
             <PendingGrossingTriageTile cases={realCases} />
             <div
               ref={wrapperRef}
               data-capture-hide="true"
-              className="ps-table-scroll-wrap ps-table-scroll-wrap--relative"
+              className="ps-table-scroll-wrap ps-table-scroll-wrap--relative ps-table-scroll-wrap--fill"
               tabIndex={0}
               role="region"
               aria-label={t('worklistPage.tableRegionLabel')}
@@ -1511,24 +1186,18 @@ const WorklistPage: React.FC = () => {
                 dpResultByCaseId={dpResultByCaseId}
                 onOpenDpDrawer={setDpDrawerCaseId}
                 branchFilter={branchFilter}
-                tableHeight={tableHeight}
                 delegatedCaseIds={delegatedCaseIds}
+                slaBreaches={slaBreaches}
+                interceptOpen={activeFilter === 'cytologyreview' ? openCytologyReviewCase : undefined}
                 onPoolCaseClick={(caseId, summary) => {
                   const c = realCases.find(c => c.id === caseId);
-                  // Real, separate bug found and fixed here: this used
-                  // c?.originHospitalId (the hospital/facility id, e.g.
-                  // 'HOSP-MFT') as the pool name — confirmed directly
-                  // against a real case's own data that the actual pool
-                  // name ('Gastrointestinal') lives on c.poolName
-                  // instead. Explains why the claim modal's own header
-                  // showed a hospital id where a real pool name
-                  // belonged, and would have broken this feature's own
-                  // per-pool access-request tracking and membership
-                  // matching too, both of which depend on the real name.
+                  // The pool name is the case's own poolName (membership and access requests match on it); no made-up fallback.
+                  const poolName = (c as { poolName?: string } | undefined)?.poolName;
+                  if (!poolName) { console.error('[Worklist] Pool case has no pool name:', caseId); return; }
                   setClaimModal({
                     caseId,
                     summary,
-                    poolName: (c as any)?.poolName ?? 'MFT Pool',
+                    poolName,
                   });
                 }}
                 selectedIndex={selectedIndex}
@@ -1578,7 +1247,7 @@ const WorklistPage: React.FC = () => {
             onClose={() => setDpDrawerCaseId(null)}
             onOpenCaseWorkspace={() => {
               setDpDrawerCaseId(null);
-              navigate(`/case/${dpDrawerCaseId}/synoptic`, { state: { worklistCaseIds: filteredCases.map(c => c.id) } });
+              void openCasePage(dpDrawerCaseId, 'synoptic', { state: { worklistCaseIds: filteredCases.map(c => c.id) } });
             }}
           />
         );
@@ -1604,6 +1273,14 @@ const WorklistPage: React.FC = () => {
         }}
         onPassed={() => setClaimModal(null)}
         onClose={() => setClaimModal(null)}
+      />
+      <ConfirmModal
+        show={!!cytologyTake}
+        title={t('worklistPage.cytologyReview.takeTitle')}
+        message={cytologyTake?.error ?? t('worklistPage.cytologyReview.takeMessage')}
+        confirmLabel={t('worklistPage.cytologyReview.takeConfirm')}
+        onConfirm={confirmCytologyTake}
+        onCancel={() => setCytologyTake(null)}
       />
 
     </div>

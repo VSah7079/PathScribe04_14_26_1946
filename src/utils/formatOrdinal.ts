@@ -23,6 +23,7 @@ export function formatOrdinal(n: number, lang: string): string {
     case 'de': return `${n}.`;
     case 'nl': return `${n}e`;
     case 'ko': return `${n}번째`;
+    case 'es': return `${n}.º`;
     default: {
       const v = n % 100;
       return `${n}${ORDINAL_SUFFIX_EN[(v - 20) % 10] || ORDINAL_SUFFIX_EN[v] || ORDINAL_SUFFIX_EN[0]}`;

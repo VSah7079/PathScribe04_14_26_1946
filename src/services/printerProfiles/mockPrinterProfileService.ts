@@ -12,6 +12,7 @@ import { withSeedFieldBackfill } from '../mockSeedMerge';
 import { mockEquipmentService } from '../equipment/mockEquipmentService';
 import { checkEquipmentLink } from '../equipment/equipmentRules';
 import { EQUIPMENT_LINK_INVALID } from '../equipment/IEquipmentService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const genId = () => `printer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -43,7 +44,10 @@ const SEED_PRINTER_PROFILES: PrinterProfile[] = [
     maxPrintDensity: 300,
     moduleSize: 4,
     vendor: 'ZEBRA_ZPL',
-    bridgeType: 'qz_tray',
+    // Batch 738 (Demo Seed Data S3): the PathScribe workstation agent. In the demo no agent program runs, so a
+    // labelled Simulated PathScribe Agent answers and every label "prints" (Simulated print log); before this the seed
+    // used QZ Tray, which failed with PRINT ERROR on any computer without QZ Tray running.
+    bridgeType: 'pathscribe_agent',
     ipAddress: '192.168.12.85',
     port: 9100,
     // Batch 359: the physical printer in the equipment register.
@@ -73,7 +77,7 @@ async function equipmentLinkOk(equipmentId: string | undefined): Promise<boolean
   return checkEquipmentLink(equipmentId, res.ok ? res.data : [], 'label_printer') === null;
 }
 
-export const mockPrinterProfileService: IPrinterProfileService = {
+const printerProfileServiceUnchecked: IPrinterProfileService = {
   async getAll(): Promise<ServiceResult<PrinterProfile[]>> {
     return { ok: true, data: load() };
   },
@@ -106,3 +110,8 @@ export const mockPrinterProfileService: IPrinterProfileService = {
     return { ok: true, data: undefined };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockPrinterProfileService: IPrinterProfileService = guardConfigWrites(printerProfileServiceUnchecked, [
+  ['config:printers:manage', ['add', 'update', 'remove']],
+]);

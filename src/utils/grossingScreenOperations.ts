@@ -11,16 +11,31 @@
 // themselves.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { getBlockLabel } from '@/utils/specimenLabeling';
+import { nextSlideLevelNumber } from '@/services/material/slideLevels';
+import { nextBlockLabel, type LabelStyleInput } from '@/utils/specimenLabeling';
 import { cassetteIdentifier, slideIdentifier } from '@/types/labels/LabelData';
 import type { HistologyBlock, Specimen, StainOrder, SpecimenGrossingOverride } from '@/types/case/Specimen';
 import type { ProtocolPathway } from '@/services/protocols/IProtocolService';
 import type { StainType } from '@/services/stains/IStainService';
 
+/** Where a stain on the Grossing screen came from (Batch 705).
+ *  - `userAdded`: a person added it here or at microtome / as an add-on.
+ *  - `protocol`: the specimen has an attached protocol and the stain was not
+ *    added by a person, so it came from that protocol's pathway defaults.
+ *  - `existing`: no protocol is attached and no one added it here, so it
+ *    arrived with the case (LIS order or import) or from an ad-hoc order.
+ *    It must never be called "Auto-generated": nothing generated it. */
+export type StainOrigin = 'userAdded' | 'protocol' | 'existing';
+
+export function stainOrigin(specimen: Pick<Specimen, 'protocolSnapshot'>, stain: Pick<StainOrder, 'userAdded'>): StainOrigin {
+  if (stain.userAdded) return 'userAdded';
+  return specimen.protocolSnapshot ? 'protocol' : 'existing';
+}
+
 export type GrossingOperationResult =
   | { ok: true; specimen: Specimen }
   | { ok: false; error: string }
-  | { ok: false; needsConfirmation: true };
+  | { ok: false; needsConfirmation: true; origin: Exclude<StainOrigin, 'userAdded'> };
 
 function genId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -44,10 +59,12 @@ export function addGrossingBlock(
   specimen: Specimen,
   pathway: ProtocolPathway,
   fullAccession: string,
-  specimenLabelStyle?: 'alpha-specimen' | 'numeric-specimen',
+  // Batch 715: the case's resolved letters/numbers style (Case.labelStyle). The label is the
+  // next unused one, so adding after a removal never repeats a label.
+  specimenLabelStyle?: LabelStyleInput,
 ): GrossingOperationResult {
   const existingBlocks = specimen.blocks ?? [];
-  const blockLabel = getBlockLabel(existingBlocks.length, specimenLabelStyle);
+  const blockLabel = nextBlockLabel(existingBlocks.map(b => b.label), specimenLabelStyle);
   const sortedTasks = [...pathway.tasks].sort((a, b) => a.stepOrder - b.stepOrder);
   const stains: StainOrder[] = [];
   sortedTasks.forEach((task) => {
@@ -106,7 +123,7 @@ export function addGrossingStain(
     id: genId('stain'),
     stainName: stainType.name,
     status: 'Pending Cut',
-    displayId: slideIdentifier(fullAccession, specimen.label, block.label, `L${block.stains.length + 1}`),
+    displayId: slideIdentifier(fullAccession, specimen.label, block.label, `L${nextSlideLevelNumber(block.stains)}`),
     userAdded: true,
   };
   const updatedBlocks = (specimen.blocks ?? []).map(b =>
@@ -121,7 +138,10 @@ export function addGrossingStain(
 }
 
 /** Real, per the spec's own "Remove Stain → confirmation prompt if
- *  removing a protocol default; logged as override." Removing a
+ *  removing a protocol default; logged as override." Batch 705: any stain
+ *  that is not the tech's own addition (a protocol default, or an existing
+ *  stain that arrived with the case) needs the confirmation and is logged;
+ *  the result's `origin` lets the caller word the prompt truthfully. Removing a
  *  stain the tech themselves just added (userAdded: true) is simply
  *  undoing their own addition — no confirmation, no audit entry,
  *  same real reasoning as never logging an override for something
@@ -141,9 +161,10 @@ export function removeGrossingStain(
   const stain = block.stains.find(s => s.id === stainId);
   if (!stain) return { ok: false, error: 'Stain not found.' };
 
-  const isProtocolDefault = !stain.userAdded;
+  const origin = stainOrigin(specimen, stain);
+  const isProtocolDefault = origin !== 'userAdded'; // not the tech's own addition: confirm and log
   if (isProtocolDefault && !confirmed) {
-    return { ok: false, needsConfirmation: true };
+    return { ok: false, needsConfirmation: true, origin: origin as Exclude<StainOrigin, 'userAdded'> };
   }
 
   const updatedBlocks = (specimen.blocks ?? []).map(b =>
@@ -175,4 +196,37 @@ export function updateGrossingPieceCount(
     actor, timestamp: new Date().toISOString(),
   };
   return { ok: true, specimen: { ...specimen, blocks: updatedBlocks, grossingOverrides: logOverride(specimen, overrideEntry) } };
+}
+
+/** Batch 659: a block's piece description (the Grossing screen now takes it; Complete grossing can ask for it). */
+export function updateGrossingPieceDescription(
+  specimen: Specimen,
+  blockId: string,
+  text: string,
+  actor: string,
+): GrossingOperationResult {
+  const block = (specimen.blocks ?? []).find(b => b.id === blockId);
+  if (!block) return { ok: false, error: 'Block not found.' };
+  const next = text.trim();
+  const updatedBlocks = (specimen.blocks ?? []).map(b => b.id !== blockId ? b : { ...b, pieceDescription: next || undefined });
+  const overrideEntry: SpecimenGrossingOverride = {
+    field: 'pieceDescription', blockLabel: block.label,
+    originalValue: block.pieceDescription || '(none)', newValue: next || '(none)',
+    actor, timestamp: new Date().toISOString(),
+  };
+  return { ok: true, specimen: { ...specimen, blocks: updatedBlocks, grossingOverrides: logOverride(specimen, overrideEntry) } };
+}
+
+/** Batch 659: the piece count and description of one matrix block (a cassette shared by several specimens). */
+export function updateMatrixBlockPieces<M extends { id: string; pieceCount?: number; pieceDescription?: string }>(
+  matrixBlocks: readonly M[],
+  matrixBlockId: string,
+  patch: { pieceCount?: number; pieceDescription?: string },
+): M[] | null {
+  if (!matrixBlocks.some(m => m.id === matrixBlockId)) return null;
+  return matrixBlocks.map(m => m.id !== matrixBlockId ? m : {
+    ...m,
+    ...(patch.pieceCount !== undefined ? { pieceCount: patch.pieceCount } : {}),
+    ...(patch.pieceDescription !== undefined ? { pieceDescription: patch.pieceDescription.trim() || undefined } : {}),
+  });
 }

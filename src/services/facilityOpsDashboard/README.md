@@ -1,3 +1,9 @@
+**Batch 747:** `caseFacility.ts` (new): a case's legacy tenant id (HOSP-001) resolves to its facility, so a profile's views see the case's batches, slides and add-ons (they matched nothing before); `buildFacilityLookupMaps.ts` gains `caseFacilityById`, used by the summaries. `mockDisplayProfileService.ts`: the demo profiles (their ids in `demoDisplayProfileIds.ts`), seed profiles added when missing. Tests: `caseFacility.test.ts`, `wallDisplayVolume.test.ts`.
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/facilityOpsDashboard/
 
 Real, per PS-288 (Enterprise Laboratory Operations Dashboard Engine),
@@ -94,12 +100,12 @@ sequence. Two real, separate things live here:
 
 ## Honest, deliberate scope cuts (this Epic)
 
-- No true WebSocket/SSE real-time push — this app has no backend
-  infrastructure for that (same real, disclosed posture as
-  `pages/OrSuiteDashboardPage.tsx`). `pages/FacilityOpsDashboard/FacilityOpsDashboardPage.tsx`
-  polls on a real interval instead, **plus** a real "Offline / Stale
-  Data" badge whenever the last poll failed or has gone stale — the
-  one real gap `OrSuiteDashboardPage.tsx` itself still has.
+- No real-time push — `pages/FacilityOpsDashboard/FacilityOpsDashboardPage.tsx`
+  polls on a real interval (20 s) instead, **plus** a real "Offline / Stale
+  Data" badge whenever the last poll failed or has gone stale. It does
+  not use `services/liveUpdates/` (the SignalR live-update client that
+  `pages/OrSuiteDashboardPage.tsx` has used since Batch 342, with its own
+  `LiveStatusBadge`).
 - No fabricated SLA/target-duration numbers anywhere a real source
   doesn't exist for one (Embedding/Microtomy/Staining/Send-Out
   batches) — see each summary function's own header above.
@@ -108,6 +114,8 @@ sequence. Two real, separate things live here:
 - `deviceToken` on `DisplayProfile` is informational only — this
   environment cannot verify or enforce a binding to real physical
   hardware.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): the OR Suite board is no longer polling-only without a status badge; it uses the live-update service (Batch 342). This dashboard still polls.*
 
 ## Real, closed gap (direct follow-up): the recorded `deviceToken` is now consulted at bind time
 
@@ -130,3 +138,37 @@ the larger, still-honestly-disclosed "no real device binding exists"
 limitation immediately above. Covered by
 `pages/FacilityOpsDashboard/FacilityOpsDashboardPage.test.tsx`
 (new — no render test existed for this page's binding step before).
+
+## Batch 428: Configuration permissions
+
+- `mockDisplayProfileService`: `add`, `update`, `deactivate` need `config:display-profiles:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 603: Display Token device binding (replaces the typed device-token check above)
+
+A display binds to a profile only with the Display Token an administrator issues in Configuration (Display Profiles → "Display token"). The earlier typed comparison against `deviceToken` is gone; `deviceToken` remains an optional asset note. The bound display re-checks its token every minute and blanks when it is revoked or expired. This page shows no patient identifiers. See `services/displayAccess/README.md` and `docs/architecture/DISPLAY_ACCESS_API.md`.
+
+Batch 616 (part D, PS-510): server version of DisplayProfileService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/INTRAOP_OPS_API.md`.
+
+## Batch 727 — add-ons on the wall, time X, the Stations view (Lab Workflow & Batch spec, Decisions 2-3, §6.4, §9)
+
+- `openAddOnOrders.ts` (pure): every add-on slide still Pending Cut across cases (controls not counted; orders without the routed stamp included), its type from the routed queue, its facility (the order's performing-lab stamp, else the case's), its colour against X (amber in the last 30 minutes, or half of X when X is an hour or less; red past X) and whether it is pinned (STAT or past X). `DEFAULT_ADD_ON_AGE_LIMIT_MINUTES` = 120.
+- `computeEmbeddingMicrotomySummary.ts`: add-on rows (tag `addOn`, `subLabelKey` = order type, `slaState` against X, `pinned`) with the batch rows, pinned first then oldest; STAT add-on alerts; an "Add-Ons waiting" tile.
+- `stationOverviewRules.ts` (pure) and `computeStationOverviewSummary.ts`: the new **Stations** view (`station_overview`), the live minimum set of spec section 9.
+- `computeStainingIhcSummary.ts`: the stainer's reported status in each row, and a **Run Failed** alert.
+- `IFacilityOpsDashboardTypes.ts`: `labelKey`, `kindKey`, `detailKey`/`detailValues`, `tags`, `subLabelKey`, `pinned`, and `DashboardViewOptions` (X). Every view's labels now carry locale keys; the English `label`/`kind`/`detail` stay as fallback.
+- `IDisplayProfileService.ts`: `addOnAgeLimitMinutes` and the view id `station_overview`; `displayProfileRules.ts` checks X (15 to 1440 whole minutes; the demo service refuses anything else).
+- Tests: `wallDisplayAddOns.test.ts`; `facilityOpsDashboardSummaries.test.ts` gains the add-on case.
+
+## Batch 728
+
+- Display Profile `batchPurposeIds` and `DashboardViewOptions.batchPurposeIds`: the five carrier views show only carriers of the chosen purposes (none chosen = all; add-ons always show). `displayProfileRules.ts`: `PURPOSE_FILTER_VIEWS`, `showsCarrierViews`, `togglePurposeId`.
+
+## Batch 729
+
+- `computeStationOverviewSummary.ts`: the **Not scanned recently** tile and up to ten **Not scanned** alerts, and items without a carrier on each step's row (`stationOverviewRules.ts`: `StationRow.loose`), from `stationScanEventService.activitySummary`. Display Profile `staleScanMinutes` (`displayProfileRules.ts`: 30 to 10080, default 240).
+
+## Batch 730
+
+- `openAddOnOrders.ts`: `TYPE_BY_QUEUE` exported (the add-on report uses the same types).

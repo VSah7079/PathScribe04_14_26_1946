@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import '../../pathscribe.css';
 import { pathscribeTheme } from "@theme/pathscribeTheme";
 import type { ContributionFlag, Severity } from "../../types/ContributionDashboard";
+import { pressable } from '@/utils/a11y/pressable';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props
@@ -65,7 +66,7 @@ const FlagRow: React.FC<FlagRowProps> = ({
 
   return (
     <div
-      onClick={onClick}
+      {...pressable(onClick)}
       className={`fr-row${onClick ? ' fr-row--clickable' : ''}`}
     >
       {/* Left: case ID + issue description */}

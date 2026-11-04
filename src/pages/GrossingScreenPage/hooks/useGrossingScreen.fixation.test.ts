@@ -15,6 +15,9 @@ vi.mock('@/services', () => ({
     getByCaseId: vi.fn().mockResolvedValue({ ok: true, data: [] }),
     raise: vi.fn().mockResolvedValue({ ok: true, data: {} }),
   },
+  // Structured Inking, Module 3 (PS-359 follow-up): the hook loads the active
+  // ink-colour palette for the severity engine's display; empty is fine here.
+  inkColorService: { getAll: vi.fn().mockResolvedValue({ ok: true, data: [] }) },
 }));
 
 import { caseRouter } from '@/services/cases/CaseRouter';
@@ -53,9 +56,10 @@ describe('useGrossingScreen \u2014 handleRecordFixationEnded, per direct request
     await act(async () => { await result.current.handleRecordFixationEnded('SP-1'); });
 
     const call = vi.mocked(caseRouter.updateCase).mock.calls[0];
-    const updatedSpecimen = call[1].specimens.find((s: any) => s.id === 'SP-1');
-    expect(updatedSpecimen.processing.fixationEndedAt).toBeTruthy();
-    expect(updatedSpecimen.processing.processedAt).toBe('2026-09-01T00:00:00.000Z');
+    const updatedSpecimen = call[1].specimens?.find((s: any) => s.id === 'SP-1');
+    expect(updatedSpecimen).toBeDefined();
+    expect(updatedSpecimen?.processing?.fixationEndedAt).toBeTruthy();
+    expect(updatedSpecimen?.processing?.processedAt).toBe('2026-09-01T00:00:00.000Z');
   });
 
   it('a real, genuinely nonexistent specimen id is a real, honest no-op, never throws', async () => {
@@ -74,11 +78,12 @@ describe('useGrossingScreen \u2014 handleConfirmFixativeRatio, per direct guidan
     await act(async () => { await result.current.handleConfirmFixativeRatio('SP-1'); });
 
     const call = vi.mocked(caseRouter.updateCase).mock.calls[0];
-    const updatedSpecimen = call[1].specimens.find((s: any) => s.id === 'SP-1');
-    expect(updatedSpecimen.processing.fixativeToTissueRatioConfirmation).toEqual(
+    const updatedSpecimen = call[1].specimens?.find((s: any) => s.id === 'SP-1');
+    expect(updatedSpecimen).toBeDefined();
+    expect(updatedSpecimen?.processing?.fixativeToTissueRatioConfirmation).toEqual(
       expect.objectContaining({ userId: 'USER-1', userName: 'Dr. Reed' }),
     );
-    expect(updatedSpecimen.processing.fixativeToTissueRatioConfirmation.confirmedAt).toBeTruthy();
+    expect(updatedSpecimen?.processing?.fixativeToTissueRatioConfirmation?.confirmedAt).toBeTruthy();
   });
 
   it('with no real signing user at all, this is a real, honest no-op \u2014 never records an audit entry with no real, attributable user', async () => {
@@ -93,8 +98,9 @@ describe('useGrossingScreen \u2014 handleConfirmFixativeRatio, per direct guidan
     const { result } = renderHook(() => useGrossingScreen(params as any));
     await act(async () => { await result.current.handleConfirmFixativeRatio('SP-1'); });
     const call = vi.mocked(caseRouter.updateCase).mock.calls[0];
-    const updatedSpecimen = call[1].specimens.find((s: any) => s.id === 'SP-1');
-    expect(updatedSpecimen.processing.fixativeToTissueRatioConfirmation.userName).toBe('USER-2');
+    const updatedSpecimen = call[1].specimens?.find((s: any) => s.id === 'SP-1');
+    expect(updatedSpecimen).toBeDefined();
+    expect(updatedSpecimen?.processing?.fixativeToTissueRatioConfirmation?.userName).toBe('USER-2');
   });
 });
 

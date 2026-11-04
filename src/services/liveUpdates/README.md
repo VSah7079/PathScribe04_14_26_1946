@@ -61,5 +61,59 @@ Chromium, dev server, with the OR board open twice and the Intraop Queue.
 - **Authentication:** since Batch 343 (PS-60) `liveUpdateService.ts` passes `accessTokenFactory: getAccessToken` (`services/auth/accessTokenSource.ts`), so SSO users connect with their access token. Demo password sessions and OR terminals have none yet (terminal device tokens are still to come); the hub must refuse unauthenticated connections (spec §4).
 - **Runtime configuration:** `VITE_LIVE_UPDATES_HUB_URL` is fixed at build time.
 
+## Batch 435 — WSI scan batch changes
+
+A third kind of event, `WsiScanBatchChanged` (ids only: batch, change, lab), keeps Batch Management → Slide scanning current:
+- `liveUpdateContract.ts`: `HUB_WSI_SCAN_BATCH_CHANGED`, `WsiScanBatchChangedEvent`, `parseWsiScanBatchChangedEvent`.
+- `ILiveUpdateService.subscribeWsiScanBatches`, on both transports. The SignalR one keeps the connection open for it and sends no scope.
+- `localLiveUpdateService.publishWsiScanBatchChange`. `digitalPathology/mockWsiScanBatchService.ts` publishes after every write: loaded, sent, send failed, a slide's status, unloaded.
+
+The hub side is `docs/architecture/LIVE_UPDATES_SIGNALR.md` §11. Tests are in `liveUpdates.test.ts`.
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
+## Batch 521 (PS-281)
+
+A fourth event, `ReportDeliveryStatus` (fax transmission reports), in the contract, both transports (`subscribeReportDeliveries`; the local one can `publishReportDeliveryStatus`) and `docs/architecture/LIVE_UPDATES_SIGNALR.md` §12. Test: `reportDeliveryStatus.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
+
+## Batch 547
+
+Deployment settings here are read through `appEnv()` (`services/runtimeConfig/`): the deployment's `config.json` at start-up, else the build's `VITE_*` value (`docs/architecture/RUNTIME_CONFIG.md`).
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `retryNow()` on `ILiveUpdateService`: when a restart is waiting out its back-off, start it now (the SignalR client; the local stand-in does nothing). Called when the browser fires `online`. Test in `liveUpdates.test.ts`.
+
+## Batch 550 (PS-539 phase 2d: exports through the server)
+
+- `ExportStatus` (`HUB_EXPORT_STATUS`, `parseExportStatusEvent` in `liveUpdateContract.ts`) and `subscribeExports` on `ILiveUpdateService`: the SignalR client delivers it, once per event id; the local service has nothing to send (exports are built in the browser). Test in `liveUpdates.test.ts`.
+
+## Batch 559 (PS-539 phase 2d: data topics)
+
+- `dataTopics.ts` (new): the topics for the screens that poll today, combining subscriptions, matching events, limits, the poll interval rule. `liveUpdateContract.ts`: `HUB_SET_DATA_TOPICS`, `HUB_DATA_CHANGED`, `parseDataChangedEvent`. `subscribeData` on both transports (the local one never fires). Test: `dataTopics.test.ts`.
+
+## Batch 560 (PS-539 phase 2d)
+
+- `dataTopics.ts`: `dataSubscriptionAccepted` (whether the hub took a subscription), `dataReadDelayMs` (at most one read a second, plus up to a second at random), `dataStaleAfterMs`. `subscribeData` takes `onAccepted`, told after each `SetDataTopics` answer and false after a drop.
+
+## Batch 562 (PS-539 phase 2d)
+
+- `dataTopics.ts`: topic `molecularQueue`.
+
+## Batch 571
+
+- `dataTopics.ts`: header records Pete's decision (Oct 14, 2026): this one event on `/hubs/live`, in place of per-screen events; future live screens add a topic.
+
+## Batch 572 (PS-539)
+
+- `dataTopics.ts`: topic `caseReport` (keyed by the case's support reference, never the case number): an open case report hears of another user's save. `DataChangedEvent.key` documents the support reference. Contract: `LIVE_UPDATES_SIGNALR.md` §14.
+
+## Batch 573 (PS-539)
+
+- `casePresence.ts` (new): who else has a case open: the hub methods and event (`JoinCasePresence`, `SetCasePresenceEditing`, `LeaveCasePresence`, `CasePresenceChanged`), parsing (contact details checked), and the rules (others in order, the one message to announce, the demo's messages and expiry). Contract: `LIVE_UPDATES_SIGNALR.md` §15.
+- `ILiveUpdateService.joinCasePresence`: the SignalR client joins after every (re)connection, retries a failed join, takes back a join answered after leaving, and sends an editing change made while joining; the local transport shares presence between this browser's windows (BroadcastChannel, heartbeat, goodbye on `pagehide`).

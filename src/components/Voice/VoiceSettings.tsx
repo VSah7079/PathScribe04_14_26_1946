@@ -6,6 +6,7 @@ import { FootPedalSection } from '../Config/System/FootPedalSection';
 import { useVoice } from '../../contexts/VoiceProvider';
 import { VOICE_PROFILES, VoiceProfile, VoiceProfileId } from '../../constants/voiceProfiles';
 import SpeechConfigTab from './SpeechConfigTab';
+import ConfigSectionGate from '../Config/ConfigSectionGate';
 
 const VoiceSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -29,7 +30,8 @@ const VoiceSettings: React.FC = () => {
     <div className="vset-root">
 
       {/* Deployment-level voice toggle — PathScribe staff */}
-      <VoiceSection />
+      {/* Batch 429: turning voice on or off for everyone is view only without config:voice:manage. */}
+      <ConfigSectionGate section="voice:deployment"><VoiceSection /></ConfigSectionGate>
 
       {/* Divider */}
       <div className="vset-divider">
@@ -53,7 +55,7 @@ const VoiceSettings: React.FC = () => {
               {t('voiceSettings.accentProfileDesc')}
             </p>
           </div>
-          <select
+          <select aria-label={t('voiceSettings.accentProfileTitle')}
             value={accent || 'EN-US'}
             onChange={handleAccentChange}
             className="vset-select"
@@ -64,6 +66,7 @@ const VoiceSettings: React.FC = () => {
               </option>
             ))}
           </select>
+          {accent === 'NL-BE' && <p className="vset-card-desc" role="note">{t('voiceSettings.nlBeUntested')}</p>}
         </div>
 
         {/* Mic Sensitivity Card */}
@@ -78,6 +81,7 @@ const VoiceSettings: React.FC = () => {
             </p>
           </div>
           <input
+            aria-label={t('voiceSettings.micSensitivityTitle')}
             type="range"
             defaultValue={85}
             className="vset-range"

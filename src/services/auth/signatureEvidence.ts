@@ -47,6 +47,8 @@ export interface SignatureEvidence {
   verifiedAt: string;
   /** SSO: the account that confirmed, when, and a SHA-256 of the ID token. */
   sso: { issuer: string; subject: string; authTime: number | null; tokenSha256: string } | null;
+  /** Batch 642: the sign-out session this signature rode on, when nothing was asked for it. */
+  sessionId?: string | null;
   /** 'browser' until the API server verifies signatures itself. */
   verifiedBy: 'browser' | 'server';
 }
@@ -104,7 +106,8 @@ export async function verifySignatureConfirmation(
   if (used.confirmationIds.has(c.confirmationId)) return { ok: false, reason: 'replayed' };
 
   let sso: SignatureEvidence['sso'] = null;
-  if (c.method === 'sso') {
+  // A sign-out inside a sign-out session carries the session, not a fresh token; the server checks the session and the policy.
+  if (c.method === 'sso' && !c.sessionReuse) {
     if (c.proof?.kind !== 'oidc-id-token' || !c.proof.idToken) return { ok: false, reason: 'proof_missing' };
     const claims = decodeJwtPayload(c.proof.idToken);
     const provider = findProvider(expected.config, profile.ssoProviderId);
@@ -128,7 +131,7 @@ export async function verifySignatureConfirmation(
     evidence: {
       confirmationId: c.confirmationId, signerId: c.signerId, signerName: c.signerName, action: c.action,
       caseRef: c.caseRef, method: c.method, confirmedAt: c.confirmedAt, verifiedAt: expected.now.toISOString(),
-      sso, verifiedBy: 'browser',
+      sso, sessionId: c.sessionReuse?.sessionId ?? null, verifiedBy: 'browser',
     },
   };
 }

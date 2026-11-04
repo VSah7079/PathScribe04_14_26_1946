@@ -37,7 +37,7 @@ export function resolveForensicSignOutAuthority(input: {
   /** YYYY-MM-DD, compared with the credential's effective/expiry dates. */
   asOfDate: string;
 }): ForensicSignOutDecision {
-  if (input.caseAuthority !== 'medicolegal_forensic') return { required: false, allowed: true };
+  if (input.caseAuthority !== 'statutory_judicial') return { required: false, allowed: true };
   // A forensic case with no jurisdiction can't be matched to any
   // appointment: refuse rather than guess.
   if (!input.jurisdiction) return { required: true, allowed: false };

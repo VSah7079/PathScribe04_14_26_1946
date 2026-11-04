@@ -11,15 +11,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
-import { authSession, authConfig } from "@/services";
+import { authSession, authConfig, mfaService } from "@/services/signIn";
+import { biometricFlow } from "@/services/biometric/biometricFlowInstance";
+import type { MfaChallengeResult, MfaEnrolConfirmResult, MfaEnrolStartResult, MfaStatus } from "@/services/auth/mfa/mfaService";
 import type { SessionProfile } from "@/services/auth/sessionProfile";
 import type { SsoDenialReason } from "@/services/auth/externalIdentity";
 import type { SsoProviderConfig } from "@/services/auth/authConfig";
+import type { SignInRefusal } from "@/services/auth/signInLockout";
 
 /** The signed-in user. See services/auth/sessionProfile.ts for the fields. */
 export type User = SessionProfile;
 
-export type SignInOutcome = 'success' | 'invalid_credentials' | 'session_conflict';
+/** Batch 456: a wrong password reports the attempts left, or the lock (signInLockout.ts). */
+export type SignInOutcome = 'success' | 'invalid_credentials' | 'session_conflict' | 'password_change_required' | 'mfa_required' | 'mfa_unavailable' | SignInRefusal;
+
+/** Batch 611 (#157): a password sign-in waiting for its second factor (no session has started). */
+export interface MfaPending { status: Extract<MfaStatus, 'enrol' | 'challenge'>; name: string }
+
+/** Batch 611 (#157): the second-factor steps of a password sign-in. */
+export interface MfaSignInApi {
+  pending: MfaPending | null;
+  enrolStart: () => Promise<MfaEnrolStartResult>;
+  /** Enrols; the sign-in finishes with finish() once the recovery codes were shown. */
+  enrolConfirm: (code: string) => Promise<MfaEnrolConfirmResult>;
+  /** A code or recovery code; on success the sign-in starts (or reports a session conflict). */
+  verify: (code: string, forceSupersede?: boolean) => Promise<Exclude<MfaChallengeResult, { ok: true }> | { ok: true; outcome: 'success' | 'session_conflict'; usedRecoveryCode: boolean; recoveryCodesLeft: number }>;
+  finish: (forceSupersede?: boolean) => 'success' | 'session_conflict';
+  cancel: () => void;
+  /** Demo only: the code the Simulated authenticator shows now. */
+  demoCode: () => Promise<string | null>;
+  simulated: boolean;
+}
 
 export type SsoCompletionOutcome =
   | { outcome: 'success'; returnPath: string }
@@ -33,6 +55,8 @@ interface AuthContextType {
   login: (email: string, password: string, forceSupersede?: boolean) => Promise<SignInOutcome>;
   /** Email + password sign-in is offered in this build. */
   passwordSignInEnabled: boolean;
+  /** Batch 611 (#157). */
+  mfa: MfaSignInApi;
   /** The SSO providers offered in this build. */
   ssoProviders: readonly SsoProviderConfig[];
   /** Sends the browser to the provider. Resolves with a reason if that failed, else null (on the way). */
@@ -58,12 +82,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showBiometricWizard, setShowBiometricWizard] = useState(false);
   const [loading, setLoading] = useState(true);
   const pendingSso = useRef<User | null>(null);
+  const pendingMfa = useRef<User | null>(null);
+  const [mfaPending, setMfaPending] = useState<MfaPending | null>(null);
 
   const start = useCallback((profile: User, forceSupersede: boolean): 'success' | 'session_conflict' => {
     const started = authSession.startSession(profile, forceSupersede);
     if (started.result === 'session_conflict') return 'session_conflict';
     setUser(profile);
-    if (started.showBiometricWizard) setTimeout(() => setShowBiometricWizard(true), 800);
+    // Batch 616: asked of the biometric flow (the server's answer on a server deployment).
+    void biometricFlow.shouldShowWizard(profile.id).then(show => { if (show) setTimeout(() => setShowBiometricWizard(true), 800); }).catch(() => undefined);
     return 'success';
   }, []);
 
@@ -71,11 +98,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await authSession.signInWithPassword(email, password);
       if (!profile) return 'invalid_credentials';
+      if (typeof profile === 'object' && 'refused' in profile) return profile;
+      // Batch 448: a password set from the Staff screen that must be changed
+      // first. No session starts until it is (LoginPage asks).
+      if (profile === 'password_change_required') return profile;
+      // Batch 611 (#157): the organisation's policy may ask for a second factor first.
+      const second = await mfaService.statusFor(profile);
+      if (second === 'unavailable') return 'mfa_unavailable';
+      if (second !== 'not_required') {
+        pendingMfa.current = profile;
+        setMfaPending({ status: second, name: profile.name });
+        return 'mfa_required';
+      }
       return start(profile, forceSupersede);
     } catch (e) {
       console.error("Login error:", e);
       return 'invalid_credentials';
     }
+  };
+
+  const clearMfa = () => { pendingMfa.current = null; setMfaPending(null); };
+
+  const finishMfa = useCallback((forceSupersede = false): 'success' | 'session_conflict' => {
+    const profile = pendingMfa.current;
+    if (!profile) return 'success';
+    const r = start(profile, forceSupersede);
+    if (r === 'success') { pendingMfa.current = null; setMfaPending(null); }
+    return r;
+  }, [start]);
+
+  const mfa: MfaSignInApi = {
+    pending: mfaPending,
+    simulated: mfaService.simulatedFactorAvailable(),
+    enrolStart: async () => (pendingMfa.current ? mfaService.enrolmentStart(pendingMfa.current) : { ok: false, reason: 'unavailable' }),
+    enrolConfirm: async code => {
+      const profile = pendingMfa.current;
+      if (!profile) return { ok: false, reason: 'unavailable' };
+      const r = await mfaService.enrolmentConfirm(profile, code);
+      if (r.ok) pendingMfa.current = { ...profile, mfa: r.stamp };
+      return r;
+    },
+    verify: async (code, forceSupersede = false) => {
+      const profile = pendingMfa.current;
+      if (!profile) return { ok: false, reason: 'not_enrolled' };
+      const r = await mfaService.challenge(profile, code, 'sign-in');
+      if (r.ok === false) return r;
+      pendingMfa.current = { ...profile, mfa: r.stamp };
+      return { ok: true, outcome: finishMfa(forceSupersede), usedRecoveryCode: r.usedRecoveryCode, recoveryCodesLeft: r.recoveryCodesLeft };
+    },
+    finish: finishMfa,
+    cancel: clearMfa,
+    demoCode: async () => (pendingMfa.current ? mfaService.demoCurrentCode(pendingMfa.current) : null),
   };
 
   const beginSsoSignIn = async (providerId: string, returnPath: string): Promise<SsoDenialReason | null> => {
@@ -148,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         login,
         passwordSignInEnabled: authConfig.passwordSignIn,
+        mfa,
         ssoProviders: authConfig.providers,
         beginSsoSignIn,
         completeSsoSignIn,
@@ -173,6 +247,12 @@ export function roleHas(user: User | null, check: "pathologist" | "admin"): bool
   if (user.role === "pathologist-admin") return true;
   return user.role === check;
 }
+/** Batch 430: the auth context when there is one (providers that may also render
+ *  outside AuthProvider, e.g. in tests); null otherwise. */
+export function useAuthOptional() {
+  return useContext(AuthContext);
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");

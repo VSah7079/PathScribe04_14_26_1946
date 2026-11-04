@@ -1,0 +1,206 @@
+---
+chapter: 99
+id: ch99
+title: Anhang: Glossar der Begriffe und Abkürzungen
+---
+
+# Glossar {#ch99}
+
+Jeder Begriff unten wird bei seiner ersten Verwendung in einem Abschnitt des Handbuchs verlinkt. Ein hier genannter Standard oder Hersteller wird als Begriff erklärt; ob PathScribe ihn unterstützt, steht im Kapitel zur jeweiligen Funktion, nie im Glossar.
+
+- **ACK**: In HL7 die Bestätigungsnachricht (Acknowledgement), mit der ein empfangendes System meldet, dass es eine Nachricht angenommen oder abgelehnt hat.
+- **Probeneingang**: Der Vorgang, eine Probe entgegenzunehmen und ihr eine dauerhafte Fallnummer zu geben; auch diese Nummer selbst (die Eingangsnummer). Sie verbindet einen Fall mit dem physischen Gewebe und seiner Probenkette.
+- **Eingangsnummer**: Die dauerhafte Kennung eines Falls, gebildet aus der Fallmaske der Einrichtung. Sie wird auf dem Bildschirm wie eine Patientenkennung behandelt: Sie steht in Patientendaten-Tags, damit Screenshots geschwärzt werden können.
+- **Aktionsgruppe**: Ein benanntes Bündel von Befehlen des Aktionsregisters, das eine Arbeitsplatzgruppe zulassen oder standardmäßig laden kann.
+- **Aktionsregister**: Die Liste der Sprach- und Tastaturbefehle, die PathScribe kennt. Die Befehle sind keine Zugriffskontrolle; das sind die Berechtigungen.
+- **ADT**: Aufnahme, Entlassung, Verlegung (Admit, Discharge, Transfer). Die Familie der HL7-Nachrichten, die Patientenaufnahme und -bewegung übermitteln, etwa A01 (Aufnahme), A08 (Patient aktualisieren) und A40 (Patienten zusammenführen).
+- **KI-Anbieterrichtlinie**: Eine Regel je Rechtsraum, die festlegt, welche KI-Dienste und Hosting-Regionen verwendet werden dürfen. Ein Aufruf, den die Regel ablehnt, wird nicht gesendet, und die Funktion arbeitet ohne KI weiter.
+- **AMA**: American Medical Association, Herausgeberin und Inhaberin des CPT-Codesatzes.
+- **AP-LIS**: Laborinformationssystem für die anatomische Pathologie, das System, das Fälle der chirurgischen Pathologie und der Zytologie vom Probeneingang bis zur Freigabe abwickelt.
+- **API**: Programmierschnittstelle (Application Programming Interface). Der PathScribe-API-Server ist der ASP.NET-Core-Dienst, den der Browser für alle Produktivdaten aufruft.
+- **APLIS-Zuordnung**: Der Wert, als der ein Behältertyp im Probenfeld einer HL7-Nachricht gesendet wird, damit ein anderes System den Behälter erkennen kann.
+- **nur anhängend**: Ein Datensatz, dem die Anwendung etwas hinzufügen, den sie aber nie bearbeiten oder löschen kann. Das Prüfprotokoll ist von Grund auf nur anhängend.
+- **ASP.NET Core**: Das Microsoft-Webframework, auf dem der API-Server von PathScribe aufgebaut ist.
+- **Assistenzmodus**: Eine Betriebsart von PathScribe neben einem bestehenden LIS, in der das LIS den Fall weiter führt und PathScribe dessen Aktualisierungen liest und Befunde zur Prüfung durch die Pathologin oder den Pathologen entwirft.
+- **Prüfprotokoll**: Die Aufzeichnung dessen, was Personen, das System und die KI getan haben, einsehbar auf dem Bildschirm Systemprotokolle. Der Detailtext ist englisch und enthält keine Patientennamen und keine klinischen Werte.
+- **BAA**: Business Associate Agreement. Ein Vertrag, den die HIPAA-Vorschriften zwischen einer US-Gesundheitsorganisation und einem Anbieter verlangen, der deren geschützte Gesundheitsdaten verarbeitet.
+- **Bethesda**: Das Befundungssystem für zervikale Zytologiebefunde und die Probenadäquatheit, in den Vereinigten Staaten und weithin darüber hinaus verwendet.
+- **BI-Feed**: Der Berichts-Feed, der einem Business-Intelligence-Werkzeug wie Power BI Datensätze liefert. Er kann deidentifiziert oder identifiziert sein; für die identifizierte Nutzung ist eine dokumentierte Genehmigung nötig.
+- **Block**: Ein in Wachs eingebettetes Gewebestück in einer Kassette, von dem Schnitte angefertigt werden.
+- **Break-Glass**: Eine eingeschränkte Aktion, die eine normale Schutzvorkehrung übergeht und stets einen Grund und eine schriftliche Begründung erfordert. Die Neuzuordnung des Patienten in den Systemprotokollen ist ein Beispiel.
+- **BSN**: Burgerservicenummer, die nationale Bürgerservicenummer der Niederlande, als Patientenkennung verwendet.
+- **Krebsregister**: Eine Stelle, die Krebsdiagnosen für ein Land oder eine Region sammelt, etwa die NAACCR-Register in Nordamerika oder die COSD-Erhebung in England.
+- **CAP**: Das College of American Pathologists. Es akkreditiert Labore und veröffentlicht die Krebsprotokolle (Checklisten), denen die synoptischen Befunde von PathScribe folgen.
+- **CAP eCC**: CAP Electronic Cancer Checklists, die strukturierte Form der CAP-Krebsprotokolle, verteilt als SDC-XML.
+- **CAPA**: Korrektur- und Vorbeugemaßnahme (Corrective and Preventive Action). Eine nachverfolgte Reaktion auf ein Qualitätsproblem, mit Verantwortlichem und einem Grund für das Eröffnen oder Verwerfen.
+- **Berechtigung**: Eine einzelne Erlaubnis, benannt in der Form `domain:object:verb`, etwa `config:roles:manage`. Rollen werden Berechtigungen zugewiesen, und jede geschützte Aktion prüft eine davon.
+- **Berechtigungskatalog**: Die vollständige Liste der Berechtigungen, mit der Risikostufe jeder Berechtigung und jeder Berechtigung, die sie voraussetzt.
+- **Fall**: Eine Patientenepisode im Labor, gekennzeichnet durch eine Eingangsnummer und bestehend aus einer oder mehreren Proben und einem Befund.
+- **Fallmaske**: Das Muster, dem eine Eingangsnummer folgt: ein Präfix, ein Muster wie das Jahr und eine laufende Nummer, sowie ein Zähler, der durch eine Änderung des Musters nie zurückgesetzt wird.
+- **Kassette**: Der Kunststoffhalter, in dem ein Gewebeblock zum Schneiden eingebettet und beschriftet wird.
+- **Leistungserfassung**: Das Erfassen der abrechenbaren Arbeit an einem Fall, damit sie zur Abrechnung gesendet werden kann.
+- **CHI-Nummer**: Community Health Index, die in Schottland verwendete Patientenkennung.
+- **CLIA**: Clinical Laboratory Improvement Amendments, die US-Bundesvorschriften für Laboruntersuchungen. CLIA legt unter anderem Grenzen für die zytologische Arbeitsmenge fest.
+- **Service-Level des Einsenders**: Die vereinbarte Zeit, in der die Fälle eines Einsenders befundet werden sollen, je einsendender Einrichtung geführt.
+- **CMS**: Die Centers for Medicare and Medicaid Services, die US-Behörde, die die Medicare-Abrechnungsregeln festlegt, einschließlich der NCCI-Edits.
+- **config.json**: Die Datei auf dem Webserver, die einer Installation ihre Einstellungen gibt, etwa die Adresse des API-Servers. Ein falscher Wert verhindert den Start von PathScribe.
+- **Konsil-Link**: Ein reiner Ansichtslink, der für einen Fall an einen externen Konsiliarius ausgestellt wird. Er kann sofort widerrufen werden und läuft von selbst ab.
+- **COSD**: Cancer Outcomes and Services Dataset, der englische nationale Datensatz für die Krebsregistrierung.
+- **Gegenzeichnung**: Eine zweite Unterschrift unter einem Befund von einer anderen qualifizierten Person, zum Beispiel eines Pathologen unter der Arbeit eines Zytologieassistenten.
+- **CPT**: Current Procedural Terminology, der AMA-Codesatz für medizinische und labormedizinische Verfahren, für die Abrechnung in den Vereinigten Staaten verwendet.
+- **CRM**: Zirkumferenzieller Resektionsrand (Circumferential Resection Margin), der Abstand von einem Tumor zum Schnittrand einer Resektion, in kolorektalen Befunden dokumentiert.
+- **kritischer Befund**: Ein Befund, den das Labor dem Arzt rasch mitteilen muss, wobei die Mitteilung dokumentiert wird.
+- **Crosswalk**: Eine Tabelle, die einen Code aus einem System in ein anderes übersetzt, etwa einen externen Auftragscode in einen PathScribe-Probentyp.
+- **CSV**: Comma-separated values, ein Nur-Text-Tabellenformat. Die Exporte von PathScribe sind CSV-Dateien.
+- **Zytologieassistent**: Eine Fachkraft im Labor, die Zytologie-Objektträger durchmustert und auffällige an einen Pathologen weitergibt.
+- **Dead Letter**: Eine Nachricht oder ein Auftrag, die oder der alle automatischen Wiederholungen nicht bestanden hat und nun darauf wartet, dass eine Person ihn erneut sendet oder verwirft.
+- **Delegation**: Die Übergabe eines Falls an einen anderen Pathologen für ein Peer-Review, eine Zweitmeinung, eine Weiterleitung an eine Subspezialität oder eine Tumorboard-Besprechung.
+- **Demonstrationsversion**: Eine Version von PathScribe, die ihre Daten im Browser hält und Demonstrationskonten enthält. Sie verbindet sich nie mit einem echten API-Server.
+- **Abteilung**: Die grobe Klasse einer Probe beim Eingang, etwa chirurgisches Gewebe oder Flüssigkeitszytologie. Sie steuert die Zuschnittvorlage, die Fallmaske und jede abweichende Aufbewahrungsregel.
+- **DFT**: Detailed Financial Transaction, die HL7-Nachricht, die Leistungen an ein Abrechnungssystem übermittelt.
+- **Diskordanz**: Ein Unterschied zwischen zwei Beurteilungen desselben Materials, etwa einer vorläufigen und einer endgültigen Diagnose oder einer ersten und einer zweiten Pathologin.
+- **Anzeigeprofil**: Ein gespeichertes Layout von Dashboard-Kacheln, das eine Wandanzeige darstellt.
+- **DLQ**: Dead-Letter-Queue, die Liste der Nachrichten, die alle Wiederholungen nicht bestanden haben. Die Systemprotokolle haben eine für ausgehende Schnittstellennachrichten und eine für Leistungen.
+- **Geburtsdatum**: Datum der Geburt (DOB).
+- **Leistungsdatum**: Datum der Leistung (DOS), das Datum, an dem eine abgerechnete Leistung erbracht wurde.
+- **AVV**: Auftragsverarbeitungsvertrag (Data Processing Agreement, DPA), der nach der DSGVO erforderliche Vertrag zwischen einem Verantwortlichen und einem Auftragsverarbeiter.
+- **Einbettung**: Der Schritt, in dem aufbereitetes Gewebe in einer Kassette in Wachs eingegossen wird, um einen Block herzustellen.
+- **EMR**: Elektronische Patientenakte (Electronic Medical Record), das Krankenhaussystem, das die Akte des Patienten enthält und Aufträge sendet.
+- **Unternehmen**: Die oberste Ebene der Organisation eines Kunden in PathScribe. Hier vorgenommene Einstellungen gelten für jeden Rechtsraum und jede Einrichtung darunter, sofern sie nicht überschrieben werden.
+- **ePath**: Elektronische Pathologie-Meldung, das Senden von Pathologiebefunden an ein Krebsregister in einer elektronischen Standardform.
+- **Fehlercode**: Ein kurzer Code in Großbuchstaben, etwa `NOT_PERMITTED`, der einem Bildschirm oder einem Administrator mitteilt, warum ein Aufruf fehlgeschlagen ist. Der Meldungstext des Servers wird nie verwendet, weil er einen Patienten nennen könnte.
+- **EU**: Europäische Union.
+- **Einrichtung**: Ein Labor oder Standort innerhalb eines Unternehmens. Eine durchführende Einrichtung führt die Untersuchungen aus; eine einsendende Einrichtung sendet nur Proben.
+- **FAD**: Endgültige anatomische Diagnose (Final Anatomical Diagnosis), die Enddiagnose eines Obduktionsberichts, das Gegenstück zur PAD.
+- **FHIR**: Fast Healthcare Interoperability Resources, ein HL7-Standard für den Austausch von Gesundheitsdaten über Webschnittstellen.
+- **Pflichtfelder**: Die Einstellungen, die bestimmen, welche Felder eine Seite ausgefüllt haben muss, bevor ein Schritt abgeschlossen werden kann.
+- **Kennzeichnung**: Eine Markierung an einem Fall oder einer Probe, zum Beispiel um eine zusätzliche Färbung anzufordern oder einen Fall zurückzuhalten.
+- **FNA**: Feinnadelaspiration, eine Biopsie, die Zellen durch eine dünne Nadel aufzieht.
+- **FOV**: Sichtfeld (Field of View), ein Bereich auf einem Zytologie-Objektträger, den ein KI-Werkzeug oder eine Screening-Fachkraft untersucht.
+- **Vier-Augen-Prinzip**: Eine Regel, nach der eine Person eine Änderung vorbereitet und eine andere Person sie genehmigt. Der Import der Abrechnungscodes verwendet es.
+- **FPPE**: Focused Professional Practice Evaluation, eine strukturierte Überprüfung der Arbeit einer klinisch tätigen Person, verwendet bei neuen Befugnissen oder bei einem Anlass zur Sorge.
+- **Schnellschnitt**: Eine Gewebeprobe, die während einer Operation gefroren und geschnitten wird, damit ein Pathologe rasch eine Auskunft geben kann.
+- **DSGVO**: Die Datenschutz-Grundverordnung der EU. Das Vereinigte Königreich hat eine eigene Fassung, die UK GDPR.
+- **Aufsichtsbehörde**: Die Stelle, deren Regeln ein Rechtsraum folgt, etwa CAP oder ein nationales College, die Mindestaufbewahrungsfristen und Anforderungen festlegt.
+- **GS1**: Die Normungsorganisation hinter den Barcodeformaten und der GTIN-Nummerierung, die auf Kassetten- und Objektträgeretiketten verwendet werden.
+- **GTIN**: Global Trade Item Number, die Nummer, die ein GS1-Barcode trägt. Die Druckeinstellungen enthalten die GTIN der Einrichtung.
+- **GYN**: Gynäkologisch, wie in der GYN-Zytologie, dem Screening von Zervixproben.
+- **Zuschnitt**: Die Untersuchung und das Zuschneiden einer chirurgischen Probe durch einen Pathologen oder pathologischen Assistenten, wobei sie beschrieben wird und die zu verarbeitenden Stücke ausgewählt werden.
+- **HCPCS**: Healthcare Common Procedure Coding System, der US-Codesatz, der CPT um Codes für Material und Leistungen ergänzt.
+- **HIPAA**: Der US-amerikanische Health Insurance Portability and Accountability Act, der Regeln zum Schutz von Patientengesundheitsdaten festlegt.
+- **Histologie-Fachkraft**: Eine Fachkraft im Labor, die Gewebe einbettet sowie Schnitte anfertigt und färbt.
+- **HL7**: Health Level Seven, die Familie von Standards für den Austausch von Gesundheitsinformationen zwischen Systemen.
+- **HL7 v2**: Das weit verbreitete HL7-Nachrichtenformat aus Zeilen mit durch senkrechte Striche getrennten Feldern, wobei jede Nachricht mit einem MSH-Segment beginnt.
+- **Hosting-Region**: Die geografische Region, in der ein Cloud-KI-Dienst Daten verarbeitet. Die KI-Anbieterrichtlinie kann Regionen zulassen oder ablehnen.
+- **HPV**: Humanes Papillomavirus. Ein Hochrisiko-HPV-Ergebnis (hrHPV) wird zusammen mit der Zervixzytologie verwendet.
+- **Hub**: Der SignalR-Dienst, der Live-Aktualisierungen vom API-Server an geöffnete Bildschirme sendet.
+- **ICD-10**: Die Internationale Klassifikation der Krankheiten, zehnte Revision, ein Diagnosecodesatz.
+- **ICD-11**: Die elfte Revision der Internationalen Klassifikation der Krankheiten.
+- **ICD-O**: Internationale Klassifikation der Krankheiten für die Onkologie, die Tumorlokalisation und -typ (Morphologie) codiert. Die dritte Ausgabe ist ICD-O-3, mit Codes wie 8500/3.
+- **Identitätsanbieter**: Der Dienst, der Personen für Single Sign-On anmeldet, etwa das Microsoft-Entra-Verzeichnis eines Krankenhauses.
+- **IHC**: Immunhistochemie, eine Färbung, die Antikörper verwendet, um bestimmte Proteine im Gewebe sichtbar zu machen.
+- **Tuschieren**: Das Markieren der Oberfläche einer Probe mit farbiger Tusche, damit Ränder auf dem Objektträger erkannt werden können.
+- **intraoperativ**: Während einer Operation. Intraoperative Konsultationen, etwa Schnellschnitte, werden in der Warteschlange für intraoperative Fälle bearbeitet.
+- **IPP**: Internet Printing Protocol, ein Netzwerk-Druckprotokoll. In französischen Texten ist IPP auch die Patientenkennung, die anstelle der MRN verwendet wird.
+- **IPPS**: Internet Printing Protocol über TLS. Ein Drucker mit IPPS bestätigt, dass ein Auftrag gedruckt wurde; deshalb sollten die Befunddrucker eines Standorts es verwenden, wo sie können.
+- **ISO 15189**: Die internationale Norm für die Qualität und Kompetenz medizinischer Laboratorien.
+- **Rechtsraum**: Ein Land oder nationales Gesundheitssystem, dessen Regeln PathScribe anwendet, etwa die Vereinigten Staaten, England und Wales oder Deutschland. Er legt Codesysteme, Signierregeln, Mindestaufbewahrungsfristen und Formate fest.
+- **JSON**: JavaScript Object Notation, ein Nur-Text-Datenformat, das von der API, von `config.json` und von Webhooks verwendet wird.
+- **LBC**: Flüssigkeitsbasierte Zytologie (Liquid-Based Cytology), eine Methode, Zervix- und andere Zytologieproben in Flüssigkeit aufzubereiten.
+- **LIS**: Laborinformationssystem, die Software, die Aufträge, Proben und Ergebnisse eines Labors verwaltet.
+- **LOINC**: Logical Observation Identifiers Names and Codes, ein Codesatz für Laboruntersuchungen und Beobachtungen.
+- **Briefkasten für Proben**: Eine Abgabestelle, an der Proben außerhalb der Arbeitszeit entgegengenommen werden. Jede Abgabe erhält einen Beleg, und ein Barcode ohne Auftrag erhält einen Platzhalter, nie eine Eingangsnummer.
+- **LPR**: Line Printer Remote, ein älteres Netzwerk-Druckprotokoll (auch LPR/LPD geschrieben). Es kann nicht bestätigen, dass eine Seite gedruckt wurde.
+- **MACRA**: Der US-amerikanische Medicare Access and CHIP Reauthorization Act, der das Quality Payment Program schuf, zu dem MIPS gehört.
+- **Makro**: Ein gespeicherter Text oder eine Gruppe von Einstellungen, etwa eine Befundformulierung oder eine Färbungsanforderung, die in einem Schritt eingefügt werden kann.
+- **MDT**: Multidisziplinäre Teambesprechung, auch Tumorboard genannt, in der Fachleute die Versorgung eines Patienten besprechen.
+- **MFA**: Multi-Faktor-Authentifizierung, die Anmeldung mit einem zweiten Nachweis, etwa einem Code aus einer Authenticator-App, zusätzlich zu einem Passwort.
+- **Mikrotomie**: Das Schneiden dünner Schnitte von einem Block mit einem Mikrotom, um Objektträger herzustellen.
+- **MIPS**: Das Merit-based Incentive Payment System, ein US-Medicare-Programm, das die Vergütung nach gemeldeten Qualitätsmaßen anpasst.
+- **Milan-System**: Das Befundungssystem für die Feinnadelaspirationszytologie der Speicheldrüsen.
+- **Modifikator**: Ein kurzer Code, der einem CPT-Code hinzugefügt wird, um anzugeben, wie eine Leistung erbracht wurde, zum Beispiel dass nur die technische Komponente erbracht wurde.
+- **Mohs**: Mohs-mikrografische Chirurgie, bei der Hautkrebs in dünnen Schichten entfernt wird und jede Schicht unter dem Mikroskop geprüft wird, bevor die nächste entnommen wird.
+- **MPI**: Master Patient Index, der Datensatz, der die verschiedenen Kennungen eines Patienten verknüpft.
+- **MRN**: Medizinische Aktennummer (Medical Record Number), die Kennung, die eine Einrichtung einem Patienten gibt.
+- **MSH**: Das erste Segment einer HL7-v2-Nachricht. Es nennt Absender, Empfänger, Nachrichtentyp und Version.
+- **NAACCR**: Die North American Association of Central Cancer Registries, die Datenstandards für die Meldung an Krebsregister in Nordamerika festlegt.
+- **NATA**: Die National Association of Testing Authorities, die Labore in Australien akkreditiert.
+- **NCCI**: National Correct Coding Initiative, eine Reihe von US-Medicare-Edits, die festlegen, welche Codepaare nicht gemeinsam abgerechnet werden dürfen.
+- **NCRAS**: Der National Cancer Registration and Analysis Service, die englische Krebsregisterstelle, die COSD-Meldungen entgegennimmt.
+- **NHI**: National Health Index, die in Neuseeland verwendete Patientenkennung.
+- **NHS-Nummer**: Die zehnstellige Patientenkennung, die im NHS in England und Wales verwendet wird. Die letzte Ziffer ist eine Prüfziffer.
+- **NLM**: Die US National Library of Medicine, Quelle öffentlicher Terminologie-Abfragen wie UMLS.
+- **Non-GYN**: Zytologie außer dem Zervix-Screening, etwa Flüssigkeiten, Urin und Feinnadelaspirate.
+- **NPI**: National Provider Identifier, die zehnstellige Kennung eines US-Leistungserbringers, die auf einer Leistung erforderlich ist.
+- **OIDC**: OpenID Connect, der Anmeldestandard, den PathScribe für Single Sign-On verwendet.
+- **OML**: Der HL7-Nachrichtentyp für Laboraufträge (OML^O21).
+- **OPCS-4**: Die britische Klassifikation chirurgischer Operationen und Verfahren.
+- **ORM**: Der allgemeine HL7-Nachrichtentyp für Aufträge (ORM^O01).
+- **ORU**: Der HL7-Nachrichtentyp für unaufgefordert gesendete Beobachtungsergebnisse. ORU^R01 übermittelt ein Ergebnis.
+- **Ausgangswarteschlange**: Die Liste der Nachrichten und Leistungen, die PathScribe erstellt hat und die noch nicht gesendet sind, zurückgehalten, gesendet oder fehlgeschlagen sind.
+- **OP-Terminal**: Ein Bildschirm in einem Operationssaal-Bereich, um intraoperative Fälle einzusehen und zu bearbeiten.
+- **PAD**: Vorläufige anatomische Diagnose (Preliminary Anatomical Diagnosis), die erste Diagnose eines Obduktionsberichts. Ein Leichnam kann freigegeben werden, sobald eine PAD signiert ist und keine ergänzende Sperre aktiv ist.
+- **Paris-System**: Das Befundungssystem für die Zytologie der Harnwege.
+- **Beteiligungsart**: Eine Rolle, die eine Person in einem Fall einnimmt, etwa primärer Pathologe oder Screener, mit eigener Signierbefugnis.
+- **Teilebibliothek**: Die wiederverwendbaren Teile, etwa ein Block von Fragen, aus denen Befundvorlagen zusammengesetzt werden.
+- **PDF**: Portable Document Format, die Form, in der ein signierter Befund gespeichert und gedruckt wird.
+- **Peer-Review**: Eine unabhängige Beurteilung eines Falls durch eine zweite Pathologin, die vor der Freigabe bei einer erstmaligen Malignität verlangt werden kann.
+- **durchführendes Labor**: Die Einrichtung, die die Untersuchung ausführt und den Befund ausstellt, im Gegensatz zu einem Einsender, der nur Proben sendet.
+- **PHI**: Geschützte Gesundheitsdaten (Protected Health Information), alle Daten, die einen Patienten zusammen mit Gesundheitsinformationen identifizieren. Patientenkennungen auf dem Bildschirm sind markiert, damit Screenshots geschwärzt werden können.
+- **PHIN-MS**: Das Public Health Information Network Messaging System, ein US-Transportweg zum Senden von Meldungen an das öffentliche Gesundheitswesen.
+- **Platzhalter**: Ein Datensatz, der für einen Briefkasten-Barcode angelegt wird, zu dem noch kein Auftrag vorliegt. Er enthält den Beleg und wird später mit einem Auftrag verknüpft; er erhält nie eine Eingangsnummer.
+- **PPS-Nummer**: Die Personal Public Service Number, die in Irland als Patientenkennung verwendet wird.
+- **Druckwarteschlange**: Die Liste der Druckaufträge für Befunde und Etiketten mit ihrem Status, von in der Warteschlange bis gedruckt oder fehlgeschlagen.
+- **Druckerprofil**: Die gespeicherten Einstellungen für ein Druckermodell, einschließlich seiner Verbindungsmethode (Bridge).
+- **Produktionsschranke**: Ein Schalter, der geschlossen bleibt, bis ein Labor das Senden echter Daten an eine echte Schnittstellen-Engine freigibt.
+- **Protokoll**: Ein strukturierter Fragensatz für die Befundung einer Art von Fall, etwa ein CAP-Krebsprotokoll, aus dem ein synoptischer Befund aufgebaut wird.
+- **QA**: Qualitätssicherung (Quality Assurance), die Überprüfung von Arbeit, um Probleme zu finden und zu beheben.
+- **QC**: Qualitätskontrolle (Quality Control), die Prüfungen, die bestätigen, dass ein Prozess wie vorgesehen arbeitet, etwa eine zweite Durchsicht gescreenter Objektträger.
+- **QZ Tray**: Ein kleines Programm auf einem Computer, mit dem eine Webseite ohne Druckdialog auf einem lokalen Drucker drucken kann, etwa einem Etikettendrucker.
+- **RBAC**: Rollenbasierte Zugriffskontrolle (Role-Based Access Control). Personen erhalten Rollen, Rollen enthalten Berechtigungen, und eine Berechtigung entscheidet, ob eine Aktion erlaubt ist.
+- **Reagenzcharge**: Eine nachverfolgte Charge einer Färbung, Lösung oder eines Reagenzes, mit ihren Daten und ihrer Verwendung.
+- **Referenzlabor**: Ein Labor, an das Untersuchungen weitergeleitet werden. Einer Einrichtung wird die Rolle Referenzlabor zugewiesen.
+- **Register**: Eine Stelle, die Meldungen zu einer Krankheit oder einem Screening-Ergebnis für ein Land oder Programm sammelt, etwa ein Krebs- oder Zervixscreening-Register.
+- **Aufbewahrung**: Wie lange eine Art von Daten oder Material aufbewahrt wird. Aufbewahrungsfristen werden je Rechtsraum festgelegt, mit einer optionalen Abweichung.
+- **Aufbewahrungssperre**: Eine Sperre, die nach der Finalisierung die Entsorgung des Materials eines Falls verhindert, zum Beispiel wegen eines Rechtsstreits.
+- **Rolle**: Ein benannter Satz von Berechtigungen für Mitarbeitende, etwa Admin oder Pathologe. Eine Person kann mehrere Rollen haben.
+- **ROSE**: Rapid On-Site Evaluation, bei der die Adäquatheit einer Probe zum Zeitpunkt der Entnahme beurteilt wird.
+- **RVU**: Relative Value Unit, das Maß für Aufwand und Kosten einer Leistung, das in der Medicare-Vergütung und in Produktivitätsberichten verwendet wird.
+- **SAML**: Security Assertion Markup Language, ein älterer Single-Sign-On-Standard. Das Single Sign-On von PathScribe verwendet OIDC.
+- **Scanstation**: Ein benannter Arbeitsplatzaufbau mit seinen Druckern und seiner Anzeige, den eine Person auswählt, damit Etiketten und Scans an den richtigen Ort gehen.
+- **SCIM**: System for Cross-domain Identity Management, ein Standard, mit dem ein Identitätsanbieter Mitarbeiterkonten automatisch anlegt und deaktiviert.
+- **SDC**: Structured Data Capture, der XML-Formularstandard, mit dem die elektronischen CAP-Krebs-Checklisten verteilt werden.
+- **Funktionstrennung**: Eine Regel, nach der zwei Befugnisse nicht bei einer Person liegen dürfen, etwa die Regeln zur klinischen Abweichungsprüfung zu ändern und die KI-Anweisungen zu genehmigen.
+- **Server-Version**: Eine Version von PathScribe für einen echten Einsatz, ohne Demonstrationskonten, die sich über den Identitätsanbieter anmeldet und mit dem API-Server spricht.
+- **SFTP**: SSH File Transfer Protocol, ein sicherer Weg, Dateien auf ein anderes System zu kopieren.
+- **SHA-256**: Ein kryptografischer Hash, der eine Datei oder einen Datensatz in einen festen Fingerabdruck umwandelt und zum Erkennen einer Änderung dient.
+- **SignalR**: Die Microsoft-Technologie, mit der PathScribe Live-Aktualisierungen vom Server an geöffnete Bildschirme sendet.
+- **Signierbefugnis**: Die Arten von Befunden, die eine Person freigeben darf, festgelegt durch die Beteiligungsart und die Regeln des Landes.
+- **Single Sign-On**: Einmal Anmelden mit dem Identitätsanbieter einer Organisation anstelle eines PathScribe-Passworts. Auch SSO geschrieben.
+- **Standort-Agent**: Ein kleiner Windows-Dienst, der in einem Labor installiert ist, Befunde und Etiketten druckt und Dateien auf Freigaben im Krankenhausnetzwerk schreibt, auf Anweisung des API-Servers.
+- **SLA**: Service Level Agreement, eine vereinbarte Zeit, in der Arbeit erledigt wird.
+- **SNOMED CT**: Systematized Nomenclature of Medicine, Clinical Terms, eine umfangreiche klinische Terminologie.
+- **Probe**: Eine einem Patienten entnommene Probe, etwa eine Biopsie oder ein reseziertes Organ. Ein Fall enthält eine oder mehrere Proben.
+- **SSO**: Single Sign-On. Siehe Single Sign-On.
+- **Färbung**: Ein Farbstoff oder Antikörper, der auf einen Objektträger aufgebracht wird, damit ein Merkmal des Gewebes sichtbar wird.
+- **STAT**: Dringend, sofort zu erledigen.
+- **Subspezialität**: Ein Bereich der Pathologie, etwa Mamma oder Gastrointestinaltrakt, der zur Verteilung von Fällen verwendet wird. Eine Subspezialität kann auf den Pool-Modus umgestellt werden.
+- **Support-Referenz**: Ein zufälliger, nicht identifizierender Code der Form `SR-XXXX-XXXX`, den Mitarbeitende dem Support anstelle einer Fallnummer nennen.
+- **synoptisch**: Ein Befund, der aus einem festen Satz strukturierter Fragen aufgebaut ist, sodass jede erforderliche Angabe in derselben Form beantwortet wird.
+- **TAT**: Durchlaufzeit (Turnaround Time), die Zeit von einem Schritt zum anderen, etwa vom Eingang bis zur Freigabe.
+- **Mandant**: Der abgetrennte Bereich einer Kundenorganisation innerhalb eines gemeinsam genutzten PathScribe-Dienstes.
+- **TC**: Technische Komponente, der Teil einer Leistung, der die Arbeit des Labors abdeckt und getrennt von der professionellen Komponente abgerechnet wird (Code 26).
+- **TLS**: Transport Layer Security, die Verschlüsselung, die eine Webverbindung schützt und als https erscheint.
+- **Tumorboard**: Eine multidisziplinäre Besprechung von Krebsfällen. Auch MDT genannt.
+- **UKAS**: Der United Kingdom Accreditation Service, der Labore im Vereinigten Königreich akkreditiert.
+- **UMLS**: Das Unified Medical Language System, eine Sammlung medizinischer Vokabulare der US National Library of Medicine.
+- **UTC**: Koordinierte Weltzeit, der Zeitstandard, in dem Prüfeinträge gespeichert und angezeigt werden.
+- **VNA**: Vendor-Neutral Archive, ein Bildspeicher, der medizinische Bilder in einer neutralen Form vorhält.
+- **WCAG**: Web Content Accessibility Guidelines, der Standard, um Webinhalte für Menschen mit Behinderungen nutzbar zu machen.
+- **Webhook**: Eine Webadresse, die ein System aufruft, um ein anderes zu aktualisieren, etwa ein LIS, das eine Statusänderung als JSON sendet.
+- **Arbeitsplatz**: Ein registrierter Computer in einer Einrichtung, mit seiner Fachrichtung, seinem Bereich und seinen zugeordneten Druckern.
+- **Arbeitsplatzgruppe**: Eine Gruppe von Scanstationen, nach Fachrichtung und Bereich zusammengefasst, auf eine Einrichtung beschränkt und mit Standard-Aktionsgruppen versehen.
+- **WSI**: Whole Slide Imaging, das Einscannen eines Glasobjektträgers zu einem digitalen Bild, das am Bildschirm betrachtet werden kann.
+- **X12**: Der ANSI-Standard für elektronische Geschäftsvorgänge, einschließlich Gesundheitsabrechnungen in den Vereinigten Staaten.
+- **XML**: Extensible Markup Language, ein Textformat, das von CAP-SDC-Formularen und einigen Registerdateien verwendet wird.
+- **ZPL**: Zebra Programming Language, die Druckersprache, die das Layout eines Etiketts für Etikettendrucker vom Typ Zebra beschreibt.

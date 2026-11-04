@@ -38,7 +38,11 @@ Authority flags are recorded **explicitly** in every profile even though all sev
 - `pages/SynopticReportPage/hooks/useSignOutWorkflow.ts` — Surg Path sign-out (countersign gate + write guard) and Assist-mode finalize.
 - `pages/SynopticReportPage/modals/CaseTeamModal.tsx` — offers only the types valid in the case's jurisdiction, shows the local title, and shows the **effective** Countersign/Finalise badges (previously it showed raw platform defaults, which could promise a different rule than the gate enforced).
 
-**Not yet consuming this — disclosed, not silently assumed**: `deriveEligibleFinalizerIds()` (platform default only — a disclosed cost tradeoff in its own doc comment, moot until the repo-root `firestore.rules` gains a finalize-eligibility rule — it currently has none); Cytology and Autopsy sign-out (neither resolves participation types at all yet); `canViewWholeCase` (resolved, but no confirmed real consumer).
+**Not yet consuming this — disclosed, not silently assumed**: `deriveEligibleFinalizerIds()` (platform default only — a disclosed cost tradeoff in its own doc comment, moot until the repo-root `firestore.rules` gains a finalize-eligibility rule — it currently has none); `canViewWholeCase` (resolved and editable in `TypeModal.tsx` / the Role Dictionary, but no confirmed enforcement consumer).
+
+Also consuming it since Batches 331–332 (PS-327): Cytology sign-out, pathologist track (`services/cytology/resolveCytologySignOutAuthority.ts`, called from `signOutCytologyCase.ts`), and Autopsy sign-out (`services/autopsy/signAutopsyReport.ts`), both through `canFinalizeCase()` and `resolveCountersignRequiredTypeIds()`.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): Cytology and Autopsy sign-out were listed as not resolving participation types; both do.*
 
 ### Admin UI — facility tier as a first-class, human-in-the-loop control (Sep 2026)
 
@@ -84,6 +88,33 @@ Jurisdiction names in the UI come from the new top-level `jurisdictionNames.*` i
 - **Cache fix:** `saveParticipationType.ts` now also clears `utils/participationTypeLookup.ts`'s cache after a successful save. Before this, a lab override didn't reach the sign-out check until the page was reloaded.
 - **Standing-rules guard:** `standingRules.guard.test.ts` now covers `CountrySigningRulesSection.tsx`. Its i18n check also understands plural keys (`_one` / `_other`).
 
+## Batch 428: Configuration permissions
+
+- `mockParticipationTypeService`: `add`, `update`, `deactivate`, `reactivate`, `remove` need `config:participation-types:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+Country signing rules (`saveCountryProfiles.ts`) are ForMedrixAI support's: `platform:signing-rules:manage` (Superadmin only), replacing the role check. They write the participation type unchecked, since the change is checked above.
+
+## Batch 441: cytotechnologists never hold a pathologist slot
+
+Pete (Oct 2): "Cytotechs can not be selected for Pathologist roles."
+
+`cytotechParticipationRules.ts` (pure, `cytotechParticipationRules.test.ts`):
+- `isCytotechOnly`: the staff member holds Cytotechnologist and none of Pathologist, Resident or Fellow.
+- `isPathologistParticipationType`: `primary`, `attending`, `resident`, `frozen`, `second_opinion`, `consultant`, `provisional_hire`, or any type that can finalize.
+- `mayHoldParticipationType`, `cytotechInPathologistSlot` (case teams), `cytotechRoleProblem` and `roleMayListParticipationType` (the Role Dictionary).
+
+The rule holds whatever the Role Dictionary lists. It's applied in:
+- `cases/resolveClaimParticipationType.ts`: eligibility and pool claims;
+- `cases/saveCaseTeam.ts`;
+- `delegations/mockDelegationService.ts`;
+- `roles/roleAdministration.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 617 (part B): server version (PS-514)
+
+The participation type service now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are in `docs/architecture/DELEGATIONS_NOTES_API.md`.

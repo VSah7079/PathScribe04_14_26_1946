@@ -1,3 +1,11 @@
+**Batch 745:** `mockSpecimenDictionaryService.ts`: `sp-autopsy-complete`, "Autopsy, Complete (Body)", the whole-body autopsy entry.
+
+**Batch 739:** the ThinPrep and SurePath Pap entries have their protocols.
+
+**Batch 738:** the starter entries for colon, breast, skin and prostate get their demo grossing protocol (`applySurgicalDemoProtocols`, `services/protocols/surgicalDemoProtocols.ts`).
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/specimenDictionary/
 
 THE real backend for the Specimen Dictionary (SpecimenEntry) — what Accession, the Synoptic editor, and Search all actually consume.
@@ -32,6 +40,18 @@ The earlier `defaultBaseCptCode` fix (above) was one instance of the same bug.
 
 `buildSpecimenEntry(draft, existing, { now, newId, updatedBy })` now starts from the stored record and the full draft, then normalizes only the fields the form edits. A field is only ever dropped when the admin clears it. It is tested in `buildSpecimenEntry.test.ts`. The same function builds a Duplicate's new entry, so a copy keeps its source's protocol, category and cytology defaults.
 
+## Batch 428: Configuration permissions
+
+- `mockSpecimenDictionaryService`: `addEntries`, `updateEntries` need `config:specimen-dictionary:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+Batch 616 (part D, PS-506): server version of SpecimenDictionaryService (`http<Name>Service.ts`, instance file `<name>ServiceInstance.ts`; mock in the demo, API server when an address is configured). Calls: `docs/architecture/GROSSING_ROUTING_API.md`.
+
+## Batch 716 (Pete, Oct 28, 2026): cytology demo data
+
+`cytologyDemoSpecimens.ts` (new): seven added cytology entries (Pap ThinPrep, Pap SurePath, Pap with HPV co-test, CSF, sputum, breast FNA, salivary gland FNA) and `applyDemoDepartments`, which links every starter surgical entry (and the kidney entry) to Surgical Tissue, Consult entries to Histology-Only / Consultation, and the five starter cytology/FNA entries (sp034 to sp038) to Non-GYN Cytology with a category, organ site, default synoptic template (only where one ships) and protocol. It never overwrites a department already set. `sp-cyto-pap`, `sp-cyto-hpv-self` and `sp-fna-thyroid` gained a department and, for the last two, a protocol. Tests: `cytologyDemoSeed.test.ts`. Before this, the Accession cytology card was reachable from three entries only and no entry had a department, so every demo accession number was `O26-xxxx` and the mixed-case-type rule never fired. A browser keeps its stored dictionary until a Full Reset.

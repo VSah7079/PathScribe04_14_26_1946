@@ -5,7 +5,14 @@ import {
   markStainPrintResult, reprintMicrotomyStain, reorderBlockStains, updateStainComment,
   updateBlockComment, setBlockAlertFlags, updateDecantCytologyFields, applyCytologyPrepSuggestions,
   addDecantStain, removeDecantStain,
+  stainsInGridOrder, matrixBlockAsSpecimenView, matrixBlockFromSpecimenView, isMatrixView, microtomyViewOf, microtomyCaseUpdates,
+  markDecantStainPrinting, markDecantStainPrintResult,
+  updateDecantStainComment, reprintDecantStain, restoreStainOrder, remainingPrepSuggestions, MICROTOMY_UNDO_WINDOW_MS,
 } from './microtomyOperations';
+import { updateCaseWithRetry } from '@/services/cases/caseWrite';
+import { ConcurrencyConflictError } from '@/services/cases/ConcurrencyConflictError';
+import type { MatrixBlock } from '@/types/case/MatrixBlock';
+import type { Case } from '@/types/case/Case';
 import type { Specimen } from '@/types/case/Specimen';
 import type { StainType } from '@/services/stains/IStainService';
 
@@ -237,5 +244,213 @@ describe('Decant / Cytology operations', () => {
     expect(removed.ok).toBe(true);
     if (!removed.ok) return;
     expect(removed.specimen.decants!.find(d => d.id === 'dec-1')!.stains).toHaveLength(1);
+  });
+});
+
+describe('Batch 460: slide levels at the bench', () => {
+  it('a slide added after an unprinted one was removed never reuses a printed level', () => {
+    const sp = specimen({ blocks: [{ id: 'blk-1', label: '1', status: 'Grossed', stains: [
+      { id: 's1', stainName: 'H&E', status: 'Pending Cut', displayId: 'S26-0001-A1-L1' },
+      { id: 's3', stainName: 'PAS', status: 'Pending Cut', displayId: 'S26-0001-A1-L3', printStatus: 'Printed' },
+    ] }] } as any);
+    const r = addMicrotomyStain(sp, 'blk-1', stainType('st-ki67', 'Ki-67'), 'S26-0001');
+    expect(r.ok && r.specimen.blocks![0].stains[2].displayId).toBe('S26-0001-A1-L4');
+    const d = addDecantStain(specimen({ decants: [{ id: 'dec-1', label: 'D1', stains: [{ id: 'x', stainName: 'Pap', status: 'Pending Cut', displayId: 'S26-0001-AD1-L2' }] }] } as any), 'dec-1', stainType('st-pap', 'Pap'), 'S26-0001');
+    expect(d.ok && d.specimen.decants![0].stains[1].displayId).toBe('S26-0001-AD1-L3');
+  });
+  it('batch prints follow the grid order, not the order slides were ticked', () => {
+    const stains = specimen().blocks![0].stains;
+    expect(stainsInGridOrder(stains, ['stain-2', 'stain-1']).map(s => s.id)).toEqual(['stain-1', 'stain-2']);
+  });
+  it('decant slide print state', () => {
+    const p = markDecantStainPrinting(specimen(), 'dec-1', 'dstain-1');
+    expect(p.ok && p.specimen.decants![0].stains[0].printStatus).toBe('Printing');
+    const f = markDecantStainPrintResult(specimen(), 'dec-1', 'dstain-1', { ok: false, message: 'Jam' }, 'tech-1');
+    expect(f.ok && f.specimen.decants![0].stains[0]).toMatchObject({ printStatus: 'Failed', printFailureReason: 'Jam' });
+    const ok = markDecantStainPrintResult(specimen(), 'dec-1', 'dstain-1', { ok: true }, 'tech-1');
+    expect(ok.ok && ok.specimen.decants![0].stains[0]).toMatchObject({ printStatus: 'Printed', printedBy: 'tech-1' });
+  });
+});
+
+describe('Batch 460: matrix blocks at the bench', () => {
+  const mb: MatrixBlock = {
+    id: 'mb-1', label: 'M1', status: 'Embedded' as any, createdAt: '', createdBy: '',
+    participants: [{ specimenId: 'sp-D', positionInBlock: 1 }, { specimenId: 'sp-E', positionInBlock: 2 }],
+    slides: [{ id: 'm-he', stainName: 'H&E', status: 'Pending Cut', displayId: 'S26-4404-M1-L1' }],
+  };
+  it('every block operation works on the view, and the slide id is the matrix slide id', () => {
+    const view = matrixBlockAsSpecimenView(mb);
+    expect(isMatrixView(view)).toBe(true);
+    const r = addMicrotomyStain(view, 'mb-1', stainType('st-ki67', 'Ki-67'), 'S26-4404');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const back = matrixBlockFromSpecimenView(mb, r.specimen);
+    expect(back.slides[1]).toMatchObject({ stainName: 'Ki-67', displayId: 'S26-4404-M1-L2', targetSpecimenIds: ['sp-D', 'sp-E'] });
+    expect(back.slides[0].targetSpecimenIds).toEqual(['sp-D', 'sp-E']);
+    const flagged = setBlockAlertFlags(view, 'mb-1', { fragile: true });
+    expect(flagged.ok && matrixBlockFromSpecimenView(mb, flagged.specimen).fragile).toBe(true);
+    const commented = updateBlockComment(view, 'mb-1', 'thin cores', actor);
+    expect(commented.ok && matrixBlockFromSpecimenView(mb, commented.specimen).comments?.[0].text).toBe('thin cores');
+  });
+  it('the save writes Case.matrixBlocks for a matrix block and the specimens otherwise', () => {
+    const c = { specimens: [specimen()], matrixBlocks: [mb] } as any;
+    const view = microtomyViewOf(c, { kind: 'matrix', matrixBlockId: 'mb-1' })!;
+    expect(Object.keys(microtomyCaseUpdates(c, view))).toEqual(['matrixBlocks']);
+    expect(Object.keys(microtomyCaseUpdates(c, microtomyViewOf(c, { kind: 'block', specimenId: 'sp1', blockId: 'blk-1' })!))).toEqual(['specimens']);
+    expect(microtomyViewOf(c, { kind: 'matrix', matrixBlockId: 'nope' })).toBeNull();
+  });
+});
+
+describe('Batch 460 (PS-71): a bench change is re-applied to the newer case, never written over it', () => {
+  it('a slide added from a stale copy keeps the other save (the scan tracker cutting the H&E)', async () => {
+    let stored: Case = { id: 'C1', version: 1, specimens: [specimen()], matrixBlocks: [] } as any;
+    const deps = {
+      getCase: async () => structuredClone(stored),
+      updateCase: async (_id: string, updates: Partial<Case>, expected: number) => {
+        if (expected !== stored.version) throw new ConcurrencyConflictError('C1', expected, stored.version ?? 0);
+        stored = { ...stored, ...updates, version: (stored.version ?? 0) + 1 } as Case;
+      },
+    };
+    const stale = structuredClone(stored);
+    // Someone else saves first: the H&E is cut.
+    const cut = { ...stored, specimens: [{ ...stored.specimens![0], blocks: [{ ...stored.specimens![0].blocks![0], stains: stored.specimens![0].blocks![0].stains.map(s => (s.id === 'stain-1' ? { ...s, status: 'Cut & Placed' } : s)) }] }] } as any;
+    await deps.updateCase('C1', { specimens: cut.specimens }, 1);
+    const target = { kind: 'block' as const, specimenId: 'sp1', blockId: 'blk-1' };
+    const op = (sp: Specimen) => addMicrotomyStain(sp, 'blk-1', stainType('st-ki67', 'Ki-67'), 'S26-0001');
+    expect(op(microtomyViewOf(stale, target)!).ok).toBe(true); // what the screen showed
+    const r = await updateCaseWithRetry('C1', current => {
+      const res = op(microtomyViewOf(current, target)!);
+      return res.ok ? microtomyCaseUpdates(current, res.specimen) : null;
+    }, deps);
+    expect(r.ok).toBe(true);
+    const stains = stored.specimens![0].blocks![0].stains;
+    expect(stains.find(s => s.id === 'stain-1')!.status).toBe('Cut & Placed');
+    expect(stains.some(s => s.stainName === 'Ki-67')).toBe(true);
+    expect(stored.version).toBe(3);
+  });
+});
+
+describe('Batch 460: no label for a slide that is gone', () => {
+  it('marking a removed slide as printing is refused', () => {
+    expect(markStainPrinting(specimen(), 'blk-1', 'gone')).toEqual({ ok: false, error: 'Stain not found.' });
+    expect(markDecantStainPrinting(specimen(), 'dec-1', 'gone')).toEqual({ ok: false, error: 'Stain not found.' });
+  });
+});
+
+describe('Batch 669: decant slide comments and reprints (ws-2)', () => {
+  it('updateDecantStainComment adds a comment and the print-on-label choice to a decant slide', () => {
+    const r = updateDecantStainComment(specimen(), 'dec-1', 'dstain-1', 'thin smear', true, actor);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const stain = r.specimen.decants![0].stains[0];
+    expect(stain.comments).toHaveLength(1);
+    expect(stain.comments![0]).toMatchObject({ text: 'thin smear', authorId: 'tech-1', authorName: 'J. Smith' });
+    expect(stain.commentPrintsOnLabel).toBe(true);
+  });
+  it('refuses a missing decant or slide', () => {
+    expect(updateDecantStainComment(specimen(), 'nope', 'dstain-1', 'x', false, actor).ok).toBe(false);
+    expect(updateDecantStainComment(specimen(), 'dec-1', 'nope', 'x', false, actor).ok).toBe(false);
+  });
+  it('reprintDecantStain records the reason, who, when and the count, and sets the slide back to Pending', () => {
+    const printed = markDecantStainPrintResult(specimen(), 'dec-1', 'dstain-1', { ok: true }, 'tech-1');
+    expect(printed.ok).toBe(true);
+    if (!printed.ok) return;
+    const r = reprintDecantStain(printed.specimen, 'dec-1', 'dstain-1', 'Jam', 'tech-2');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const stain = r.specimen.decants![0].stains[0];
+    expect(stain).toMatchObject({ printStatus: 'Pending', lastReprintReason: 'Jam', lastReprintOrderedBy: 'tech-2', reprintCount: 1 });
+    expect(stain.lastReprintOrderedAt).toBeTruthy();
+    const again = reprintDecantStain(r.specimen, 'dec-1', 'dstain-1', 'Misprint', 'tech-2');
+    expect(again.ok && again.specimen.decants![0].stains[0].reprintCount).toBe(2);
+  });
+  it('reprintDecantStain refuses a missing decant or slide', () => {
+    expect(reprintDecantStain(specimen(), 'nope', 'dstain-1', 'Jam', 'u').ok).toBe(false);
+    expect(reprintDecantStain(specimen(), 'dec-1', 'nope', 'Jam', 'u').ok).toBe(false);
+  });
+});
+
+describe('Batch 669: Accept suggestion does not add the same slides twice (ws-5)', () => {
+  const high = [{ preparationMethod: 'ThinPrep/Liquid-Based' as const, count: 2 }, { preparationMethod: 'Cell Block' as const, count: 1 }];
+  it('the second press adds nothing and refuses, so nothing is saved', () => {
+    const first = applyCytologyPrepSuggestions(specimen(), 'dec-1', high, 'S26-0001');
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    const second = applyCytologyPrepSuggestions(first.specimen, 'dec-1', high, 'S26-0001');
+    expect(second.ok).toBe(false);
+    expect(first.specimen.decants![0].stains.filter(s => s.userAdded)).toHaveLength(3);
+  });
+  it('adds only what is missing when some of the suggested slides are already there', () => {
+    const sp = specimen({ decants: [{ id: 'dec-1', label: 'D1', stains: [{ id: 'x', stainName: 'Pap', status: 'Pending Cut', preparationMethod: 'ThinPrep/Liquid-Based' }] }] } as any);
+    const r = applyCytologyPrepSuggestions(sp, 'dec-1', high, 'S26-0001');
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const stains = r.specimen.decants![0].stains;
+    expect(stains.filter(s => s.preparationMethod === 'ThinPrep/Liquid-Based')).toHaveLength(2);
+    expect(stains.filter(s => s.preparationMethod === 'Cell Block')).toHaveLength(1);
+  });
+  it('a cancelled slide does not count as already added', () => {
+    const stains = [{ id: 'x', stainName: 'H&E', status: 'Cancelled', printStatus: 'Canceled', preparationMethod: 'Cell Block' }] as any;
+    expect(remainingPrepSuggestions(stains, high)).toEqual(high);
+  });
+  it('remainingPrepSuggestions is empty once every suggested slide exists', () => {
+    const stains = [
+      { id: 'a', preparationMethod: 'ThinPrep/Liquid-Based' }, { id: 'b', preparationMethod: 'ThinPrep/Liquid-Based' }, { id: 'c', preparationMethod: 'Cell Block' },
+    ] as any;
+    expect(remainingPrepSuggestions(stains, high)).toEqual([]);
+  });
+});
+
+describe('Batch 669: Undo after Remove or Reprint (ws-6)', () => {
+  it('puts back an unprinted slide that Remove deleted, at its place in the grid', () => {
+    const sp = specimen();
+    const snapshot = sp.blocks![0].stains[0];
+    const removed = removeMicrotomyStain(sp, 'blk-1', 'stain-1');
+    expect(removed.ok && removed.specimen.blocks![0].stains.map(s => s.id)).toEqual(['stain-2']);
+    if (!removed.ok) return;
+    const back = restoreStainOrder(removed.specimen, { kind: 'block', id: 'blk-1' }, snapshot, 0);
+    expect(back.ok && back.specimen.blocks![0].stains.map(s => s.id)).toEqual(['stain-1', 'stain-2']);
+  });
+  it('puts back a printed slide that Remove cancelled', () => {
+    const sp = specimen();
+    const snapshot = sp.blocks![0].stains[1];
+    const removed = removeMicrotomyStain(sp, 'blk-1', 'stain-2', 'Damaged Section');
+    expect(removed.ok && removed.specimen.blocks![0].stains[1].printStatus).toBe('Canceled');
+    if (!removed.ok) return;
+    const back = restoreStainOrder(removed.specimen, { kind: 'block', id: 'blk-1' }, snapshot, 1);
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    expect(back.specimen.blocks![0].stains[1]).toMatchObject({ status: 'Pending Cut', printStatus: 'Printed', printedBy: 'tech-1' });
+    expect(back.specimen.blocks![0].stains[1].printFailureReason).toBeUndefined();
+  });
+  it('undoes a reprint (count, reason, status) but keeps a comment added meanwhile', () => {
+    const sp = specimen();
+    const snapshot = sp.blocks![0].stains[1];
+    const re = reprintMicrotomyStain(sp, 'blk-1', 'stain-2', 'Jam', 'tech-1');
+    if (!re.ok) throw new Error('reprint refused');
+    const commented = updateStainComment(re.specimen, 'blk-1', 'stain-2', 'note', false, actor);
+    if (!commented.ok) throw new Error('comment refused');
+    const back = restoreStainOrder(commented.specimen, { kind: 'block', id: 'blk-1' }, snapshot, 1);
+    expect(back.ok).toBe(true);
+    if (!back.ok) return;
+    const stain = back.specimen.blocks![0].stains[1];
+    expect(stain.printStatus).toBe('Printed');
+    expect(stain.reprintCount).toBeUndefined();
+    expect(stain.lastReprintReason).toBeUndefined();
+    expect(stain.comments).toHaveLength(1);
+  });
+  it('works for a decant slide too', () => {
+    const sp = specimen();
+    const snapshot = sp.decants![0].stains[0];
+    const removed = removeDecantStain(sp, 'dec-1', 'dstain-1');
+    if (!removed.ok) throw new Error('remove refused');
+    const back = restoreStainOrder(removed.specimen, { kind: 'decant', id: 'dec-1' }, snapshot, 0);
+    expect(back.ok && back.specimen.decants![0].stains.map(s => s.id)).toEqual(['dstain-1']);
+  });
+  it('refuses a block or decant that is gone, and the window is a few seconds', () => {
+    expect(restoreStainOrder(specimen(), { kind: 'block', id: 'nope' }, specimen().blocks![0].stains[0], 0).ok).toBe(false);
+    expect(restoreStainOrder(specimen(), { kind: 'decant', id: 'nope' }, specimen().blocks![0].stains[0], 0).ok).toBe(false);
+    expect(MICROTOMY_UNDO_WINDOW_MS).toBeGreaterThanOrEqual(5000);
+    expect(MICROTOMY_UNDO_WINDOW_MS).toBeLessThanOrEqual(15000);
   });
 });

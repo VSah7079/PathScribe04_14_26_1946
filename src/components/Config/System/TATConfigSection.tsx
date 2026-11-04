@@ -65,13 +65,16 @@ import { useAuditLog } from '../../Audit/useAuditLog';
 export type { TATType, TATUrgency, TATEntry } from '@/types/quality/TatConfigEntry';
 import type { TATType, TATUrgency, TATEntry } from '@/types/quality/TatConfigEntry';
 import { buildTatEntry } from '@/services/tatConfig/tatConfigRules';
+import { saveTatEntry, toggleTatEntry, deleteTatEntry } from '@/services/tatConfig/tatEntryActions';
 import { isSystemDefaultTatEntryId } from '@/services/tatConfig/systemDefaultTatEntries';
 import { duplicateTatEntry } from '@/services/duplication/duplicateEntities';
+import { switchable } from '@/utils/a11y/pressable';
 
 const TAT_TYPES: TATType[] = [
   'FIRST_TOUCH', 'TOTAL_CASE', 'FROZEN_SECTION',
   'COLD_ISCHEMIA', 'GROSSING', 'SIGN_OUT',
   'CONSULTATION_RESPONSE', 'CONSULTATION_AWAITING',
+  'AUTOPSY_PAD', 'AUTOPSY_FAD',
 ];
 
 const TAT_TYPE_LABEL_KEY: Record<TATType, string> = {
@@ -83,6 +86,8 @@ const TAT_TYPE_LABEL_KEY: Record<TATType, string> = {
   SIGN_OUT:                 'tatConfigSection.types.signOut.label',
   CONSULTATION_RESPONSE:    'tatConfigSection.types.consultationResponse.label',
   CONSULTATION_AWAITING:    'tatConfigSection.types.consultationAwaiting.label',
+  AUTOPSY_PAD:              'tatConfigSection.types.autopsyPad.label',
+  AUTOPSY_FAD:              'tatConfigSection.types.autopsyFad.label',
 };
 
 const TAT_TYPE_DESC_KEY: Record<TATType, string> = {
@@ -94,6 +99,8 @@ const TAT_TYPE_DESC_KEY: Record<TATType, string> = {
   SIGN_OUT:                 'tatConfigSection.types.signOut.desc',
   CONSULTATION_RESPONSE:    'tatConfigSection.types.consultationResponse.desc',
   CONSULTATION_AWAITING:    'tatConfigSection.types.consultationAwaiting.desc',
+  AUTOPSY_PAD:              'tatConfigSection.types.autopsyPad.desc',
+  AUTOPSY_FAD:              'tatConfigSection.types.autopsyFad.desc',
 };
 
 // Fixed Role values offered by this screen's own Role filter/selector —
@@ -239,6 +246,7 @@ const TATModal: React.FC<ModalProps> = ({
     if (result.ok === false) {
       if (result.error === 'typeRequired') setError(t('tatConfigSection.modal.errorTypeRequired'));
       else if (result.error === 'hoursRequired') setError(t('tatConfigSection.modal.errorHoursRequired'));
+      else if (result.error === 'warningInvalid') setError(t('tatConfigSection.modal.errorWarningInvalid'));
       else if (result.conflict) {
         setError(
           t('tatConfigSection.modal.conflictError', {
@@ -331,6 +339,23 @@ const TATModal: React.FC<ModalProps> = ({
               )}
             </div>
 
+            {draft.type === 'FROZEN_SECTION' && (
+              <div className="ps-sub-field">
+                <label className="ps-sub-label" htmlFor="tat-rule-warning-minutes">{t('tatConfigSection.modal.warningMinutesLabel')}</label>
+                <input
+                  id="tat-rule-warning-minutes"
+                  type="number"
+                  className="ps-sub-input"
+                  min={1}
+                  step={1}
+                  value={draft.warningMinutes ?? ''}
+                  placeholder={t('tatConfigSection.modal.warningMinutesPlaceholder')}
+                  onChange={e => set('warningMinutes', e.target.value === '' ? null : parseInt(e.target.value, 10) || 0)}
+                />
+                <div className="ps-tat-hint-text ps-tat-hint-text--mt4">{t('tatConfigSection.modal.warningMinutesHint')}</div>
+              </div>
+            )}
+
             <div className="ps-sub-field">
               <label className="ps-sub-label" htmlFor="tat-rule-urgency">{t('tatConfigSection.modal.urgencyLabel')}</label>
               <select
@@ -414,7 +439,7 @@ const TATModal: React.FC<ModalProps> = ({
               const facilityName  = facilities.find(cl => cl.id === draft.facilityId)?.name;
               const specimenName = specimens.find(s => s.id === draft.specimenId)?.name;
               const subName     = subspecialties.find(s => s.id === draft.subspecialtyId)?.name;
-              const roleName    = roleGroupLabel((draft as any).roleId, t);
+              const roleName    = roleGroupLabel(draft.roleId, t);
               const urgency     = draft.urgency;
 
               if (urgency)      parts.push(urgency === 'STAT' ? t('tatConfigSection.urgencyStat') : t('tatConfigSection.urgencyRoutine'));
@@ -440,7 +465,7 @@ const TATModal: React.FC<ModalProps> = ({
           {/* Admin notes — free text, no effect on matching */}
           <div className="ps-sub-field">
             <label className="ps-sub-label">{t('tatConfigSection.modal.notesLabel')} <span className="ps-sub-label-hint">{t('tatConfigSection.modal.notesHint')}</span></label>
-            <input
+            <input aria-label={t('tatConfigSection.modal.notesLabel')}
               className="ps-sub-input"
               value={draft.notes ?? ''}
               placeholder={t('tatConfigSection.modal.notesPlaceholder')}
@@ -453,7 +478,7 @@ const TATModal: React.FC<ModalProps> = ({
             <label className="ps-sub-label">{t('tatConfigSection.modal.statusLabel')}</label>
             <div className="ps-sub-toggle-wrap">
               <div
-                onClick={() => set('active', !draft.active)}
+                {...switchable(draft.active, () => set('active', !draft.active), t('a11y.fields.active'))}
                 className={draft.active ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
               >
                 <div className={draft.active ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
@@ -551,11 +576,11 @@ const ResolutionSimulator: React.FC<SimulatorProps> = ({
       </div>
 
       <div className="ps-tat-sim-controls">
-        <select className="ps-conf-select" aria-label={t('tatConfigSection.modal.performingLabAria')} value={simLab} onChange={e => setSimLab(e.target.value)}>
+        <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.modal.performingLabAria')} value={simLab} onChange={e => setSimLab(e.target.value)}>
           <option value="">{t('tatConfigSection.simulator.noSpecificLab')}</option>
           {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <select className="ps-conf-select" aria-label={t('tatConfigSection.modal.orderingFacilityAria')} value={simFacility} onChange={e => setSimFacility(e.target.value)}>
+        <select data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.modal.orderingFacilityAria')} value={simFacility} onChange={e => setSimFacility(e.target.value)}>
           <option value="">{t('tatConfigSection.simulator.noSpecificFacility')}</option>
           {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -686,29 +711,20 @@ const TATConfigSection: React.FC = () => {
   // Batch 353: saves go through tatTargetService. Add vs update comes from
   // the editor's mode (a duplicate is an add), not from whether the id is
   // already in the list; the service refuses to delete a system default.
+  // Batch 450 (PS-38): the actions and their audit entries live in
+  // services/tatConfig/tatEntryActions.ts.
   const handleSave = async (saved: TATEntry) => {
-    const mode = modal?.mode ?? 'add';
-    const res = mode === 'edit' ? await tatTargetService.update(saved) : await tatTargetService.add(saved);
-    if (res.ok) {
-      if (mode === 'edit') log('tat_entry_updated', { id: saved.id, type: saved.type, changes: [`targetHours: ${saved.targetHours}h`] });
-      else log('tat_entry_created', { type: saved.type, targetHours: saved.targetHours, facilityId: saved.facilityId ?? null, roleId: saved.roleId ?? null });
-    }
+    await saveTatEntry(tatTargetService, log, saved, modal?.mode ?? 'add');
     await reloadEntries();
     setModal(null);
   };
 
   const toggleActive = async (id: string) => {
-    const target = entries.find(e => e.id === id);
-    if (!target) return;
-    const res = await tatTargetService.update({ ...target, active: !target.active });
-    if (res.ok) log('tat_entry_toggled', { id, type: target.type, active: !target.active });
-    await reloadEntries();
+    if (await toggleTatEntry(tatTargetService, log, entries, id)) await reloadEntries();
   };
 
   const deleteEntry = async (id: string) => {
-    const target = entries.find(e => e.id === id);
-    const res = await tatTargetService.remove(id);
-    if (res.ok && target) log('tat_entry_deleted', { id, type: target.type });
+    await deleteTatEntry(tatTargetService, log, entries, id);
     await reloadEntries();
   };
 
@@ -780,7 +796,7 @@ const TATConfigSection: React.FC = () => {
       facilityName(e.facilityId),
       specimenName(e.specimenId),
       subName(e.subspecialtyId),
-      (e as any).roleId ? t('tatConfigSection.roleScope', { role: roleLabel((e as any).roleId, t) }) : null,
+      e.roleId ? t('tatConfigSection.roleScope', { role: roleLabel(e.roleId, t) }) : null,
     ].filter(Boolean);
 
     return (
@@ -788,12 +804,15 @@ const TATConfigSection: React.FC = () => {
         <td className="ps-sub-td">
           <span className="ps-tat-type-badge ps-tatconfig__type-badge--mr8">
             {getTatTypeLabel(e.type, qaActivityTypesById, t)}
-            {(e as any).roleId && <span className="ps-tatconfig__role-suffix"> · {roleLabel((e as any).roleId, t)}</span>}
+            {e.roleId && <span className="ps-tatconfig__role-suffix"> · {roleLabel(e.roleId, t)}</span>}
           </span>
           {isSystem && <span className="ps-del-tag ps-tatconfig__lock-icon">🔒</span>}
         </td>
         <td className="ps-sub-td">
           <strong className="ps-tatconfig__target">{formatHours(e.targetHours, t)}</strong>
+          {e.type === 'FROZEN_SECTION' && (
+            <div className="ps-tat-hint-text">{t('tatConfigSection.warnMinutesShort', { m: e.warningMinutes ?? 5 })}</div>
+          )}
         </td>
         <td className="ps-sub-td">
           <span className={e.urgency === 'STAT' ? 'ps-tatconfig__urgency--stat' : 'ps-tatconfig__urgency--routine'}>
@@ -817,7 +836,7 @@ const TATConfigSection: React.FC = () => {
         <td className="ps-sub-td">
           <div className="ps-sub-toggle-wrap">
             <div
-              onClick={() => toggleActive(e.id)}
+              {...switchable(e.active, () => toggleActive(e.id), t('a11y.cellLabel', { column: t('a11y.fields.active'), row: getTatTypeLabel(e.type, qaActivityTypesById, t) }))}
               className={e.active ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
             >
               <div className={e.active ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
@@ -885,7 +904,7 @@ const TATConfigSection: React.FC = () => {
           </p>
         </div>
         <div className="ps-rulemodal__footer-actions">
-          <button
+          <button data-config-nav
             className={showSim ? 'ps-tat-sim-btn ps-tat-sim-btn--active' : 'ps-tat-sim-btn'}
             onClick={() => setShowSim(v => !v)}
           >
@@ -932,7 +951,7 @@ const TATConfigSection: React.FC = () => {
       <div className="ps-tat-filters">
         <div className="ps-tatconfig__filter-buttons">
           {(['ALL', ...TAT_TYPES, ...qaActivityTypes.map(qt => qt.id)]).map(typeId => (
-            <button
+            <button data-config-nav
               key={typeId}
               onClick={() => setFilter(typeId)}
               className={filter === typeId ? 'ps-tat-filter-btn ps-tat-filter-btn--active' : 'ps-tat-filter-btn'}
@@ -944,18 +963,18 @@ const TATConfigSection: React.FC = () => {
         {/* Real, per direct guidance: two genuinely independent
             facility filters, usable together or separately. */}
         <div className="ps-tatconfig__facility-filters">
-          <select className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
+          <select data-dirty-ignore data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByPerformingLabAria')} value={performingLabFilter} onChange={e => setPerformingLabFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allPerformingLabs')}</option>
             {labs.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
-          <select className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
+          <select data-dirty-ignore data-config-nav className="ps-conf-select" aria-label={t('tatConfigSection.filterByOrderingFacilityAria')} value={orderingFacilityFilter} onChange={e => setOrderingFacilityFilter(e.target.value)}>
             <option value="">{t('tatConfigSection.allOrderingFacilities')}</option>
             {facilities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
         <label className="ps-sub-toggle-wrap ps-tatconfig__toggle-label">
           <div
-            onClick={() => setShowInactive(v => !v)}
+            {...switchable(showInactive, () => setShowInactive(v => !v), t('common.showInactive'))}
             className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}
           >
             <div className={showInactive ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />

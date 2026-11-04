@@ -1,5 +1,10 @@
 // src/services/billing/mockCodeImportService.test.ts — PS-89 (Batch 333), end to end.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Batch 428: these tests are about the service, not who may use it, so Configuration
+// changes are allowed here (the check itself: authorization/guardConfigWrites.test.ts).
+vi.mock('@/services/authorization/defaultAuthorizationService', () => ({
+  authorizationService: { enforce: async () => ({ allowed: true }), evaluate: async () => ({ allowed: true }), grantedCapabilities: async () => new Set<string>() },
+}));
 import { mockCodeImportService } from './mockCodeImportService';
 import { mockBillingRuleService } from './mockBillingRuleService';
 import { mockServiceChargeService } from './mockServiceChargeService';
@@ -98,6 +103,6 @@ describe('mockCodeImportService previews and audit (PS-89, Batch 334)', () => {
       ['Billing code import uploaded', 'Admin A'],
       ['Billing code import rejected', 'Admin B'],
     ]));
-    expect(entries.find((l: any) => l.event === 'Billing code import uploaded').detail).toContain('2 CPT codes submitted for approval (country US, enterprise-wide); 1 row skipped');
+    expect(entries.find((l: any) => l.event === 'Billing code import uploaded')?.detail).toContain('2 CPT codes submitted for approval (country US, enterprise-wide); 1 row skipped');
   });
 });

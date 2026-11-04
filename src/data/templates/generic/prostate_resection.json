@@ -1,6 +1,6 @@
 {
   "id": "prostate_resection",
-  "name": "Generic Template \u2014 Prostate Resection",
+  "name": "Prostate resection",
   "source": "Custom",
   "version": "0.1.0-generic",
   "category": "PROSTATE",
@@ -17,28 +17,34 @@
           "options": [
             {
               "id": "procedure_opt_1",
-              "label": "Option 1"
+              "label": "Radical prostatectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_2",
-              "label": "Option 2"
+              "label": "Simple prostatectomy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "procedure_opt_3",
-              "label": "Option 3"
+              "label": "Other procedure",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "prostate_weight_g",
-          "label": "Weight (g)",
+          "label": "Prostate weight (g)",
           "type": "numeric",
           "required": false,
           "options": []
         },
         {
           "id": "prostate_size_cm",
-          "label": "Size (cm)",
+          "label": "Prostate size (cm)",
           "type": "text",
           "required": false,
           "options": []
@@ -47,77 +53,109 @@
     },
     {
       "id": "tumor",
-      "title": "Findings",
+      "title": "Tumor",
       "fields": [
         {
           "id": "histologic_type",
-          "label": "Type",
+          "label": "Tumor type",
           "type": "checkboxes",
           "required": true,
           "options": [
             {
               "id": "histologic_type_opt_1",
-              "label": "Option 1"
+              "label": "Acinar adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_2",
-              "label": "Option 2"
+              "label": "Ductal adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_3",
-              "label": "Option 3"
+              "label": "Intraductal carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_4",
-              "label": "Option 4"
+              "label": "Mucinous (colloid) adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_5",
-              "label": "Option 5"
+              "label": "Signet ring-like cell adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_6",
-              "label": "Option 6"
+              "label": "Pleomorphic giant cell adenocarcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_7",
-              "label": "Option 7"
+              "label": "Sarcomatoid carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_8",
-              "label": "Option 8"
+              "label": "Adenocarcinoma with neuroendocrine differentiation",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_9",
-              "label": "Option 9"
+              "label": "Treatment-related neuroendocrine carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_10",
-              "label": "Option 10"
+              "label": "Small cell neuroendocrine carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_11",
-              "label": "Option 11"
+              "label": "Large cell neuroendocrine carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_12",
-              "label": "Option 12"
+              "label": "Urothelial carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_13",
-              "label": "Option 13"
+              "label": "Squamous cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_14",
-              "label": "Option 14"
+              "label": "Adenosquamous carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_15",
-              "label": "Option 15"
+              "label": "Basal cell carcinoma",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "histologic_type_opt_16",
-              "label": "Option 16"
+              "label": "Other type (describe in a comment)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
@@ -129,135 +167,143 @@
           "options": [
             {
               "id": "grade_group_opt_1",
-              "label": "Option 1"
+              "label": "Grade Group 1 (Gleason ≤6)"
             },
             {
               "id": "grade_group_opt_2",
-              "label": "Option 2"
+              "label": "Grade Group 2 (3+4=7)"
             },
             {
               "id": "grade_group_opt_3",
-              "label": "Option 3"
+              "label": "Grade Group 3 (4+3=7)"
             },
             {
               "id": "grade_group_opt_4",
-              "label": "Option 4"
+              "label": "Grade Group 4 (8)"
             },
             {
               "id": "grade_group_opt_5",
-              "label": "Option 5"
+              "label": "Grade Group 5 (9–10)"
             },
             {
               "id": "grade_group_opt_6",
-              "label": "Option 6"
-            },
-            {
-              "id": "grade_group_opt_7",
-              "label": "Option 7"
-            },
-            {
-              "id": "grade_group_opt_8",
-              "label": "Option 8"
-            },
-            {
-              "id": "grade_group_opt_9",
-              "label": "Option 9"
-            },
-            {
-              "id": "grade_group_opt_10",
-              "label": "Option 10"
-            },
-            {
-              "id": "grade_group_opt_11",
-              "label": "Option 11"
+              "label": "Cannot be assessed"
             }
           ]
         },
         {
           "id": "minor_tertiary_pattern5",
-          "label": "Minor Secondary Pattern",
+          "label": "Minor (tertiary) pattern 5",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "minor_tertiary_pattern5_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "minor_tertiary_pattern5_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "idc_present",
-          "label": "Secondary Finding A",
+          "label": "Intraductal carcinoma",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "idc_present_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "idc_present_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "cribriform_glands",
-          "label": "Secondary Finding B",
+          "label": "Cribriform glands",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "cribriform_glands_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "cribriform_glands_opt_2",
-              "label": "Option 2"
+              "label": "Present, less than 5% of the tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "cribriform_glands_opt_3",
-              "label": "Option 3"
+              "label": "Present, 5% or more of the tumor",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "cribriform_glands_opt_4",
-              "label": "Option 4"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "treatment_effect",
-          "label": "Treatment Effect",
+          "label": "Treatment effect",
           "type": "checkboxes",
           "required": true,
           "options": [
             {
               "id": "treatment_effect_opt_1",
-              "label": "Option 1"
+              "label": "No treatment before surgery",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "treatment_effect_opt_2",
-              "label": "Option 2"
+              "label": "Hormone treatment effect",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "treatment_effect_opt_3",
-              "label": "Option 3"
+              "label": "Radiation treatment effect",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "treatment_effect_opt_4",
-              "label": "Option 4"
+              "label": "Chemotherapy effect",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "treatment_effect_opt_5",
-              "label": "Option 5"
+              "label": "Other treatment effect",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "treatment_effect_opt_6",
-              "label": "Option 6"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -265,87 +311,117 @@
     },
     {
       "id": "tumor_quantitation",
-      "title": "Quantitation",
+      "title": "Amount of tumor",
       "fields": [
         {
           "id": "tumor_quantitation_method",
-          "label": "Quantitation Method",
+          "label": "How it was measured",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "tumor_quantitation_method_opt_1",
-              "label": "Option 1"
+              "label": "Estimated percentage of the gland",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "tumor_quantitation_method_opt_2",
-              "label": "Option 2"
+              "label": "Size of the dominant nodule",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "estimated_pct_involved",
-          "label": "Estimated % Involved",
+          "label": "Estimated percentage of the gland involved",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "estimated_pct_involved_opt_1",
-              "label": "Option 1"
+              "label": "Less than 5%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_2",
-              "label": "Option 2"
+              "label": "5%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_3",
-              "label": "Option 3"
+              "label": "10%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_4",
-              "label": "Option 4"
+              "label": "15%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_5",
-              "label": "Option 5"
+              "label": "20%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_6",
-              "label": "Option 6"
+              "label": "25%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_7",
-              "label": "Option 7"
+              "label": "30%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_8",
-              "label": "Option 8"
+              "label": "40%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_9",
-              "label": "Option 9"
+              "label": "50%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_10",
-              "label": "Option 10"
+              "label": "60%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_11",
-              "label": "Option 11"
+              "label": "70%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_12",
-              "label": "Option 12"
+              "label": "80%",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "estimated_pct_involved_opt_13",
-              "label": "Option 13"
+              "label": "More than 80%",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "dominant_nodule_mm",
-          "label": "Dominant Focus (mm)",
+          "label": "Dominant nodule (mm)",
           "type": "numeric",
           "required": false,
           "options": []
@@ -354,117 +430,153 @@
     },
     {
       "id": "extension",
-      "title": "Extension",
+      "title": "Spread",
       "fields": [
         {
           "id": "extraprostatic_extension",
-          "label": "Extension Beyond Organ",
+          "label": "Extraprostatic extension",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "extraprostatic_extension_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_2",
-              "label": "Option 2"
+              "label": "Present, focal",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_3",
-              "label": "Option 3"
+              "label": "Present, established (non-focal)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extraprostatic_extension_opt_4",
-              "label": "Option 4"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "bladder_neck_invasion",
-          "label": "Secondary Structure Involvement B",
+          "label": "Bladder neck invasion",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "bladder_neck_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "bladder_neck_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present (microscopic)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "bladder_neck_invasion_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "seminal_vesicle_invasion",
-          "label": "Secondary Structure Involvement A",
+          "label": "Seminal vesicle invasion",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "seminal_vesicle_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "seminal_vesicle_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present, right",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "seminal_vesicle_invasion_opt_3",
-              "label": "Option 3"
+              "label": "Present, left",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "seminal_vesicle_invasion_opt_4",
-              "label": "Option 4"
+              "label": "Present, both sides",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "seminal_vesicle_invasion_opt_5",
-              "label": "Option 5"
+              "label": "No seminal vesicles received",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "seminal_vesicle_invasion_opt_6",
-              "label": "Option 6"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "lymphovascular_invasion",
-          "label": "Lymphatic/Vascular Involvement",
+          "label": "Lymphovascular invasion",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "lymphovascular_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "lymphovascular_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "lymphovascular_invasion_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "perineural_invasion",
-          "label": "Perineural Involvement",
+          "label": "Perineural invasion",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "perineural_invasion_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "perineural_invasion_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -476,255 +588,314 @@
       "fields": [
         {
           "id": "margin_status",
-          "label": "Margin Status",
+          "label": "Margins",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "margin_status_opt_1",
-              "label": "Option 1"
+              "label": "Negative (uninvolved)"
             },
             {
               "id": "margin_status_opt_2",
-              "label": "Option 2"
+              "label": "Positive (involved)"
             },
             {
               "id": "margin_status_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed"
             }
           ]
         },
         {
           "id": "margins_involved",
-          "label": "Margin(s) Involved",
+          "label": "Involved margin(s)",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "margins_involved_opt_1",
-              "label": "Option 1"
+              "label": "Right apex"
             },
             {
               "id": "margins_involved_opt_2",
-              "label": "Option 2"
+              "label": "Left apex"
             },
             {
               "id": "margins_involved_opt_3",
-              "label": "Option 3"
+              "label": "Right base"
             },
             {
               "id": "margins_involved_opt_4",
-              "label": "Option 4"
+              "label": "Left base"
             },
             {
               "id": "margins_involved_opt_5",
-              "label": "Option 5"
+              "label": "Bladder neck"
             },
             {
               "id": "margins_involved_opt_6",
-              "label": "Option 6"
+              "label": "Right posterolateral"
             },
             {
               "id": "margins_involved_opt_7",
-              "label": "Option 7"
+              "label": "Left posterolateral"
             },
             {
               "id": "margins_involved_opt_8",
-              "label": "Option 8"
+              "label": "Anterior"
             },
             {
               "id": "margins_involved_opt_9",
-              "label": "Option 9"
+              "label": "Right seminal vesicle margin"
             },
             {
               "id": "margins_involved_opt_10",
-              "label": "Option 10"
+              "label": "Left seminal vesicle margin"
             },
             {
               "id": "margins_involved_opt_11",
-              "label": "Option 11"
+              "label": "Urethral margin"
             },
             {
               "id": "margins_involved_opt_12",
-              "label": "Option 12"
+              "label": "Not applicable"
             },
             {
               "id": "margins_involved_opt_13",
-              "label": "Option 13"
+              "label": "Cannot be assessed"
             },
             {
               "id": "margins_involved_opt_14",
-              "label": "Option 14"
+              "label": "Other"
             }
-          ]
+          ],
+          "visibleWhen": {
+            "fieldId": "margin_status",
+            "answerId": "",
+            "answerIds": [
+              "margin_status_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "lymph_nodes",
-      "title": "Regional Nodes",
+      "title": "Lymph nodes",
       "fields": [
         {
           "id": "regional_ln_status",
-          "label": "Regional Node Status",
+          "label": "Lymph node metastasis",
           "type": "dropdown",
           "required": true,
           "options": [
             {
               "id": "regional_ln_status_opt_1",
-              "label": "Option 1"
+              "label": "No regional lymph node metastasis",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "regional_ln_status_opt_2",
-              "label": "Option 2"
+              "label": "Regional lymph node metastasis present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "regional_ln_status_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "regional_ln_status_opt_4",
-              "label": "Option 4"
+              "label": "Not applicable (no nodes received)",
+              "snomed": "",
+              "icd": ""
             }
           ]
         },
         {
           "id": "ln_number_positive",
-          "label": "Number Positive",
+          "label": "Lymph nodes involved",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "notMoreThan": "ln_number_examined",
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_2"
+            ]
+          }
         },
         {
           "id": "ln_number_examined",
-          "label": "Number Examined",
+          "label": "Lymph nodes examined",
           "type": "numeric",
           "required": false,
-          "options": []
+          "options": [],
+          "wholeNumber": true,
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_1",
+              "regional_ln_status_opt_2",
+              "regional_ln_status_opt_3"
+            ]
+          }
         },
         {
           "id": "extranodal_extension",
-          "label": "Extranodal Extension",
+          "label": "Extranodal extension",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "extranodal_extension_opt_1",
-              "label": "Option 1"
+              "label": "Not seen",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extranodal_extension_opt_2",
-              "label": "Option 2"
+              "label": "Present",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "extranodal_extension_opt_3",
-              "label": "Option 3"
+              "label": "Cannot be assessed",
+              "snomed": "",
+              "icd": ""
             }
-          ]
+          ],
+          "visibleWhen": {
+            "fieldId": "regional_ln_status",
+            "answerId": "",
+            "answerIds": [
+              "regional_ln_status_opt_2"
+            ]
+          }
         }
       ]
     },
     {
       "id": "staging",
-      "title": "Stage Summary",
+      "title": "Pathologic stage",
       "fields": [
         {
           "id": "tnm_modifiers",
-          "label": "Stage Modifiers",
+          "label": "Stage prefixes",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "tnm_modifiers_opt_1",
-              "label": "Option 1"
+              "label": "y (post-therapy)"
             },
             {
               "id": "tnm_modifiers_opt_2",
-              "label": "Option 2"
+              "label": "r (recurrent)"
             },
             {
               "id": "tnm_modifiers_opt_3",
-              "label": "Option 3"
+              "label": "m (multiple synchronous primaries)"
             }
           ]
         },
         {
           "id": "stage_category_a",
-          "label": "Category A",
+          "label": "pT (primary tumor)",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pT",
           "options": [
             {
               "id": "stage_category_a_opt_1",
-              "label": "Option 1"
+              "label": "pT2"
             },
             {
               "id": "stage_category_a_opt_2",
-              "label": "Option 2"
+              "label": "pT3a"
             },
             {
               "id": "stage_category_a_opt_3",
-              "label": "Option 3"
+              "label": "pT3b"
             },
             {
               "id": "stage_category_a_opt_4",
-              "label": "Option 4"
+              "label": "pT4"
             },
             {
               "id": "stage_category_a_opt_5",
-              "label": "Option 5"
+              "label": "Cannot be assessed (pTX)"
             }
           ]
         },
         {
           "id": "stage_category_b",
-          "label": "Category B",
+          "label": "pN (regional lymph nodes)",
           "type": "dropdown",
           "required": true,
+          "reportingRole": "pN",
           "options": [
             {
               "id": "stage_category_b_opt_1",
-              "label": "Option 1"
+              "label": "pN0"
             },
             {
               "id": "stage_category_b_opt_2",
-              "label": "Option 2"
+              "label": "pN1"
             },
             {
               "id": "stage_category_b_opt_3",
-              "label": "Option 3"
+              "label": "pNX (not applicable / no nodes submitted)"
             },
             {
               "id": "stage_category_b_opt_4",
-              "label": "Option 4"
+              "label": "Cannot be assessed"
             }
           ]
         },
         {
           "id": "stage_category_c",
-          "label": "Category C",
+          "label": "pM (only when confirmed)",
           "type": "dropdown",
           "required": false,
           "options": [
             {
               "id": "stage_category_c_opt_1",
-              "label": "Option 1"
+              "label": "Not applicable (M is set clinically)",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stage_category_c_opt_2",
-              "label": "Option 2"
+              "label": "pM1a: non-regional lymph nodes",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stage_category_c_opt_3",
-              "label": "Option 3"
+              "label": "pM1b: bone",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stage_category_c_opt_4",
-              "label": "Option 4"
+              "label": "pM1c: other sites",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "stage_category_c_opt_5",
-              "label": "Option 5"
+              "label": "pMX: not assessed",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }
@@ -732,41 +903,916 @@
     },
     {
       "id": "additional_findings",
-      "title": "Additional Findings",
+      "title": "Other findings",
       "fields": [
         {
           "id": "additional_findings",
-          "label": "Additional Findings",
+          "label": "Other findings in the prostate",
           "type": "checkboxes",
           "required": false,
           "options": [
             {
               "id": "additional_findings_opt_1",
-              "label": "Option 1"
+              "label": "None",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_2",
-              "label": "Option 2"
+              "label": "Benign prostatic hyperplasia",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_3",
-              "label": "Option 3"
+              "label": "High-grade prostatic intraepithelial neoplasia",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_4",
-              "label": "Option 4"
+              "label": "Inflammation",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_5",
-              "label": "Option 5"
+              "label": "Atrophy",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_6",
-              "label": "Option 6"
+              "label": "Infarct",
+              "snomed": "",
+              "icd": ""
             },
             {
               "id": "additional_findings_opt_7",
-              "label": "Option 7"
+              "label": "Other (describe in a comment)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "psmap_prostate_map",
+      "title": "Anatomical map (PathScribe)",
+      "fields": [
+        {
+          "id": "psmap_tumour_sectors",
+          "label": "Tumour location (PI-RADS v2.1 sectors)",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Every sector with tumour. Drives the prostate map.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_grade_group",
+          "label": "Grade Group (dominant tumour)",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_gg_1",
+              "label": "Grade Group 1 (Gleason 3+3=6)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_2",
+              "label": "Grade Group 2 (Gleason 3+4=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_3",
+              "label": "Grade Group 3 (Gleason 4+3=7)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_4",
+              "label": "Grade Group 4 (Gleason score 8)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_gg_5",
+              "label": "Grade Group 5 (Gleason score 9-10)",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_epe_sectors",
+          "label": "Extraprostatic extension: location",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Sectors where tumour extends beyond the prostate. Leave empty if none.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_margin_sectors",
+          "label": "Positive margin: location",
+          "type": "checkboxes",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "hint": "Sectors at a positive surgical margin. Leave empty if margins are negative.",
+          "options": [
+            {
+              "id": "psmap_sector_r_base_as",
+              "label": "Right base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tza",
+              "label": "Right base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_tzp",
+              "label": "Right base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pza",
+              "label": "Right base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpl",
+              "label": "Right base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_pzpm",
+              "label": "Right base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_base_cz",
+              "label": "Right base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_as",
+              "label": "Left base, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tza",
+              "label": "Left base, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_tzp",
+              "label": "Left base, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pza",
+              "label": "Left base, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpl",
+              "label": "Left base, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_pzpm",
+              "label": "Left base, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_base_cz",
+              "label": "Left base, central zone (CZ)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_as",
+              "label": "Right mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tza",
+              "label": "Right mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_tzp",
+              "label": "Right mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pza",
+              "label": "Right mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpl",
+              "label": "Right mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_mid_pzpm",
+              "label": "Right mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_as",
+              "label": "Left mid-gland, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tza",
+              "label": "Left mid-gland, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_tzp",
+              "label": "Left mid-gland, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pza",
+              "label": "Left mid-gland, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpl",
+              "label": "Left mid-gland, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_mid_pzpm",
+              "label": "Left mid-gland, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_as",
+              "label": "Right apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tza",
+              "label": "Right apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_tzp",
+              "label": "Right apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pza",
+              "label": "Right apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpl",
+              "label": "Right apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_apex_pzpm",
+              "label": "Right apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_as",
+              "label": "Left apex, anterior fibromuscular stroma (AS)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tza",
+              "label": "Left apex, transition zone, anterior (TZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_tzp",
+              "label": "Left apex, transition zone, posterior (TZp)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pza",
+              "label": "Left apex, peripheral zone, anterior (PZa)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpl",
+              "label": "Left apex, peripheral zone, posterolateral (PZpl)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_apex_pzpm",
+              "label": "Left apex, peripheral zone, posteromedial (PZpm)",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_r_sv",
+              "label": "Right seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_l_sv",
+              "label": "Left seminal vesicle",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sector_us",
+              "label": "Urethral sphincter",
+              "snomed": "",
+              "icd": ""
+            }
+          ]
+        },
+        {
+          "id": "psmap_sv_invasion",
+          "label": "Seminal vesicle invasion",
+          "type": "dropdown",
+          "required": false,
+          "core": false,
+          "snomed": "",
+          "icd": "",
+          "note": "PathScribe",
+          "options": [
+            {
+              "id": "psmap_sv_none",
+              "label": "Not identified",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_right",
+              "label": "Right",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_left",
+              "label": "Left",
+              "snomed": "",
+              "icd": ""
+            },
+            {
+              "id": "psmap_sv_bilateral",
+              "label": "Bilateral",
+              "snomed": "",
+              "icd": ""
             }
           ]
         }

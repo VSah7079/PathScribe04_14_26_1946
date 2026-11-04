@@ -21,7 +21,8 @@ import React, { useState } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import '../../../pathscribe.css';
 import { narrativeTemplateConfig } from '../../Config/NarrativeTemplates/narrativeTemplateConfig';
-import { getOrgOrchestratorDefault, setOrgOrchestratorDefault } from './orchestratorModeConfig';
+import { getOrgOrchestratorDefault } from './orchestratorModeConfig';
+import { saveOrgOrchestratorDefault } from '@/services/aiConfig/saveAiSettings';
 
 // ── Step card ─────────────────────────────────────────────────
 
@@ -38,7 +39,7 @@ const StepCard: React.FC<StepCardProps> = ({ step, index, isAdmin }) => {
   return (
     <div className="ps-orchcfg-step-card">
       {/* Header row */}
-      <button
+      <button data-config-nav
         onClick={() => setExpanded(e => !e)}
         className="ps-orchcfg-step-header"
       >
@@ -125,10 +126,10 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
   // why, and for the per-lab override this org value now falls back from.
   const [orchestratorOn, setOrchestratorOn] = useState<boolean>(getOrgOrchestratorDefault);
 
-  const handleToggle = () => {
+  const handleToggle = async () => {
     const next = !orchestratorOn;
-    setOrchestratorOn(next);
-    setOrgOrchestratorDefault(next);
+    // Batch 428: the service checks config:ai-provider:manage; a refusal changes nothing.
+    if (await saveOrgOrchestratorDefault(next)) setOrchestratorOn(next);
   };
 
   const enabledCount = cfg.sections.filter(s => s.enabled).length;
@@ -137,8 +138,11 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
     <div className="ps-orchcfg-section">
 
       {/* Section header — collapsible */}
-      <button
+      {/* Batch 524 (PS-491): the on/off switch sits beside the collapse button, not inside it (a control inside a button can't be reached). */}
+      <div className="ps-orchcfg-header">
+      <button data-config-nav
         onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
         className="ps-orchcfg-header-btn"
       >
         <svg
@@ -152,18 +156,20 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
         <span className="ps-orchcfg-header-title">
           {t('orchestratorConfigSection.title')}
         </span>
+      </button>
 
         {isAdmin ? (
-          <span
+          <button
+            type="button"
             role="switch"
             aria-checked={orchestratorOn}
             aria-label={orchestratorOn ? t('orchestratorConfigSection.toggle.ariaLabelOn') : t('orchestratorConfigSection.toggle.ariaLabelOff')}
-            onClick={(e) => { e.stopPropagation(); handleToggle(); }}
+            onClick={handleToggle}
             title={t('orchestratorConfigSection.toggle.tooltip')}
             className={`ps-orchcfg-toggle-badge${orchestratorOn ? ' ps-orchcfg-toggle-badge--on' : ''}`}
           >
             {orchestratorOn ? t('orchestratorConfigSection.toggle.badgeOn') : t('orchestratorConfigSection.toggle.badgeOff')}
-          </span>
+          </button>
         ) : (
           <span className={`ps-orchcfg-status-badge${orchestratorOn ? ' ps-orchcfg-status-badge--on' : ''}`}>
             {orchestratorOn ? t('orchestratorConfigSection.toggle.statusOn') : t('orchestratorConfigSection.toggle.statusOff')}
@@ -173,7 +179,7 @@ const OrchestratorConfigSection: React.FC<OrchestratorConfigSectionProps> = ({ i
         <span className="ps-orchcfg-steps-summary">
           {t('orchestratorConfigSection.stepsActiveSummary', { enabled: enabledCount, total: cfg.sections.length })}
         </span>
-      </button>
+      </div>
 
       {open && (
         <div className="ps-orchcfg-body">

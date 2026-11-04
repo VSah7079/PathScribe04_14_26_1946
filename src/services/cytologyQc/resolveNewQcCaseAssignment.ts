@@ -16,6 +16,7 @@
 
 import type { CytologyQcCaseAssignment, QcPeerReviewPriorityTier } from '@/types/cytologyQc/CytologyQcRule';
 import type { QcEvaluationResult } from './resolveQcRuleEvaluation';
+import type { QcAssignmentCandidate } from './resolveQcAssignmentUpsert';
 
 /** Real, per direct guidance's own resolution — a ROSE/FNA
  *  discrepancy is a fixed, always-on system behavior, not a
@@ -26,6 +27,16 @@ import type { QcEvaluationResult } from './resolveQcRuleEvaluation';
 const ROSE_DISCREPANCY_PRIORITY_TIER: QcPeerReviewPriorityTier = 'high_escalation';
 const ROSE_DISCREPANCY_SLA_HOURS = 4;
 const ROSE_DISCREPANCY_BADGE = 'ROSE Discrepancy';
+
+/** Batch 501: the ROSE discrepancy as a trigger for resolveQcAssignmentUpsert
+ *  (creates the assignment, or raises an open one to this tier and SLA). */
+export const ROSE_DISCREPANCY_QC_CANDIDATE: QcAssignmentCandidate = {
+  triggerSource: 'rose_discrepancy',
+  priorityTier: ROSE_DISCREPANCY_PRIORITY_TIER,
+  slaHours: ROSE_DISCREPANCY_SLA_HOURS,
+  badge: ROSE_DISCREPANCY_BADGE,
+  selectionReason: 'rose_discrepancy',
+};
 
 function nowIso(): string { return new Date().toISOString(); }
 function addHoursIso(hours: number): string { return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(); }

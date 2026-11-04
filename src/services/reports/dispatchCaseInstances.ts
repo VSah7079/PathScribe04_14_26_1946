@@ -18,7 +18,7 @@
 // discrete observation stream (OBR/OBX structure)... Do not build a new
 // composite multi-report message"): deliberately per-instance, reusing
 // buildOruR01Payload.ts's own, already-tested builder and
-// mockOutboundResultQueueService.ts's own, already-tested queue —
+// outboundResultQueueService.ts's own, already-tested queue —
 // never a new, combined whole-case payload format.
 //
 // Real, deliberate scope: 'FINAL' only — this function is the real,
@@ -30,51 +30,63 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { caseRouter } from '../cases/CaseRouter';
-import { mockPatientIndexService } from '../patients/mockPatientIndexService';
-import { mockOutboundResultQueueService } from './mockOutboundResultQueueService';
-import { buildOruR01Payload } from './buildOruR01Payload';
+import { resolveDispatchOrganisation } from '../interfaceDispatch/resolveDispatchOrganisation';
+import { outboundResultQueueService } from './reportServicesInstance';
+import { prepareOruR01Dispatch } from './prepareOruR01Dispatch';
+import { resultInstanceIds } from './resultInstances';
+import type { GenerateReportPdf } from './resolveOruReportPdf';
 import { dispatchInterfaceMessage } from '../interfaceDispatch/dispatchInterfaceMessage';
 
-export async function dispatchCaseInstances(caseId: string): Promise<void> {
+export async function dispatchCaseInstances(
+  caseId: string,
+  /** Batch 392: the release's PDF (the one printing gets), if one was made. */
+  generatePdf?: GenerateReportPdf,
+): Promise<void> {
   const caseData = await caseRouter.getCase(caseId);
   if (!caseData) return;
 
-  const patientId = (caseData as any)?.patient?.id;
-  const patient = patientId ? await mockPatientIndexService.getById(patientId) : null;
-  // Honest, non-blocking skip — no real organisationId to enqueue
-  // against. Same real posture as every other real outbound-queue
-  // enqueue in this app.
-  if (!patient) return;
+  // Honest, non-blocking skip (recorded in the audit log): no real organisationId to enqueue against.
+  const organisationId = await resolveDispatchOrganisation(caseData as any, 'Surgical', 'final');
+  if (!organisationId) return;
 
-  const finalizedInstances = (caseData.synopticReports ?? []).filter(r => r.status === 'finalized');
+  // Batch 393: one result per finalized synoptic report, or one for an autopsy report.
+  const resultIds = resultInstanceIds(caseData as any, 'FINAL');
 
-  for (const instance of finalizedInstances) {
+  for (const instanceId of resultIds) {
+    const instance = { instanceId };
     // Real, idempotent dedup — this function may genuinely be called
     // more than once for the same case (a page reload mid-buffer, a
     // real retry of the whole flow) — never double-enqueue the same
     // real instance's initial FINAL result.
-    const existingRes = await mockOutboundResultQueueService.getByInstanceAndState(instance.instanceId, 'FINAL');
+    const existingRes = await outboundResultQueueService.getByInstanceAndState(instance.instanceId, 'FINAL');
     if (existingRes.ok && existingRes.data.length > 0) continue;
 
-    const payload = await buildOruR01Payload(caseId, instance.instanceId, 'FINAL');
-    // Real, honest skip — buildOruR01Payload() itself returns null for
-    // a genuinely nonexistent case or a non-orchestrator case; never a
-    // fabricated payload.
-    if (!payload) continue;
+    // Batch 392: with its PDF, or held for retry when there is none.
+    const prepared = await prepareOruR01Dispatch(caseId, instance.instanceId, 'FINAL', { generatePdf });
+    if (prepared.ok === false && prepared.reason === 'not_found') continue;
 
-    const enqueueRes = await mockOutboundResultQueueService.enqueue({
+    const enqueueRes = await outboundResultQueueService.enqueue({
       caseId,
       instanceId: instance.instanceId,
       resultState: 'FINAL',
-      organisationId: patient.organisationId,
+      organisationId,
+      ...(prepared.ok && prepared.document ? { reportDocumentId: prepared.document.id, ...(prepared.document.sha256 ? { pdfSha256: prepared.document.sha256 } : {}) } : {}),
+      // Batch 559: a signed version's PDF has no document id; its hash is still recorded.
+      ...(prepared.ok && !prepared.document && prepared.pdfSha256 ? { pdfSha256: prepared.pdfSha256 } : {}),
     });
     if (!enqueueRes.ok) continue;
+    if (prepared.ok === false) {
+      await outboundResultQueueService.markFailed(enqueueRes.data.id, {
+        errorCode: 'DISPATCH_REJECTED', errorMessage: prepared.error, maxRetriesExceeded: false,
+      });
+      continue;
+    }
 
-    const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', payload);
+    const result = await dispatchInterfaceMessage(enqueueRes.data.id, 'ORU_R01', prepared.payload);
     if (result.ok) {
-      await mockOutboundResultQueueService.markSent(enqueueRes.data.id);
+      await outboundResultQueueService.markSent(enqueueRes.data.id);
     } else {
-      await mockOutboundResultQueueService.markFailed(enqueueRes.data.id, {
+      await outboundResultQueueService.markFailed(enqueueRes.data.id, {
         errorCode: result.errorCode ?? 'DISPATCH_REJECTED',
         errorMessage: result.error ?? 'Unknown dispatch failure.',
         maxRetriesExceeded: false,

@@ -2,7 +2,9 @@
 // IActionRegistryService.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { TriggerPoolOptions } from './voiceTriggerPool';
 import type { VoiceProfileLanguage } from '@/constants/voiceProfiles';
+import type { TransientActionDefinition } from './transientActions';
 
 /**
  * Unique identifier for system actions. 
@@ -47,6 +49,9 @@ export interface SystemAction {
    *  eligibility rule for how this combines with GLOBAL_CATEGORIES
    *  and the current app context. */
   stationProfiles?: string[];
+  /** Batch 650: a command that is hard to undo; by voice it runs only after the phrase is said a second time
+   *  (services/voice/voiceCommandRunner.ts). Set from repeatConfirmationCommands.ts, never stored. Keys are unaffected. */
+  confirmByRepeat?: boolean;
 }
 
 export interface PendingMiss {
@@ -67,9 +72,13 @@ export interface IActionRegistryService {
   // ─── Core Action Management ──────────────────────────────────────────────
   getActions(): SystemAction[];
   getActionById(id: SystemActionId): SystemAction | undefined;
-  findActionByTrigger(transcript: string, language?: VoiceProfileLanguage): SystemAction | undefined;
+  /** `options.englishFuzzyFallback` (default true; Batch 609, #179): false keeps a non-English
+   *  profile's fuzzy step to its own language's phrases (exact English phrases still match). */
+  findActionByTrigger(transcript: string, language?: VoiceProfileLanguage, options?: TriggerPoolOptions): SystemAction | undefined;
   updateAction(id: SystemActionId, updates: Partial<SystemAction>): Promise<void>;
   setCurrentContext(context: string): void;
+  /** Batch 650: the screen in focus (the audit entry for a voice command names it). */
+  getCurrentContext(): string;
   /** Real, per PS-289's own comment thread — set the moment a
    *  technician selects a station whose WorkstationGroup resolves to
    *  a real functionalArea (services/workstationGroups/). Undefined
@@ -100,6 +109,9 @@ export interface IActionRegistryService {
    *  real functionalArea (set via setCurrentStationProfile above),
    *  matching this same real "OR" posture, not a stricter AND. */
   getEligibleActions(): SystemAction[];
+  /** Batch 650: commands a screen adds while it is open (transientActions.ts); returns the function that removes them.
+   *  Not stored, not shown in the Actions tab. They count in getEligibleActions and voice matching. */
+  registerTransientActions(defs: readonly TransientActionDefinition[]): () => void;
 
   // ─── Event Subscriptions ─────────────────────────────────────────────────
   /**

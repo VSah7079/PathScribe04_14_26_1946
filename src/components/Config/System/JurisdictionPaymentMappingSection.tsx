@@ -16,10 +16,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { mockJurisdictionPaymentMappingService } from '../../../services/billing/mockJurisdictionPaymentMappingService';
-import { mockMasterPaymentTypeService } from '../../../services/billing/mockMasterPaymentTypeService';
+
 import type { JurisdictionPaymentMapping } from '../../../types/billing/JurisdictionPaymentMapping';
 import type { MasterPaymentType } from '../../../types/billing/MasterPaymentType';
+import { jurisdictionPaymentMappingService, masterPaymentTypeService } from '@/services';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 function blankDraft(): Partial<JurisdictionPaymentMapping> {
   return { countryCode: '', localSchemeCode: '', localDisplayTerminology: '', masterPaymentTypeId: '', primaryOutboundFormat: '', notes: '' };
@@ -37,7 +39,7 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
 
   const refresh = () => {
     setLoading(true);
-    Promise.all([mockJurisdictionPaymentMappingService.getAll(), mockMasterPaymentTypeService.getAll()]).then(([mapRes, typeRes]) => {
+    Promise.all([jurisdictionPaymentMappingService.getAll(), masterPaymentTypeService.getAll()]).then(([mapRes, typeRes]) => {
       if (mapRes.ok) setEntries(mapRes.data);
       if (typeRes.ok) setMasterTypes(typeRes.data);
       setLoading(false);
@@ -64,15 +66,15 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
       notes: draft.notes?.trim() || undefined,
     };
     const res = modal?.mode === 'add'
-      ? await mockJurisdictionPaymentMappingService.add(payload)
-      : await mockJurisdictionPaymentMappingService.update(modal!.entry!.id, payload);
+      ? await jurisdictionPaymentMappingService.add(payload)
+      : await jurisdictionPaymentMappingService.update(modal!.entry!.id, payload);
     if (!res.ok) { alert((res as any).error); return; }
     setModal(null);
     refresh();
   };
 
   const toggleActive = async (e: JurisdictionPaymentMapping) => {
-    const res = e.active ? await mockJurisdictionPaymentMappingService.deactivate(e.id) : await mockJurisdictionPaymentMappingService.reactivate(e.id);
+    const res = e.active ? await jurisdictionPaymentMappingService.deactivate(e.id) : await jurisdictionPaymentMappingService.reactivate(e.id);
     if (res.ok) refresh();
   };
 
@@ -82,7 +84,7 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
     .filter(e => !countryFilter || e.countryCode === countryFilter)
     .sort((a, b) => a.countryCode.localeCompare(b.countryCode) || a.localSchemeCode.localeCompare(b.localSchemeCode));
 
-  if (loading) return <div className="ps-conf-loading">{t('jurisdictionPaymentMappingSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('jurisdictionPaymentMappingSection.loading')} />;
 
   return (
     <div>
@@ -95,12 +97,12 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
 
       <div className="ps-jpm__toolbar">
         <div className="ps-jpm__toolbar-left">
-          <select className="ps-conf-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
+          <select aria-label={t('a11y.filters.country')} data-dirty-ignore data-config-nav className="ps-conf-select" value={countryFilter} onChange={e => setCountryFilter(e.target.value)}>
             <option value="">{t('jurisdictionPaymentMappingSection.filters.allCountries')}</option>
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           <label className="ps-sub-toggle-wrap ps-jpm__toggle-wrap">
-            <div onClick={() => setShowInactive(v => !v)} className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}>
+            <div {...switchable(showInactive, () => setShowInactive(v => !v), t('common.showInactive'))} className={showInactive ? 'ps-sub-toggle-track ps-sub-toggle-track--on' : 'ps-sub-toggle-track ps-sub-toggle-track--off'}>
               <div className={showInactive ? 'ps-sub-toggle-thumb ps-sub-toggle-thumb--on' : 'ps-sub-toggle-thumb ps-sub-toggle-thumb--off'} />
             </div>
             <span className="ps-tat-hint-text">{t('common.showInactive')}</span>
@@ -148,29 +150,29 @@ const JurisdictionPaymentMappingSection: React.FC = () => {
             <div className="ps-ose-quicktext-title">{modal.mode === 'add' ? t('jurisdictionPaymentMappingSection.modal.addTitle') : t('jurisdictionPaymentMappingSection.modal.editTitle', { scheme: modal.entry?.localSchemeCode })}</div>
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.countryCodeLabel')}</label>
-            <input className="ps-conf-input" value={draft.countryCode ?? ''} onChange={e => setDraft(d => ({ ...d, countryCode: e.target.value }))}
+            <input aria-label={t('jurisdictionPaymentMappingSection.modal.countryCodeLabel')} className="ps-conf-input" value={draft.countryCode ?? ''} onChange={e => setDraft(d => ({ ...d, countryCode: e.target.value }))}
               placeholder={t('jurisdictionPaymentMappingSection.modal.countryCodePlaceholder')} />
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.localSchemeCodeLabel')}</label>
-            <input className="ps-conf-input" value={draft.localSchemeCode ?? ''} onChange={e => setDraft(d => ({ ...d, localSchemeCode: e.target.value }))}
+            <input aria-label={t('jurisdictionPaymentMappingSection.modal.localSchemeCodeLabel')} className="ps-conf-input" value={draft.localSchemeCode ?? ''} onChange={e => setDraft(d => ({ ...d, localSchemeCode: e.target.value }))}
               placeholder={t('jurisdictionPaymentMappingSection.modal.localSchemeCodePlaceholder')} />
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.localTerminologyLabel')}</label>
-            <input className="ps-conf-input" value={draft.localDisplayTerminology ?? ''} onChange={e => setDraft(d => ({ ...d, localDisplayTerminology: e.target.value }))}
+            <input aria-label={t('jurisdictionPaymentMappingSection.modal.localTerminologyLabel')} className="ps-conf-input" value={draft.localDisplayTerminology ?? ''} onChange={e => setDraft(d => ({ ...d, localDisplayTerminology: e.target.value }))}
               placeholder={t('jurisdictionPaymentMappingSection.modal.localTerminologyPlaceholder')} />
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.masterPaymentTypeLabel')}</label>
-            <select className="ps-conf-select" value={draft.masterPaymentTypeId ?? ''} onChange={e => setDraft(d => ({ ...d, masterPaymentTypeId: e.target.value }))}>
+            <select aria-label={t('jurisdictionPaymentMappingSection.modal.masterPaymentTypeLabel')} className="ps-conf-select" value={draft.masterPaymentTypeId ?? ''} onChange={e => setDraft(d => ({ ...d, masterPaymentTypeId: e.target.value }))}>
               <option value="">{t('jurisdictionPaymentMappingSection.modal.selectPlaceholder')}</option>
               {masterTypes.filter(t2 => t2.active).map(t2 => <option key={t2.id} value={t2.id}>{t2.displayName}</option>)}
             </select>
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.outboundFormatLabel')}</label>
-            <input className="ps-conf-input" value={draft.primaryOutboundFormat ?? ''} onChange={e => setDraft(d => ({ ...d, primaryOutboundFormat: e.target.value }))}
+            <input aria-label={t('jurisdictionPaymentMappingSection.modal.outboundFormatLabel')} className="ps-conf-input" value={draft.primaryOutboundFormat ?? ''} onChange={e => setDraft(d => ({ ...d, primaryOutboundFormat: e.target.value }))}
               placeholder={t('jurisdictionPaymentMappingSection.modal.outboundFormatPlaceholder')} />
 
             <label className="ps-conf-label">{t('jurisdictionPaymentMappingSection.modal.notesLabel')}</label>
-            <input className="ps-conf-input" value={draft.notes ?? ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
+            <input aria-label={t('jurisdictionPaymentMappingSection.modal.notesLabel')} className="ps-conf-input" value={draft.notes ?? ''} onChange={e => setDraft(d => ({ ...d, notes: e.target.value }))} />
 
             <div className="ps-ose-quicktext-actions">
               <button className="ps-btn-ghost-dark" onClick={() => setModal(null)}>{t('common.cancel')}</button>

@@ -1,0 +1,10 @@
+Batch 563 (PS-622): Playwright in Chromium against the demo (npm run test:a11y; e2e/a11y.connectivity.spec.ts and the main screens of e2e/a11y.spec.ts), run 2026-10-14.
+✓  1 e2e/a11y.connectivity.spec.ts:57:3 › connection banner (PS-622) › offline, then back online: shown after about 2 s, polite, takes no focus, covers nothing, passes axe; "Reconnected" then goes (14.6s)
+✓  2 e2e/a11y.connectivity.spec.ts:90:3 › waiting states (PS-622) › a page slow to arrive: the loader after 300 ms, then "still loading" from 3 s, which stays until the page arrives; one polite region (10.6s)
+✓  3 e2e/a11y.connectivity.spec.ts:126:3 › waiting states (PS-622) › a Configuration section: its own loading text sits in a polite live region, once (5.9s)
+✓  4 e2e/a11y.connectivity.spec.ts:141:3 › phase 2d screens (PS-622) › My exports, Server jobs and Interfaces → Engines: no serious or critical WCAG 2.1 AA violations (21.8s)
+✓  5 e2e/a11y.spec.ts:60:3 › main screens › Worklist: no serious or critical WCAG 2.1 AA violations (8.2s)
+✓  6 e2e/a11y.spec.ts:65:3 › main screens › Accession: no serious or critical WCAG 2.1 AA violations (7.7s)
+✓  7 e2e/a11y.spec.ts:70:3 › main screens › Search, empty and with results: no serious or critical WCAG 2.1 AA violations (11.8s)
+✓  8 e2e/a11y.spec.ts:79:3 › main screens › Case report page, then with the organ map: no serious or critical WCAG 2.1 AA violations (19.4s)
+8 passed (1.7m)

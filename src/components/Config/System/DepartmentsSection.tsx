@@ -23,16 +23,18 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import '../../../pathscribe.css';
-import { departmentService } from '../../../services';
+import { departmentService, auditService, caseMaskService } from '../../../services';
+import { auditRetentionOverrideBelowFloor } from '../../../services/departments/auditRetentionOverride';
 import { checkDepartmentReferences } from '../../../services/referenceCheck/referenceCheckService';
-import { mockAuditService } from '../../../services/auditlog/mockAuditService';
 import ConfirmModal from '../../Common/ConfirmModal';
 import type { Department } from '../../../services/departments/IDepartmentService';
-import { mockCaseMaskService } from '../../../services/caseRegistry/mockCaseMaskService';
 import type { CaseMask } from '../../../types/config/CaseMask';
 import type { RetainableMaterialType, RetentionOverrideDays } from '../../../services/retentionPolicy/RetentionPolicy';
 import { MATERIAL_TYPE_LABEL, formatRetentionPeriod, getCurrentJurisdiction } from '../../../services/retentionPolicy/RetentionPolicy';
 import { resolveCurrentGoverningBodyFloor } from '../../../services/retentionPolicy/resolveRetentionEligibility';
+import { switchable } from '@/utils/a11y/pressable';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { linkFieldProblem } from '@/services/links/externalLink';
 
 // The three Grossing Templates that exist today — see protocolShared.tsx's
 // PROTOCOL_REGISTRY entries with isDiagnostic: false. Hardcoded here rather
@@ -111,6 +113,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
     const e: typeof errors = {};
     if (!draft.name.trim()) e.name = t('common.required');
     if (!draft.defaultGrossingTemplateId) e.defaultGrossingTemplateId = t('common.required');
+    // Batch 549: the logo is a link (images are links only; services/links/externalLink.ts).
+    if (linkFieldProblem(draft.headerLogoUrl)) e.headerLogoUrl = t('links.invalidHttpsLink');
     return e;
   };
 
@@ -154,14 +158,14 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
         <div className="ps-ms-body">
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('departmentsSection.modal.nameLabel')} <span className="ps-conf-required">*</span></label>
-            <input className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
+            <input aria-label={t('departmentsSection.modal.nameLabel')} className={`ps-conf-input ${errors.name ? 'ps-conf-input--error' : ''}`}
               value={draft.name} onChange={e => set('name', e.target.value)} placeholder={t('departmentsSection.modal.namePlaceholder')} />
             {errors.name && <span className="ps-conf-error-text">{errors.name}</span>}
           </div>
 
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('departmentsSection.modal.descriptionLabel')}</label>
-            <textarea className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('departmentsSection.modal.descriptionPlaceholder')} />
+            <textarea aria-label={t('departmentsSection.modal.descriptionLabel')} className="ps-conf-input ps-conf-textarea" value={draft.description ?? ''} onChange={e => set('description', e.target.value)} placeholder={t('departmentsSection.modal.descriptionPlaceholder')} />
           </div>
 
           <div className="ps-conf-form-field">
@@ -208,7 +212,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
           <div className="ps-conf-form-field">
             <label className="ps-conf-label">{t('departmentsSection.modal.statusLabel')}</label>
             <div className="ps-conf-toggle-row">
-              <div onClick={() => set('active', !draft.active)} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
+              <div {...switchable(draft.active, () => set('active', !draft.active), t('departmentsSection.modal.statusLabel'))} className={`ps-conf-toggle-track ${draft.active ? 'ps-conf-toggle-track--active' : ''}`}>
                 <div className="ps-conf-toggle-thumb" />
               </div>
               <span className={`ps-conf-toggle-label ${draft.active ? 'ps-conf-toggle-label--active' : ''}`}>{draft.active ? t('common.active') : t('common.inactive')}</span>
@@ -238,7 +242,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
                         here too, same precedent; only the "(days)" suffix around
                         it is this component's own text. */}
                     <label className="ps-conf-label">{MATERIAL_TYPE_LABEL[mt]} {t('departmentsSection.modal.daysSuffix')}</label>
-                    <input
+                    <input aria-label={t('departmentsSection.modal.daysSuffix')}
                       className={`ps-conf-input ${isBelowFloor ? 'ps-conf-input--error' : ''}`}
                       value={retentionDays[mt]}
                       onChange={e => setRetentionDays(prev => ({ ...prev, [mt]: e.target.value }))}
@@ -277,7 +281,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
             <div className="ps-conf-form-row">
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('departmentsSection.modal.brandingDirectorNameLabel')}</label>
-                <input
+                <input aria-label={t('departmentsSection.modal.brandingDirectorNameLabel')}
                   className="ps-conf-input"
                   value={draft.directorName ?? ''}
                   onChange={e => set('directorName', e.target.value || undefined)}
@@ -286,7 +290,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
               </div>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('departmentsSection.modal.brandingCliaOrIsoNumberLabel')}</label>
-                <input
+                <input aria-label={t('departmentsSection.modal.brandingCliaOrIsoNumberLabel')}
                   className="ps-conf-input"
                   value={draft.cliaOrIsoNumber ?? ''}
                   onChange={e => set('cliaOrIsoNumber', e.target.value || undefined)}
@@ -295,12 +299,13 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
               </div>
               <div className="ps-conf-form-field">
                 <label className="ps-conf-label">{t('departmentsSection.modal.brandingHeaderLogoUrlLabel')}</label>
-                <input
+                <input aria-label={t('departmentsSection.modal.brandingHeaderLogoUrlLabel')}
                   className="ps-conf-input"
                   value={draft.headerLogoUrl ?? ''}
                   onChange={e => set('headerLogoUrl', e.target.value || undefined)}
                   placeholder={t('departmentsSection.modal.brandingHeaderLogoUrlPlaceholder')}
                 />
+                {errors.headerLogoUrl && <span className="ps-conf-error-text">{errors.headerLogoUrl}</span>}
                 <div className="ps-speccat-days-hint">
                   {t('departmentsSection.modal.brandingHeaderLogoUrlHint')}
                 </div>
@@ -339,7 +344,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ mode, department, flo
               <label className="ps-conf-label">
                 {t('departmentsSection.modal.belowFloor.justificationLabel')} <span className="ps-conf-required">*</span>
               </label>
-              <textarea
+              <textarea aria-label={t('departmentsSection.modal.belowFloor.justificationLabel')}
                 className="ps-conf-input ps-conf-textarea"
                 value={justification}
                 onChange={e => setJustification(e.target.value)}
@@ -384,7 +389,7 @@ const DepartmentsSection: React.FC = () => {
       setLoading(false);
     });
     resolveCurrentGoverningBodyFloor(getCurrentJurisdiction()).then(setFloor).catch(() => {});
-    mockCaseMaskService.getAllMasks().then(res => {
+    caseMaskService.getAllMasks().then(res => {
       if (res.ok) {
         setCaseMasksByDeptId(Object.fromEntries(
           res.data.filter(m => m.scopeType === 'department').map(m => [m.scopeId, m])
@@ -435,13 +440,8 @@ const DepartmentsSection: React.FC = () => {
     }
     const saved = await persistSave(draft);
     if (saved && belowFloorFields.length > 0) {
-      // Persisted audit-trail entry — stays English, same convention as
-      // every other real audit-log detail string in this app.
-      mockAuditService.logEvent({
-        type: 'system', event: 'Retention Override Below Floor',
-        detail: `Department "${draft.name}" — ${belowFloorFields.join(', ')} set below the current governing-body floor. Justification: ${justification}`,
-        user: 'super-admin', caseId: null, confidence: null,
-      }).catch(() => {});
+      // Batch 428: written by the service, under the signed-in person (it used to say "super-admin").
+      void auditRetentionOverrideBelowFloor({ departmentName: draft.name, fields: belowFloorFields, justification }, { auditService });
     }
     setModal(null);
   };
@@ -457,7 +457,7 @@ const DepartmentsSection: React.FC = () => {
     setPendingDeactivation(null);
   };
 
-  if (loading) return <div className="ps-conf-loading">{t('departmentsSection.loading')}</div>;
+  if (loading) return <LoadingState label={t('departmentsSection.loading')} />;
 
   const tableHeaderKeys = ['department', 'defaultGrossingTemplate', 'caseMask', 'retentionOverride', 'status', 'actions'] as const;
 
@@ -474,9 +474,9 @@ const DepartmentsSection: React.FC = () => {
       </div>
 
       <div className="ps-conf-form-row">
-        <input type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
+        <input data-dirty-ignore data-config-nav type="text" placeholder={t('departmentsSection.searchPlaceholder')} value={search} onChange={e => setSearch(e.target.value)}
           className="ps-conf-search" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
+        <select aria-label={t('a11y.filters.status')} data-dirty-ignore data-config-nav value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="ps-conf-select">
           <option value="All">{t('departmentsSection.filters.statusAll')}</option>
           <option value="Active">{t('common.active')}</option>
           <option value="Inactive">{t('common.inactive')}</option>

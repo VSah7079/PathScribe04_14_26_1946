@@ -1,0 +1,16 @@
+{
+  "info": {
+    "project": "PS",
+    "summary": "Batch 620 \u2014 registry feeds: US ePath HL7 with state profiles, UK COSD XML correction loop, screening batch files (PS-800)",
+    "description": "Vitest, 2026-10-19: full suite 1651 files (1646 passed, 4 skipped, 1 failed); 13,960 tests passed, 33 skipped. firestore.rules.test.ts needs the Firestore emulator (not run). Type-check clean. Not run: server side, any real registry."
+  },
+  "tests": [
+    {
+      "testKey": "PS-813",
+      "start": "2026-10-19T15:00:00Z",
+      "finish": "2026-10-19T16:00:00Z",
+      "status": "PASSED",
+      "comment": "PASSED: src/components/Config/System/UsEpathSection.test.tsx\nPASSED: src/services/cancerRegistry/cancerRegistryDefinitions.test.ts\nPASSED: src/services/hl7/epathBuilder.test.ts\nPASSED: src/services/usEpath/epathCheck.test.ts\nPASSED: src/services/usEpath/epathProfile.test.ts\nPASSED: src/services/usEpath/epathReviewCodes.test.ts\nPASSED: src/services/usEpath/epathRouting.test.ts\nPASSED: src/services/usEpath/epathTransport.test.ts\nPASSED: src/services/usEpath/httpUsEpathService.test.ts\nPASSED: src/services/usEpath/mockUsEpathService.test.ts\nPASSED: src/services/usEpath/prepareEpathSubmission.test.ts\nPASSED: src/services/cosd/cosd.test.ts\nPASSED: src/services/cosd/cosdDestination.test.ts\nPASSED: src/services/cosd/mockCosdDestinationService.test.ts\nPASSED: src/services/cosd/httpCosdDestinationService.test.ts\nPASSED: src/services/cosd/cosdFeed.test.ts\nPASSED: src/components/Config/System/cosdDestinationForm.test.ts\nPASSED: src/components/Config/System/CosdDestinationSection.test.tsx\nPASSED: src/services/authorization/authorization.test.ts\nPASSED: src/components/Config/System/BatchRegistryFeedSection.test.tsx\nPASSED: src/components/Config/System/batchRegistryFeedForm.test.ts\nPASSED: src/services/batchRegistryFeed/batchRecordSource.test.ts\nPASSED: src/services/batchRegistryFeed/batchRegistryFeed.test.ts\nPASSED: src/services/batchRegistryFeed/httpBatchRegistryFeedService.test.ts\nPASSED: src/services/batchRegistryFeed/mockBatchRegistryFeedService.test.ts\nPASSED: src/services/batchRegistryFeed/screeningRegistryFeed.test.ts"
+    }
+  ]
+}

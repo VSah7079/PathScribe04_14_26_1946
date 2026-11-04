@@ -4,7 +4,7 @@ import type { AutopsyCaseDetails } from '@/types/autopsy/AutopsyCaseDetails';
 
 function baseCase(overrides: Partial<AutopsyCaseDetails>): AutopsyCaseDetails {
   return {
-    jurisdiction: 'US', caseAuthority: 'medicolegal_forensic', scope: 'full',
+    jurisdiction: 'US', caseAuthority: 'statutory_judicial', scope: 'full',
     addenda: [], ancillaryHold: { active: false }, ...overrides,
   } as AutopsyCaseDetails;
 }
@@ -35,7 +35,7 @@ describe('resolveAutopsyBodyReleaseGate', () => {
       ancillaryHold: { active: true, reason: 'Awaiting toxicology specimens', startedAt: '2026-09-05T15:00:00Z' },
     }));
     expect(result.allowed).toBe(false);
-    expect(result.blockedReasons[0]).toContain('ancillary hold');
+    expect(result.blockedReasons).toEqual(['ancillary_hold_active']);
   });
 
   it('a real case whose ancillary hold has since ENDED (active: false, real endedAt set) is allowed again, alongside a real padSnapshot', () => {
@@ -59,6 +59,6 @@ describe('resolveAutopsyBodyReleaseGate', () => {
       ancillaryHold: { active: true, reason: 'Awaiting toxicology specimens' },
     }));
     expect(result.allowed).toBe(false);
-    expect(result.blockedReasons).toHaveLength(2);
+    expect(result.blockedReasons).toEqual(['pad_not_signed', 'ancillary_hold_active']);
   });
 });

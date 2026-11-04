@@ -1,0 +1,142 @@
+﻿#,English (expected meaning),Korean (current text),Korean versions,Used in (places),Screen area(s),Placeholders to keep,Correct?,Correction (if not correct),Reviewer notes,Keys (for PathScribe; do not edit)
+1,(demo: simulated),(데모: 시뮬레이션),1,1,home,,,,,home.status.simulatedNote
+2,(optional),(선택 사항),1,1,"casePoolAssignmentSection, cytologyQcQueue, enhancementRequestModal, externalConsultAccessModal …",,,,,cytologyQcQueue.optionalSuffix
+3,"A reagent or control lot is expired, failed, or has no QC sign-off. Nothing was changed.",시약 또는 대조물 로트가 만료되었거나 불합격이거나 QC 승인이 없습니다. 변경된 내용이 없습니다.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.lotGatingFailed
+4,A Tissue Discrepancy item has been raised for QA.,정도관리를 위해 조직 불일치 항목이 등록되었습니다.,1,1,embeddingStation,,,,,embeddingStation.discrepancy.raised
+5,Add at least one required control. A rule with no controls would check nothing.,필수 대조물을 하나 이상 추가하십시오. 대조물이 없는 규칙은 아무것도 검사하지 않습니다.,1,2,molecularControlRulesPage,,,,,"molecularControlRulesPage.draftProblem.controlsRequired
+molecularControlRulesPage.errors.controlsRequired"
+6,After the signed opinion: {{views}} or {{hours}} left.,서명된 의견 이후: {{views}} 또는 {{hours}} 남음.,1,1,consultLifetime,"{{hours}}, {{views}}",,,,consultLifetime.line.open
+7,AI suggestion,AI 제안,1,1,"caseCoding, rightSynopticPanel",,,,,rightSynopticPanel.fieldRow.aiSuggestionBadge
+8,Already matched — nothing changed,이미 일치함 — 변경 없음,1,1,batchDetail,,,,,batchDetail.alreadyMatchedFlash
+9,Back to the previous page,이전 페이지로 돌아가기,1,1,errorBoundary,,,,,errorBoundary.backToPrevious
+10,"Build and assemble report Parts into Templates, including templates structured on CAP/RCPath protocols.",보고서 파트를 템플릿으로 조립합니다. CAP/RCPath 프로토콜 구조를 따르는 템플릿도 포함됩니다.,1,1,configSearchIndex,,,,,configSearchIndex.entries.tpl-builder.description
+11,Check source,원문 확인,1,1,rightSynopticPanel,,,,,rightSynopticPanel.fieldRow.checkSourceBadge
+12,Checking,확인 중,1,1,"home, lockboxDropOff",,,,,home.status.checking
+13,Choose the assay this rule is for.,이 규칙을 적용할 검사를 선택하십시오.,1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.draftProblem.assayRequired
+14,Clear flag,표시 해제,1,1,embeddingStation,,,,,embeddingStation.discrepancy.clear
+15,Clinical side: “{{quote}}”,임상 측: “{{quote}}”,1,1,clinicalMismatch,{{quote}},,,,clinicalMismatch.evidence.clinical
+16,Close message,메시지 닫기,1,1,"orSuiteDashboard, saveToast",,,,,orSuiteDashboard.noticeClose
+17,Closed: all views after the signed opinion were used.,종료됨: 서명된 의견 이후의 조회 횟수를 모두 사용했습니다.,1,1,consultLifetime,,,,,consultLifetime.line.exhausted
+18,Closed: the time allowed after the signed opinion has passed.,종료됨: 서명된 의견 이후 허용된 시간이 지났습니다.,1,1,consultLifetime,,,,,consultLifetime.line.ended
+19,Compare with the source text before confirming,확정하기 전에 원문과 비교하십시오,1,1,rightSynopticPanel,,,,,rightSynopticPanel.fieldRow.checkSourceTitle
+20,Confirm and Submit,확인 후 제출,1,1,cytologyQcQueue,,,,,cytologyQcQueue.confirmDivergenceBtn
+21,Confirm is stopped while a discrepancy is flagged. Clear the flag when it has been dealt with.,불일치가 보고된 동안에는 확인할 수 없습니다. 처리가 끝나면 표시를 해제하십시오.,1,1,embeddingStation,,,,,embeddingStation.discrepancy.confirmBlocked
+22,Degraded,"1) 성능 저하
+2) 저하됨",2,1,"home, interfaceEngines, terminologyServicesSection",,,,,home.status.degraded
+23,Dismissed: {{reason}},종료됨: {{reason}},1,1,marginExceptionReview,{{reason}},,,,marginExceptionReview.history.dismissed
+24,Enter a reason for superseding this run.,이 런을 대체하는 사유를 입력하십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.reasonRequired
+25,Enter a reason for this change. It is recorded in the audit log.,변경 사유를 입력하십시오. 감사 로그에 기록됩니다.,1,2,molecularControlRulesPage,,,,,"molecularControlRulesPage.draftProblem.reasonRequired
+molecularControlRulesPage.errors.reasonRequired"
+26,Expected result,예상 결과,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.controlExpectedLabel
+27,Flag a block exception,블록 예외 표시,1,1,capabilities,,,,,capabilities.items.addOnExceptionFlag.label
+28,"For example: new kit lot, assay added, rule corrected","예: 새 키트 로트, 검사 추가, 규칙 수정",1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.reasonPlaceholder
+29,Full patient name and date of birth shown to the consultant,자문의에게 환자의 전체 이름과 생년월일이 표시됨,1,1,externalConsultAccessModal,,,,,externalConsultAccessModal.identityShownBadge
+30,Mark a block retrieved,블록 회수 표시,1,1,capabilities,,,,,capabilities.items.addOnBlockMarkRetrieved.label
+31,"Mismatch thresholds and actions are not used in this deployment’s regulatory profile (documentation). A possible mismatch is shown as a plain flag with its reason, logged for QA, and never holds sign-out. Existing rules are kept and apply again if the profile changes.",이 배포의 규제 프로필(문서화)에서는 불일치 임계값과 조치를 사용하지 않습니다. 불일치 가능성은 사유와 함께 단순 표시로 나타나고 QA용으로 기록되며 서명을 보류하지 않습니다. 기존 규칙은 보존되며 프로필이 바뀌면 다시 적용됩니다.,1,1,clinicalMismatchRulesSection,,,,,clinicalMismatchRulesSection.inactiveNote
+32,Negative,음성,1,1,"accessionPage, cytologyQcSettingsSection, cytologyWorklist, mockInterfaceEnginePage …",,,,,molecularPlateBuilderPage.expectedValue.NEGATIVE
+33,"No ordering pathologist is recorded for this slide, so the notice was sent to the Supervisor / Accessioning Desk.",이 슬라이드에는 의뢰한 병리의가 기록되어 있지 않아 알림을 관리자/접수 데스크로 보냈습니다.,1,1,microtomyWorkstation,,,,,microtomyWorkstation.exhausted.sentToDesk
+34,"No quotes were saved with this flag (it was made before quotes were kept, or it came from the rule-based check).",이 표시에는 저장된 인용문이 없습니다(인용문을 보관하기 전에 만들어졌거나 규칙 기반 점검에서 나온 것입니다).,1,1,surgicalQaWorklist,,,,,surgicalQaWorklist.mismatch.noEvidence
+35,"None of this panel’s stains are in the stain dictionary ({{stains}}), so nothing can be added. Ask your administrator to add them.",이 패널의 염색이 염색 사전에 하나도 없어({{stains}}) 추가할 수 없습니다. 관리자에게 추가를 요청하세요.,1,1,addOnOrder,{{stains}},,,,addOnOrder.builder.panelStainsMissingAll
+36,"not found in the record, check it yourself",기록에서 찾을 수 없습니다. 직접 확인하십시오,1,1,clinicalMismatch,,,,,clinicalMismatch.evidence.notFound
+37,Not saved. The case has been reloaded as it is now; please make the change again.,저장되지 않았습니다. 케이스를 현재 상태로 다시 불러왔으니 변경을 다시 해 주십시오.,1,1,workstationSave,,,,,workstationSave.notApplied
+38,Not saved: someone else changed this case at the same time. It has been reloaded as it is now; please make the change again.,저장되지 않음: 다른 사용자가 동시에 이 케이스를 변경했습니다. 현재 상태로 다시 불러왔으니 변경을 다시 해 주십시오.,1,1,workstationSave,,,,,workstationSave.conflict
+39,Nothing has been resolved or dismissed yet.,아직 해결되었거나 종료된 항목이 없습니다.,1,1,marginExceptionReview,,,,,marginExceptionReview.history.empty
+40,Off by default: the consultant sees initials and the year of birth only. Turning it on is recorded in the audit log.,기본값은 꺼짐입니다. 자문의에게는 이니셜과 출생 연도만 표시됩니다. 켜면 감사 로그에 기록됩니다.,1,1,externalConsultAccessModal,,,,,externalConsultAccessModal.revealIdentityHint
+41,Open the Control Rules page and read each molecular assay's required controls and the deck slots its sample rack may go in. Does not need the Molecular screen.,대조 규칙 페이지를 열어 각 분자 검사에 필요한 대조군과 검체 랙을 놓을 수 있는 덱 슬롯을 확인합니다. 분자 화면 권한이 필요하지 않습니다.,1,1,capabilities,,,,,capabilities.items.configMolecularControlRulesView.description
+42,Operational,정상,1,1,home,,,,,home.status.operational
+43,Pathology side: “{{quote}}”,병리 측: “{{quote}}”,1,1,clinicalMismatch,{{quote}},,,,clinicalMismatch.evidence.pathology
+44,Positive,양성,1,1,"accessionPage, cytologyWorklist, mockInterfaceEnginePage, molecularOrderQueue …",,,,,molecularPlateBuilderPage.expectedValue.POSITIVE
+45,Possible match,가능한 일치,1,1,addCodeModal,,,,,addCodeModal.match.possible
+46,Preview identity,신원 미리보기,1,1,consultLinksAudit,,,,,consultLinksAudit.previewIdentity
+47,Reason for this change,변경 사유,1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.reasonLabel
+48,Record that the block for an add-on order has been taken from storage.,추가 주문에 필요한 블록을 보관소에서 꺼냈음을 기록합니다.,1,1,capabilities,,,,,capabilities.items.addOnBlockMarkRetrieved.description
+49,"Report that a block is used up or cannot be cut (Block exhausted and the other reasons), on the Add-On Orders tracking list and the Microtomy workstation. The ordering pathologist, or the Supervisor / Accessioning Desk when there is none, is e-mailed.","블록이 소진되었거나 절단할 수 없음(블록 소진 및 기타 사유)을 추가 주문 추적 목록과 마이크로톰 워크스테이션에서 보고합니다. 의뢰한 병리의에게, 없으면 관리자/접수 데스크에 이메일이 발송됩니다.",1,1,capabilities,,,,,capabilities.items.addOnExceptionFlag.description
+50,Reprint of {{stain}} recorded ({{reason}}).,{{stain}} 재인쇄가 기록되었습니다({{reason}}).,1,1,microtomyWorkstation,"{{reason}}, {{stain}}",,,,microtomyWorkstation.undo.reprinted
+51,"Reprint of {{stain}} undone. If the extra label already came out of the printer, discard it.",{{stain}} 재인쇄를 취소했습니다. 추가 라벨이 이미 인쇄되었다면 폐기하세요.,1,1,microtomyWorkstation,{{stain}},,,,microtomyWorkstation.undo.reprintedUndone
+52,Requires permission to issue consult links.,자문 링크를 발급할 권한이 필요합니다.,1,1,externalConsultAccessModal,,,,,externalConsultAccessModal.requiresIssuePermission
+53,Resolved and dismissed,해결 및 종료된 항목,1,1,marginExceptionReview,,,,,marginExceptionReview.history.title
+54,Resolved: {{value}} mm recorded,해결됨: {{value}} mm 기록됨,1,1,marginExceptionReview,{{value}},,,,marginExceptionReview.history.resolved
+55,"Result applied. The genotyping reflex order for this specimen is already on the queue, so no second one was made.",결과가 적용되었습니다. 이 검체의 유전자형 분석 반사 오더가 이미 대기열에 있어 추가로 만들지 않았습니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.resultAppliedReflexExists
+56,Run the OR Suite demo,수술실 스위트 데모 실행,1,1,capabilities,,,,,capabilities.items.configOrBoardDemoRun.label
+57,"Saved, but the audit log entry could not be written. Tell your laboratory manager.",저장되었지만 감사 로그 항목을 기록하지 못했습니다. 검사실 관리자에게 알려 주세요.,1,1,marginExceptionReview,,,,,marginExceptionReview.notice.auditNotWritten
+58,"Saved, but the tumor board rules could not be checked again. They will run again at the next sign-out.",저장되었지만 종양 위원회 규칙을 다시 확인하지 못했습니다. 다음 서명 시 다시 실행됩니다.,1,1,marginExceptionReview,,,,,marginExceptionReview.notice.ruleCheckFailed
+59,Saved. The tumor board rules were checked again and the case was flagged for {{board}}.,저장되었습니다. 종양 위원회 규칙을 다시 확인했으며 증례가 {{board}}에 플래그 지정되었습니다.,1,1,marginExceptionReview,{{board}},,,,marginExceptionReview.notice.flagged
+60,Saved. The tumor board rules were checked again; no rule flags this case.,저장되었습니다. 종양 위원회 규칙을 다시 확인했으며 이 증례를 플래그 지정하는 규칙은 없습니다.,1,1,marginExceptionReview,,,,,marginExceptionReview.notice.notFlagged
+61,Sent through {{gateway}} · {{agreement}} on file ({{reference}}),{{gateway}} 경유 발송 · {{agreement}} 등록됨 ({{reference}}),1,1,appShell,"{{agreement}}, {{gateway}}, {{reference}}",,,,appShell.secureEmailModal.securityNotice
+62,Show the patient's full identity on an outside consult link,외부 자문 링크에 환자의 전체 신원 표시,1,1,capabilities,,,,,capabilities.items.caseConsultLinkRevealIdentity.label
+63,Show the patient's full name and date of birth to the consultant,자문의에게 환자의 전체 이름과 생년월일 표시,1,1,externalConsultAccessModal,,,,,externalConsultAccessModal.revealIdentityLabel
+64,Shown for review only and recorded in the audit log. Nothing was sent to the consultant.,검토용으로만 표시되며 감사 로그에 기록됩니다. 자문의에게는 아무것도 전송되지 않았습니다.,1,1,consultLinksAudit,,,,,consultLinksAudit.previewAudited
+65,Slide {{stain}} is back.,슬라이드 {{stain}}을(를) 복원했습니다.,1,1,microtomyWorkstation,{{stain}},,,,microtomyWorkstation.undo.removedUndone
+66,Slide {{stain}} removed ({{reason}}).,슬라이드 {{stain}}을(를) 제거했습니다({{reason}}).,1,1,microtomyWorkstation,"{{reason}}, {{stain}}",,,,microtomyWorkstation.undo.removed
+67,Some patient wells don’t name a specimen yet.,일부 환자 웰에 아직 검체가 지정되지 않았습니다.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.wellSpecimenMissing
+68,Start and Stop demo on the OR Suite Live Board. Start adds four invented DEMO cases to the intraoperative data; Stop removes them.,"수술실 스위트 라이브 보드에서 데모를 시작하고 중지합니다. 시작하면 가상의 DEMO 사례 4건이 수술 중 데이터에 추가되고, 중지하면 제거됩니다.",1,1,capabilities,,,,,capabilities.items.configOrBoardDemoRun.description
+69,STAT flag applied to this case.,이 케이스에 STAT 플래그를 적용했습니다.,1,1,synopticReportPage,,,,,synopticReportPage.toast.statFlagApplied
+70,Status unavailable,상태를 확인할 수 없음,1,1,home,,,,,home.status.statusUnavailable
+71,Strong match,강한 일치,1,1,addCodeModal,,,,,addCodeModal.match.strong
+72,Suggested,제안됨,1,1,"addSynopticModal, smartCapture",,,,,addSynopticModal.protocolList.suggestedPlain
+73,Suggested by a rule-based check (AI is not available for this jurisdiction),규칙 기반 점검에서 제안됨(이 관할권에서는 AI를 사용할 수 없음),1,1,clinicalMismatch,,,,,clinicalMismatch.source.ruleJurisdictionPlain
+74,Suggested by a rule-based check (the AI was unavailable),규칙 기반 점검에서 제안됨(AI를 사용할 수 없었음),1,1,clinicalMismatch,,,,,clinicalMismatch.source.rulePlain
+75,Suggested by the AI evaluation,AI 평가에서 제안됨,1,1,clinicalMismatch,,,,,clinicalMismatch.source.aiPlain
+76,"Synoptic protocol library, structured on CAP and RCPath protocols, used in case reporting.",CAP 및 RCPath 프로토콜 구조를 따르며 증례 보고에 사용되는 개요 프로토콜 라이브러리입니다.,1,1,configSearchIndex,,,,,configSearchIndex.entries.protocols-library.description
+77,System status,시스템 상태,1,1,home,,,,,home.status.label
+78,That deck slot does not take an extraction plate on this instrument.,해당 덱 위치는 이 장비에서 추출 플레이트를 받지 않습니다.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.deckSlotInvalid
+79,That instrument is no longer an active analyser in the equipment register. Choose another.,"1) 이 장비는 더 이상 장비 등록부의 활성 분석기가 아닙니다. 다른 장비를 선택하세요.
+2) 해당 장비는 더 이상 장비 등록부의 사용 중인 분석기가 아닙니다. 다른 장비를 선택하십시오.",2,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.instrumentUnavailable
+80,The AI-drafted text in “{{label}}” has not been accepted yet. Accept or edit it before signing out (sections waiting: {{count}}).,“{{label}}”의 AI 초안 문구가 아직 승인되지 않았습니다. 서명 전에 승인하거나 수정하십시오(대기 중인 섹션: {{count}}).,1,1,useSignOutWorkflow,"{{count}}, {{label}}",,,,useSignOutWorkflow.toast.aiNarrativeNeedsAcceptance
+81,The assay’s required controls are not all on the plate in the right wells. Nothing was changed.,검사에 필요한 대조물이 모두 플레이트의 올바른 웰에 있지 않습니다. 변경된 내용이 없습니다.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.controlsNotSatisfied
+82,"The block was flagged, but nobody could be told: no ordering pathologist and no Supervisor / Accessioning Desk address. Tell your supervisor.","블록은 표시되었지만 아무에게도 알리지 못했습니다. 의뢰한 병리의도, 관리자/접수 데스크 주소도 없습니다. 책임자에게 알리세요.",1,1,microtomyWorkstation,,,,,microtomyWorkstation.exhausted.nobodyNotified
+83,"The case was dismissed, but the dismissal could not be written to the event log. Tell your supervisor so it can be recorded.",사례는 해제되었지만 해제 기록을 이벤트 로그에 저장하지 못했습니다. 기록될 수 있도록 감독자에게 알리십시오.,1,1,orSuiteDashboard,,,,,orSuiteDashboard.dismissLogFailed
+84,"The change could not be made. Nothing was changed. Try again, or tell your supervisor.",변경할 수 없었습니다. 변경된 내용이 없습니다. 다시 시도하거나 책임자에게 알려 주십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.generic
+85,The demo case has no such specimen.,데모 증례에 해당 검체가 없습니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.outcome.specimen-not-found
+86,The demo case was not found.,데모 증례를 찾을 수 없습니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.outcome.case-not-found
+87,The demo cases could not be removed from the board. Ask an administrator to remove them.,데모 사례를 보드에서 제거하지 못했습니다. 관리자에게 제거를 요청하십시오.,1,1,orSuiteDashboard,,,,,orSuiteDashboard.demoRemoveFailed
+88,The demo could not be started. Running the OR Suite demo needs its own permission.,데모를 시작하지 못했습니다. 수술실 스위트 데모를 실행하려면 별도의 권한이 필요합니다.,1,1,orSuiteDashboard,,,,,orSuiteDashboard.demoStartFailed
+89,"The exception was flagged, but nobody could be told: no ordering pathologist and no Supervisor / Accessioning Desk address. Tell your supervisor.","예외는 표시되었지만 아무에게도 알리지 못했습니다. 의뢰한 병리의도, 관리자/접수 데스크 주소도 없습니다. 책임자에게 알리세요.",1,1,addOnOrder,,,,,addOnOrder.tracking.flagNobodyNotified
+90,"The exception was flagged. No ordering pathologist is recorded for this slide, so the notice was sent to the Supervisor / Accessioning Desk.",예외가 표시되었습니다. 이 슬라이드에는 의뢰한 병리의가 기록되어 있지 않아 알림을 관리자/접수 데스크로 보냈습니다.,1,1,addOnOrder,,,,,addOnOrder.tracking.flagSentToDesk
+91,The identity could not be shown.,신원을 표시할 수 없습니다.,1,1,consultLinksAudit,,,,,consultLinksAudit.previewFailed
+92,The patient's identity is masked on this link: initials and year of birth only.,이 링크에서는 환자 신원이 가려져 있습니다. 이니셜과 출생 연도만 표시됩니다.,1,1,externalConsultViewPage,,,,,externalConsultViewPage.identityMaskedNote
+93,"The primary and secondary codes differ significantly on the cytology category scale. Check them, then select Confirm to record the discrepancy as entered.",1차 코드와 2차 코드가 세포학 범주 척도에서 크게 다릅니다. 코드를 확인한 후 확인을 선택하면 입력한 대로 불일치가 기록됩니다.,1,1,cytologyQcQueue,,,,,cytologyQcQueue.divergenceConfirm
+94,The result message was incomplete or contradicted itself.,결과 메시지가 불완전하거나 서로 모순됩니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.outcome.invalid-payload
+95,The result was not applied.,결과가 적용되지 않았습니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.outcome.unknown
+96,"The stain {{stains}} is not in the stain dictionary, so it will be left out of this panel. Order it separately or ask your administrator to add it.",염색 {{stains}}이(가) 염색 사전에 없어 이 패널에서 제외됩니다. 따로 주문하거나 관리자에게 추가를 요청하세요.,1,1,addOnOrder,{{stains}},,,,addOnOrder.builder.panelStainsMissing_one
+97,The STAT flag could not be applied. Try again.,STAT 플래그를 적용하지 못했습니다. 다시 시도하십시오.,1,1,synopticReportPage,,,,,synopticReportPage.toast.statFlagFailed
+98,The suggested slides are already on this decant.,제안된 슬라이드가 이미 이 디캔트에 있습니다.,1,1,microtomyWorkstation,,,,,microtomyWorkstation.cytology.suggestionAlreadyAdded
+99,The Tissue Discrepancy item could not be raised for QA. Tell your supervisor.,정도관리를 위한 조직 불일치 항목을 등록하지 못했습니다. 관리자에게 알려 주십시오.,1,1,embeddingStation,,,,,embeddingStation.discrepancy.raiseFailed
+100,The worklist could not be sent: the interface engine did not answer. Check the connection and try again.,작업 목록을 보내지 못했습니다. 인터페이스 엔진이 응답하지 않았습니다. 연결을 확인한 후 다시 시도하십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.dispatchFailure.unreachable
+101,The worklist could not be sent: the interface engine did not respond in time. Try again.,작업 목록을 보내지 못했습니다. 인터페이스 엔진이 제때 응답하지 않았습니다. 다시 시도하십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.dispatchFailure.timeout
+102,The worklist was refused by the receiving system (code {{status}}). It has not been dispatched.,수신 시스템이 작업 목록을 거부했습니다(코드 {{status}}). 작업 목록은 전송되지 않았습니다.,1,1,molecularPlateBuilderPage,{{status}},,,,molecularPlateBuilderPage.dispatchFailure.rejected
+103,The worklist was refused by the receiving system. It has not been dispatched.,수신 시스템이 작업 목록을 거부했습니다. 작업 목록은 전송되지 않았습니다.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.dispatchFailure.rejectedNoCode
+104,There is no active STAT flag in the flag list. An administrator can add one under Configuration.,플래그 목록에 활성 STAT 플래그가 없습니다. 관리자가 설정에서 추가할 수 있습니다.,1,1,synopticReportPage,,,,,synopticReportPage.toast.statFlagMissing
+105,"These stains are not in the stain dictionary, so they will be left out of this panel: {{stains}}. Order them separately or ask your administrator to add them.",다음 염색이 염색 사전에 없어 이 패널에서 제외됩니다: {{stains}}. 따로 주문하거나 관리자에게 추가를 요청하세요.,1,1,addOnOrder,{{stains}},,,,addOnOrder.builder.panelStainsMissing_other
+106,This assay already has a rule. Edit that one instead.,이 검사에는 이미 규칙이 있습니다. 기존 규칙을 수정하십시오.,1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.draftProblem.duplicateAssay
+107,This case is already flagged STAT.,이 케이스에는 이미 STAT 플래그가 있습니다.,1,1,synopticReportPage,,,,,synopticReportPage.toast.statFlagAlready
+108,This message is recorded in the audit log.,이 메시지는 감사 로그에 기록되었습니다.,1,1,appShell,,,,,appShell.secureEmailModal.auditRecorded
+109,This message was already processed; nothing was changed.,이 메시지는 이미 처리되어 변경된 내용이 없습니다.,1,1,molecularOrderQueue,,,,,molecularOrderQueue.outcome.already-applied
+110,This run no longer exists. Go back to the batch list and open it again.,이 런이 더 이상 존재하지 않습니다. 배치 목록으로 돌아가 다시 여십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.batchNotFound
+111,This run was already superseded. Open its replacement instead.,이 런은 이미 대체되었습니다. 대신 대체본을 여십시오.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.alreadySuperseded
+112,"This secure link will expire in {{views}} or {{hours}}, whichever comes first.","이 보안 링크는 {{views}} 또는 {{hours}} 후, 둘 중 먼저 도래하는 시점에 만료됩니다.",1,1,consultLifetime,"{{hours}}, {{views}}",,,,consultLifetime.banner
+113,Unavailable,사용 불가,1,1,"engraverMonitor, home",,,,,home.status.unavailable
+114,Undo,"1) 실행 취소
+2) 취소",2,1,"accessionPage, caseTeamModal, microtomyWorkstation",,,,,microtomyWorkstation.undo.button
+115,Unrecognised code: not compared with the primary,인식되지 않는 코드: 1차 코드와 비교되지 않았습니다,1,1,cytologyQcQueue,,,,,cytologyQcQueue.secondaryUnrecognised
+116,View molecular assay control rules,분자 검사 대조 규칙 보기,1,1,capabilities,,,,,capabilities.items.configMolecularControlRulesView.label
+117,Viewed {{count}} time,{{count}}회 조회됨,1,1,"criticalAlertReferencePage, criticalAlertsAudit",{{count}},,,,criticalAlertReferencePage.viewedLabel_one
+118,"When issuing an outside consult link, opt in to showing the consultant the patient's full name and date of birth. Without it the consultant sees initials and the year of birth only. Recorded in the case's audit trail.",외부 자문 링크를 발급할 때 자문의에게 환자의 전체 이름과 생년월일을 표시하도록 선택합니다. 선택하지 않으면 자문의에게는 이니셜과 출생 연도만 표시됩니다. 증례의 감사 추적에 기록됩니다.,1,1,capabilities,,,,,capabilities.items.caseConsultLinkRevealIdentity.description
+119,You can read these rules but not change them. Changing a control rule needs the permission to manage molecular control rules.,이 규칙은 볼 수만 있고 변경할 수 없습니다. 대조 규칙을 변경하려면 분자 대조 규칙 관리 권한이 필요합니다.,1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.viewOnly
+120,You don't have permission to show the patient's full name and date of birth to a consultant.,자문의에게 환자의 전체 이름과 생년월일을 표시할 권한이 없습니다.,1,1,externalConsultAccessModal,,,,,externalConsultAccessModal.revealNotPermitted
+121,You don't have permission to view the molecular control rules.,분자 검사 대조 규칙을 볼 수 있는 권한이 없습니다.,1,1,molecularControlRulesPage,,,,,molecularControlRulesPage.listNotPermitted
+122,You don’t have permission to do this. Ask your administrator.,이 작업을 수행할 권한이 없습니다. 관리자에게 문의하세요.,1,1,molecularPlateBuilderPage,,,,,molecularPlateBuilderPage.batchErrors.notPermitted
+123,You don’t have permission to flag a block exception. Ask your administrator.,블록 예외를 표시할 권한이 없습니다. 관리자에게 문의하세요.,1,1,microtomyWorkstation,,,,,microtomyWorkstation.exhausted.notPermitted
+124,"You wrote the latest message, so it cannot be marked unread.",마지막 메시지를 직접 작성했으므로 읽지 않음으로 표시할 수 없습니다.,1,1,appShell,,,,,appShell.thread.markUnreadOwnLatest
+125,Your opinion has been saved as a draft. It has not been returned to the ordering pathologist yet. Choose Signed and send it to return it.,자문 의견이 초안으로 저장되었습니다. 아직 의뢰한 병리의에게 반환되지 않았습니다. 반환하려면 서명됨을 선택한 후 전송하십시오.,1,1,externalConsultViewPage,,,,,externalConsultViewPage.draftSavedConfirmation
+126,{{count}} hour,{{count}}시간,1,1,"consultLifetime, supportAccess",{{count}},,,,consultLifetime.hours_one
+127,{{count}} hours,{{count}}시간,1,1,"consultLifetime, supportAccess",{{count}},,,,consultLifetime.hours_other
+128,{{count}} optional AI-filled field you have not confirmed was left out of this report (recorded in the audit log). Cancel and Confirm it to keep it.,확인하지 않은 AI 입력 선택 항목 {{count}}개가 이 보고서에서 제외되었습니다(감사 로그에 기록됨). 유지하려면 취소한 후 확인하세요.,1,1,caseSignOutModal,{{count}},,,,caseSignOutModal.unreviewedAiFields_one
+129,{{count}} optional AI-filled fields you have not confirmed were left out of this report (recorded in the audit log). Cancel and Confirm them to keep them.,확인하지 않은 AI 입력 선택 항목 {{count}}개가 이 보고서에서 제외되었습니다(감사 로그에 기록됨). 유지하려면 취소한 후 확인하세요.,1,2,caseSignOutModal,{{count}},,,,"caseSignOutModal.unreviewedAiFields_many
+caseSignOutModal.unreviewedAiFields_other"
+130,{{count}} view,조회 {{count}}회,1,1,consultLifetime,{{count}},,,,consultLifetime.views_one
+131,{{count}} views,조회 {{count}}회,1,1,consultLifetime,{{count}},,,,consultLifetime.views_other
+132,{{kind}}: the AI flagged a possible mismatch for your review.,{{kind}}: AI가 검토가 필요한 불일치 가능성을 표시했습니다.,1,1,clinicalMismatch,{{kind}},,,,clinicalMismatch.alert.titlePlain
+133,{{model}} suggestion,{{model}} 제안,1,1,caseCoding,{{model}},,,,caseCoding.aiDetailPlain
+134,"{{name}}, {{when}}","{{name}}, {{when}}",1,1,"marginExceptionReview, smartCapture","{{name}}, {{when}}",,,,marginExceptionReview.history.by
+135,© 2026 PathScribe AI Systems,© 2026 PathScribe AI Systems,1,1,home,,,,,home.footerCopyright

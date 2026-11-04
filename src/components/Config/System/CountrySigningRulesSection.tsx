@@ -31,6 +31,7 @@ import { resolveAuditActor } from '@/services/participationTypes/saveParticipati
 import { getSessionUser } from '@/services/auth/caseAccessControl';
 import { formatDate } from '@/utils/formatDate';
 import type { Jurisdiction } from '@/types/systemConfig';
+import { useReportConfigDirty } from '../configDirtyGuardContext';
 
 const FLAG_CHOICES: FlagChoice[] = ['inherit', 'yes', 'no'];
 
@@ -62,6 +63,8 @@ const CountrySigningRulesSection: React.FC = () => {
 
   const changed = changedCountryRowIds(original, rows);
   const dirty = changed.length > 0;
+  // PS-128 (Batch 437): unsaved changes keep you from leaving without a warning.
+  useReportConfigDirty(dirty);
 
   const patchRow = (typeId: string, patch: (r: CountryProfileRow) => CountryProfileRow) => {
     setNotice(null);
@@ -75,7 +78,7 @@ const CountrySigningRulesSection: React.FC = () => {
     setError(null);
     const res = await saveCountryProfilesWithAudit(
       { types, jurisdiction, original, edited: rows, actor: { ...resolveAuditActor(session), role: session?.role }, reason },
-      { typeService: participationTypeService, auditService },
+      { auditService },
     );
     setBusy(false);
     if (res.ok === false) {

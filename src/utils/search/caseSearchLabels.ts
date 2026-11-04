@@ -35,7 +35,7 @@ export const CASE_STATUS_HUE: Record<CaseStatus, string> = {
   'draft': '#94a3b8', 'accessioned': '#38BDF8', 'gross-complete': '#14B8A6', 'intraoperative-complete': '#A855F7',
   'in-progress': '#0891B2', 'pending-review': '#F59E0B', 'pathologist-review': '#FB7185', 'ai-assisted': '#6366F1',
   'pool': '#F97316', 'claiming': '#F97316', 'accepted': '#22C55E', 'returned': '#B45309', 'pending-countersign': '#a78bfa',
-  'finalizing': '#EC4899', 'finalized': '#10B981', 'pending-release': '#1C8DE3', 'closed': '#64748b',
+  'finalizing': '#EC4899', 'finalized': '#10B981', 'pending-release': '#1C8DE3', 'closed': '#8794a8',
 };
 
 export const CASE_PRIORITY_LABEL_KEY: Record<CasePriority, string> = {
@@ -48,6 +48,7 @@ export const CASE_PRIORITY_HUE: Record<CasePriority, string> = { Routine: '#0891
 export const CASE_SEX_LABEL_KEY: Record<CaseSearchSex, string> = {
   M: 'searchPage.genderLabelKey.Male',
   F: 'searchPage.genderLabelKey.Female',
+  I: 'searchPage.genderLabelKey.Indeterminate',
   U: 'searchPage.genderLabelKey.Unknown',
 };
 
@@ -96,7 +97,7 @@ export const INTAKE_LABEL_KEY: Record<CaseSearchIntake, string> = {
   standard: 'searchPage.intake.standard', downtime: 'searchPage.intake.downtime', outside: 'searchPage.intake.outside', referenceLab: 'searchPage.intake.referenceLab',
 };
 export const AUTOPSY_AUTHORITY_LABEL_KEY: Record<CaseSearchAutopsyAuthority, string> = {
-  medicolegal_forensic: 'autopsyIntake.caseAuthority.medicolegal_forensic', hospital_consented: 'autopsyIntake.caseAuthority.hospital_consented',
+  statutory_judicial: 'autopsyIntake.caseAuthority.statutory_judicial', hospital_consented: 'autopsyIntake.caseAuthority.hospital_consented',
 };
 export const AUTOPSY_REPORT_LABEL_KEY: Record<CaseSearchAutopsyReport, string> = {
   none: 'searchPage.autopsyReport.none', pad: 'searchPage.autopsyReport.pad', fad: 'searchPage.autopsyReport.fad',

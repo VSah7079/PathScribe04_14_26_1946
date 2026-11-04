@@ -12,6 +12,7 @@
 
 import type { ServiceResult, ID } from '../types';
 import type { IStainOrderMacroService, StainOrderMacro } from './IStainService';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 let MACROS: StainOrderMacro[] = [
   { id: 'macro-he',       label: 'H&E',              stainTypeId: 'st-he',    sectioningProtocolId: 'sp-single', sortOrder: 1, version: 1, updatedBy: 'system', updatedAt: new Date().toISOString(), active: true },
@@ -24,7 +25,7 @@ let MACROS: StainOrderMacro[] = [
 
 const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 
-export const mockStainOrderMacroService: IStainOrderMacroService = {
+const stainOrderMacroServiceUnchecked: IStainOrderMacroService = {
   async getAll() {
     return ok([...MACROS].sort((a, b) => a.sortOrder - b.sortOrder));
   },
@@ -48,3 +49,8 @@ export const mockStainOrderMacroService: IStainOrderMacroService = {
     return ok(updated);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockStainOrderMacroService: IStainOrderMacroService = guardConfigWrites(stainOrderMacroServiceUnchecked, [
+  ['config:stain-dictionary:manage', ['add', 'update']],
+]);

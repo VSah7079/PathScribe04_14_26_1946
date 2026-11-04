@@ -42,6 +42,7 @@ import type { IParticipationTypeService, ParticipationTypeRecord, NewParticipati
 import type { ServiceResult, ID } from '../types';
 import type { Jurisdiction } from '../../types/systemConfig';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 // ─── Jurisdiction profiles — real, per Pete's own per-country data (Sep 2026) ──
 //
@@ -71,7 +72,7 @@ import { storageGet, storageSet } from '../mockStorage';
 // behavior so a future change to the platform default can never
 // silently change who may sign out in a country whose rule didn't change.
 
-const EU_MEMBER_STATES: Jurisdiction[] = ['BE', 'NL', 'DE', 'FR'];
+const EU_MEMBER_STATES: Jurisdiction[] = ['BE', 'NL', 'DE', 'FR', 'ES'];
 const UK_JURISDICTIONS: Jurisdiction[] = ['GB_EW', 'GB_SCT', 'GB_NIR'];
 
 /** Pete's own "Key Regulatory Nuance" text, per jurisdiction. */
@@ -227,7 +228,7 @@ const sorted = (list: ParticipationTypeRecord[]) =>
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export const mockParticipationTypeService: IParticipationTypeService = {
+export const participationTypeServiceUnchecked: IParticipationTypeService = {
 
   async getAll() {
     await delay();
@@ -270,11 +271,11 @@ export const mockParticipationTypeService: IParticipationTypeService = {
   },
 
   async deactivate(id: ID) {
-    return mockParticipationTypeService.update(id, { active: false });
+    return participationTypeServiceUnchecked.update(id, { active: false });
   },
 
   async reactivate(id: ID) {
-    return mockParticipationTypeService.update(id, { active: true });
+    return participationTypeServiceUnchecked.update(id, { active: true });
   },
 
   async remove(id: ID) {
@@ -287,3 +288,8 @@ export const mockParticipationTypeService: IParticipationTypeService = {
     return ok(undefined);
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockParticipationTypeService: IParticipationTypeService = guardConfigWrites(participationTypeServiceUnchecked, [
+  ['config:participation-types:manage', ['add', 'update', 'deactivate', 'reactivate', 'remove']],
+]);

@@ -25,7 +25,7 @@ const BatchProgressModal: React.FC<BatchProgressModalProps> = ({ entries, onClos
 
   return (
     <div className="ps-overlay" onClick={done ? onClose : undefined}>
-      <div className="ps-modal-dark" onClick={e => e.stopPropagation()}>
+      <div className="ps-modal-dark" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="ps-batch-modal-header">
           <div className="ps-batch-modal-title">{t('microtomyWorkstation.batchProgress.title')}</div>
         </div>

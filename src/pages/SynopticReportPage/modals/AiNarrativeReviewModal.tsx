@@ -54,10 +54,10 @@ export const AiNarrativeReviewModal: React.FC<AiNarrativeReviewModalProps> = ({
 
         <div className="ps-ai-review-header">
           <div>
-            <div className="ps-ai-review-eyebrow">\u2726 {t('aiNarrativeReviewModal.eyebrow')}</div>
+            <div className="ps-ai-review-eyebrow">✦ {t('aiNarrativeReviewModal.eyebrow')}</div>
             <div className="ps-ai-review-title">{t('aiNarrativeReviewModal.title')}</div>
           </div>
-          <button onClick={onCancel} className="ps-modal-close">\u00d7</button>
+          <button onClick={onCancel} className="ps-modal-close">×</button>
         </div>
 
         <div className="ps-ai-review-body">

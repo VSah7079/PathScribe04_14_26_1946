@@ -33,6 +33,7 @@ import '@/pathscribe.css';
 import type { Specimen } from '@/types/case/Specimen';
 import { actionRegistryService, biopsyArrayMissing } from '@/services';
 import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { pressable } from '@/utils/a11y/pressable';
 
 interface CreateBiopsyArrayModalProps {
   specimens: Specimen[];
@@ -97,7 +98,7 @@ const CreateBiopsyArrayModal: React.FC<CreateBiopsyArrayModalProps> = ({
           <div className="ps-biopsyarray-section-label">
             {t('createBiopsyArrayModal.cassetteLabelHeading')}
           </div>
-          <input
+          <input aria-label={t('createBiopsyArrayModal.cassetteLabelHeading')}
             value={cassetteLabel}
             onChange={e => setCassetteLabel(e.target.value)}
             placeholder={t('createBiopsyArrayModal.cassetteLabelPlaceholder')}
@@ -115,7 +116,7 @@ const CreateBiopsyArrayModal: React.FC<CreateBiopsyArrayModalProps> = ({
             return (
               <div
                 key={sp.id}
-                onClick={() => toggle(sp.id)}
+                {...pressable(() => toggle(sp.id))}
                 className={`ps-biopsyarray-specimen-row${selected ? ' ps-biopsyarray-specimen-row--selected' : ''}`}
               >
                 <div className={`ps-biopsyarray-position-badge${selected ? ' ps-biopsyarray-position-badge--selected' : ''}`}>

@@ -5,27 +5,35 @@
 // Right panel: system tabs + hierarchy filters + live search.
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { callAi } from '@/services/aiIntegration/aiProviderService';
-import { resolveAiConfigOverrideForClient } from '@/components/Config/AI/resolveClientAiModel';
+import { useTranslation } from 'react-i18next'; import { AiSuggestionMeta } from './AiSuggestionMeta';
+import { suggestAiCodesWithDrops, aiDetailFor, canApplyCode, type AiCodeSuggestion } from '@/services/coding/aiCodeSuggestions';
 import '../../../pathscribe.css';
 import type { MedicalCode } from '../synopticTypes';
-import { searchCodes, filterToVerifiedCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
+import ManualIcdoEntry from './ManualIcdoEntry';
+import { RegistryCheckNote } from './RegistryCheckNote';
+import { useCodePolicy } from './useCodePolicy';
+import { Opcs4Notice } from './Opcs4Notice';
+import { CaseCodingDisplay } from './CaseCodingDisplay';
+import { pillStates, systemsOffByPolicy } from '@/services/coding/codePolicyEnforcement';
+import { CodeSystemOffNote } from '@/components/Coding/CodeSystemOffNote';
+import { reconcileEntries } from '@/services/coding/caseCodingEntries';
+import { fromCaseCoding } from '@/services/coding/caseCodingAdapter';
+import type { CodedEntry, CodeSource, CodedEntryAiDetail } from '@/services/coding/codedEntry';
+import type { CaseCoding } from '@/types/case/Case';
+import { icd10VariantForJurisdiction, snomedReleaseForJurisdiction, type Jurisdiction } from '@/types/systemConfig';
+import { isSimulatedResult } from '../../../services/terminologySearch/simulatedCodeLookup';
+import type { TriggerCodeQuery } from '../../../services/abnormalDetection/triggerCodeQueries';
+import { searchCodes, type CodeResult, type SnomedFilter } from '../../../services/terminologySearch/codeSearchService';
 import { getOrganisationByHospitalId, type CodingSystem } from '@/services/organisation/organisationService';
 import { CODE_MAP_TABLE, resolveSpecimenDictionaryBaseCptCode } from '@/services/billing/codeMapTable';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { CapabilityButton } from '@/components/Common/CapabilityButton';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface SpecimenOption { index: number; id: number; specimenId?: string | null; name: string; specimenDictionaryEntryId?: string; complexity?: 'GROSS_ONLY' | 'GROSS_AND_MICRO'; }
 
-export interface AiCodeSuggestion {
-  code: string;
-  display: string;
-  system: string;
-  confidence: number;
-  rationale: string;
-  rvu?: number | null;
-}
+export type { AiCodeSuggestion };
 
 export interface AddCodeModalProps {
   existingCodes: MedicalCode[];
@@ -45,7 +53,14 @@ export interface AddCodeModalProps {
    *  switch tabs manually. Defaults to 'SNOMED', preserving existing
    *  behavior for every other caller. */
   initialSystem?: CodeSystem;
-  onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[]) => Promise<void>;
+  /** `entries` (Batch 607): the same codes as uniform entries with system release, source and AI detail. */
+  onAddToSpecimens: (codes: Omit<MedicalCode, 'id' | 'source'>[], specimenIndices: number[], entries?: CodedEntry[]) => Promise<void>;
+  /** Batch 607: the case's saved coding (with its entries), for the case coding view. */
+  caseCoding?: CaseCoding;
+  /** Batch 607: whose code-system policy applies. Defaults to the laboratory's jurisdiction. */
+  jurisdiction?: Jurisdiction;
+  /** PS-138: matched abnormal-detection triggers. Each offers a live search; the pathologist chooses what is applied. */
+  triggerQueries?: TriggerCodeQuery[];
   onClose: () => void;
   originHospitalId?: string;
   /** Optional — if provided, enables AI code suggestions */
@@ -92,6 +107,9 @@ export interface PendingCode {
   system: string;
   specimenIndex: number | null;
   pendingDelete: boolean;
+  /** Batch 607: where the code came from (default: typed). */
+  source?: CodeSource;
+  ai?: CodedEntryAiDetail;
 }
 
 /**
@@ -144,13 +162,9 @@ const SNOMED_FILTER_HINT_KEY: Record<SnomedFilter, string> = {
   anatomy: 'addCodeModal.snomedFilter.anatomy.hint', specimen: 'addCodeModal.snomedFilter.specimen.hint', organism: 'addCodeModal.snomedFilter.organism.hint',
 };
 
-const SNOMED_FILTERS: { id: SnomedFilter; label: string; hint: string }[] = [
-  { id: 'all',       label: 'All',        hint: 'All SNOMED concepts' },
-  { id: 'morphology',label: 'Morphology', hint: 'Diagnoses & structural changes' },
-  { id: 'anatomy',   label: 'Anatomy',    hint: 'Body structures & sites' },
-  { id: 'specimen',  label: 'Specimen',   hint: 'Specimen types' },
-  { id: 'organism',  label: 'Organism',   hint: 'Infectious agents' },
-];
+// Batch 513 (PS-269): the filter order only; the visible names and hints
+// come from SNOMED_FILTER_LABEL_KEY / SNOMED_FILTER_HINT_KEY above.
+const SNOMED_FILTERS: readonly SnomedFilter[] = ['all', 'morphology', 'anatomy', 'specimen', 'organism'];
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 
@@ -200,9 +214,12 @@ const IcoUndo = () => (
 export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   existingCodes, allSpecimens, specimenDictionary = [], onAddToSpecimens, onClose,
   caseText, synopticAnswers, templateName, synopticDerivedCodes, narrativeText,
-  originHospitalId, activeSpecimenIndex, initialSystem, facilityId, isOrchestrationMode = false,
+  originHospitalId, activeSpecimenIndex, initialSystem, facilityId, triggerQueries = [], isOrchestrationMode = false,
+  caseCoding, jurisdiction,
 }) => {
   const { t } = useTranslation();
+  const codePolicy = useCodePolicy(jurisdiction);
+  const [showCaseCoding, setShowCaseCoding] = useState(false);
   // ── Site coding config ────────────────────────────────────────────────────
   // Coding systems shown are driven by site config from organisationService.
   // This replaces any hardcoded locale/country checks.
@@ -214,12 +231,25 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
     const systems = siteOrg?.sites?.[0]?.codingSystems;
     return systems?.length ? systems : ['SNOMED', 'ICD10', 'ICD11', 'LOINC', 'ICDO', 'CPT'] as CodingSystem[];
   }, [siteOrg]);
-  const SYSTEMS = ALL_SYSTEMS.filter(s => siteCodingSystems.includes(s.id) && !(s.id === 'CPT' && isOrchestrationMode));
+  // Batch 607 (#137, #182): only the systems the jurisdiction's policy allows today; required ones are marked.
+  const pillRoles = React.useMemo(
+    () => pillStates(ALL_SYSTEMS.map(s => s.id), codePolicy.policy, codePolicy.today),
+    [codePolicy.policy, codePolicy.today],
+  );
+  const bySite = ALL_SYSTEMS.filter(s => siteCodingSystems.includes(s.id) && !(s.id === 'CPT' && isOrchestrationMode));
+  const byPolicy = bySite.filter(s => pillRoles.some(p => p.system === s.id));
+  // A policy that switches every offered system off would leave nothing to pick: the site's own list is shown instead.
+  const SYSTEMS = byPolicy.length ? byPolicy : bySite;
+  // Batch 614 (PS-762): say so when the policy hides a system the site lists, or hides all of them.
+  const policyFallback = byPolicy.length === 0 && bySite.length > 0;
+  const offBySetting = byPolicy.length ? systemsOffByPolicy(bySite.map(x => x.id), codePolicy.policy, codePolicy.today) : [];
+  const requiredIds = pillRoles.filter(p => p.required).map(p => p.system);
   const isUK = siteOrg?.sites?.[0]?.defaultLocale === 'en-GB';
 
   const [system,       setSystem]       = useState<CodeSystem>(initialSystem ?? 'SNOMED');
   const [snomedFilter, setSnomedFilter] = useState<SnomedFilter>('morphology');
   const [query,        setQuery]        = useState('');
+  useEffect(() => { if (SYSTEMS.length && !SYSTEMS.some(x => x.id === system)) setSystem(SYSTEMS[0].id); }, [SYSTEMS, system]);
   const [results,      setResults]      = useState<CodeResult[]>([]);
   const [searchError,  setSearchError]  = useState<string | null>(null);
   const [loading,      setLoading]      = useState(false);
@@ -266,7 +296,7 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
     const autoDefaults: PendingCode[] = !isOrchestrationMode
       ? allSpecimens
         .filter(sp => !fromExisting.some(c => c.specimenIndex === sp.index && c.system === 'CPT'))
-        .map(sp => {
+        .map((sp): PendingCode | null => {
           const defaultCode = sp.specimenDictionaryEntryId
             ? resolveSpecimenDictionaryBaseCptCode({ specimenDictionaryEntryId: sp.specimenDictionaryEntryId, complexity: sp.complexity }, specimenDictionary)
             : null;
@@ -291,25 +321,11 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
   const [aiLoading,        setAiLoading]        = useState(false);
   const [aiError,          setAiError]          = useState<string | null>(null);
   const [aiRan,            setAiRan]            = useState(false);
+  const [aiUnverified,     setAiUnverified]     = useState(0);
   const [aiPanelCollapsed, setAiPanelCollapsed] = useState(false);
 
-  // Real fix, found via direct feedback: "should just show the
-  // recommended codes based on the selected pill." The AI suggestion
-  // list previously showed every real suggestion across every coding
-  // system at once (SNOMED, ICD-10, ICD-O, LOINC all mixed together),
-  // regardless of which system tab was actually active - this is the
-  // real, shared filter both the panel's own count and its list use,
-  // so they can never drift out of sync with each other.
-  // Real fix, per direct feedback: "I couldn't add it to two
-  // specimens." The old check only compared code+system against
-  // existingCodes - a code already saved for ONE specimen made the
-  // suggestion disappear for every specimen, not just that one, since
-  // the check never looked at which real specimen the existing code
-  // actually belonged to. Resolves the currently-selected target
-  // (an index) to its real specimenId once, then only treats a
-  // suggestion as "already applied" when an existing code genuinely
-  // matches this exact target - a different specimen, or the case
-  // level, no longer hides it.
+  // The suggestion list shows only the active system tab's codes (one shared filter feeds the count and the list),
+  // and a code counts as "already applied" only when it matches this exact target (specimen or case level).
   const targetSpecimenId = target !== null ? (allSpecimens.find(s => s.index === target)?.specimenId ?? null) : null;
 
   const visibleSuggestions = React.useMemo(() => (
@@ -376,7 +392,7 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
 
   // ── Add / remove / undo ───────────────────────────────────────────────────
 
-  const addCode = useCallback((r: CodeResult) => {
+  const addCode = useCallback((r: CodeResult, meta?: { source: CodeSource; ai?: CodedEntryAiDetail }) => {
     // Real fix, per direct feedback: "if an IHC interp was done on 4
     // slides, they have to enter the code 4 times?" - the old logic
     // hard-blocked re-adding an already-active code, silently
@@ -387,6 +403,8 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
     // otherwise, always add a new, genuinely separate instance - a
     // real, repeatable procedure needs a real, separate count, not a
     // single toggle.
+    if (!canApplyCode(r)) { setSearchError(t('addCodeModal.opcs4DemoNotApplicable')); return; }
+    if (byPolicy.length && !byPolicy.some(x => x.id === r.system)) { setSearchError(t('addCodeModal.systemNotAllowed', { system: r.system })); return; }
     const pendingDeleteInstance = applied.find(c => c.code === r.code && c.specimenIndex === target && c.pendingDelete);
     if (pendingDeleteInstance) {
       setApplied(prev => prev.map(c =>
@@ -397,10 +415,11 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
         id: `new-${r.code}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         code: r.code, display: r.display, system: r.system,
         specimenIndex: target, pendingDelete: false,
+        ...(meta ? { source: meta.source, ...(meta.ai ? { ai: meta.ai } : {}) } : {}),
       }]);
     }
     setIsDirty(true);
-  }, [applied, target]);
+  }, [applied, target, byPolicy, t]);
 
   const removeCode = useCallback((id: string) => {
     setApplied(prev => prev.map(c =>
@@ -436,191 +455,18 @@ export const AddCodeModal: React.FC<AddCodeModalProps> = ({
     setAiLoading(true);
     setAiError(null);
     try {
-      const answersText = synopticAnswers
-        ? Object.entries(synopticAnswers)
-            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-            .join('\n')
-        : 'No synoptic answers available';
-
-      const { text: raw } = await callAi({
-        system: isUK
-          ? 'You are a pathology coding specialist with expertise in NHS surgical pathology coding — SNOMED CT, ICD-10, ICD-O, and OPCS-4. Return only valid JSON — no markdown, no preamble.'
-          : 'You are a pathology coding specialist with expertise in ICD-10, SNOMED CT, and ICD-O diagnostic coding. Return only valid JSON — no markdown, no preamble.',
-        prompt: isUK
-          ? `Suggest appropriate medical codes for this NHS pathology case. Include diagnostic codes and OPCS-4 procedure codes.
-
-TEMPLATE: ${templateName ?? 'Unknown'}
-${narrativeText ? `NARRATIVE REPORT (primary source):\n${narrativeText}\n\nSUPPORTING:` : ''}
-GROSS: ${caseText.gross}
-MICROSCOPIC: ${caseText.microscopic}
-ANCILLARY: ${caseText.ancillary}
-SYNOPTIC ANSWERS:
-${answersText}
-
-Return a JSON array covering:
-
-DIAGNOSTIC CODES (ICD-10, SNOMED CT, ICD-O):
-- Primary diagnosis ICD-10 code (UK 5th edition)
-- SNOMED CT morphology code (UK SNOMED release)
-- ICD-O topography and morphology codes if applicable
-
-PROCEDURE CODES (OPCS-4):
-- Primary surgical pathology procedure code
-- Additional procedures if applicable (IHC, molecular)
-
-Format:
-[
-  {
-    "code": "C20",
-    "display": "Malignant neoplasm of rectum",
-    "system": "ICD10",
-    "confidence": 95,
-    "rationale": "Rectal adenocarcinoma primary diagnosis",
-    "rvu": null
-  },
-  {
-    "code": "Y76.8",
-    "display": "Examination of specimen from rectum",
-    "system": "OPCS4",
-    "confidence": 92,
-    "rationale": "Histological examination of resection specimen",
-    "rvu": null
-  }
-]
-
-Rules:
-- system must be one of: ICD10, SNOMED, ICDO, LOINC, OPCS4
-- Do NOT include CPT codes — not used in NHS
-- confidence 0-100, rationale ≤12 words
-- Return 4-8 codes total — MUST include at least one SNOMED morphology code`
-          : `Suggest appropriate diagnostic codes for this pathology case.
-
-TEMPLATE: ${templateName ?? 'Unknown'}
-${narrativeText ? `NARRATIVE REPORT (primary source):
-${narrativeText}
-
-SUPPORTING:` : ''}
-GROSS: ${caseText.gross}
-MICROSCOPIC: ${caseText.microscopic}
-ANCILLARY: ${caseText.ancillary}
-SYNOPTIC ANSWERS:
-${answersText}
-
-Return a JSON array covering:
-
-DIAGNOSTIC CODES (ICD-10, SNOMED CT, ICD-O):
-- Primary diagnosis ICD-10 code
-- SNOMED CT morphology code
-- ICD-O topography and morphology codes if applicable
-${!isOrchestrationMode ? `
-SPECIMEN-LEVEL BILLING CODE (RVU ESTIMATE ONLY — Assist mode):
-- This case is in Assist mode: your LIS owns real billing, this is
-  read-only, internal RVU/productivity tracking - never a real charge.
-- Pick at most ONE code from this exact, real, verified list, based
-  on the overall complexity of the gross/microscopic work described -
-  never invent a code outside this list:
-${CODE_MAP_TABLE.filter(e => e.level === 'specimen').map(e => `  - ${e.code}: ${e.description}`).join('\n')}
-- Do NOT suggest ancillary/stain-level codes (special stains, IHC) -
-  those need an exact stain count this prompt cannot reliably judge
-  from narrative text alone, and are already handled by this app's
-  own real, structured rule engine in orchestration mode.
-- Mark confidence honestly lower for this one (it's a rough estimate,
-  not a precision determination) and say so in rationale.
-` : ''}
-Format:
-[
-  {
-    "code": "C50.412",
-    "display": "Malignant neoplasm of upper-outer quadrant of left female breast",
-    "system": "ICD10",
-    "confidence": 95,
-    "rationale": "Left breast invasive carcinoma upper outer quadrant",
-    "rvu": null
-  }${!isOrchestrationMode ? `,
-  {
-    "code": "88305",
-    "display": "Code 88305 — Specimen Level",
-    "system": "CPT",
-    "confidence": 65,
-    "rationale": "Estimate only - moderate complexity specimen, Assist mode",
-    "rvu": null
-  }` : ''}
-]
-
-Rules:
-- system must be one of: ICD10, SNOMED, ICDO, LOINC${!isOrchestrationMode ? ', CPT' : ''}
-${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level, special stain, and IHC billing codes are resolved by this app\'s own real, verified rule engine from structured stain data, not guessed from narrative text' : '- At most ONE CPT code, only from the real, verified list above, only for the specimen-level base code - never a stain-level ancillary code'}
-- confidence 0-100
-- rationale ≤12 words
-- rvu: always null - this prompt no longer suggests billable procedure codes
-- Return 4-8 codes total — MUST include at least one SNOMED morphology code
-- SNOMED morphology example: {"code":"413448000","display":"Invasive carcinoma of breast, no special type","system":"SNOMED","confidence":95,"rationale":"Primary diagnosis morphology","rvu":null}
-- Only include codes you are highly confident are correct`,
-        maxTokens: 1200,
-        configOverride: await resolveAiConfigOverrideForClient(facilityId),
-      });
-
-      const clean = raw.replace(/```json|```/g, '').trim();
-      // Real fix, per direct report: a raw JSON.parse error message
-      // ("Unexpected non-whitespace character after JSON...") was
-      // surfacing straight to the user - the LLM had added trailing
-      // content after the real JSON array that the markdown-fence
-      // strip above didn't catch. Extracting the array by its
-      // outermost [ ] rather than trusting the whole cleaned string
-      // is pure JSON survives that regardless of what the extra
-      // content actually was.
-      const arrayStart = clean.indexOf('[');
-      const arrayEnd = clean.lastIndexOf(']');
-      if (arrayStart === -1 || arrayEnd === -1 || arrayEnd < arrayStart) {
-        throw new Error('AI response did not contain a recognizable code list — please try again.');
-      }
-      const parsed: AiCodeSuggestion[] = JSON.parse(clean.slice(arrayStart, arrayEnd + 1));
-      // Real, defensive filter, per direct requirement: CPT is no
-      // longer part of what this prompt asks for (see the prompt's own
-      // header comment on this whole function for why), but an LLM
-      // doesn't always perfectly follow an instruction - explicitly
-      // dropping any CPT suggestion here too, rather than relying on
-      // the prompt change alone, since a wrong CPT guess with a false
-      // sense of confidence is a real billing risk, not just noise.
-      const specimenLevelCptCodes = new Set(CODE_MAP_TABLE.filter(e => e.level === 'specimen').map(e => e.code));
-      let cptSeen = false;
-      const filtered = Array.isArray(parsed)
-        ? parsed.filter(s => {
-            if (!siteCodingSystems.includes(s.system as CodeSystem)) return false;
-            if (s.system !== 'CPT') return true;
-            // Real fix: CPT suggestions are only ever real here in
-            // Assist mode (see the prompt's own conditional block
-            // above) - defensively re-verify even then, since the
-            // model is only asked, not guaranteed, to stay inside the
-            // real, verified specimen-level list this app actually
-            // knows about. A wrong or hallucinated code showing up
-            // with a confident-looking percentage is the real risk
-            // this guards against, not just noise to filter later.
-            if (isOrchestrationMode || cptSeen || !specimenLevelCptCodes.has(s.code)) return false;
-            cptSeen = true;
-            return true;
-          })
-        : [];
-      // Real, per direct guidance: "before any suggestion is [shown],
-      // verify that code actually exists and is a real code. Machine
-      // verified. Then the Practitioner makes the medical decision to
-      // use or not use that code" — applies to every real system this
-      // modal presents (SNOMED, ICD-10, ICD-11, ICD-O, LOINC — CPT
-      // already got its own, separate re-verification just above,
-      // short-circuited to true inside filterToVerifiedCodes rather
-      // than checked twice). A hallucinated code is dropped here,
-      // silently, before the practitioner ever sees it as an option —
-      // their own review still decides whether a genuinely-real code
-      // is the medically right one for this case, exactly as before.
-      const verified = await filterToVerifiedCodes(filtered);
+      const { suggestions: verified, unverified } = await suggestAiCodesWithDrops({ caseText, synopticAnswers, templateName, narrativeText, isUK, siteCodingSystems, isOrchestrationMode, facilityId });
       setAiSuggestions(verified);
+      setAiUnverified(unverified);
+      // Batch 656: open the tab that has suggestions, so the panel never reads "0" while another system has some.
+      if (verified.length > 0 && !verified.some(v => v.system === system)) setSystem(verified[0].system as CodeSystem);
       setAiRan(true);
     } catch (e: any) {
       setAiError(e?.message ?? t('addCodeModal.aiSuggestionFailedDefault'));
     } finally {
       setAiLoading(false);
     }
-  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems, isOrchestrationMode, t]);
+  }, [caseText, synopticAnswers, templateName, isUK, narrativeText, siteCodingSystems, isOrchestrationMode, t, facilityId, system]);
 
   // Auto-run on open — after generateAiCodes is defined
   // Tier 1: use pre-derived synoptic codes immediately
@@ -635,6 +481,21 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Batch 607 (#138): the codes now applied, as uniform entries (kept in step with what the case already recorded).
+  const entriesNow = React.useMemo<CodedEntry[]>(() => {
+    const j = codePolicy.jurisdiction;
+    const releaseOf = (sys: string) => sys === 'ICD10' ? icd10VariantForJurisdiction(j) : sys === 'SNOMED' ? snomedReleaseForJurisdiction(j) : sys === 'ICDO' ? 'ICD-O-3' : undefined;
+    const active: CodedEntry[] = applied.filter(c => !c.pendingDelete).map(c => {
+      const release = releaseOf(c.system);
+      return {
+        system: c.system, code: c.code, display: c.display, source: c.source ?? 'typed',
+        ...(release ? { release } : {}), ...(c.ai ? { ai: c.ai } : {}),
+      };
+    });
+    const previous = [...(caseCoding?.entries ?? []), ...fromCaseCoding(caseCoding)];
+    return reconcileEntries(previous, active);
+  }, [applied, caseCoding, codePolicy.jurisdiction]);
 
   const handleSave = useCallback(async () => {
     setSaving(true);
@@ -679,7 +540,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
       // wasn't) on failure. Also fixes saving never being reset to
       // false, which previously left the button stuck disabled.
       try {
-        await onAddToSpecimens(allActiveCodes, specimenIndices);
+        await onAddToSpecimens(allActiveCodes, specimenIndices, entriesNow);
         onClose();
       } catch (err: any) {
         setSaveError(err?.message ?? t('addCodeModal.saveFailedDefault'));
@@ -690,7 +551,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
       setSaving(false);
       onClose();
     }
-  }, [applied, existingCodes, allSpecimens, onAddToSpecimens, onClose, t]);
+  }, [applied, existingCodes, allSpecimens, onAddToSpecimens, onClose, t, entriesNow]);
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -1009,6 +870,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                     : `✦ ${t('addCodeModal.aiSuggestCodes')}`}
                 </button>
                 {aiError && <span className="acd-ai-error">⚠ {aiError}</span>}
+                {!aiLoading && aiUnverified > 0 && <span className="acd-ai-error">{t('addCodeModal.aiUnverifiedNote', { count: aiUnverified })}</span>}
               </div>
             )}
 
@@ -1016,7 +878,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
             {aiSuggestions.length > 0 && (
               <div className="acd-ai-panel">
                 <div
-                  onClick={() => setAiPanelCollapsed(c => !c)}
+                  {...pressable(() => setAiPanelCollapsed(c => !c))}
                   className="acd-ai-panel-header"
                 >
                   <span>✦</span>
@@ -1039,7 +901,9 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                   return (
                     <div
                       key={sug.code}
-                      onClick={() => elsewhere.length === 0 && addCode({ code: sug.code, display: sug.display, system: sug.system })}
+                      // Batch 567 (axe nested-interactive): the row can hold a button (Move here), so it isn't a button
+                      // itself; clicking it still applies the code, and the button at its end does the same from the keyboard.
+                      {...clickableContainer(elsewhere.length === 0 ? () => addCode({ code: sug.code, display: sug.display, system: sug.system }, { source: 'ai', ai: aiDetailFor(sug) }) : undefined)}
                       className={`acd-ai-suggestion-row${activeCount > 0 ? ' acd-ai-suggestion-row--active' : ''}`}
                     >
                       <span className="acd-code-badge">
@@ -1056,19 +920,19 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                           {t('addCodeModal.estimate')}
                         </span>
                       )}
+                      {sug.simulated && <span className="ps-simulated-badge">{t('addCodeModal.simulatedResult')}</span>}
                       <span className={`acd-sug-desc ${activeCount > 0 ? 'acd-sug-desc--active' : 'acd-sug-desc--default'}`}>
                         {sug.display}
                       </span>
-                      <span className={sug.confidence >= 85 ? 'acd-confidence-hi' : 'acd-confidence-lo'}>
-                        {sug.confidence}%
-                      </span>
+                      <AiSuggestionMeta sug={sug} />
                       {sug.rvu != null && (
                         <span className="acd-already-added">
                           {t('addCodeModal.rvuValue', { rvu: sug.rvu })}
                         </span>
                       )}
                       {activeCount > 0 ? (
-                        <span className="acd-added-check" title={t('addCodeModal.appliedNTimes', { count: activeCount })}>✓ ×{activeCount}</span>
+                        <button type="button" className="ps-row-open-btn acd-added-check" aria-label={t('addCodeModal.applyAgainLabel', { applied: `✓ ×${activeCount}` })} title={t('addCodeModal.appliedNTimes', { count: activeCount })}
+                          onClick={e => { e.stopPropagation(); addCode({ code: sug.code, display: sug.display, system: sug.system }, { source: 'ai', ai: aiDetailFor(sug) }); }}>✓ ×{activeCount}</button>
                       ) : elsewhere.length > 0 ? (
                         <span
                           className="acd-elsewhere-hint"
@@ -1076,6 +940,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                         >
                           {t('addCodeModal.elsewhere')}
                           <button
+                            type="button"
                             className="ps-conf-btn-row"
                             onClick={(e) => { e.stopPropagation(); moveCode(elsewhere[0], target); }}
                           >
@@ -1083,11 +948,38 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                           </button>
                         </span>
                       ) : (
-                        <span className="acd-add-btn" title={t('addCodeModal.applyCode')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                        <button type="button" className="ps-row-open-btn acd-add-btn" title={t('addCodeModal.applyCode')} aria-label={t('addCodeModal.applyCode')}
+                          onClick={e => { e.stopPropagation(); addCode({ code: sug.code, display: sug.display, system: sug.system }, { source: 'ai', ai: aiDetailFor(sug) }); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></button>
                       )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* PS-138: findings that matched an abnormal-detection trigger. Choosing one fills the search box; nothing is searched
+                until it is chosen, and nothing is applied until a result is chosen. */}
+            {triggerQueries.length > 0 && SYSTEMS.some(x => x.id === 'SNOMED') && (
+              <div className="acd-trigger-row" data-testid="trigger-code-queries">
+                <span className="acd-trigger-label">{t('addCodeModal.triggerHeader')}</span>
+                {triggerQueries.map(q => (
+                  <button
+                    key={`${q.ruleId}-${q.specimenId}-${q.matchedValue}`}
+                    type="button"
+                    className={`acd-trigger-chip acd-trigger-chip--${q.severity.toLowerCase()}`}
+                    title={t('addCodeModal.triggerChipTitle', { query: q.query })}
+                    onClick={() => {
+                      const sp = allSpecimens.find(x => x.specimenId === q.specimenId);
+                      setSystem('SNOMED');
+                      if (sp) setTarget(sp.index);
+                      setQuery(q.query);
+                      setFocused(-1);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    {q.fieldLabel}: {q.matchedValue}
+                  </button>
+                ))}
               </div>
             )}
 
@@ -1097,17 +989,21 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                 <button key={s.id} onClick={() => { setSystem(s.id); setQuery(''); setFocused(-1); inputRef.current?.focus(); }}
                   className={`acd-system-tab-btn${system === s.id ? ' acd-system-tab-btn--active' : ''}`}
                   style={{ '--ps-hue': s.accent } as React.CSSProperties}
-                >{s.id === 'CPT' ? (isOrchestrationMode ? t('addCodeModal.billingCode') : t('addCodeModal.cptRvu')) : t(SYSTEM_LABEL_KEY[s.id])}</button>
+                >{s.id === 'CPT' ? (isOrchestrationMode ? t('addCodeModal.billingCode') : t('addCodeModal.cptRvu')) : t(SYSTEM_LABEL_KEY[s.id])}{requiredIds.includes(s.id) && <span className="acd-required-mark" title={t('addCodeModal.requiredHint')}>{t('addCodeModal.required')}</span>}</button>
               ))}
+              <button type="button" className="acd-system-tab-btn" aria-pressed={showCaseCoding} onClick={() => setShowCaseCoding(v => !v)}>{t('addCodeModal.caseCodingToggle')}</button>
             </div>
+            {policyFallback && <div className="ps-code-system-off-note" role="note" data-testid="code-policy-fallback">{t('codeSystemsPolicy.fallbackNote')}</div>}
+            <CodeSystemOffNote systems={offBySetting} />
+            {showCaseCoding && <CaseCodingDisplay entries={entriesNow} />}
 
             {/* Hierarchy filters — SNOMED only */}
             {system === 'SNOMED' && (
               <div className="acd-filter-row">
                 {SNOMED_FILTERS.map(f => (
-                  <button key={f.id} onClick={() => setSnomedFilter(f.id)} title={t(SNOMED_FILTER_HINT_KEY[f.id])}
-                    className={`acd-snomed-filter-btn${snomedFilter === f.id ? ' acd-snomed-filter-btn--active' : ''}`}
-                  >{t(SNOMED_FILTER_LABEL_KEY[f.id])}</button>
+                  <button key={f} onClick={() => setSnomedFilter(f)} title={t(SNOMED_FILTER_HINT_KEY[f])}
+                    className={`acd-snomed-filter-btn${snomedFilter === f ? ' acd-snomed-filter-btn--active' : ''}`}
+                  >{t(SNOMED_FILTER_LABEL_KEY[f])}</button>
                 ))}
               </div>
             )}
@@ -1152,6 +1048,9 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                 <button className="fm-search-clear" onClick={() => { setQuery(''); setResults([]); inputRef.current?.focus(); }}>✕</button>
               )}
             </div>
+
+            {system === 'ICDO' && <ManualIcdoEntry onAdd={addCode} />}
+            {system === 'OPCS4' && <Opcs4Notice />}
 
             {/* Results */}
             <div className="acd-list-scroll">
@@ -1208,7 +1107,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                     key={r.code}
                     className={`fm-flag-card acd-result-card${activeCount > 0 ? ' applied' : ''}${isFocus && activeCount === 0 ? ' acd-result-card--focused' : ''}`}
                     onMouseEnter={() => setFocused(i)}
-                    onClick={() => elsewhere.length === 0 && addCode(r)}
+                    // Batch 567: as the suggestion rows above (a mouse shortcut; the button at its end, or Enter in the search box).
+                    {...clickableContainer(elsewhere.length === 0 ? () => addCode(r) : undefined)}
                   >
                     <span className={`fm-code-chip${activeCount > 0 ? ' applied' : ''}`}>
                       {r.code}
@@ -1216,8 +1116,11 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                     <span className={`acd-sug-desc ${activeCount > 0 ? 'acd-sug-desc--active' : 'acd-sug-desc--default'}`}>
                       {r.display}
                     </span>
+                    {isSimulatedResult(r) && <span className="ps-simulated-badge">{t('addCodeModal.simulatedResult')}</span>}
+                    {r.system === 'ICDO' && <RegistryCheckNote code={r.code} />}
                     {activeCount > 0 ? (
-                      <span className="acd-added-text" title={t('addCodeModal.appliedNTimes', { count: activeCount })}>✓ {t('addCodeModal.appliedTimesLabel', { count: activeCount })}</span>
+                      <button type="button" className="ps-row-open-btn acd-added-text" aria-label={t('addCodeModal.applyAgainLabel', { applied: `✓ ${t('addCodeModal.appliedTimesLabel', { count: activeCount })}` })} title={t('addCodeModal.appliedNTimes', { count: activeCount })}
+                        onClick={e => { e.stopPropagation(); addCode(r); }}>✓ {t('addCodeModal.appliedTimesLabel', { count: activeCount })}</button>
                     ) : elsewhere.length > 0 ? (
                       <span
                         className="acd-elsewhere-hint"
@@ -1225,6 +1128,7 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                       >
                         {t('addCodeModal.appliedElsewhere')}
                         <button
+                          type="button"
                           className="ps-conf-btn-row"
                           onClick={(e) => { e.stopPropagation(); moveCode(elsewhere[0], target); }}
                         >
@@ -1232,7 +1136,8 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
                         </button>
                       </span>
                     ) : (
-                      <span className="fm-apply-btn acd-apply-btn-right" title={t('addCodeModal.applyCode')}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></span>
+                      <button type="button" className="ps-row-open-btn fm-apply-btn acd-apply-btn-right" title={t('addCodeModal.applyCode')} aria-label={t('addCodeModal.applyCode')}
+                        onClick={e => { e.stopPropagation(); addCode(r); }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/><line x1="19" y1="3" x2="19" y2="9"/><line x1="16" y1="6" x2="22" y2="6"/></svg></button>
                     )}
                   </div>
                 );
@@ -1259,13 +1164,10 @@ ${isOrchestrationMode ? '- Do NOT include CPT codes — surgical pathology level
           </span>
           <div className="acd-footer-row">
             <button className="fm-btn-cancel" onClick={handleCloseAttempt}>{t('addCodeModal.cancel')}</button>
-            <button
-              className="fm-btn-save"
-              disabled={saving || !isDirty}
-              onClick={handleSave}
-            >
+            {/* Batch 649: greyed without case:diagnosis-code:apply (the save checks it again). */}
+            <CapabilityButton capability="case:diagnosis-code:apply" className="fm-btn-save" disabled={saving || !isDirty} onClick={() => { void handleSave(); }}>
               {saving ? t('addCodeModal.saving') : t('addCodeModal.save')}
-            </button>
+            </CapabilityButton>
           </div>
         </div>
       </div>

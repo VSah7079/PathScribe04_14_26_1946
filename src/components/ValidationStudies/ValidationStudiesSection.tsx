@@ -5,16 +5,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router';
+import { VALIDATION_SECTIONS } from '@/constants/configSearchIndex';
+import { pickConfigSection } from '@/utils/configSectionParam';
 import { useTranslation, Trans } from 'react-i18next';
 import '@/pathscribe.css';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
-import { mockValidationStudyService }  from '@/services/validationStudies/mockValidationStudyService';
+
 import type { CommitteeSubmission, CommitteeApproval } from '@/services/validationStudies/IValidationStudyService';
-import { mockNarrativeSignalService }  from '@/services/narrativeSignals/mockNarrativeSignalService';
-import { mockFacilityService }           from '@/services/facilities/mockFacilityService';
-import { mockPhysicianService }        from '@/services/physicians/mockPhysicianService';
-import { mockReportTemplateService }   from '@/services/reportTemplates/mockReportTemplateService';
-import { modelService }                from '@/services';
+
+import { modelService, validationStudyService, narrativeSignalService, facilityService, physicianService, reportTemplateService } from '@/services';
 import type { ValidationStudy }        from '@/services/validationStudies/IValidationStudyService';
 import type { NarrativeSignalStats }   from '@/services/narrativeSignals/INarrativeSignalService';
 import type { Facility } from '@/services/facilities/IFacilityService';
@@ -23,8 +23,16 @@ import type { ReportTemplate }         from '@/types/reportPart';
 import type { AIModel }                from '@/services/models/IModelService';
 import { computeValidationStudyGrade } from '@/services/validationStudies/computeValidationStudyGrade';
 import { ModelStoreModal } from './ModelStoreModal';
+import { recordDocumentOutput, DOCUMENT_DESTINATION } from '@/services';
+import { buildValidationReportHtml } from '@/services/validationStudies/buildValidationReportHtml';
+import i18n from 'i18next'; // the app's i18next instance (initialised in i18n/config.ts)
+import { formatPercent } from '@/utils/formatPercent';
+import { formatDate } from '@/utils/formatDate';
+import { SUBTAB_LABEL_KEY } from './validationSubTabs';
+import { useRegisterConfigHelpSection } from '@/components/Config/help/ConfigHelpContext';
 
-type SubTab = 'studies' | 'dashboard' | 'reports';
+type SubTab = (typeof VALIDATION_SECTIONS)[number]['id'];
+const SUBTAB_IDS = VALIDATION_SECTIONS.map(s => s.id);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,7 +54,11 @@ const STATUS_LABEL_KEY: Record<string, string> = {
   reported:           'validationStudies.status.reported',
 };
 
-function pct(n: number): string { return `${Math.round(n * 100)}%`; }
+// Batch 514: in the user's language ("85 %" in French). Screens re-render on a
+// language change (useTranslation), so reading i18n.language here is current.
+function pct(n: number): string { return formatPercent(n * 100, i18n.language, 0); }
+/** Audit-log detail stays literal English (CLAUDE.md rule 3). */
+function auditPct(n: number): string { return `${Math.round(n * 100)}%`; }
 
 // Locates one or more values inside an already-translated sentence and
 // wraps each in <strong>, correct regardless of a locale's word order.
@@ -99,7 +111,7 @@ const StudiesTab: React.FC<{
 
   const handleActivate = async (id: string) => {
     const study = studies.find(s => s.id === id);
-    const result = await mockValidationStudyService.activate(id, 'admin') as any;
+    const result = await validationStudyService.activate(id, 'admin') as any;
     if (!result.ok) {
       alert(result.error ?? t('validationStudies.studies.activateError'));
       return;
@@ -113,15 +125,15 @@ const StudiesTab: React.FC<{
   };
   const handleClose = async (id: string) => {
     const study = studies.find(s => s.id === id);
-    await mockValidationStudyService.close(id);
-    const signals = await mockNarrativeSignalService.getByStudy(id);
+    await validationStudyService.close(id);
+    const signals = await narrativeSignalService.getByStudy(id);
     const signalCount = (signals as any).ok ? (signals as any).data.length : 0;
     if (study) log('validation_study_closed', { studyName: study.name, signalCount });
     onRefresh();
   };
   const handleDelete = async (id: string) => {
     const study = studies.find(s => s.id === id);
-    await mockValidationStudyService.remove(id);
+    await validationStudyService.remove(id);
     if (study) log('validation_study_deleted', { studyName: study.name });
     onRefresh();
   };
@@ -163,7 +175,7 @@ const StudiesTab: React.FC<{
                 <span>{t('validationStudies.studies.templateCount', { count: s.templateIds.length })}</span>
               )}
               <span>{t('validationStudies.studies.targetAcceptance', { pct: pct(s.targetAcceptanceRate) })}</span>
-              {s.startDate && <span>{t('validationStudies.studies.started', { date: new Date(s.startDate).toLocaleDateString() })}</span>}
+              {s.startDate && <span>{t('validationStudies.studies.started', { date: formatDate(s.startDate, i18n.language) })}</span>}
               {s.committeeApproval?.irbReference && <span>{t('validationStudies.studies.irb', { ref: s.committeeApproval.irbReference })}</span>}
               {s.committeeSubmission?.committeeName && s.status === 'pending_approval' && <span>{t('validationStudies.studies.committee', { name: s.committeeSubmission.committeeName })}</span>}
             </div>
@@ -187,7 +199,7 @@ const StudiesTab: React.FC<{
           templates={templates}
           models={models}
           onSave={async (data) => {
-            await mockValidationStudyService.create(data as any);
+            await validationStudyService.create(data as any);
             log('validation_study_created', {
               studyName: (data as any).name ?? 'Unknown',
               clientCount: ((data as any).clientIds ?? []).length,
@@ -206,7 +218,7 @@ const StudiesTab: React.FC<{
           study={studies.find(s => s.id === submitId)!}
           onSave={async (submission) => {
             const study = studies.find(s => s.id === submitId);
-            await mockValidationStudyService.submitForReview(submitId, submission);
+            await validationStudyService.submitForReview(submitId, submission);
             if (study) log('validation_study_submitted', {
               studyName:     study.name,
               committeeName: submission.committeeName,
@@ -224,7 +236,7 @@ const StudiesTab: React.FC<{
           study={studies.find(s => s.id === approveId)!}
           onSave={async (approval) => {
             const study = studies.find(s => s.id === approveId);
-            await mockValidationStudyService.recordApproval(approveId, approval);
+            await validationStudyService.recordApproval(approveId, approval);
             if (study) log('validation_study_approval_recorded', {
               studyName:    study.name,
               irbReference: approval.irbReference,
@@ -246,7 +258,7 @@ const StudiesTab: React.FC<{
           models={models}
           existing={studies.find(s => s.id === editId)}
           onSave={async (data) => {
-            await mockValidationStudyService.update(editId, data as any);
+            await validationStudyService.update(editId, data as any);
             log('validation_study_created', {
               studyName: (data as any).name ?? 'Unknown',
               clientCount: ((data as any).clientIds ?? []).length,
@@ -299,7 +311,7 @@ const SubmitForReviewModal: React.FC<{
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.submitModal.committeeName')}</div>
-            <input
+            <input aria-label={t('validationStudies.submitModal.committeeName')}
               className="ps-conf-input"
               value={committeeName}
               onChange={e => setCommitteeName(e.target.value)}
@@ -309,7 +321,7 @@ const SubmitForReviewModal: React.FC<{
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.submitModal.submittedBy')}</div>
-            <input
+            <input aria-label={t('validationStudies.submitModal.submittedBy')}
               className="ps-conf-input"
               value={submittedBy}
               onChange={e => setSubmittedBy(e.target.value)}
@@ -319,7 +331,7 @@ const SubmitForReviewModal: React.FC<{
 
           <div>
             <div className="ps-conf-label">{t('validationStudies.submitModal.expectedReviewDate')}</div>
-            <input
+            <input aria-label={t('validationStudies.submitModal.expectedReviewDate')}
               type="date"
               className="ps-conf-input"
               value={expectedReviewDate}
@@ -329,7 +341,7 @@ const SubmitForReviewModal: React.FC<{
 
           <div>
             <div className="ps-conf-label">{t('validationStudies.submitModal.notes')}</div>
-            <textarea
+            <textarea aria-label={t('validationStudies.submitModal.notes')}
               className="ps-conf-input"
               rows={3}
               value={notes}
@@ -396,7 +408,7 @@ const RecordApprovalModal: React.FC<{
               <span className="ps-vs-modal-ref-label">{t('validationStudies.approveModal.by')}</span>
               <span>{study.committeeSubmission.submittedBy}</span>
               <span className="ps-vs-modal-ref-label">{t('validationStudies.approveModal.on')}</span>
-              <span>{new Date(study.committeeSubmission.submittedAt).toLocaleDateString()}</span>
+              <span>{formatDate(study.committeeSubmission.submittedAt, i18n.language)}</span>
             </div>
           )}
 
@@ -409,7 +421,7 @@ const RecordApprovalModal: React.FC<{
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.approveModal.irbReference')}</div>
-            <input
+            <input aria-label={t('validationStudies.approveModal.irbReference')}
               className="ps-conf-input"
               value={irbReference}
               onChange={e => setIrbReference(e.target.value)}
@@ -420,7 +432,7 @@ const RecordApprovalModal: React.FC<{
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.approveModal.approvedBy')}</div>
-            <input
+            <input aria-label={t('validationStudies.approveModal.approvedBy')}
               className="ps-conf-input"
               value={approvedBy}
               onChange={e => setApprovedBy(e.target.value)}
@@ -430,7 +442,7 @@ const RecordApprovalModal: React.FC<{
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.approveModal.approvalDate')}</div>
-            <input
+            <input aria-label={t('validationStudies.approveModal.approvalDate')}
               type="date"
               className="ps-conf-input"
               value={approvedAt}
@@ -440,7 +452,7 @@ const RecordApprovalModal: React.FC<{
 
           <div>
             <div className="ps-conf-label">{t('validationStudies.approveModal.minutesReference')}</div>
-            <input
+            <input aria-label={t('validationStudies.approveModal.minutesReference')}
               className="ps-conf-input"
               value={committeeMinutesRef}
               onChange={e => setCommitteeMinutesRef(e.target.value)}
@@ -450,7 +462,7 @@ const RecordApprovalModal: React.FC<{
 
           <div>
             <div className="ps-conf-label">{t('validationStudies.approveModal.conditions')}</div>
-            <textarea
+            <textarea aria-label={t('validationStudies.approveModal.conditions')}
               className="ps-conf-input"
               rows={3}
               value={conditions}
@@ -554,14 +566,14 @@ const StudyFormModal: React.FC<{
         <div className="ps-vs-studyform-body">
 
           <div><div className="ps-conf-label ps-conf-label--required">{t('validationStudies.form.studyName')}</div>
-            <input className="ps-conf-input" value={name} onChange={e => setName(e.target.value)} placeholder={t('validationStudies.form.studyNamePlaceholder')} /></div>
+            <input aria-label={t('validationStudies.form.studyName')} className="ps-conf-input" value={name} onChange={e => setName(e.target.value)} placeholder={t('validationStudies.form.studyNamePlaceholder')} /></div>
 
           <div><div className="ps-conf-label">{t('validationStudies.form.description')}</div>
-            <textarea className="ps-conf-input" rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('validationStudies.form.descriptionPlaceholder')} /></div>
+            <textarea aria-label={t('validationStudies.form.description')} className="ps-conf-input" rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('validationStudies.form.descriptionPlaceholder')} /></div>
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.form.aiModel')}</div>
-            <select
+            <select aria-label={t('validationStudies.form.aiModel')}
               className="ps-conf-select"
               value={modelId}
               disabled={isEdit}
@@ -579,7 +591,7 @@ const StudyFormModal: React.FC<{
               </div>
             )}
             {!isEdit && (
-              <button
+              <button data-config-nav
                 type="button"
                 onClick={() => setShowStore(true)}
                 className="ps-vs-store-link"
@@ -602,14 +614,14 @@ const StudyFormModal: React.FC<{
           <div className="ps-vs-form-2col">
             <div><div className="ps-conf-label">{t('validationStudies.form.targetAcceptanceRate')}</div>
               <div className="ps-vs-slider-wrap">
-                <input type="range" min={0.5} max={1} step={0.05} value={targetAccept} onChange={e => setTargetAccept(Number(e.target.value))} className="ps-vs-slider" />
+                <input aria-label={t('validationStudies.form.targetAcceptanceRate')} type="range" min={0.5} max={1} step={0.05} value={targetAccept} onChange={e => setTargetAccept(Number(e.target.value))} className="ps-vs-slider" />
                 <span className="ps-vs-slider-val">{pct(targetAccept)}</span>
               </div>
               <div className="ps-vs-slider-hint">{t('validationStudies.form.targetAcceptanceRateHint')}</div>
             </div>
             <div><div className="ps-conf-label">{t('validationStudies.form.maxEditRatio')}</div>
               <div className="ps-vs-slider-wrap">
-                <input type="range" min={0.1} max={0.9} step={0.05} value={targetEdit} onChange={e => setTargetEdit(Number(e.target.value))} className="ps-vs-slider" />
+                <input aria-label={t('validationStudies.form.maxEditRatio')} type="range" min={0.1} max={0.9} step={0.05} value={targetEdit} onChange={e => setTargetEdit(Number(e.target.value))} className="ps-vs-slider" />
                 <span className="ps-vs-slider-val">{pct(targetEdit)}</span>
               </div>
               <div className="ps-vs-slider-hint">{t('validationStudies.form.maxEditRatioHint')}</div>
@@ -617,10 +629,10 @@ const StudyFormModal: React.FC<{
           </div>
 
           <div><div className="ps-conf-label ps-conf-label--required">{t('validationStudies.form.startDate')}</div>
-            <input type="date" className="ps-conf-input" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
+            <input aria-label={t('validationStudies.form.startDate')} type="date" className="ps-conf-input" value={startDate} onChange={e => setStartDate(e.target.value)} /></div>
 
           <div><div className="ps-conf-label">{t('validationStudies.form.irbReference')}</div>
-            <input className="ps-conf-input" value={irbRef} onChange={e => setIrbRef(e.target.value)} placeholder={t('validationStudies.form.irbReferencePlaceholder')} /></div>
+            <input aria-label={t('validationStudies.form.irbReference')} className="ps-conf-input" value={irbRef} onChange={e => setIrbRef(e.target.value)} placeholder={t('validationStudies.form.irbReferencePlaceholder')} /></div>
 
           <div>
             <div className="ps-conf-label ps-conf-label--required">{t('validationStudies.form.facilities')}</div>
@@ -718,10 +730,10 @@ const DashboardTab: React.FC<{
 
   useEffect(() => {
     if (!selectedId) return;
-    mockNarrativeSignalService.getStats(selectedId).then((r: any) => {
+    narrativeSignalService.getStats(selectedId).then((r: any) => {
       if (r.ok) setStats(r.data);
     });
-    mockNarrativeSignalService.getByStudy(selectedId).then((r: any) => {
+    narrativeSignalService.getByStudy(selectedId).then((r: any) => {
       if (r.ok) setCaseCount(new Set(r.data.map((s: any) => s.caseId)).size);
     });
   }, [selectedId]);
@@ -739,7 +751,7 @@ const DashboardTab: React.FC<{
   return (
     <div className="ps-vs-dashboard">
       <div className="ps-vs-study-select-wrap">
-        <select className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.dashboard.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+        <select data-config-nav className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.dashboard.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
           {active.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         {study && (
@@ -828,7 +840,7 @@ const DashboardTab: React.FC<{
 // ── Reports Tab ───────────────────────────────────────────────────────────────
 
 const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; isSuperAdmin?: boolean }> = ({ studies, onRefresh, isSuperAdmin: _isSuperAdmin = false }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { log } = useAuditLog();
   const [selectedId, setSelectedId] = useState<string>(studies[0]?.id ?? '');
   const [stats,      setStats]      = useState<NarrativeSignalStats | null>(null);
@@ -840,8 +852,8 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
 
   useEffect(() => {
     if (!selectedId) return;
-    mockNarrativeSignalService.getStats(selectedId).then((r: any) => { if (r.ok) setStats(r.data); });
-    mockNarrativeSignalService.getByStudy(selectedId).then((r: any) => {
+    narrativeSignalService.getStats(selectedId).then((r: any) => { if (r.ok) setStats(r.data); });
+    narrativeSignalService.getByStudy(selectedId).then((r: any) => {
       if (r.ok) setCaseCount(new Set(r.data.map((s: any) => s.caseId)).size);
     });
   }, [selectedId]);
@@ -856,9 +868,17 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
     const grade = computeValidationStudyGrade(stats.acceptanceRate, study.targetAcceptanceRate, avgEditRatio, study.targetMaxEditRatio);
 
     // Print-friendly report in new window
-    const html = buildReportHtml(study, stats, caseCount, grade, avgEditRatio);
+    // Batch 514: in the reader's language (services/validationStudies/buildValidationReportHtml.ts).
+    const html = buildValidationReportHtml(
+      { study, stats, caseCount, grade, avgEditRatio },
+      { t, language: i18n.language, appVersion: __APP_VERSION__, now: new Date().toISOString() },
+    );
     const win  = window.open('', '_blank');
-    if (win) { win.document.write(html); win.document.close(); win.print(); }
+    if (win) {
+      win.document.write(html); win.document.close(); win.print();
+      // PS-282 (Batch 437): audited.
+      void recordDocumentOutput({ action: 'print', document: 'validation-study-report', documentId: study.id, destination: DOCUMENT_DESTINATION.browserPrintDialog, status: 'pending', format: 'html' });
+    }
 
     // Real fix: the grade shown here was always computed live and never
     // actually recorded anywhere on the study itself — meaning nothing
@@ -869,7 +889,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
     // deliberately left alone rather than overwritten, even if the
     // live numbers would now compute differently.
     const alreadyGraded = !!study.finalGrade;
-    await mockValidationStudyService.update(study.id, {
+    await validationStudyService.update(study.id, {
       status: 'reported',
       ...(alreadyGraded ? {} : {
         finalGrade: grade.grade,
@@ -879,7 +899,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
     log('validation_report_generated', {
       studyName: study.name,
       caseCount,
-      acceptanceRate: pct(stats.acceptanceRate),
+      acceptanceRate: auditPct(stats.acceptanceRate),
     });
     onRefresh();
     setGenerating(false);
@@ -905,7 +925,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
       ) : (
         <>
           <div className="ps-vs-reports-select-wrap">
-            <select className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.reports.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
+            <select data-config-nav className="ps-conf-select ps-vs-select--wide" aria-label={t('validationStudies.reports.selectStudyAriaLabel')} value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               {closedStudies.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
@@ -914,7 +934,7 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
             <div className="ps-vs-report-preview">
               <div className="ps-vs-report-preview-title">{t('validationStudies.reports.previewTitle', { name: study.name })}</div>
               <div className="ps-vs-report-kpis">
-                <div><span className="ps-vs-rp-label">{t('validationStudies.reports.period')}</span><span>{new Date(study.startDate).toLocaleDateString()} — {study.endDate ? new Date(study.endDate).toLocaleDateString() : t('validationStudies.reports.ongoing')}</span></div>
+                <div><span className="ps-vs-rp-label">{t('validationStudies.reports.period')}</span><span>{t('validationStudies.printReport.periodRange', { start: formatDate(study.startDate, i18n.language), end: study.endDate ? formatDate(study.endDate, i18n.language) : t('validationStudies.reports.ongoing') })}</span></div>
                 <div><span className="ps-vs-rp-label">{t('validationStudies.reports.cases')}</span><span>{caseCount}</span></div>
                 <div><span className="ps-vs-rp-label">{t('validationStudies.reports.sectionsAnalysed')}</span><span>{stats.totalSignals}</span></div>
                 <div><span className="ps-vs-rp-label">{t('validationStudies.reports.acceptanceRate')}</span><span className={stats.acceptanceRate >= study.targetAcceptanceRate ? 'ps-vs-metric--good' : 'ps-vs-metric--bad'}>{pct(stats.acceptanceRate)}</span></div>
@@ -932,91 +952,15 @@ const ReportsTab: React.FC<{ studies: ValidationStudy[]; onRefresh: () => void; 
   );
 };
 
-// ── Print-quality HTML report ─────────────────────────────────────────────────
-
-function buildReportHtml(
-  study:         ValidationStudy,
-  stats:         NarrativeSignalStats,
-  caseCount:     number,
-  grade:         { grade: string; color: string; description: string },
-  avgEditRatio:  number,
-): string {
-  const now   = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  const rows   = Object.entries(stats.bySection).map(([sid, sec]) => {
-    const ar = sec.total ? sec.accepted / sec.total : 0;
-    return `<tr>
-      <td>${sid.replace(/_/g,' ')}</td>
-      <td>${sec.total}</td>
-      <td>${pct(ar)}</td>
-      <td>${pct(sec.avgEditRatio)}</td>
-    </tr>`;
-  }).join('');
-
-  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<title>PathScribe Validation Report — ${study.name}</title>
-<style>
-  body { font-family: 'Arial', sans-serif; font-size: 12px; color: #1f2937; margin: 40px; }
-  h1 { font-size: 20px; color: #0f172a; margin-bottom: 4px; }
-  h2 { font-size: 14px; color: #0891B2; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin: 24px 0 10px; }
-  .subtitle { color: #6b7280; font-size: 11px; margin-bottom: 24px; }
-  .rule { height: 2px; background: linear-gradient(90deg,#0891B2,rgba(8,145,178,0.1)); margin: 16px 0; }
-  .kpi-row { display: flex; gap: 20px; margin: 12px 0; }
-  .kpi { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; }
-  .kpi-val { font-size: 22px; font-weight: 700; color: #0f172a; }
-  .kpi-label { font-size: 10px; color: #6b7280; text-transform: uppercase; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  th { background: #f3f4f6; text-align: left; padding: 7px 10px; font-size: 10px; text-transform: uppercase; color: #6b7280; }
-  td { padding: 7px 10px; border-bottom: 1px solid #f3f4f6; font-size: 11px; }
-  .grade { font-size: 16px; font-weight: 700; color: ${grade.color}; }
-  .advisory { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px; font-size: 11px; color: #1e40af; margin-top: 24px; }
-  .footer { margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 12px; font-size: 10px; color: #9ca3af; }
-  @media print { body { margin: 20px; } }
-</style></head><body>
-<h1>PathScribe AI Validation Report</h1>
-<div class="subtitle">Generated ${now} · Confidential — not for distribution without authorisation</div>
-<div class="rule"></div>
-
-<h2>1. Study Overview</h2>
-<table><tr><td><strong>Study Name</strong></td><td>${study.name}</td></tr>
-<tr><td><strong>Period</strong></td><td>${new Date(study.startDate).toLocaleDateString()} — ${study.endDate ? new Date(study.endDate).toLocaleDateString() : 'Ongoing'}</td></tr>
-<tr><td><strong>Validation Mode</strong></td><td>Advisory — AI output reviewed and signed by pathologist. No AI-direct LIS submission.</td></tr>
-${study.committeeApproval?.irbReference ? `<tr><td><strong>Ethics Reference</strong></td><td>${study.committeeApproval.irbReference}</td></tr>` : ''}
-<tr><td><strong>PathScribe Version</strong></td><td>v${__APP_VERSION__}</td></tr></table>
-
-<h2>2. Executive Summary</h2>
-<div class="grade">${grade.grade}</div>
-<p style="margin-top:6px">${grade.description}</p>
-<div class="kpi-row">
-  <div class="kpi"><div class="kpi-val">${caseCount}</div><div class="kpi-label">Cases</div></div>
-  <div class="kpi"><div class="kpi-val">${stats.totalSignals}</div><div class="kpi-label">Sections analysed</div></div>
-  <div class="kpi"><div class="kpi-val" style="color:${stats.acceptanceRate>=study.targetAcceptanceRate?'#10b981':'#ef4444'}">${pct(stats.acceptanceRate)}</div><div class="kpi-label">Acceptance rate</div></div>
-  <div class="kpi"><div class="kpi-val">${pct(avgEditRatio)}</div><div class="kpi-label">Mean edit ratio</div></div>
-</div>
-
-<h2>3. AI Narrative Quality — by Section</h2>
-<table><thead><tr><th>Section</th><th>Signals</th><th>Acceptance</th><th>Mean Edit Ratio</th></tr></thead>
-<tbody>${rows}</tbody></table>
-
-<h2>4. Governance Statement</h2>
-<p>All AI-generated narrative output was reviewed, edited where necessary, and signed by a qualified pathologist before submission to the laboratory information system. PathScribe operated in advisory mode throughout this study. No AI output was transmitted to the LIS without pathologist approval. Patient data does not appear in this report. Individual pathologist performance metrics are not disclosed in this report.</p>
-
-<div class="advisory">🔒 This report contains no patient-identifiable information. Aggregate statistics only. De-identification applied at signal capture — clinical values replaced with typed placeholders before storage.</div>
-
-<div class="footer">	PathScribe v${__APP_VERSION__} · ForMedrixAI · Confidential validation report · ${now}</div>
-</body></html>`;
-}
-
 // ── Main Section ──────────────────────────────────────────────────────────────
-
-const SUBTAB_LABEL_KEY: Record<SubTab, string> = {
-  studies:   'validationStudies.tabs.studies',
-  dashboard: 'validationStudies.tabs.dashboard',
-  reports:   'validationStudies.tabs.reports',
-};
 
 const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSuperAdmin = false }) => {
   const { t } = useTranslation();
-  const [subTab,     setSubTab]     = useState<SubTab>('studies');
+  // Batch 449: Configuration search can open an inner tab directly (?section=).
+  const location = useLocation();
+  const [subTab,     setSubTab]     = useState<SubTab>(() => pickConfigSection(location.search, SUBTAB_IDS));
+  useRegisterConfigHelpSection(subTab); // Batch 646: the Help button opens this sub-tab's section of the Administrator Guide
+  useEffect(() => { setSubTab(pickConfigSection(location.search, SUBTAB_IDS)); }, [location.search]);
   const [studies,    setStudies]    = useState<ValidationStudy[]>([]);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [physicians, setPhysicians] = useState<Physician[]>([]);
@@ -1026,10 +970,10 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
 
   const load = useCallback(async () => {
     const [sr, cr, pr, tr, mr] = await Promise.all([
-      mockValidationStudyService.getAll(),
-      mockFacilityService.getAll(),
-      mockPhysicianService.getAll(),
-      mockReportTemplateService.getAll(),
+      validationStudyService.getAll(),
+      facilityService.getAll(),
+      physicianService.getAll(),
+      reportTemplateService.getAll(),
       modelService.getAll(),
     ]);
     if ((sr as any).ok) setStudies((sr as any).data);
@@ -1051,7 +995,7 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
         <div className="ps-vs-advisory-banner">
           🔒 {t('validationStudies.header.advisoryBanner')}
         </div>
-        <button
+        <button data-config-nav
           onClick={() => setHowItWorksOpen(o => !o)}
           className="ps-conf-btn-secondary ps-vs-howitworks-toggle"
         >
@@ -1091,7 +1035,7 @@ const ValidationStudiesSection: React.FC<{ isSuperAdmin?: boolean }> = ({ isSupe
       </div>
 
       <div className="ps-sub-tab-group">
-        {(['studies','dashboard','reports'] as SubTab[]).map(tab => (
+        {SUBTAB_IDS.map(tab => (
           <button key={tab} onClick={() => setSubTab(tab)} className={`ps-sub-tab-btn${subTab === tab ? ' active' : ''}`}>
             {t(SUBTAB_LABEL_KEY[tab])}
           </button>

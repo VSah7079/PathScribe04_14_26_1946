@@ -2,6 +2,7 @@
 import type { IStorageUnitService, StorageUnit, NewStorageUnit } from './IStorageUnitService';
 import type { ServiceResult, ID } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 const STORAGE_KEY = 'storageUnits';
 
@@ -18,7 +19,7 @@ const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
 const err = (message: string): ServiceResult<never> => ({ ok: false, error: message });
 const delay = () => new Promise(res => setTimeout(res, 30));
 
-export const mockStorageUnitService: IStorageUnitService = {
+const storageUnitServiceUnchecked: IStorageUnitService = {
   async getAll() {
     await delay();
     return ok([..._cache]);
@@ -53,6 +54,11 @@ export const mockStorageUnitService: IStorageUnitService = {
   },
 
   async deactivate(id: ID) {
-    return mockStorageUnitService.update(id, { active: false });
+    return storageUnitServiceUnchecked.update(id, { active: false });
   },
 };
+
+/** Batch 610: every change needs the Cold chain capability (guardConfigWrites). */
+export const mockStorageUnitService: IStorageUnitService = guardConfigWrites(storageUnitServiceUnchecked, [
+  ['config:cold-chain:manage', ['add', 'update', 'deactivate']],
+]);

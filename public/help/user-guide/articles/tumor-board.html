@@ -1,0 +1,242 @@
+<h1 id="top">Tumor Board / MDT</h1>
+<h2 id="overview">Overview</h2>
+<p><strong>Purpose.</strong> The Tumor Board / MDT screen is the agenda for your multidisciplinary team meetings. It lists every case that has been flagged for a board, grouped by meeting, so that the team can see what is coming, who is presenting each case and which cases still need a presenter.</p>
+<p><strong>Intended users.</strong> MDT coordinators and administrative staff who schedule the meetings, and pathologists, fellows and residents who present cases. What you can change depends on your role.</p>
+<p><strong>Where it fits.</strong> A case is flagged for a board from the report screen (see <a href="/help/report">Report</a>). It then appears here. Before the meeting a presenter claims it, and after the meeting its status is set to Presented.</p>
+<h2 id="screen-tour">Screen Tour</h2>
+<figure class="ps-ug-figure"><img src="img/tumor-board-overview.png" alt="The Tumor Board / MDT screen with its filters and meeting groups"><figcaption>The Tumor Board / MDT screen with its filters and meeting groups</figcaption></figure>
+
+<div class="admonition note">
+<p class="admonition-title">Flagging happens on the report screen</p>
+<p>You do not flag a case from this screen. Open the case, and on the report screen choose <strong>Tumor Board</strong> in the bottom action bar. This screen is for managing what has already been flagged.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Demonstration data</p>
+<p>In the demonstration version the agenda is held in the demonstration data set. Calendar invitations and messages described below are produced by the same demonstration set-up.</p>
+</div>
+<h3 id="field-definitions">Field definitions</h3>
+<p>The filter bar across the top has five drop-down lists.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Board</td>
+<td>Limit the list to one board: Breast MDT, GI MDT, Gyn-Onc or Thoracic MDM. The default is <strong>All boards</strong>.</td>
+</tr>
+<tr>
+<td>Case status</td>
+<td>Limit the list to one status: Pending Presentation, Presented, Deferred, Cancelled or Dismissed. The default is <strong>Pending Presentation</strong>. Choose <strong>All statuses</strong> to see everything.</td>
+</tr>
+<tr>
+<td>Presenter</td>
+<td>Limit the list to one presenter. The list offers active pathologists, fellows and residents.</td>
+</tr>
+<tr>
+<td>Meeting window</td>
+<td><strong>All</strong>, <strong>Today</strong>, <strong>Next 7 days</strong> or <strong>Next 30 days</strong>. The default is <strong>All</strong>.</td>
+</tr>
+<tr>
+<td>Sort by</td>
+<td><strong>Meeting date</strong> (soonest first; cases with no date last) or <strong>Recently updated</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p>Each meeting is a group with a heading such as "Breast MDT" followed by the date and time. Cases with no meeting date yet are grouped under <strong>Unscheduled</strong>. Each case is a row:</p>
+<table>
+<thead>
+<tr>
+<th>Row item</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Patient name and accession number</td>
+<td>The case. If no name is available, the case identifier is shown.</td>
+</tr>
+<tr>
+<td>Board badge</td>
+<td>The board the case is listed for.</td>
+</tr>
+<tr>
+<td>Source badge</td>
+<td><strong>Manual</strong> if a person flagged the case, or <strong>Auto-flagged</strong> if a rule listed it when the report was signed out. Point at the badge to see the reason.</td>
+</tr>
+<tr>
+<td>Claimed by <em>name</em></td>
+<td>Shown when a presenter has been set. Point at it to see when.</td>
+</tr>
+<tr>
+<td>Status drop-down</td>
+<td>Pending Presentation, Presented, Deferred or Cancelled.</td>
+</tr>
+<tr>
+<td>Claim this case</td>
+<td>Shown only when the case has no presenter and you are allowed to present.</td>
+</tr>
+<tr>
+<td>Presenter drop-down</td>
+<td>The presenter. <strong>No presenter assigned</strong> when empty.</td>
+</tr>
+<tr>
+<td>Meeting date and Meeting time</td>
+<td>When the case will be discussed. The time stays greyed out until a date is set ("Set a meeting date first").</td>
+</tr>
+</tbody>
+</table>
+<p>The <strong>Presenter</strong> filter starts at "All presenters"; choose a presenter to list only the cases they present.</p>
+<h3 id="toolbar">Toolbar</h3>
+<table>
+<thead>
+<tr>
+<th>Button</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Print</td>
+<td>Prints the agenda as a checklist. The filter bar and the row controls are left off the printout.</td>
+</tr>
+<tr>
+<td>Dismiss</td>
+<td>On a row. Removes a case from the agenda with a reason (see Exception handling).</td>
+</tr>
+<tr>
+<td>Open case</td>
+<td>On a row. Opens the case on its report screen.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="icons-and-status-indicators">Icons and status indicators</h3>
+<table>
+<thead>
+<tr>
+<th>Indicator</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Open</td>
+<td>The meeting's case list can still have cases added or moved.</td>
+</tr>
+<tr>
+<td>Locked</td>
+<td>The meeting's case list is frozen because the meeting is close. Your laboratory sets how many hours before the meeting this happens.</td>
+</tr>
+<tr>
+<td><em>n</em> cases unassigned</td>
+<td>How many cases in that meeting have no presenter yet.</td>
+</tr>
+<tr>
+<td>Unscheduled</td>
+<td>Cases flagged without a meeting date.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="hotkeys">Hotkeys</h3>
+<p>None are specific to this screen. F1 (View Help) opens this page.</p>
+<h2 id="step-by-step-procedures">Step-by-Step Procedures</h2>
+<h3 id="standard-workflow">Standard workflow</h3>
+<ol>
+<li>Open <strong>Tumor Board / MDT</strong> from the Home Dashboard. The screen opens showing cases that are Pending Presentation, grouped by meeting.</li>
+<li>Choose a <strong>Board</strong> or a <strong>Meeting window</strong> to narrow the list to the meeting you are preparing. The groups update.</li>
+<li>To schedule an unscheduled case, set its <strong>Meeting date</strong> on the row, then its <strong>Meeting time</strong>. The case moves into the meeting's group. Your role must allow scheduling; if the control is greyed out, ask your manager.</li>
+<li>To present a case yourself, select <strong>Claim this case</strong>. The row then shows "Claimed by" and your name.</li>
+<li>To assign a colleague, choose their name in the <strong>Presenter</strong> drop-down on the row. If the date is in the future and the person has an email address on file, they receive an in-app message and a calendar invitation. Neither contains patient details, only the board name and the accession number.</li>
+<li>Select <strong>Print</strong> if you want a paper checklist for the meeting.</li>
+<li>After the meeting, change each row's status to <strong>Presented</strong> (or <strong>Deferred</strong> if it was not discussed). Your role must allow status changes.</li>
+</ol>
+<h3 id="alternative-workflow">Alternative workflow</h3>
+<ol>
+<li>To flag a case yourself, open it from <a href="/help/search">Search</a> or the worklist, go to the report screen and select <strong>Tumor Board</strong> in the bottom action bar.</li>
+<li>In the window <strong>Flag for Tumor Board / MDT</strong>, choose the <strong>Board</strong>. Optionally set <strong>Meeting date</strong> and <strong>Meeting time</strong>; leave them blank if the date is not known yet.</li>
+<li>Select <strong>Flag for MDT</strong>. A message confirms the case was flagged, and the case appears here as Pending Presentation with no presenter.</li>
+</ol>
+<h3 id="exception-handling">Exception handling</h3>
+<ol>
+<li>To remove a case that should not be discussed, select <strong>Dismiss</strong> on its row. A window titled <strong>Dismiss Tumor Board flag</strong> opens.</li>
+<li>Type the <strong>Reason</strong> (required) and select <strong>Dismiss flag</strong>. The case's status becomes Dismissed. Dismissing needs a clinical permission that is narrower than scheduling; if the button is greyed out, ask your manager.</li>
+<li>To stop a meeting going ahead for a case without dismissing it, set its status to <strong>Cancelled</strong> or <strong>Deferred</strong>.</li>
+<li>If a meeting is <strong>Locked</strong>, you cannot move cases into it or change its board, date or time. You can still claim or assign a presenter, and change a status.</li>
+</ol>
+<h3 id="error-recovery">Error recovery</h3>
+<ol>
+<li>If a case already has an active listing, a second flag is refused with "This case is already flagged for a Tumor Board." Find the existing row here instead.</li>
+<li>If you see "This board's case list is locked for its upcoming meeting — choose a later date," choose a later meeting date.</li>
+<li>If you see "That person isn't eligible to present at Tumor Board," pick a pathologist, fellow or resident. Pathology assistants cannot be presenters.</li>
+<li>If a change on a row does not take, a red message at the top says why (the meeting is locked, that person cannot present, you may not change the listing, or it could not be saved) and the row returns to its earlier value. Fix the cause and try again.</li>
+</ol>
+<h2 id="tips-and-best-practices">Tips and Best Practices</h2>
+<h3 id="common-mistakes">Common mistakes</h3>
+<ul>
+<li>Looking for a case that is not listed. The default status filter is Pending Presentation; switch to <strong>All statuses</strong> to find presented or cancelled cases.</li>
+<li>Setting a meeting time before the date. Set the date first.</li>
+<li>Dismissing when you mean to postpone. Use <strong>Deferred</strong> to keep the case on the agenda record.</li>
+</ul>
+<h3 id="efficiency-recommendations">Efficiency recommendations</h3>
+<ul>
+<li>Pick a <strong>Board</strong> and <strong>Meeting window</strong> once; the screen remembers your filter choices.</li>
+<li>Presenters can use <strong>Claim this case</strong> instead of asking a coordinator to assign them.</li>
+</ul>
+<h3 id="workflow-recommendations">Workflow recommendations</h3>
+<ul>
+<li>Flag cases at sign-out with a meeting date where you can, so they land in the right meeting at once.</li>
+<li>Coordinators: check the "cases unassigned" count a few days before each meeting, and print the checklist after the list locks.</li>
+</ul>
+<h2 id="related-features">Related Features</h2>
+<h3 id="upstream-workflow">Upstream workflow</h3>
+<ul>
+<li><a href="/help/report">Report</a>: where a case is flagged for a board.</li>
+<li><a href="/help/search">Search</a>: find a case to open and flag.</li>
+</ul>
+<h3 id="downstream-workflow">Downstream workflow</h3>
+<ul>
+<li><a href="/help/quality">Quality &amp; Compliance</a>: the next step in the review workflow.</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="common-user-issues">Common user issues</h3>
+<table>
+<thead>
+<tr>
+<th>Problem</th>
+<th>Likely cause</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>"No cases match these filters."</td>
+<td>The filters are too narrow. Choose <strong>All boards</strong>, <strong>All statuses</strong> and <strong>All</strong> for the window.</td>
+</tr>
+<tr>
+<td>The Claim this case button is missing</td>
+<td>The case already has a presenter, or your role is not one that presents (pathologist, fellow or resident).</td>
+</tr>
+<tr>
+<td>Row controls are greyed out</td>
+<td>Your role does not allow that action, or the case is Dismissed.</td>
+</tr>
+<tr>
+<td>The time field is greyed out</td>
+<td>No meeting date is set on the row.</td>
+</tr>
+<tr>
+<td>The Tumor Board button is missing on the report screen</td>
+<td>Your role may not flag cases, or the case has not been assigned to a person yet.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="resolution-steps">Resolution steps</h3>
+<ol>
+<li>Clear the filters and look again.</li>
+<li>Refresh the page.</li>
+<li>Ask your laboratory manager to confirm that your role allows scheduling, status changes or dismissing.</li>
+</ol>
+<h3 id="when-to-contact-support">When to contact support</h3>
+<p>Contact your laboratory's PathScribe support when a flagged case does not appear here, or a change keeps reverting although your manager confirms your role allows it. Have the case number and the time of the problem ready.</p>

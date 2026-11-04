@@ -19,6 +19,7 @@ import {
   processInboundClinicalHistoryAccessionEvent,
   _resetProcessedClinicalHistoryMessageIdsForTests,
 } from './processInboundClinicalHistoryAccessionEvent';
+import { ConcurrencyConflictError } from '../cases/ConcurrencyConflictError';
 import type { ClinicalHistoryAccessionEventPayload } from '@/types/events/ClinicalHistoryAccessionEventPayload';
 
 const CASE = { id: 'S26-0001-CYT-001', order: { priority: 'Routine' } };
@@ -43,7 +44,7 @@ describe('processInboundClinicalHistoryAccessionEvent — real, per the uploaded
     expect(result.caseId).toBe('S26-0001-CYT-001');
     expect(updateCase).toHaveBeenCalledWith('S26-0001-CYT-001', expect.objectContaining({
       order: expect.objectContaining({ clinicalHistory: payload().clinicalHistory }),
-    }));
+    }), 0);
   });
 
   it('real, a redelivered messageId is a genuine no-op — never a duplicate write', async () => {
@@ -61,8 +62,9 @@ describe('processInboundClinicalHistoryAccessionEvent — real, per the uploaded
   });
 
   it('real, falls back to a real search by Case.order.externalOrderId when the orderId doesn\'t match a direct case id', async () => {
-    getCase.mockResolvedValue(undefined);
-    getAll.mockResolvedValue({ ok: true, data: [{ id: 'S26-9999-CYT-001', order: { externalOrderId: 'ORD-10492' } }] });
+    const found = { id: 'S26-9999-CYT-001', order: { externalOrderId: 'ORD-10492' } };
+    getCase.mockImplementation(async (id: string) => (id === found.id ? found : undefined));
+    getAll.mockResolvedValue({ ok: true, data: [found] });
     const result = await processInboundClinicalHistoryAccessionEvent(payload({ orderId: 'ORD-10492' }));
     expect(result.outcome).toBe('applied');
     expect(result.caseId).toBe('S26-9999-CYT-001');
@@ -80,5 +82,24 @@ describe('processInboundClinicalHistoryAccessionEvent — real, per the uploaded
   it('real, a missing order_id is an honest invalid-payload outcome', async () => {
     const result = await processInboundClinicalHistoryAccessionEvent(payload({ orderId: '' }));
     expect(result.outcome).toBe('invalid-payload');
+  });
+
+  it('PS-71 (Batch 458): on a conflict, the order is rebuilt from the newer case so the other person\'s order change survives', async () => {
+    getCase.mockReset();
+    getCase.mockResolvedValueOnce({ ...CASE, version: 1 }).mockResolvedValueOnce({ ...CASE, version: 1 })
+      .mockResolvedValue({ ...CASE, version: 2, order: { priority: 'STAT' } });
+    updateCase.mockRejectedValueOnce(new ConcurrencyConflictError(CASE.id, 1, 2)).mockResolvedValue(undefined);
+    const result = await processInboundClinicalHistoryAccessionEvent(payload());
+    expect(result.outcome).toBe('applied');
+    const [, patch, version] = updateCase.mock.calls[1];
+    expect(version).toBe(2);
+    expect(patch.order).toMatchObject({ priority: 'STAT', clinicalHistory: payload().clinicalHistory });
+  });
+
+  it('PS-71 (Batch 458): when every try conflicts it throws and the messageId is not marked processed', async () => {
+    updateCase.mockRejectedValue(new ConcurrencyConflictError(CASE.id, 0, 1));
+    await expect(processInboundClinicalHistoryAccessionEvent(payload())).rejects.toBeInstanceOf(ConcurrencyConflictError);
+    updateCase.mockReset(); updateCase.mockResolvedValue(undefined);
+    expect((await processInboundClinicalHistoryAccessionEvent(payload())).outcome).toBe('applied');
   });
 });

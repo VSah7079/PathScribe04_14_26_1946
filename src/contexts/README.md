@@ -1,3 +1,11 @@
+**Batch 735:** `ScannerProvider.tsx` asks `services/scanner/scanRoutePolicy.ts` what a scanned accession opens: nothing on the station screens (they handle the scan), the grossing screen from Grossing, the report elsewhere. The PATHSCRIBE_SCAN event is always sent.
+
+**Batch 649:** `ScannerProvider.tsx` ignores keystrokes a script sent (browser extension, autofill, the app's own shortcut code): only trusted key events feed the barcode buffer (`services/scanner/scanKeyFilter.ts`). The prop `acceptUntrustedKeyEvents` (default false, never set in the app) exists only so tests, whose events are untrusted, can drive the listener; `simulateScan()` is unaffected.
+
+## Batch 602
+
+`VoiceProvider`: hotkeys resolved with `pickShortcutMatch` (screen command first) and renders `<GoToPrefix />`.
+
 # src/contexts/
 
 App-wide React state — auth, messaging, voice, system config, scanner
@@ -65,7 +73,7 @@ etc.), consumed from many places across `pages/`/`components/`.
   full voice command/dictation state machine: command-vs-dictate
   phase, AI-assisted refinement with a race-against-timeout fallback to
   local punctuation/capitalization, a small per-user dictation
-  correction-learning store (`localStorage`-backed), missed-command
+  correction-learning store (the signed-in person's own setting, `services/userSettings/personalSettings.ts`, since Batch 430), missed-command
   shortcut-confirmation window. A lot of `useRef` mirrors of state
   (`phaseRef`, `commandPhaseRef`, `aiAvailableRef`, etc.) — a
   legitimate, standard pattern here, not a smell: they exist so the
@@ -84,12 +92,12 @@ etc.), consumed from many places across `pages/`/`components/`.
   - `isProcessing` and `setIsAiEnabled` were both part of the public
     `VoiceContextType` — one a hardcoded `false` literal, the other a
     literal no-op `() => {}` that silently discarded whatever caller
-    passed in. Traced every consumer (`usePathscribeSpeech.ts`
+    passed in. Traced every consumer (`usepathscribeSpeech.ts`
     re-exports `isProcessing`; nothing downstream of that ever reads
     it — `SpeechConfigTab.tsx`, its only consumer, doesn't reference
     it at all) — confirmed genuinely dead on both ends, not just
     unused-but-reachable. Removed from the interface, the value
-    object, and `usePathscribeSpeech.ts`'s re-export.
+    object, and `usepathscribeSpeech.ts`'s re-export.
   - `window.__psRecordDictationCorrection` (a genuine global
     side-channel, not a mistake) had 3 separate `(window as any)`
     casts. Unlike `SpeechRecognition`/`webkitSpeechRecognition` a few
@@ -104,6 +112,8 @@ etc.), consumed from many places across `pages/`/`components/`.
     calls alone — those report genuine failures (an AI refinement fetch
     failing, the proxy returning a bad status, a speech-recognition
     error), not debug noise.
+
+  *Corrected in the Batch 496 README audit (Oct 9, 2026): the learned-corrections store is a per-person setting, not raw `localStorage`; the speech hook's file name is `hooks/usepathscribeSpeech.ts` (lower-case p).*
 
   **Real addition ("Personal Quick Text" — Enterprise then Facility
   then Staff), per direct guidance:** the real spoken-trigger
@@ -159,6 +169,7 @@ an incomplete list as a result. Migrated all 6 consumers onto the real
 service, removed the `<SubspecialtyProvider>` wrapper from `App.tsx`,
 deleted the file. Full writeup in `PRIORITY_FIXES.md` item #31; the
 rest of this folder's smaller findings are item #32.
+*(Since then: `contexts/useSubspecialties.tsx` is present in this folder again, with the same hardcoded in-memory provider. Nothing imports it and `App.tsx` has no `<SubspecialtyProvider>`, so it is an unused leftover, not a live data source. `PRIORITY_FIXES.md` was retired on Aug 19, 2026 — see `docs/ARCHIVE.md`. Checked in the Batch 496 README audit. Batch 499: removed, and listed in the root `DELETED_FILES.txt`.)*
 
 ## Batch 328 (PS-63), reverted in Batch 329
 
@@ -167,3 +178,92 @@ Batch 328 added `User.staffRoles`, the staff record's role names, to the session
 ## React Router 7 (Batch 341, PS-344)
 
 Every file here that used `react-router-dom` now imports the same hooks and components from `react-router` 7 (`react-router-dom` was removed from the project). Nothing else changed: the app had already opted into version 7's behaviour. See `src/i18n/README.md` → Batch 341.
+
+## Batch 396
+
+`MessagingContext.tsx`: the inbox is cleared as soon as the signed-in user changes (sign-out included), and a reply for an earlier account is dropped. Before, the last person's messages stayed until the next load.
+
+## Batch 428: Configuration permissions
+
+`SystemConfigContext.tsx`: `updateConfig` and `updateEnterpriseConfig` now resolve to whether the change was allowed. The field's capability is checked first (`services/systemConfig/systemConfigChangeChecks.ts`: voice, approved fonts, contribution settings, abnormal-result detection); a refused change isn't applied.
+
+## Batch 430: personal settings per person; view-only fields
+
+- `VoiceProvider.tsx`: the accent and dictation's learned corrections are the signed-in person's (`services/userSettings/personalSettings.ts`), reloaded when someone else signs in.
+- `AuthContext.tsx`: `useAuthOptional()` (new) returns the context or null, for providers that may render outside `AuthProvider`.
+
+## Batch 431
+
+- `SystemConfigContext`: reads and saves through `services/systemConfig/systemConfigStore.ts`.
+- `MessagingContext`, `VoiceProvider`: session flags (`utils/uiPreferences.ts`).
+
+## Batch 444
+
+Environment settings here are read by full name (`import.meta.env.VITE_X`). The previous whole-object forms made Vite copy every `VITE_` variable into the bundle (`services/security/envExposure.guard.test.ts`).
+
+## Batch 446
+
+Case pages are opened with `useOpenCase` (`hooks/useOpenCase.ts`), which addresses them by the case's support reference (`/case/SR-7K2Q-9MXD/synoptic`), never its accession number. See `services/caseAddresses/`.
+
+## Batch 448
+
+`AuthContext.login` can return `'password_change_required'`: the password was set by an administrator to be changed first, and no session has started.
+
+## Batch 456 — Sign-in lockout, password screening, demo seeds
+
+`AuthContext.login` can now return a `SignInRefusal` (attempts left, or locked until) from `services/auth/signInLockout.ts`.
+
+## Batch 463
+
+`VoiceProvider.tsx`: before the action registry, what was heard is offered to the screen (`services/voice/voiceCommandEvents.ts`) in the voice profile's language; when the screen takes it (the Mohs stage question), the status says so (`voiceProvider.status.screenCommandApplied`).
+
+## Batch 503 (PS-474)
+
+`MessagingContext.tsx`: the urgent-message alert sound is made in the browser (`utils/alertTone.ts`, Web Audio) instead of downloaded from `actions.google.com`, which the Content-Security-Policy blocks and which told Google whenever a user got an urgent message.
+
+## Batch 504
+
+- **`VoiceProvider.tsx`:** after the user changed their dictation accent, local dictation kept applying the old language's punctuation words ("comma", "Komma", "virgule"…). The segment handler didn't list the accent, and the recognizer, rebuilt on the accent change, kept the old handler.
+- **`ScannerProvider.tsx`:** lists `openCasePage`, the function it actually uses; the unused `navigate` is removed.
+
+## Batch 506 (PS-477)
+
+`VoiceProvider` uses the shared `voiceMacroService` from `@/services` instead of building its own `MockVoiceMacroService`. The class keeps no state of its own, so nothing changes.
+
+## Batch 511 (PS-478): full strict type-checking
+
+`SystemConfigContext.isFeatureEnabled` reads a hospital's override for any enterprise feature, including ones the hospital type doesn't list yet. Same behaviour, now typed.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `BreadcrumbContext`: "Home" is translated, and the Quality Assurance crumb is matched by its path instead of its English label.
+
+## Batch 527 (PS-486): a lean first load
+
+`AuthContext.tsx` imports what sign-in needs from `services/signIn.ts`, not the whole services barrel.
+
+## Batch 536 (PS-558)
+
+`VoiceProvider.tsx`: the voice refinement and its availability check pass their feature to `callAi`, for the jurisdiction's AI vendor policy.
+
+## Batch 547
+
+`SystemConfigContext.tsx` reads `VITE_VOICE_ENABLED` through `appEnv()` (runtime configuration).
+
+## Batch 560 (PS-539 phase 2d)
+
+- `MessagingContext.tsx`: the inbox re-reads when the hub says a message arrived (topic `messages`), every 20 s without a live connection. Mounted app-wide, so each signed-in window holds one hub connection while the hub is configured.
+
+## Batch 609 (#177, #179)
+
+`VoiceProvider` builds the AI dictation refinement instructions per language and English spelling (`services/voice/dictationRefinementPrompt.ts`; the lab's jurisdiction decides the spelling) and passes the "English fuzzy fallback" setting (`SystemConfig.voiceEnglishFuzzyFallback`) to `findActionByTrigger`.
+
+## Batch 650 (650a)
+
+`VoiceProvider.tsx` (657 to 646 lines): the dictation correction table, the refinement flow and the command handling moved to `services/voice/` (`dictationCorrections`, `dictationSegmentFlow`, `voiceCommandRunner`). It now sends one final insert per segment, hands the target `meta.raw`, asks for a repeat on the commands that need one, refuses commands for other screens, and audits spoken commands. `DictationTarget.onText` has a third argument `meta`. See `services/voice/README.md`.
+
+- Batch 664: `VoiceProvider.tsx` runs Cancel (`PATHSCRIBE_VOICE_CANCEL`, and "cancel dictation" while dictating) through `services/voice/voiceCancel.ts`; `DictationTarget` has optional `uncommitted` / `discard`.
+
+## Batch 669f
+
+`MessagingContext`: the unread count and the urgent flag use `isUnreadFor(message, userId)`, so a person's own sent messages and replies are not counted.

@@ -1,0 +1,16 @@
+{
+ "info": {
+  "project": "PS",
+  "summary": "Batch 643 — Guide updates rewritten in four voices (documentation only)",
+  "description": "Documentation only; no code or strings changed, so no automated test applies. Record written late (Oct 21, 2026); the batch was delivered on Oct 20 without a Test or Xray file."
+ },
+ "tests": [
+  {
+   "testKey": "PS-866",
+   "start": "2026-10-21T19:10:00Z",
+   "finish": "2026-10-21T19:20:00Z",
+   "status": "PASSED",
+   "comment": "PASSED (document check, Oct 21): docs/product/GUIDE_UPDATES.md has 138 entries and each carries the practitioner, system administrator, marketing and FormedrixAI-and-partners voices; the only section without them is the 'Backfill still to do' list.\nNot tested: marketing and partner wording has not been reviewed by Pete for external use."
+  }
+ ]
+}

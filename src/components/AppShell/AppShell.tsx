@@ -16,22 +16,31 @@
  * Drop-in path: src/components/AppShell/AppShell.tsx
  * ─────────────────────────────────────────────────────────────────────────────
  */
-
+import { OPEN_USER_GUIDE_EVENT } from '@/services/help/helpTargets';
+import { useOpenCase } from '@/hooks/useOpenCase';
+import { useDeliveryBackgroundWork } from '@/hooks/useDeliveryBackgroundWork';
+import { useSimulatedAssistSchedule } from '@/hooks/useSimulatedAssistSchedule';
+import { useReleaseBackgroundWork } from '@/hooks/useReleaseBackgroundWork';
+import { SecureEmailModal } from '@/components/SecureEmail/SecureEmailModal';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useTranslation, Trans } from 'react-i18next';
+import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { useAuditLog } from '@/components/Audit/useAuditLog';
 import { Outlet, useNavigate, useLocation } from 'react-router';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLogout } from '../../hooks/useLogout';
-import { mockActionRegistryService } from '../../services/actionRegistry/mockActionRegistryService';
 import { VOICE_CONTEXT } from '@/constants/systemActions';
-import { messageService, caseService } from '../../services';
+import { messageService, actionRegistryService, newMessageMissing, replyMissing, messagingFieldRequired, searchRecipients, findRecipientByName, MESSAGE_NOT_PERMITTED, type MessageRecipient } from '../../services';
+import { useCapabilities } from '@/hooks/useCapabilities';
+import { useFieldRequirements } from '@/hooks/useFieldRequirements';
+import { formatList } from '@/utils/formatList';
 import { extractCaseReferencesFromText } from '../../utils/extractCaseReferencesFromText';
 import { useMessaging } from '../../contexts/MessagingContext';
+import { caseRouter } from '@/services/cases/CaseRouter';
 import NavBar, { SystemInfoModal } from '../NavBar/NavBar';
 import ScanStationPrompt from '../ScanStationPrompt';
 import StationSwitchGuardModal from '../StationSwitchGuardModal';
+
 // Real fix, per direct report: the real Sign Out button (below) used to
 // call handleLogout() directly, with no unsaved-changes check at all —
 // while Home.tsx separately carried its own copy of this exact modal,
@@ -43,33 +52,30 @@ import LogoutWarningModal from '../Common/LogoutWarningModal';
 import { useBreadcrumb } from '../../contexts/BreadcrumbContext';
 import { useDirtyState } from '../../contexts/DirtyStateContext';
 import '../../pathscribe.css';
-import { getUserGuideBlobUrl, getAdminGuideBlobUrl } from '../../utils/guideAssets';
+import './ThreadMenu.css';
 import { formatDate } from '../../utils/formatDate';
-import { useCompanionWindow } from '../../hooks/useCompanionWindow';
 import ConfirmModal from '../Common/ConfirmModal';
 import { safeInternalPath } from '@/utils/safeInternalPath';
 import { markReturnToSearch } from '@/utils/search/searchSession';
+import { setSessionFlag, clearSessionFlag } from '@/utils/uiPreferences';
+import { usePersonalLanguage } from '@/hooks/usePersonalLanguage';
+import MyDictionaryModal from '@/components/Profile/MyDictionaryModal';
+import MyVoiceCommandsModal from '@/components/Profile/MyVoiceCommandsModal';
+import BiometricSigningModal from '@/components/Profile/BiometricSigningModal';
+import { biometricFlow } from '@/services';
+import { RouteErrorBoundary } from '@/components/ErrorBoundary/ErrorBoundary';
+import { clickableContainer, pressable } from '@/utils/a11y/pressable';
+import { useFocusAfterRemoval } from '@/hooks/useFocusAfterRemoval';
+import { LoadingState } from '@/components/Common/LoadingState';
+import { canMarkUnread, compareMessageListOrder, isUnreadFor } from '@/services/messages/messageUnread';
+
+/** Batch 396: a stable empty list, so the link memo doesn't rerun on every render. */
+const NO_ACCESSIONS: string[] = [];
 
 // ─── Internal user directory ─────────────────────────────────────────────────
-interface InternalUser { id: string; name: string; role: string; }
-const INTERNAL_USERS: InternalUser[] = [
-  { id: 'u2',  name: 'Lab Manager',          role: 'Laboratory'           },
-  { id: 'u3',  name: 'System Admin',          role: 'IT / Administration'  },
-  { id: 'u4',  name: 'Dr. Sarah Li Chen',     role: 'Pathology'            },
-  { id: 'u5',  name: 'Dr. James Emeka Okafor',role: 'Pathology'            },
-  { id: 'u6',  name: 'IT Support',            role: 'IT / Administration'  },
-  { id: 'u7',  name: 'Billing Dept',          role: 'Finance'              },
-  { id: 'u8',  name: 'Dr. Miller',            role: 'Pathology'            },
-  { id: 'u9',  name: 'Archives',              role: 'Medical Records'      },
-  { id: 'u10', name: 'QA Team',               role: 'Quality Assurance'    },
-  { id: 'u11', name: 'Dr. Aisha Priya Patel', role: 'Gastroenterology'     },
-  { id: 'u12', name: 'Transcription',         role: 'Medical Transcription'},
-  { id: 'u13', name: 'Medical Records',       role: 'Medical Records'      },
-  { id: 'u14', name: 'Dr. Wilson',            role: 'Oncology'             },
-  { id: 'u15', name: 'Compliance',            role: 'Compliance'           },
-  { id: 'u16', name: 'Supply Room',           role: 'Operations'           },
-  { id: 'u17', name: 'Dr. Lee',               role: 'Dermatopathology'     },
-];
+// Batch 385: who a message can be addressed to comes from messageService.listRecipients()
+// (it was a hard-coded list here); the searching is in services/messages/messageRecipients.ts.
+type InternalUser = MessageRecipient;
 
 const avatarInitials = (name: string) => {
   const parts = name.replace(/^(Dr\.|Mr\.|Ms\.|Mrs\.)\s*/i, '').split(' ').filter(Boolean);
@@ -111,11 +117,12 @@ export const relTime = (ts: Date | string): string => {
 
 // ── UserSearchOverlay ────────────────────────────────────────────────────────
 interface UserSearchOverlayProps {
+  directory: InternalUser[];
   alreadyAdded: string[];
   onSelect: (u: InternalUser) => void;
   onClose: () => void;
 }
-const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onSelect, onClose }) => {
+const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ directory, alreadyAdded, onSelect, onClose }) => {
   const { t } = useTranslation();
   const [q,        setQ]        = React.useState('');
   const [pending,  setPending]  = React.useState<InternalUser[]>([]);
@@ -123,10 +130,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
   React.useEffect(() => { ref.current?.focus(); }, []);
 
   const pendingIds = pending.map(u => u.id);
-  const results = INTERNAL_USERS.filter(u =>
-    !alreadyAdded.includes(u.id) &&
-    (u.name.toLowerCase().includes(q.toLowerCase()) || u.role.toLowerCase().includes(q.toLowerCase()))
-  );
+  const results = searchRecipients(directory, q, alreadyAdded);
 
   const toggle = (u: InternalUser) => {
     setPending(prev =>
@@ -152,7 +156,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
           {pending.map(u => (
             <span key={u.id} className="ps-user-search-chip">
               {u.name}
-              <span onClick={() => toggle(u)} className="ps-user-search-chip-remove">×</span>
+              <span {...pressable(() => toggle(u))} className="ps-user-search-chip-remove">×</span>
             </span>
           ))}
         </div>
@@ -173,7 +177,7 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
               return (
                 <div key={u.id}
                   className={`ps-user-search-item${sel ? ' ps-user-search-item--selected' : ''}`}
-                  onClick={() => toggle(u)}>
+                  {...pressable(() => toggle(u))}>
                   <div className={`ps-user-search-avatar${sel ? ' ps-user-search-avatar--selected' : ''}`}>
                     {sel ? '✓' : avatarInitials(u.name)}
                   </div>
@@ -203,6 +207,9 @@ const UserSearchOverlay: React.FC<UserSearchOverlayProps> = ({ alreadyAdded, onS
 
 // ── ComposePanel ─────────────────────────────────────────────────────────────
 interface ComposePanelProps {
+  directory: InternalUser[];
+  /** Why the last send failed, already translated (kept so the draft isn't lost). */
+  sendError?: string | null;
   recipients: InternalUser[];
   toInput: string;
   subject: string;
@@ -225,23 +232,21 @@ interface ComposePanelProps {
   onSecureEmail: () => void;
 }
 
-const ComposePanel: React.FC<ComposePanelProps> = ({
-  recipients, toInput, subject, body, isUrgent,
+export const ComposePanel: React.FC<ComposePanelProps> = ({
+  directory, sendError, recipients, toInput, subject, body, isUrgent,
   toDropdownOpen, toHighlightIdx, toInputRef,
   onRecipientsChange, onToInputChange, onSubjectChange, onBodyChange,
   onUrgentToggle, onToDropdownOpenChange, onToHighlightIdxChange, onShowUserSearch,
   onCancel, onSend, onSecureEmail,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const requirements = useFieldRequirements('messaging');
   const suggestions = React.useMemo(() => {
     const q = toInput.toLowerCase().trim();
     if (!q) return [];
     const addedIds = recipients.map(r => r.id);
-    return INTERNAL_USERS.filter(u =>
-      !addedIds.includes(u.id) &&
-      (u.name.toLowerCase().includes(q) || u.role.toLowerCase().includes(q))
-    );
-  }, [toInput, recipients]);
+    return searchRecipients(directory, q, addedIds);
+  }, [toInput, recipients, directory]);
 
   React.useEffect(() => {
     onToDropdownOpenChange(suggestions.length > 0 && toInput.trim().length > 0);
@@ -268,12 +273,20 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
   };
 
   const handleBlur = () => {
-    const exact = INTERNAL_USERS.find(u => u.name.toLowerCase() === toInput.toLowerCase().trim() && !recipients.find(r => r.id === u.id));
+    const exact = findRecipientByName(directory, toInput, recipients.map(r => r.id));
     if (exact) addRecipient(exact);
     setTimeout(() => onToDropdownOpenChange(false), 150);
   };
 
-  const canSend = recipients.length > 0 && subject.trim() && body.trim();
+  // Batch 384 (PS-359): what a message needs comes from the organisation's Field Requirements.
+  const missing = newMessageMissing(recipients.length, subject, body, requirements);
+  // Batch 385: sending also needs message:internal:send, and a secure email message:secure-email:send (greyed out here; the service checks again).
+  const { has, loading } = useCapabilities();
+  const maySend = has('message:internal:send');
+  const mayEmail = has('message:secure-email:send');
+  const canSend = missing.length === 0 && maySend;
+  const canSecureEmail = missing.length === 0 && mayEmail;
+  const star = (id: string) => messagingFieldRequired(requirements, id) && <span className="ps-conf-required">*</span>;
 
   return (
     <div className="ps-compose-panel">
@@ -281,7 +294,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* To: row */}
         <div className="ps-compose-row ps-compose-row--to">
-          <span className="ps-compose-label">{t('appShell.compose.toLabel')}</span>
+          <span className="ps-compose-label">{t('appShell.compose.toLabel')} {star('messageRecipient')}</span>
           <div className="ps-compose-to-field">
             {recipients.map(r => (
               <span key={r.id} className="ps-compose-chip">
@@ -306,7 +319,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
             {toDropdownOpen && (
               <div className="ps-compose-dropdown">
                 {suggestions.map((u, i) => (
-                  <div key={u.id} className={`ps-compose-dropdown-item${i === toHighlightIdx ? ' highlighted' : ''}`} onMouseDown={e => e.preventDefault()} onClick={() => addRecipient(u)}>
+                  <div key={u.id} className={`ps-compose-dropdown-item${i === toHighlightIdx ? ' highlighted' : ''}`} onMouseDown={e => e.preventDefault()} {...pressable(() => addRecipient(u))}>
                     <div className="ps-compose-dropdown-avatar">{avatarInitials(u.name)}</div>
                     <div>
                       <div className="ps-compose-dropdown-name">{u.name}</div>
@@ -321,8 +334,8 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* Subject */}
         <div className="ps-compose-row">
-          <span className="ps-compose-label">{t('appShell.compose.subjectLabel')}</span>
-          <input className="ps-compose-field-input" type="text" placeholder={t('appShell.compose.subjectPlaceholder')} value={subject} onChange={e => onSubjectChange(e.target.value)} />
+          <span className="ps-compose-label">{t('appShell.compose.subjectLabel')} {star('messageSubject')}</span>
+          <input aria-label={t('appShell.compose.subjectLabel')} className="ps-compose-field-input" type="text" placeholder={t('appShell.compose.subjectPlaceholder')} value={subject} onChange={e => onSubjectChange(e.target.value)} />
         </div>
 
         {/* Options bar */}
@@ -333,7 +346,7 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
           </button>
           <div className="ps-compose-actions">
             <button className="ps-compose-cancel-btn" onClick={onCancel}>{t('appShell.compose.cancelButton')}</button>
-            <button className={`ps-compose-secure-btn${canSend ? '' : ' disabled'}`} disabled={!canSend} onClick={onSecureEmail} title={t('appShell.compose.secureEmailTitle')}>
+            <button className={`ps-compose-secure-btn${canSecureEmail ? '' : ' disabled'}`} disabled={!canSecureEmail} onClick={onSecureEmail} title={t('appShell.compose.secureEmailTitle')}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               {t('appShell.compose.secureEmailButton')}
             </button>
@@ -346,6 +359,13 @@ const ComposePanel: React.FC<ComposePanelProps> = ({
 
         {/* Body */}
         <textarea className="ps-compose-textarea" placeholder={t('appShell.compose.bodyPlaceholder')} value={body} onChange={e => onBodyChange(e.target.value)} />
+        {missing.length > 0 && (
+          <p className="ps-field-still-required" role="status">
+            {t('fieldRequirements.stillRequired', { fields: formatList(missing.map(id => t(`fieldRequirements.fields.messaging.${id}`)), i18n.language) })}
+          </p>
+        )}
+        {!maySend && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermitted')}</p>}
+        {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
       </div>
     </div>
   );
@@ -374,20 +394,32 @@ interface MessageListPanelProps {
   onEmptyDeleted: () => void;
   onCompose: () => void;
   onSecureEmail: () => void;
+  userId?: string;
 }
 
-const MessageListPanel: React.FC<MessageListPanelProps> = ({
+/** Exported for its tests (Batch 567). */
+export const MessageListPanel: React.FC<MessageListPanelProps> = ({
   messages, selectedMsgId, hoveredMsgId, isEditing, selectedIds,
   filterType, loading, isComposing, searchText,
   onHover, onSelect, onToggleCheck, onSoftDelete, onRestore, onPermanentDelete,
-  onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail,
+  onSearchChange, onBulkMarkRead, onBulkDelete, onEmptyDeleted, onCompose, onSecureEmail, userId = '',
 }) => {
   const { t } = useTranslation();
+  const [focusedMsgId, setFocusedMsgId] = useState<string | null>(null); // Batch 567: row with keyboard focus inside (shows its actions)
+  // Batch 569: after a row's own Delete / Restore removes it with focus on it, focus goes to the next message
+  // (or the one before; the list itself when none is left), not to the page.
+  const listRef = useRef<HTMLDivElement>(null);
+  const rememberFocus = useFocusAfterRemoval(messages.map(x => x.id), listRef, 'data-msg-open', [filterType, searchText]);
+  const removeWithFocus = (e: React.MouseEvent<HTMLButtonElement>, id: string, action: (id: string) => void) => {
+    e.stopPropagation();
+    rememberFocus(e, id);
+    action(id);
+  };
   return (
   <div className="ps-msg-sidebar">
-    <div className="ps-msg-list" tabIndex={0} role="region" aria-label={t('appShell.messageList.regionLabel')}>
+    <div ref={listRef} className="ps-msg-list" tabIndex={0} role="region" aria-label={t('appShell.messageList.regionLabel')}>
       {loading ? (
-        <div className="ps-msg-list-status">{t('appShell.messageList.loading')}</div>
+        <LoadingState variant="inline" className="ps-msg-list-status" label={t('appShell.messageList.loading')} />
       ) : messages.length === 0 ? (
         <div className="ps-msg-list-status">
           {filterType === 'deleted' ? t('appShell.messageList.emptyDeleted') : t('appShell.messageList.emptyInbox')}
@@ -398,7 +430,7 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
         const rowClass = [
           'ps-msg-row',
           isSelected && 'selected',
-          !m.isRead && 'unread',
+          isUnreadFor(m, userId) && 'unread',
           !isSelected && m.isUrgent && 'urgent-row',
         ].filter(Boolean).join(' ');
         return (
@@ -406,7 +438,13 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             className={rowClass}
             onMouseEnter={() => onHover(m.id)}
             onMouseLeave={() => onHover(null)}
-            onClick={() => isEditing ? onToggleCheck(m.id) : onSelect(m.id)}
+            // Batch 567 (axe nested-interactive): the row holds buttons (delete, restore), so it isn't a button
+            // itself. Clicking anywhere on it still opens (or, editing, ticks) the message; the sender's name is
+            // the button keyboard and screen-reader users use. Focus inside the row shows its actions, as hover does
+            // (its own state, so the pointer leaving the row doesn't remove a button that has focus).
+            {...clickableContainer(() => isEditing ? onToggleCheck(m.id) : onSelect(m.id))}
+            onFocus={() => setFocusedMsgId(m.id)}
+            onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusedMsgId(id => (id === m.id ? null : id)); }}
           >
             {/* Checkbox in edit mode */}
             {isEditing && (
@@ -421,18 +459,21 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
             {/* Body */}
             <div className="ps-msg-row-body">
               <div className="ps-msg-row-top">
-                <span className="ps-msg-row-sender">
+                <button type="button" className="ps-row-open-btn ps-msg-row-sender" data-msg-open={m.id}
+                  aria-describedby={`ps-msg-subject-${m.id}`}
+                  {...(isEditing ? { 'aria-pressed': isChecked } : {})}
+                  onClick={e => { e.stopPropagation(); if (isEditing) onToggleCheck(m.id); else onSelect(m.id); }}>
                   {m.senderName}
-                </span>
+                </button>
                 {!isEditing && (
-                  hoveredMsgId === m.id ? (
+                  hoveredMsgId === m.id || focusedMsgId === m.id ? (
                     filterType === 'deleted' ? (
                       <div className="ps-msg-row-hover-actions" onClick={e => e.stopPropagation()}>
-                        <button onClick={e => { e.stopPropagation(); onRestore(m.id); }} className="ps-msg-row-restore-btn">{t('appShell.messageList.restoreButton')}</button>
-                        <button onClick={e => { e.stopPropagation(); onPermanentDelete(m.id); }} className="ps-msg-row-delete-link">{t('appShell.messageList.deleteButton')}</button>
+                        <button type="button" onClick={e => removeWithFocus(e, m.id, onRestore)} className="ps-msg-row-restore-btn">{t('appShell.messageList.restoreButton')}</button>
+                        <button type="button" onClick={e => removeWithFocus(e, m.id, onPermanentDelete)} className="ps-msg-row-delete-link">{t('appShell.messageList.deleteButton')}</button>
                       </div>
                     ) : (
-                      <button onClick={e => { e.stopPropagation(); onSoftDelete(m.id); }} className="ps-msg-row-delete-icon-btn">
+                      <button type="button" aria-label={t('appShell.messageList.deleteButton')} title={t('appShell.messageList.deleteButton')} onClick={e => removeWithFocus(e, m.id, onSoftDelete)} className="ps-msg-row-delete-icon-btn">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                       </button>
                     )
@@ -444,10 +485,10 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
                   )
                 )}
               </div>
-              <div className="ps-msg-row-subject">{m.subject}</div>
+              <div className="ps-msg-row-subject" id={`ps-msg-subject-${m.id}`}>{m.subject || t('appShell.messageList.noSubject')}</div>
               <div className="ps-msg-row-preview">{m.body}</div>
             </div>
-            {!m.isRead && !isEditing && <div className="ps-msg-unread-dot" />}
+            {isUnreadFor(m, userId) && !isEditing && <div className="ps-msg-unread-dot" />}
           </div>
         );
       })}
@@ -489,6 +530,8 @@ const MessageListPanel: React.FC<MessageListPanelProps> = ({
 
 // ── ThreadPanel ───────────────────────────────────────────────────────────────
 interface ThreadPanelProps {
+  /** Why the last reply failed, already translated (kept so the draft isn't lost). */
+  sendError?: string | null;
   message: any;
   userId: string;
   inputText: string;
@@ -499,8 +542,12 @@ interface ThreadPanelProps {
   onCreateTemplate?: (messageId: string) => void;
 }
 
-const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread, onCreateTemplate }) => {
+const ThreadPanel: React.FC<ThreadPanelProps> = ({ sendError, message, userId, inputText, onInputChange, onSend, onSoftDelete, onMarkUnread, onCreateTemplate }) => {
   const { t } = useTranslation();
+  const requirements = useFieldRequirements('messaging');
+  const { has, loading } = useCapabilities();
+  const mayReply = has('message:internal:send');
+  const canReply = replyMissing(inputText, requirements).length === 0 && mayReply;
   // Detect template requests — body contains embedded metadata marker
   const isTemplateRequest = typeof message.body === 'string' && message.body.includes('<!-- TEMPLATE_REQUEST_META:');
   const templateMeta = React.useMemo(() => {
@@ -572,10 +619,10 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, o
               <div onClick={() => setMenuOpen(false)} className="ps-thread-menu-backdrop" />
               <div className="ps-thread-menu-panel">
                 {[
-                  { label: t('appShell.thread.markUnread'), action: () => { onMarkUnread(); setMenuOpen(false); }, danger: false },
-                  { label: t('appShell.thread.deleteMessage'),  action: () => { onSoftDelete(); setMenuOpen(false); }, danger: true  },
+                  { label: t('appShell.thread.markUnread'), action: () => { onMarkUnread(); setMenuOpen(false); }, danger: false, disabled: !canMarkUnread(message, userId) },
+                  { label: t('appShell.thread.deleteMessage'),  action: () => { onSoftDelete(); setMenuOpen(false); }, danger: true, disabled: false },
                 ].map(item => (
-                  <button key={item.label} onClick={item.action}
+                  <button key={item.label} onClick={item.action} disabled={item.disabled} title={item.disabled ? t('appShell.thread.markUnreadOwnLatest') : undefined}
                     className={`ps-thread-menu-item${item.danger ? ' ps-thread-menu-item--danger' : ''}`}
                   >{item.label}</button>
                 ))}
@@ -592,185 +639,41 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ message, userId, inputText, o
             onChange={e => onInputChange(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); } }}
           />
-          <button onClick={onSend} disabled={!inputText.trim()}
-            className={`ps-thread-reply-send-btn${inputText.trim() ? ' ps-thread-reply-send-btn--active' : ''}`}>
+          <button onClick={onSend} disabled={!canReply}
+            className={`ps-thread-reply-send-btn${canReply ? ' ps-thread-reply-send-btn--active' : ''}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
+        {!mayReply && !loading && <p className="ps-field-still-required" role="status">{t('appShell.messaging.notPermitted')}</p>}
+        {sendError && <p className="ps-field-still-required" role="alert">{sendError}</p>}
       </div>
     </>
   );
 };
 
 // ── SecureEmailModal ──────────────────────────────────────────────────────────
-// Compose and send a secure external email via NHSMail (demo: simulated send)
-
-interface SecureEmailModalProps {
-  isOpen:        boolean;
-  fromName:      string;
-  fromEmail:     string;
-  prefillTo?:    string;
-  prefillSubject?: string;
-  prefillBody?:  string;
-  onClose:       () => void;
-  /** Called once the simulated send completes — lets the caller log
-   *  the event. Previously declared at the call site but never in
-   *  this interface, and never invoked here either, so the intended
-   *  audit log for sent emails never actually fired. */
-  onSent?:       (to: string, subject: string) => void;
-}
-
-const SecureEmailModal: React.FC<SecureEmailModalProps> = ({
-  isOpen, fromName, fromEmail, prefillTo = '', prefillSubject = '', prefillBody = '', onClose, onSent,
-}) => {
-  const { t } = useTranslation();
-  const [to,      setTo]      = React.useState(prefillTo);
-  const [subject, setSubject] = React.useState(prefillSubject);
-  const [body,    setBody]    = React.useState(prefillBody);
-  const [status,  setStatus]  = React.useState<'compose' | 'sending' | 'sent'>('compose');
-
-  // Reset form when modal opens
-  React.useEffect(() => {
-    if (isOpen) {
-      setTo(prefillTo); setSubject(prefillSubject); setBody(prefillBody); setStatus('compose');
-    }
-  }, [isOpen, prefillTo, prefillSubject, prefillBody]);
-
-  const canSend = to.includes('@') && subject.trim() && body.trim();
-
-  const handleSend = async () => {
-    if (!canSend) return;
-    setStatus('sending');
-    // Simulate NHSMail SMTP handshake delay
-    await new Promise(r => setTimeout(r, 1800));
-    setStatus('sent');
-    onSent?.(to, subject);
-  };
-
-  if (!isOpen) return null;
-
-  return ReactDOM.createPortal(
-    <div className="ps-overlay" onClick={onClose}>
-      <div className="ps-modal-dark ps-modal-dark--secure-email" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="ps-sem-header">
-          <div>
-            <div className="ps-sem-eyebrow">
-              {t('appShell.secureEmailModal.eyebrow')}
-            </div>
-            <div className="ps-sem-title">{t('appShell.secureEmailModal.title')}</div>
-          </div>
-          <button onClick={onClose} className="ps-sem-close-btn">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg>
-          </button>
-        </div>
-
-        {status === 'sent' ? (
-          /* ── Sent confirmation ── */
-          <div className="ps-sem-sent">
-            <div className="ps-sem-sent-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div>
-              <div className="ps-sem-sent-title">{t('appShell.secureEmailModal.sentTitle')}</div>
-              <div className="ps-sem-sent-delivered">
-                <Trans i18nKey="appShell.secureEmailModal.deliveredTo" values={{ to }} components={{ strong: <strong className="ps-sem-sent-delivered-strong" /> }} />
-              </div>
-              <div className="ps-sem-sent-notice">{t('appShell.secureEmailModal.encryptedNotice')}</div>
-            </div>
-            <button onClick={onClose} className="ps-sem-sent-close-btn">
-              {t('appShell.secureEmailModal.closeButton')}
-            </button>
-          </div>
-        ) : (
-          /* ── Compose form ── */
-          <div className="ps-sem-form">
-
-            {/* From (read-only) */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.fromLabel')}</span>
-              <div className="ps-sem-from-value">
-                {fromName} &lt;{fromEmail}&gt;
-              </div>
-            </div>
-
-            {/* To */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.toLabel')}</span>
-              <input
-                type="email"
-                placeholder={t('appShell.secureEmailModal.toPlaceholder')}
-                value={to}
-                onChange={e => setTo(e.target.value)}
-                className="ps-sem-field-input"
-              />
-            </div>
-
-            {/* Subject */}
-            <div className="ps-sem-field-row">
-              <span className="ps-sem-field-label">{t('appShell.secureEmailModal.subjectLabel')}</span>
-              <input
-                type="text"
-                placeholder={t('appShell.secureEmailModal.subjectPlaceholder')}
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                className="ps-sem-field-input"
-              />
-            </div>
-
-            {/* Body */}
-            <textarea
-              placeholder={t('appShell.secureEmailModal.bodyPlaceholder')}
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              rows={7}
-              className="ps-sem-body-textarea"
-            />
-
-            {/* Security notice */}
-            <div className="ps-sem-security-notice">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span className="ps-sem-security-notice-text">{t('appShell.secureEmailModal.securityNotice')}</span>
-            </div>
-
-            {/* Actions */}
-            <div className="ps-sem-actions">
-              <button onClick={onClose} className="ps-sem-cancel-btn">
-                {t('appShell.secureEmailModal.cancelButton')}
-              </button>
-              <button
-                onClick={handleSend}
-                disabled={!canSend || status === 'sending'}
-                className={`ps-sem-send-btn${canSend ? ' ps-sem-send-btn--enabled' : ''}`}
-              >
-                {status === 'sending' ? (
-                  <>
-                    <div className="ps-sem-spinner" />
-                    {t('appShell.secureEmailModal.sendingButton')}
-                  </>
-                ) : (
-                  <>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    {t('appShell.secureEmailModal.sendButton')}
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>,
-    document.body
-  );
-};
+// Batch 517 (PS-143): moved to components/SecureEmail/SecureEmailModal.tsx so
+// the critical-findings flow can open it too.
 
 interface AppShellProps { hideNav?: boolean; }
 
-const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
+const AppShell: React.FC<AppShellProps> = ({ hideNav: hideNavRequested = false }) => {
+  // PS-472: a page that hides the nav bar (the case report draws its own inside the route) loses it
+  // when it crashes, so the nav bar comes back while the recovery screen shows.
+  const [routeCrashed, setRouteCrashed] = useState(false);
+  const hideNav = hideNavRequested && !routeCrashed;
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const openCasePage = useOpenCase();
 
-  const { user } = useAuth();
+  const { user, showBiometricWizard, setShowBiometricWizard } = useAuth();
+  // Batch 431: the screen language follows the signed-in person.
+  usePersonalLanguage(user?.id);
+  // Batch 521 (PS-281): failed automatic deliveries are retried on schedule while someone is signed in.
+  useDeliveryBackgroundWork(!!user);
+  useSimulatedAssistSchedule(!!user);
+  // Batch 534: held reports go out when their release delay ends, whichever screen is open.
+  useReleaseBackgroundWork(!!user);
   const userInitials = user?.name ? (() => { const p = user.name.split(' ').filter(Boolean); return p.length >= 2 ? (p[0][0] + p[p.length-1][0]).toUpperCase() : p[0]?.[0]?.toUpperCase() ?? '?'; })() : 'DR';
   const handleLogout = useLogout();
   const location = useLocation();
@@ -844,8 +747,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   // instead of a page mount/unmount.
   useEffect(() => {
     if (portalOpen) {
-      mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.MESSAGES);
-      return () => { mockActionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
+      actionRegistryService.setCurrentContext(VOICE_CONTEXT.MESSAGES);
+      return () => { actionRegistryService.setCurrentContext(VOICE_CONTEXT.WORKLIST); };
     }
   }, [portalOpen]);
 
@@ -856,34 +759,46 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   // about to read. See extractCaseReferencesFromText.ts for why this
   // matches against real, known accession numbers rather than guessing
   // from a generic pattern.
-  const [knownAccessions, setKnownAccessions] = useState<string[]>([]);
+  //
+  // Batch 396 (Pete's privacy model, rule 4): only cases this reader can
+  // open become links (caseRouter.listLinkableAccessions). This used to scan
+  // every case in every organisation, which confirmed that a case existed
+  // to a reader who couldn't open it. Reloaded when the signed-in user changes.
+  const [linkable, setLinkable] = useState<{ userId: string; accessions: string[] } | null>(null);
+  const linkableUserId = user?.id ?? '';
   useEffect(() => {
-    if (!portalOpen || knownAccessions.length > 0) return;
-    caseService.getAll().then(res => {
-      if (res.ok) setKnownAccessions(res.data.map(c => c.accession?.fullAccession).filter((a): a is string => !!a));
+    if (!portalOpen || !linkableUserId || linkable?.userId === linkableUserId) return;
+    let cancelled = false;
+    void caseRouter.listLinkableAccessions().then(accessions => {
+      if (!cancelled) setLinkable({ userId: linkableUserId, accessions });
     });
-  }, [portalOpen, knownAccessions.length]);
+    return () => { cancelled = true; };
+  }, [portalOpen, linkableUserId, linkable?.userId]);
+  const knownAccessions = linkable?.userId === linkableUserId ? linkable.accessions : NO_ACCESSIONS;
 
 // ─── Drawers & Modals ──────────────────────────────────────────────────────
-  // Real fix (PS-298) — same real, reusable companion-window hook DP/EMR
-  // launches already use (hooks/useCompanionWindow.ts), so Guides open in
-  // a genuine positioned window instead of an ordinary browser tab, and
-  // remember where the user left that window across launches. closeOnUnmount:
-  // false — same real reasoning as the hook's own PubMed-window example:
-  // reference material with no patient context shouldn't vanish just
-  // because the user navigated elsewhere in the main app.
-  const userGuideWindow  = useCompanionWindow({ windowName: 'ps-user-guide',  preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
-  const adminGuideWindow = useCompanionWindow({ windowName: 'ps-admin-guide', preferredWidth: 900, preferredHeight: 1000, closeOnUnmount: false });
   const [aboutOpen, setAboutOpen]             = useState(false);
+  const [myDictionaryOpen, setMyDictionaryOpen] = useState(false);
+  const [myVoiceCommandsOpen, setMyVoiceCommandsOpen] = useState(false);
+  // Batch 433: biometric signing (profile menu, and the invitation after sign-in).
+  const [biometricOpen, setBiometricOpen] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  useEffect(() => { void biometricFlow.getPolicy().then(p => setBiometricEnabled(p.enabled)); }, []);
   const [systemInfoOpen, setSystemInfoOpen]   = useState(false);
   const [newRecipients, setNewRecipients]     = useState<InternalUser[]>([]);
   const [newToInput,    setNewToInput]        = useState('');
+  const messagingRequirements = useFieldRequirements('messaging');
   const [newSubject,    setNewSubject]        = useState('');
   const [newBody,       setNewBody]           = useState('');
   const [showUserSearch,   setShowUserSearch]   = useState(false);
   const [toDropdownOpen,   setToDropdownOpen]   = useState(false);
   const [toHighlightIdx,   setToHighlightIdx]   = useState(0);
   const [secureEmailOpen,  setSecureEmailOpen]  = useState(false);
+  // Batch 385: who a message can go to (messageService.listRecipients), and why the last send failed.
+  const [directory, setDirectory] = useState<InternalUser[]>([]);
+  const directoryRef = useRef<InternalUser[]>([]);
+  directoryRef.current = directory;
+  const [sendError, setSendError] = useState<string | null>(null);
   const toInputRef = useRef<HTMLInputElement>(null);
 
   // ─── Edit / selection ───────────────────────────────────────────────────────
@@ -903,13 +818,25 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   const [filterType, setFilterType] = useState<'all' | 'deleted'>('all');
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
-  const userId = user?.id ?? 'u1';
+  // Batch 396: no stand-in id. With nobody signed in there is no inbox.
+  const userId = user?.id ?? '';
   const { log } = useAuditLog();
 
+  useEffect(() => {
+    let cancelled = false;
+    void messageService.listRecipients().then(r => { if (!cancelled && r.ok) setDirectory(r.data); });
+    return () => { cancelled = true; };
+  }, []);
+
   // ─── Load inbox ─────────────────────────────────────────────────────────────
+  // A reply for someone who has since signed out is dropped.
+  const inboxUserRef = useRef(userId);
+  inboxUserRef.current = userId;
   const loadInbox = useCallback(async () => {
+    if (!userId) { setMessages([]); setSelectedMsgId(null); return; }
     setLoading(true);
     const result = await messageService.getInbox(userId);
+    if (inboxUserRef.current !== userId) return;
     if (result.ok) {
       setMessages(result.data);
       setSelectedMsgId(null);
@@ -926,10 +853,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       m.senderName.toLowerCase().includes(searchText.toLowerCase()) ||
       m.body.toLowerCase().includes(searchText.toLowerCase())
     )
-    .sort((a, b) => {
-      if (a.isUrgent !== b.isUrgent) return a.isUrgent ? -1 : 1;
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
+    .sort(compareMessageListOrder); // urgent first, then latest thread activity (a reply moves it up)
 
   const currentMsg = messages.find(m => m.id === selectedMsgId);
 
@@ -949,7 +873,6 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     await messageService.markRead(id);
     setMessages(prev => prev.map(m => m.id === id ? { ...m, isRead: true } : m));
   };
-
 
   const handleSoftDelete = async (id: string) => {
     await messageService.softDelete(id);
@@ -996,8 +919,13 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   };
 
   const handleSend = async () => {
-    if (!inputText.trim() || !selectedMsgId) return;
-    const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText);
+    if (replyMissing(inputText, messagingRequirements).length > 0 || !selectedMsgId) return;
+    setSendError(null);
+    const result = await messageService.reply(selectedMsgId, userId, user?.name ?? 'Dr. Sarah Johnson', inputText, { composedByPerson: true });
+    if (result.ok === false) {
+      setSendError(result.error === MESSAGE_NOT_PERMITTED ? t('appShell.messaging.notPermitted') : t('appShell.messaging.sendFailed'));
+      return;
+    }
     if (result.ok) {
       setMessages(prev => prev.map(m => m.id === selectedMsgId ? result.data : m));
       const msg = messages.find(m => m.id === selectedMsgId);
@@ -1008,7 +936,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
   };
 
   const handleSendNew = async () => {
-    if (!newBody.trim() || newRecipients.length === 0) return;
+    // Batch 384: the same check as the Send button (the voice "send" used to skip the subject).
+    if (newMessageMissing(newRecipients.length, newSubject, newBody, messagingRequirements).length > 0) return;
+    setSendError(null);
+    let failed: string | null = null;
     for (const recipient of newRecipients) {
       const result = await messageService.send({
         senderId:      userId,
@@ -1019,12 +950,17 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
         body:          newBody,
         timestamp:     new Date(),
         isUrgent:      isUrgentNew,
-      });
-      if (result.ok) {
+      }, { composedByPerson: true });
+      if (result.ok === true) {
         setMessages(prev => [result.data, ...prev]);
         log('message_sent', { recipientId: recipient.id, recipientName: recipient.name, isUrgent: isUrgentNew });
+      } else {
+        failed = result.error === MESSAGE_NOT_PERMITTED ? t('appShell.messaging.notPermitted') : t('appShell.messaging.sendFailed');
+        break;
       }
     }
+    // A refused or failed send keeps the draft (it used to be cleared either way).
+    if (failed) { setSendError(failed); return; }
     setNewRecipients([]); setNewToInput(''); setNewSubject(''); setNewBody('');
     setIsUrgentNew(false); setIsDirty(false); setIsComposing(false);
   };
@@ -1084,14 +1020,14 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       return;
     }
     setPortalOpen(false);
-    sessionStorage.removeItem('ps_drawer_open');
+    clearSessionFlag('ps_drawer_open');
     resetDrawerState();
   };
 
   const confirmCloseDrawer = () => {
     setPendingCloseDrawer(false);
     setPortalOpen(false);
-    sessionStorage.removeItem('ps_drawer_open');
+    clearSessionFlag('ps_drawer_open');
     resetDrawerState();
   };
 
@@ -1115,7 +1051,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     // ── Home page actions ────────────────────────────────────────────────────
     const openEnhancementRequest = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_HOME_OPEN_ENHANCEMENT_REQUEST'));
     const openTestingFeedback    = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_HOME_OPEN_TESTING_FEEDBACK'));
-    const viewHelp               = () => window.open('/help/documentation.pdf', '_blank');
+    const viewHelp               = () => window.dispatchEvent(new CustomEvent(OPEN_USER_GUIDE_EVENT));
     const openResources          = () => window.dispatchEvent(new CustomEvent('PATHSCRIBE_PAGE_OPEN_RESOURCES'));
     const systemLogout           = () => handleLogoutClick();
 
@@ -1150,7 +1086,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     const msgMarkRead    = () => { if (selectedMsgId) handleMarkRead(selectedMsgId); };
     const msgMarkReadAll  = () => handleBulkMarkRead();
     const msgMarkUnread   = () => {
-      if (selectedMsgId) setMessages(prev => prev.map(m => m.id === selectedMsgId ? { ...m, isRead: false } : m));
+      if (selectedMsgId) setMessages(prev => prev.map(m => m.id === selectedMsgId && canMarkUnread(m, userId) ? { ...m, isRead: false } : m));
     };
     const msgSecureEmail  = () => handleSecureEmail();
     const msgRecipientAdd = () => {
@@ -1169,7 +1105,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
     // Send/Urgent/etc. all keep working unchanged from here.
     const msgComposeTo = (e: Event) => {
       const { staffId, subject } = (e as CustomEvent<{ staffId: string; subject: string }>).detail ?? {};
-      const recipient = INTERNAL_USERS.find(u => u.id === staffId);
+      const recipient = directoryRef.current.find(u => u.id === staffId);
       setPortalOpen(true);
       setPreviousMsgId(selectedMsgId);
       setSelectedMsgId(null);
@@ -1360,16 +1296,16 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <React.Fragment key={crumb.path + i}>
                 {i > 0 && <span className="ps-crumb-sep">{'›'}</span>}
                 {isModal ? (
-                  <span className="ps-crumb-modal">{crumb.label}</span>
+                  <span className="ps-crumb-modal">{PAGE_LABELS[crumb.path] ?? crumb.label}</span>
                 ) : isLast ? (
-                  <span className="ps-crumb-current">{crumb.label}</span>
+                  <span className="ps-crumb-current">{PAGE_LABELS[crumb.path] ?? crumb.label}</span>
                 ) : (
                   <button
                     type="button"
                     onClick={() => guardedNavigate(crumb.path)}
                     className="ps-crumb-link"
                   >
-                    {crumb.label}
+                    {PAGE_LABELS[crumb.path] ?? crumb.label}
                   </button>
                 )}
               </React.Fragment>
@@ -1379,7 +1315,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       )}
       {/* Outlet — flex:1 so it fills remaining height and full width exactly */}
       <div className={`ps-app-outlet-wrap${hideNav ? ' ps-app-outlet-wrap--nav-hidden' : ''}`}>
-        <Outlet />
+        {/* Batch 502 (PS-472): a page that crashes shows a recovery screen; the nav bar and drawers keep working. */}
+        <RouteErrorBoundary pathname={location.pathname} onErrorChange={setRouteCrashed}>
+          <Outlet />
+        </RouteErrorBoundary>
       </div>
 
       {/* ── MESSAGES DRAWER — rendered via portal to escape stacking contexts ── */}
@@ -1421,7 +1360,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                             <div
                               key={opt.id}
                               className={`ps-msg-filter-item${filterType === opt.id ? ' ps-msg-filter-item--active' : ''}`}
-                              onClick={() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); }}
+                              {...pressable(() => { setFilterType(opt.id as any); setIsFilterMenuOpen(false); })}
                             >
                               <span>{opt.label}</span>
                               {filterType === opt.id && <span className="ps-msg-filter-check">✓</span>}
@@ -1460,8 +1399,10 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         )}
                         {currentMsg.caseNumber && (
                           <button className="ps-msg-case-link" data-phi="accession" onClick={() => {
+                            // Only rendered when caseNumber is set; re-checked for the closure.
+                            if (!currentMsg.caseNumber) return;
                             setPortalOpen(false);
-                            sessionStorage.setItem('ps_reopen_messages', '1');
+                            setSessionFlag('ps_reopen_messages', '1');
                             // Real fix, per direct follow-up: "I assume
                             // we will launch the Internal Notes Drawer
                             // when the case gets selected from the
@@ -1472,7 +1413,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                             // directly), so its own "Back" handling for
                             // messages was real code with no real path
                             // reaching it. Now it does.
-                            navigate(`/report/${currentMsg.caseNumber}`, { state: { fromMessages: true, openInternalNotes: true } });
+                            void openCasePage(currentMsg.caseNumber, 'report', { state: { fromMessages: true, openInternalNotes: true } });
                           }}>
                             {t('appShell.thread.caseLinkLabel', { caseNumber: currentMsg.caseNumber })}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1486,8 +1427,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                         {detectedCaseRefs.map(ref => (
                           <button key={ref} className="ps-msg-case-link" data-phi="accession" onClick={() => {
                             setPortalOpen(false);
-                            sessionStorage.setItem('ps_reopen_messages', '1');
-                            navigate(`/report/${ref}`, { state: { fromMessages: true, openInternalNotes: true } });
+                            setSessionFlag('ps_reopen_messages', '1');
+                            void openCasePage(ref, 'report', { state: { fromMessages: true, openInternalNotes: true } });
                           }}>
                             {t('appShell.thread.caseLinkLabel', { caseNumber: ref })}
                             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -1544,7 +1485,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
               {/* LEFT SIDEBAR */}
               <MessageListPanel
-                messages={displayMessages}
+                messages={displayMessages} userId={userId}
                 selectedMsgId={selectedMsgId}
                 hoveredMsgId={hoveredMsgId}
                 isEditing={isEditing}
@@ -1571,6 +1512,8 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
               <div className="ps-msg-content">
                 {isComposing ? (
                   <ComposePanel
+                    directory={directory}
+                    sendError={sendError}
                     recipients={newRecipients}
                     toInput={newToInput}
                     subject={newSubject}
@@ -1594,6 +1537,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
                   />
                 ) : selectedMsgId && currentMsg ? (
                   <ThreadPanel
+                    sendError={sendError}
                     message={currentMsg}
                     userId={userId}
                     inputText={inputText}
@@ -1623,10 +1567,9 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       )}
       {/* Secure Email Modal */}
       <SecureEmailModal
-        onSent={(to, subject) => log('secure_email_sent', { recipientEmail: to, subject })}
         isOpen={secureEmailOpen}
-        fromName={user?.name ?? 'Dr. Paul Carter'}
-        fromEmail={user?.id === 'PATH-UK-001' ? 'paul.carter@mft.nhs.uk' : 'pathscribe@hospital.org'}
+        fromName={user?.name ?? 'Dr. Imogen Hartley'}
+        fromEmail={user?.id === 'PATH-UK-001' ? 'imogen.hartley@demo.pathscribe.ai' : 'pathscribe@hospital.org'}
         prefillSubject={newSubject}
         prefillBody={newBody}
         onClose={() => setSecureEmailOpen(false)}
@@ -1635,6 +1578,7 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
       {showUserSearch && (
         <div className="ps-user-search-overlay">
           <UserSearchOverlay
+            directory={directory}
             alreadyAdded={newRecipients.map(r => r.id)}
             onSelect={(u) => { setNewRecipients(prev => [...prev, u]); setShowUserSearch(false); toInputRef.current?.focus(); }}
             onClose={() => setShowUserSearch(false)}
@@ -1646,6 +1590,11 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
 
       {/* MODALS */}
       {systemInfoOpen && <SystemInfoModal onClose={() => setSystemInfoOpen(false)} />}
+      {myDictionaryOpen && <MyDictionaryModal onClose={() => setMyDictionaryOpen(false)} />}
+      {myVoiceCommandsOpen && <MyVoiceCommandsModal onClose={() => setMyVoiceCommandsOpen(false)} />}
+      {biometricOpen && <BiometricSigningModal mode="manage" onClose={() => setBiometricOpen(false)} />}
+      {/* Batch 433: invited to enrol after sign-in when the lab has turned biometric signing on. */}
+      {showBiometricWizard && !biometricOpen && <BiometricSigningModal mode="invite" onClose={() => setShowBiometricWizard(false)} />}
 
       {aboutOpen && (
         <div className="ps-overlay" onClick={() => setAboutOpen(false)}>
@@ -1655,26 +1604,23 @@ const AppShell: React.FC<AppShellProps> = ({ hideNav = false }) => {
             <div className="ps-about-role">{user?.role ?? t('appShell.aboutModal.roleFallback')}</div>
 
             <div className="ps-about-menu">
-              {/* User Guide */}
-              <button
-                onClick={() => { setAboutOpen(false); userGuideWindow.openCompanion(getUserGuideBlobUrl()); }}
-                className="ps-about-menu-item">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-                {t('appShell.aboutModal.userGuide')}
+              {/* Batch 669c (Pete, Oct 24, 2026): the guides open from the top-bar Help buttons only; the old embedded PDFs are gone. */}
+              {/* Batch 432: the person's own spelling dictionary and learned voice commands. */}
+              <button onClick={() => { setAboutOpen(false); setMyDictionaryOpen(true); }} className="ps-about-menu-item">
+                {t('profileMenu.myDictionary.title')}
               </button>
               <div className="ps-about-menu-divider" />
-              {/* Admin Guide — all users in demo */}
-              <button
-                onClick={() => { setAboutOpen(false); adminGuideWindow.openCompanion(getAdminGuideBlobUrl()); }}
-                className="ps-about-menu-item ps-about-menu-item--admin">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                  <line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
-                </svg>
-                {t('appShell.aboutModal.adminGuide')}
+              <button onClick={() => { setAboutOpen(false); setMyVoiceCommandsOpen(true); }} className="ps-about-menu-item">
+                {t('profileMenu.myVoiceCommands.title')}
               </button>
+              {biometricEnabled && (
+                <>
+                  <div className="ps-about-menu-divider" />
+                  <button onClick={() => { setAboutOpen(false); setBiometricOpen(true); }} className="ps-about-menu-item">
+                    {t('profileMenu.biometric.title')}
+                  </button>
+                </>
+              )}
               <div className="ps-about-menu-divider" />
               <button
                 onClick={() => { setAboutOpen(false); setSystemInfoOpen(true); }}

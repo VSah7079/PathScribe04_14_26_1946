@@ -1,3 +1,9 @@
+**Batch 739:** billing rule PAP-SUREPATH (88175, beside PAP-THINPREP).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
+**Batch 617 (part R):** the server version(s) in this folder use the one route style `/api/<area>/<service>/<method-kebab>` (GET for plain-value reads, POST otherwise); earlier paths are in `docs/architecture/HTTP_ROUTE_MAPPING.md`.
+
 # services/billing/
 
 The real, minimal RVU (Relative Value Unit) infrastructure this app never had — built specifically because `ProductivityTab.tsx`'s and `ContributionDashboardPage.tsx`'s RVU tiles were both hardcoded, with no real CPT-to-RVU mapping or per-case RVU field anywhere in this codebase to compute from.
@@ -8,10 +14,12 @@ The real, minimal RVU (Relative Value Unit) infrastructure this app never had �
 
 ## Files
 
-- **`codeMapTable.ts`** — `CODE_MAP_TABLE`: the original, real, curated CPT → work RVU mapping (five common anatomic pathology codes: 88302, 88304, 88305, 88307, 88342), values verified via direct search against the current CMS 2026 Medicare Physician Fee Schedule (PPRRVU2026_Apr_nonQPP). `computeWorkRvuForCodes()` sums real work RVU for a case's assigned codes against a given set of entries — generalized to accept any real entry set (e.g. a specific historical version's entries), defaulting to `CODE_MAP_TABLE` so existing callers are unaffected. `ruleBasedDefaultCptCodes()` is the honest, rule-based fallback for the fact that `Case.coding.cpt` is genuinely never populated anywhere today (no manual-entry UI exists) — one 88305 per real specimen, matching CMS's own per-specimen billing rule. **`parseRvuUploadRows()`** — real fix, from a direct follow-up question about whether the real, actual CMS PPRRVU file shape could be anticipated in advance rather than guessed at later: verified via direct search (not assumed) that the PPRRVU file is itself genuinely public, CMS-derived data — not AMA-licensed — and recognizes its real column names (`HCPCS` for the code, `Status Code`, `MOD`) alongside this app's own simple template. Applies CMS's own documented rule that only status `A`/`R`/`T` carry a usable RVU value (a real file lists thousands of bundled/invalid codes too) and skips modifier-specific rows, since this app's code map doesn't model modifiers. A real, unmodified CMS PPRRVU download can be uploaded through the admin UI today, right now, no AMA license needed for this part — the license gap that remains is specifically the official, full-text AMA code *descriptions*, not the work RVU values themselves.
+- **`codeMapTable.ts`** — `CODE_MAP_TABLE`: the original, real, curated CPT → work RVU mapping (five common anatomic pathology codes: 88302, 88304, 88305, 88307, 88342), values verified via direct search against the current CMS 2026 Medicare Physician Fee Schedule (PPRRVU2026_Apr_nonQPP). `computeWorkRvuForCodes()` sums real work RVU for a case's assigned codes against a given set of entries — generalized to accept any real entry set (e.g. a specific historical version's entries), defaulting to `CODE_MAP_TABLE` so existing callers are unaffected. `ruleBasedDefaultCptCodes()` is the honest, rule-based fallback for a specimen with no CPT code assigned (manually or from the Specimen Dictionary) — one 88305 per real specimen, matching CMS's own per-specimen billing rule. Codes are entered per specimen and per block (see Phase 1 and "Workflow-friction reduction" below). **`parseRvuUploadRows()`** — real fix, from a direct follow-up question about whether the real, actual CMS PPRRVU file shape could be anticipated in advance rather than guessed at later: verified via direct search (not assumed) that the PPRRVU file is itself genuinely public, CMS-derived data — not AMA-licensed — and recognizes its real column names (`HCPCS` for the code, `Status Code`, `MOD`) alongside this app's own simple template. Applies CMS's own documented rule that only status `A`/`R`/`T` carry a usable RVU value (a real file lists thousands of bundled/invalid codes too) and skips modifier-specific rows, since this app's code map doesn't model modifiers. A real, unmodified CMS PPRRVU download can be uploaded through the admin UI today, right now, no AMA license needed for this part — the license gap that remains is specifically the official, full-text AMA code *descriptions*, not the work RVU values themselves.
 - **`RvuTableVersion.ts`** — **New.** The real versioning model: `RvuTableVersion` is an immutable, effective-dated snapshot of the whole code map at a point in time — same "never edit history, only add a new record" principle this app already uses for `ReportVersionRecord`/`DelegationRecord`/`ReconciliationRecord`. `resolveVersionEffectiveAt()` is the pure, synchronous resolver that's the actual point of all this: given a real date (e.g. when a case was genuinely finalized), returns the real version that was in effect then — not whatever's marked active today.
 - **`IRvuCodeMapService.ts`** / **`mockRvuCodeMapService.ts`** — **New.** Real CRUD for versions: `getAllVersions`, `getActiveVersion`, `getVersionEffectiveAt` (the async, storage-backed twin of `resolveVersionEffectiveAt`), `createVersion` (the only way to change the code map — never edits an existing version in place), `activateVersion` (exactly one version active at a time; does not affect historical resolution, which is date-based, not active-flag-based). Seeded with the original five-code table as the first real version.
-- **`RvuCodeMapSection.tsx`** (`components/Config/System/`) — **New.** The real admin UI, wired into Config → System → "RVU Code Map". Built to be genuinely easy to use, per direct request: active version front and center, older versions collapsed behind a single toggle by default (never deleted, but shouldn't clutter the common case), real spreadsheet upload (matching this app's own established `SpecimenDictionarySection.tsx` pattern — download a real template, upload a real `.xlsx`/`.csv`, preview before anything is committed), "activate immediately" checked by default. Real bugs caught and fixed while building it: an early version invented CSS classes (`ps-banner`, `ps-btn--secondary`) that don't exist anywhere in `pathscribe.css` — checked directly and fixed to the real, verified `ps-btn-secondary`; and it would have shown a raw user ID instead of a resolved name.
+- **`RvuCodeMapSection.tsx`** (`components/Config/System/`) — **New.** The real admin UI, wired into Config → System → "RVU Code Map (Productivity)". Built to be genuinely easy to use, per direct request: active version front and center, older versions collapsed behind a single toggle by default (never deleted, but shouldn't clutter the common case), real spreadsheet upload (matching this app's own established `SpecimenDictionarySection.tsx` pattern — download a real template, upload a real `.xlsx`/`.csv`, preview before anything is committed), "activate immediately" checked by default. Real bugs caught and fixed while building it: an early version invented CSS classes (`ps-banner`, `ps-btn--secondary`) that don't exist anywhere in `pathscribe.css` — checked directly and fixed to the real, verified `ps-btn-secondary`; and it would have shown a raw user ID instead of a resolved name.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): CPT codes are now entered per specimen/block (no longer "no manual-entry UI"); RVU Code Map's menu label is "RVU Code Map (Productivity)".*
 
 ## Charge Capture work — CptWorkRvuEntry → BillingDictionaryEntry, real Billing Dictionary rows
 
@@ -23,7 +31,7 @@ Real, direct guidance, cross-checked against an external "Order Type Mapping" sp
 
 New file, `frozenSectionBilling.ts`: `suggestFrozenSectionCptCodes()`, mirroring `suggestAncillaryCodesForStains`'s exact per-specimen counting shape for CPT 88331 (first frozen tissue block) / 88332 (each additional) — real, verified CPT code and coding rule (confirmed via direct search), honestly-unverified RVU, same as the IHC entries above. **One real, still-unconfirmed assumption**: counts one `frozen_section_cut` `MilestoneEntry` (`types/intraop/IntraoperativeEntry.ts`) as exactly one physical block frozen — `IntraopSpecimen` has no separate, explicit block-count field today.
 
-**Still open, genuinely unbuilt**: the "Service Charge Object" — a real, persisted, per-case structure that `billingCode` suggestions ultimately resolve into (richer than today's flat `Case.coding.cpt: string[]`/`Specimen.coding.cpt`/`Block.coding.cpt`), feeding `services/hl7/dftBuilder.ts`'s Category C `ChargeCaptureEventPayload` at finalization. Whether resolution to real CPT/HCPCS/RVU happens transiently at that point, or gets snapshotted onto the object at creation time (mirroring why `RvuTableVersion` is itself versioned at all — a charge line resolved against a later table version shouldn't silently drift from what was true when the case was actually finalized) is not yet decided.
+**Still open, genuinely unbuilt**: the "Service Charge Object" — a real, persisted, per-case structure that `billingCode` suggestions ultimately resolve into (richer than today's flat `Case.coding.cpt: string[]`/`Specimen.coding.cpt`/`Block.coding.cpt`), feeding `services/hl7/dftBuilder.ts`'s Category C `ChargeCaptureEventPayload` at finalization. Whether resolution to real CPT/HCPCS/RVU happens transiently at that point, or gets snapshotted onto the object at creation time (mirroring why `RvuTableVersion` is itself versioned at all — a charge line resolved against a later table version shouldn't silently drift from what was true when the case was actually finalized) is not yet decided. *(Since closed: the next section — `ServiceChargeRecord`, resolved once at finalization — checked in the Batch 496 README audit.)*
 
 ## `ServiceChargeRecord` — real, permanent, resolved snapshot (Charge Capture, closed)
 
@@ -43,7 +51,7 @@ Per direct, explicit, fully-specified guidance: `RvuTableVersion`'s whole-table 
 - **`resolveServiceCharge.ts`/`ServiceChargeRecord.ts` rewired** onto this model — `billingDictionaryVersionId` (whole-table) replaced by `ruleVersion`/`ruleSetId` (the exact per-billingCode version).
 - **`services/hl7/dftBuilder.ts` rewired** — the previously-disclosed staleness above is now resolved. `buildDftP03ForCase` takes a case's real `ServiceChargeRecord[]` directly and builds one FT1 per real charge, sourcing `cptCode`/`cptDescription`/`modifier`/`quantity` from the permanent snapshot (`buildFT1` already supported all of these — this rewire is what actually sources them). FT1-2 (`transactionId`) now uses each charge's own real, deterministic id directly rather than a second, separately-composed string.
 - **`BillingDictionarySection.tsx`** (`components/Config/System/`) — **New**, real admin UI for the per-billingCode model: one row per billingCode (its current ACTIVE version) in the main table, full append-only version history behind "History," "New Version" with the real governance rules enforced in the form itself. **Real, important finding along the way**: `ProductivityTab.tsx`/`ContributionDashboardPage.tsx` genuinely, still depend on the *old* whole-table `mockRvuCodeMapService` for physician productivity dashboards — a real, separate, still-needed use case. `RvuCodeMapSection.tsx` was **not** removed or replaced — both screens coexist, relabeled for clarity ("Billing Dictionary (Charge Capture)" vs. "RVU Code Map (Productivity)").
-- **Real, per direct request ahead of a Billing expert demo (Aug 2026)**: `mockBillingRuleService.ts`'s seed array gained a real `PENDING_APPROVAL` example (`88307` version 2, a plausible annual CMS RVU update, explicitly disclosed as illustrative rather than a verified real 2027 figure) — the "Pending Billing Rule Approvals" queue on `components/Config/System/System.tsx`'s Financial & Revenue Lookups tab had zero seed data before this, confirmed directly. Verified this pending version genuinely doesn't interfere with real resolution: `resolveBillingRuleAt.ts` hard-filters on `status !== 'ACTIVE'`, so `88307` v1 stays the only resolvable version until v2 is actually approved.
+- **Real, per direct request ahead of a Billing expert demo (Aug 2026)**: `mockBillingRuleService.ts`'s seed array gained a real `PENDING_APPROVAL` example (`88307` version 2, a plausible annual CMS RVU update, explicitly disclosed as illustrative rather than a verified real 2027 figure) — the "Pending Billing Rule Approvals" queue on `components/Config/System/System.tsx`'s Financial & Revenue Lookups tab *(now `components/Config/System/PendingApprovalSection.tsx`, section `pending_approvals` in `index.tsx` — checked in the Batch 496 README audit)* had zero seed data before this, confirmed directly. Verified this pending version genuinely doesn't interfere with real resolution: `resolveBillingRuleAt.ts` hard-filters on `status !== 'ACTIVE'`, so `88307` v1 stays the only resolvable version until v2 is actually approved.
 
 ## Governance beyond the rule dictionary — deficiencies, the modifier reference table, and NCCI bundling (Aug 2026)
 
@@ -57,7 +65,9 @@ Three real, separate pieces of the Financials story that this README didn't cove
 
 ## A real, deep TypeScript issue found and worked around here
 
-While building this, a persistent type error surfaced that looked like a narrowing bug in application code. Isolated it down to a minimal, from-scratch reproduction with zero connection to this folder's files, and traced it to a genuine, project-wide `tsconfig.json` setting (`strictNullChecks: false`): with it disabled, implicit truthy narrowing on a discriminated union's boolean discriminant (`if (res.ok) {...} else {...}`) is unreliable in this project's TypeScript configuration. Deliberately did NOT change that global setting — it could surface unrelated errors across the whole codebase. The real, verified, local fix is explicit `=== false`/`=== true` comparisons instead of implicit truthy checks, used in `RvuCodeMapSection.tsx`. **Worth knowing if this pattern resurfaces elsewhere in this codebase** — it's a real, general limitation of this project's TypeScript config, not specific to this folder.
+While building this, a persistent type error surfaced that looked like a narrowing bug in application code. Isolated it down to a minimal, from-scratch reproduction with zero connection to this folder's files, and traced it to a genuine, project-wide `tsconfig.json` setting (`strictNullChecks: false`): with it disabled, implicit truthy narrowing on a discriminated union's boolean discriminant (`if (res.ok) {...} else {...}`) is unreliable in this project's TypeScript configuration. Deliberately did NOT change that global setting — it could surface unrelated errors across the whole codebase.
+
+*Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.* The real, verified, local fix is explicit `=== false`/`=== true` comparisons instead of implicit truthy checks, used in `RvuCodeMapSection.tsx`. **Worth knowing if this pattern resurfaces elsewhere in this codebase** — it's a real, general limitation of this project's TypeScript config, not specific to this folder.
 
 ## Is this "demo" data, and does it get swapped for the real thing in production?
 
@@ -66,7 +76,7 @@ Neither framing is quite right, and it's worth being precise:
 - **It's not demo/fake data.** The five values in `CODE_MAP_TABLE` are real, verified 2026 CMS work RVU figures. The honest limitation was always scope (five codes, not ~10,000+), not authenticity.
 - **There's no automatic "swap."** Getting the full CPT code set isn't an engineering task — it requires a real, commercial AMA license, since CPT is their copyrighted intellectual property. That's a business/legal decision, not something resolved in code.
 - **But most of a real, full dataset doesn't need that license at all.** The actual CMS PPRRVU file — the one with every code's real work RVU value — is itself public, CMS-derived data, verified via direct search (see `parseRvuUploadRows()` above). The part that's genuinely AMA-copyrighted is the official, full-text code *descriptions*, not the RVU values. A real, unlicensed CMS PPRRVU download can be uploaded through the admin UI today.
-- **The versioning architecture already scales to this.** Whether it's today's public CMS file or a future, fully-licensed AMA dataset, the path is the same: get the data into a spreadsheet, upload it through Config → System → RVU Code Map, set a real effective date, activate it. No code change needed at that point — that's what this was built for.
+- **The versioning architecture already scales to this.** Whether it's today's public CMS file or a future, fully-licensed AMA dataset, the path is the same: get the data into a spreadsheet, upload it through Config → System → RVU Code Map (Productivity), set a real effective date, activate it. No code change needed at that point — that's what this was built for.
 
 ## Phase 1 & 2: real specimen/block-level CPT association (per direct domain expertise)
 
@@ -77,7 +87,7 @@ Per a direct, detailed clarification of how CPT coding actually works in a real 
 - **Phase 2 — real, rule-based ancillary-code suggestion from real stain data, now genuinely wired into UI.** `services/stains/stainCategoryLookup.ts` closes a gap `StainOrder.stainName`'s own doc comment had already flagged (no way to resolve a stain name back to its real `StainType.category`). `suggestBlockAncillaryCptCodes()` uses that to suggest real codes from a block's real stain orders: Special Stain → 88312 per stain; IHC → 88342 for the first stain on a block, 88341 for each additional — the real, verified CMS/CPT rule (confirmed via direct search), not guessed. `computeNewSuggestions()` correctly handles a subtlety a naive filter would miss: the same code can be legitimately suggested more than once (two special stains both suggest 88312), so it compares running counts per code rather than simple set subtraction, keeping a genuinely new occurrence visible rather than hiding it as a duplicate of one already applied.
   **Real gap found and closed, from a direct follow-up question ("where in config do we assign the CPT code?")**: this suggestion engine and the real `HistologyBlock.coding.cpt` data model both existed but had zero UI connecting them — confirmed directly (`suggestBlockAncillaryCptCodes` had no real usages anywhere outside its own file/test), and the one existing code-entry modal (`AddCodeModal.tsx`) had no concept of a block at all, only specimens. Now wired into `pages/SynopticReportPage/modals/BlockStainEditorModal.tsx` — the real, existing editor where a user already looks at and edits a block's real stains. Suggestions compute live from the block's current stain list and are shown alongside whatever's already been applied; an explicit "Apply" action is required — never auto-applied silently, same principle as every other AI/rule-based suggestion in this app.
 - **Honest gap, not worked around**: 88341's real work RVU value could not be verified via direct search despite several genuine attempts — unlike every other code in `CODE_MAP_TABLE`. It's still suggested, since the coding *rule* is independently verified, but `computeWorkRvuForCodes` will honestly exclude it from any RVU total (contributing $0, not a guess) until a real, verified value is added through the admin UI. Same principle this project already applies elsewhere (`services/hl7/adapters/vantageAdapter.ts`'s deliberate refusal to build toward an unverified detail).
-- **Not yet done**: specimen-level *base* code selection (88302 vs. 88305 vs. 88309) genuinely depends on real specimen type per CMS/CAP guidance, not something reliably derivable from this app's current structured data (no real block/cassette count exists anywhere — confirmed directly, only free text inside narrative gross descriptions). The honest, rule-based default (one 88305 per specimen) remains the real fallback there; building genuine specimen-type-driven suggestion would need its own separate, verified specimen-type-to-level mapping.
+- **Not yet done**: specimen-level *base* code selection (88302 vs. 88305 vs. 88309) genuinely depends on real specimen type per CMS/CAP guidance, not something reliably derivable from this app's current structured data (no real block/cassette count exists anywhere — confirmed directly, only free text inside narrative gross descriptions). The honest, rule-based default (one 88305 per specimen) remains the real fallback there; building genuine specimen-type-driven suggestion would need its own separate, verified specimen-type-to-level mapping. *(Since closed in part: a coder-configured `defaultBaseCptCode` on the Specimen Dictionary entry is now used before the 88305 default — see "Specimen-type-driven base code resolution" below; checked in the Batch 496 README audit.)*
 
 ## Workflow-friction reduction (three pieces, per a direct design spec)
 
@@ -118,10 +128,12 @@ Per direct, authoritative guidance (AMA CPT Codebook, cross-referenced against e
 
 ## Real, important scope limits — read before extending this
 
-- **This is not a billing system.** No claims are generated, no payer/modifier rules are applied, no GPCI/locality adjustment is modeled. This is workload/productivity tracking only, matching this project's own earlier `WORKLOAD_AND_CHARGE_CAPTURE_SCOPE.md` reasoning (Thread 1: RVU without billing).
+- **This is not a billing system.** No claims are generated and no GPCI/locality adjustment is modeled. Modifier and bundling rules are applied only as non-blocking sign-out warnings: `checkSignOutBillingDeficiencies.ts` raises `MODIFIER_MISMATCH` (TC/26 modifier vs. billing type) and `NCCI_BUNDLING_VIOLATION` (against the NCCI edit table) deficiencies for QA; modifiers themselves are set deterministically from the billing type at resolution. This is workload/productivity tracking only, matching this project's own earlier `WORKLOAD_AND_CHARGE_CAPTURE_SCOPE.md` reasoning (Thread 1: RVU without billing).
 - **`CODE_MAP_TABLE`/each version is deliberately a small, curated subset**, not the full CMS CPT file. Extending it needs the same rigor used to build it — real, verified values via direct search against current CMS data, never estimated or guessed.
-- **`ruleBasedDefaultCptCodes()` is not physician-entered or physician-confirmed coding.** Must never be presented as billing-ready anywhere in this app. Real manual CPT selection/override UI is a genuine, separate product/UX decision that hasn't been made — this codebase deliberately doesn't invent one unilaterally. Whoever builds that UI should write into the already-real `Case.coding.cpt` field this fallback also reads from.
+- **`ruleBasedDefaultCptCodes()` is not physician-entered or physician-confirmed coding.** Must never be presented as billing-ready anywhere in this app. Manual CPT entry now exists and writes to `Specimen.coding.cpt` (base codes, via `AddCodeModal.tsx` and the "+ Code" button) and `HistologyBlock.coding.cpt` (ancillary codes, via the block stain editor and Billing review); the fallback applies only to a specimen with neither a manual code nor a Specimen Dictionary default.
 - **Versions are immutable once created.** To "fix a typo" or apply a new CMS update, create a new version — never edit an existing one's entries. This is what makes historical resolution trustworthy at all.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): manual CPT entry exists and writes to specimen/block coding, not `Case.coding.cpt`; modifier and NCCI checks now run as sign-out deficiencies.*
 
 ## Real consumers
 
@@ -163,7 +175,7 @@ Real billing-expert correction, mid-session: Place of Service is a real code ass
 
 Real, per direct guidance ("Step 1 should be under System / Financial"): registered under the pre-existing `Financial & Revenue Lookups` sidebar group (`components/Config/System/index.tsx`), alongside Billing Dictionary/RVU Code Map/NCCI Edit Rules — a real, established group, not a new one invented for this feature.
 
-- **`types/billing/MasterPaymentType.ts`** / **`IMasterPaymentTypeService.ts`** / **`mockMasterPaymentTypeService.ts`** (+ `.test.ts`, 5 tests) — the jurisdiction-agnostic "financial mechanics" half of the model: 11 real categories transcribed directly from the source spec's own Section 3.1 table, not invented. `requiresGuarantor` is a real, distinct three-way type (`required`/`optional`/`not_required`) — the source spec's own table has a genuine third "Optional" value for `SELF_PAY`, not just true/false. `subscriberIdLabel` captures the source spec's own real annotations (`PUBLIC_NHS` → "NHS Number", `OCCUPATIONAL_WORKERS_COMP` → "Claim #") for what "Subscriber ID" is actually called in that category, for later use once the Accessioning Screen redesign (Step 2, not yet built) renders it. Deliberately the simple, direct CRUD pattern (`getAll`/`add`/`update`/`deactivate`/`reactivate`) — NOT `IModifierDictionaryService.ts`'s heavier versioned/dual-control-approval pattern, since that exists for a real regulatory reason (licensed AMA content) that doesn't apply here; this is structural reference data an admin configures directly, same shape as `TATConfigSection.tsx`'s own `TATEntry` CRUD.
+- **`types/billing/MasterPaymentType.ts`** / **`IMasterPaymentTypeService.ts`** / **`mockMasterPaymentTypeService.ts`** (+ `.test.ts`, 5 tests) — the jurisdiction-agnostic "financial mechanics" half of the model: 11 real categories transcribed directly from the source spec's own Section 3.1 table, not invented. `requiresGuarantor` is a real, distinct three-way type (`required`/`optional`/`not_required`) — the source spec's own table has a genuine third "Optional" value for `SELF_PAY`, not just true/false. `subscriberIdLabel` captures the source spec's own real annotations (`PUBLIC_NHS` → "NHS Number", `OCCUPATIONAL_WORKERS_COMP` → "Claim #") for what "Subscriber ID" is actually called in that category, for later use once the Accessioning Screen redesign (Step 2, not yet built) renders it. *(Since closed: Step 2 is built — see below — checked in the Batch 496 README audit.)* Deliberately the simple, direct CRUD pattern (`getAll`/`add`/`update`/`deactivate`/`reactivate`) — NOT `IModifierDictionaryService.ts`'s heavier versioned/dual-control-approval pattern, since that exists for a real regulatory reason (licensed AMA content) that doesn't apply here; this is structural reference data an admin configures directly, same shape as `TATConfigSection.tsx`'s own `TATEntry` CRUD.
 - **`types/billing/JurisdictionPaymentMapping.ts`** / **`IJurisdictionPaymentMappingService.ts`** / **`mockJurisdictionPaymentMappingService.ts`** (+ `.test.ts`, 5 tests) — the jurisdiction-specific "schema" half: 13 real (country, local scheme) rows transcribed directly from the source spec's own Section 3.2 table, each with an FK to a real `MasterPaymentType.id`. Deliberately a separate type/table from `MasterPaymentType`, not a nested field on it — the real relationship is genuinely many-to-one (`STATUTORY_SOCIAL_HEALTH` alone is referenced by 5 real local schemes across Germany, France, Netherlands, Belgium, and South Korea in the source spec), confirmed via a dedicated test. `countryCode` is real, free text, not a fixed dropdown — `CA_ON` is a real, deliberate exception the source spec itself makes (Canadian health-scheme administration is provincial), and a rigid country list would make that kind of real, sub-national scoping impossible to add later. `getByCountry()` is the real lookup the Accessioning Screen's own Primary Jurisdiction selector will need in Step 2.
 - **Explicitly deferred, per the source spec's own roadmap**: Phase 2's automated split-billing calculations, and generating/validating against any of the real named outbound formats (`X12 837P`, `KBV / KVDT`, `SESAM-Vitale`, etc.) this dictionary documents but does not itself implement.
 - **Step 2, real, now built**: `pages/AccessionPage/AccessionPage.tsx`'s own "Outside Patient Data" tab consumes both dictionaries directly — see that folder's own README for the full account (the real Intake Type selector, the three dynamic-behavior rules, and the deliberate scope boundary around identity-reconciliation bypass). `types/billing/OutsidePatientFinancialData.ts` is the real, captured shape; `Facility.defaultAccountBillingType` (`services/facilities/`) is the one new field Step 2 needed outside this folder.
@@ -200,6 +212,159 @@ Real, per direct guidance ("Step 1 should be under System / Financial"): registe
 
 - **`correctServiceCharge.ts`:** correcting an applied billing code needs `billing:applied-code:correct` for the case. `enforceAppliedCodeCorrection(caseId)` is the check; the report page asks it before changing the visible code (assist mode makes no charge but is still a billing change), and `correctServiceCharge` asks it again for every caller, the QA resolution included. A refusal returns `{ ok: false, notPermitted: true }` and leaves the ledger alone.
 
+## Batch 428: Configuration permissions
+
+- `mockBillingRuleService`: `createVersion`, `submitForApproval`, `retireVersion` need `config:billing-rules:manage`.
+- `mockBillingRuleService`: `approveVersion`, `rejectVersion` need `config:billing-tables:approve`.
+- `mockModifierDictionaryService`: `approveVersion`, `rejectVersion`, `activateVersion` need `config:billing-tables:approve`.
+- `mockRvuCodeMapService`: `approveVersion`, `rejectVersion`, `activateVersion` need `config:billing-tables:approve`.
+- `mockNcciEditService`: `approveImport`, `rejectImport` need `config:billing-tables:approve`.
+- `mockCodeImportService`: `approveJob`, `rejectJob` need `config:billing-tables:approve`.
+- `mockCodeImportService`: `importRows`, `rollbackJob` need `config:billing-code-import:run`.
+- `mockModifierDictionaryService`: `createVersion` need `config:billing-modifiers:manage`.
+- `mockRvuCodeMapService`: `createVersion` need `config:billing-rvu:manage`.
+- `mockNcciEditService`: `importQuarter` need `config:billing-ncci:manage`.
+- `mockBillingTypeTriggerConfigService`: `setTriggerOverride`, `resetToDefault` need `config:billing-triggers:manage`.
+- `mockMasterPaymentTypeService`: `add`, `update`, `deactivate`, `reactivate` need `config:payment-types:manage`.
+- `mockJurisdictionPaymentMappingService`: `add`, `update`, `deactivate`, `reactivate` need `config:payment-mappings:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+New billing rule versions always start as drafts: `createVersion` no longer accepts a status, which let a caller skip approval. Approving any billing table (rules, modifiers, RVU, NCCI, code imports) is `config:billing-tables:approve`; the approver-isn't-uploader rule stays.
+
+## Batch 433 — one billing correction engine, charge approval (PS-345, PS-359)
+
+Pete: every correction after sign-out uses the same credit/rebill engine, needs a reason, is audited, works without opening the case, for Orchestration and Assist cases, with or without a deficiency. Charges can wait for a billing-office approval, set per enterprise with facility overrides.
+
+| File | What it does |
+|---|---|
+| `billingCorrection.ts` | The engine. `planBillingCorrection` (pure) builds the records for a correction: change the CPT code, change the modifier, reverse, or add a missing charge (resolved against the Billing Dictionary for the specimen's date of service). `applyBillingCorrection` checks `billing:applied-code:correct` for the case, requires a reason and comment, marks the records awaiting approval when the lab requires it, saves them, resolves the deficiency it came from (or records and resolves a `POST_SIGNOUT_CORRECTION` one), and writes one "Billing correction" audit entry. A credit or new charge never inherits the original's approval (`withoutApproval`). |
+| `billingCorrectionCase.ts` | What the correction dialog needs: find a case by case id or accession number (through the case router, so case access applies), its active charges, specimens and blocks, the billing codes with an active rule, where the dialog starts for a deficiency (`initialCorrection`) and the form → correction step (`correctionFromForm`). |
+| `chargeApproval.ts` | Whether a facility's charges need approval (`resolveBillingApprovalRequired`: the lab's own setting, else its enterprise's, else off), `markAwaitingApproval`, the queue (`listChargesAwaitingApproval`, with each charge's performing lab) and `decideCharge` (approve, reject with a reason, hold, release), which checks `billing:charge:approve` for the charge's lab and refuses a person's own draft (`OWN_DRAFT`). Also the facility editor's choice helpers. |
+| `correctServiceCharge.ts` | Now a wrapper over the engine for the report page's own code change (no reason before sign-out, no deficiency record). |
+| `shouldRequireBillingApproval.ts` | `resolveRequireBillingApprovalForCase` now follows the enterprise when the lab has no setting. |
+| `mockServiceChargeService.ts` | `listByApprovalStatus(statuses)`. |
+
+Sign-out charges and credits on the report page wait as `PENDING_APPROVAL` (they used to be `DRAFT`, which nothing ever submitted). The outbound sweep already skips `PENDING_APPROVAL` and `HOLD`.
+
+Deficiency records gained `MISSING_CHARGE`, `POST_SIGNOUT_CORRECTION`, trigger `MANUAL_BILLING_CORRECTION` and `missingCharge` (`types/billing/BillingDeficiencyRecord.ts`).
+
+Tests: `billingCorrection.test.ts`, `billingCorrectionCase.test.ts`, `chargeApproval.test.ts`; `correctServiceCharge.test.ts` updated.
+
+## Batch 434 — follow-ups to Batch 433
+
+- **The performing lab is found for every case.** Most seeded cases carry a legacy tenant id (`HOSP-002`) as their origin, which Batch 433 looked up directly and never found. `chargeApproval.ts` and `shouldRequireBillingApproval.ts` now use `facilities/resolveCasePerformingLab.ts`.
+  - Before, those cases showed a blank "Performing lab", had the approval permission checked with no facility, and never applied their lab's "Charges need billing approval" setting.
+  - A charge whose lab still can't be found is refused (`LAB_UNKNOWN`) rather than checked without a facility.
+- **A correction updates the case's own coding.** `applyBillingCorrection` also changes the specimen or block `coding.cpt` (`applyCorrectionToSpecimens`), so the case page agrees with the charge ledger.
+  - Before, a correction made from Quality Assurance changed only the ledger, and the case kept showing the old code.
+  - The report page's own code change passes `updateCaseCoding: false`, since it saves the case itself.
+
+## Batch 438
+
+`searchBillingAuditLog.ts` reads audit times as UTC (`parseStoredUtc`); they were stored without a zone and read as local time.
+
+## Batch 441
+
+`jsonWebhookBuilder.test.ts`: the "no performing lab" case now uses Fairview Family Practice (`c-auto-000001`). Metro General (`c1`) names Desert Valley Medical Center as its performing lab as of this batch.
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+`billingMaterialSync.ts` (PS-316); CPT modifier and NCCI template rows moved here; `dictionaryCsvRoundTrip.test.ts` (PS-48).
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`billingMaterialSync.ts`: `billingReactionToMaterialEvent`, the billing panel's response to `MATERIAL_DECANTED` and `MATERIAL_ROLLED_BACK`. Decant billing rows come from `services/material/billableMaterial.ts`.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`BILLING_RULE_SEED_VERSIONS` and `MODIFIER_DICTIONARY_SEED_VERSIONS` are exported, so the demo Full Reset can put the seeded versions back to their seeded state, pending approvals included.
+
+## Batch 458 — PS-71: every case save carries its version
+
+PS-71 (Pete's optimistic-locking spec, Oct 4): a save made from an old copy of a case no longer overwrites someone else's newer save. See `services/cases/caseWrite.ts` and `docs/architecture/CASE_API.md`.
+
+Billing correction's case-coding save is versioned; a save that never lands is noted in the audit.
+
+## Batch 460 — Billing review on the Cytology Workspace and at the Microtome
+
+Pete: full billing review in the Cytology Workspace; read-only charges at the Microtome bench, with a switch to full review for people allowed to change billing; a permission of its own for reviewing codes.
+
+**Shared by all three screens** (report page, Cytology Workspace, Microtome). These were inline in `SynopticReportPage.tsx`; the page now calls them too.
+- **`caseBillingCoding.ts`** (pure): every coding change the billing panel makes.
+  - `codingWithApproved`, `codingWithRejected`, `codingWithOverride`, `codingWithoutCode`, `codingWithCorrection`, `groupApprovalsByUnit`.
+  - Specimen base codes: `specimensWithBaseCodeAdded`, `specimensWithBaseCodeRemoved`, `specimensWithBaseCodeCorrected`.
+  - Matrix blocks (PS-93): `specimensWithMatrixCode`, `matrixSlidesWithEvaluatedCores`.
+- **`caseBillingCharges.ts`:** the ledger side.
+  - `enforceBillingReview` checks `billing:applied-code:review`.
+  - `recordCaseCharge`: the date of service is Date Collected, else Date Received; with neither, the charge is withheld and audited. The charge waits for approval when the lab requires it.
+  - `recordCaseCredit`, `recordCaseCodeCorrection` (through `correctServiceCharge`), `auditBillingSuggestionDeclined`.
+  - Audit text is unchanged from the report page's.
+- **`materialChargePreview.ts`** (pure): Microtomy's read-only view.
+  - One row per slide with its codes and state (applied, pending review, declined, no billing code). A matrix block gets one row per participating specimen.
+  - The charge's ledger status (charged, waiting for billing approval, approved, exported, on hold, rejected).
+  - Warnings: a billable matrix-block slide whose evaluated cores aren't confirmed yet; charges waiting for approval.
+
+**Permission:** `billing:applied-code:review` (high risk). It covers approving, declining, overriding, adding and deleting a case's billing codes.
+- It's given to every role that already had `billing:applied-code:correct` (every case-access role, Admin, Lab Director, QA Reviewer, and hospital roles with case or configuration access), so nobody loses anything.
+- Before this batch, these actions weren't checked at all; only correcting an applied code was.
+
+**User Guide**
+- **Cytology Workspace:** "$ Billing" next to "# Codes" opens Billing review, the same panel as the report page, with Approve, Decline, Override, Add, Delete and Correct.
+  - Each change is saved to the case and then charged or credited.
+  - On a signed-out case it asks for the post-sign-out reason first.
+  - An Assist-mode case changes codes without charging (the LIS bills it).
+- **Microtomy:** the Billing box under Prior history lists each slide's codes and their status, with any warnings. "$ Full billing review" opens the full panel. It's greyed out without the permission, and the tooltip says why.
+- Without the permission, a change is refused with a message and nothing changes.
+
+**Admin Guide:** to stop a role changing billing (for example histotechs), remove "Review a case's billing codes" from it in the Role Dictionary. Its users keep the read-only charges at the Microtome.
+
+Tests: `caseBillingCoding.test.ts`, `caseBillingCharges.test.ts`, `materialChargePreview.test.ts`, and `hooks/useCaseBillingReview.test.ts`.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 498
+
+`preAnalyticDisclaimerText` (from `resolvePreAnalyticDateGateConfig.ts`) is now printed on the generated PDF, in a box before the report body.
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed, `searchBillingAuditLog.ts`:** filtering the billing audit log by signing pathologist crashed on a case whose `finalizedBy` was stored as `null`.
+- **Bug fixed, same file:** filtering by detail text crashed when a released amendment had no explanation of change.
+- Two tests narrow their results before asserting.
+
+## Batch 583
+
+- `postSignoutBillingReason.ts` (new): the one decision "does this billing change on a signed-out case need a reason?" (Assist cases, billed by the LIS, don't) and the audit summaries. Used by the case-level Code Manager save, the report page's three specimen-level handlers (add base code, remove base code, apply block code) and the shared billing review. A removal with no charge on file keeps the reason in its audit entry. Not covered: deleting a block-level applied code after sign-out still credits without asking.
+
+## Batch 588
+
+- New deficiency type `BLOCK_DELETED` (trigger `BLOCK_DELETION`, detail in `BillingDeficiencyRecord.blockDeleted`), raised when a block is deleted in process (`material/deleteBlockInProcess.ts`). Billing resolves it in Quality Assurance → Financials → Billing deficiencies: Charge reversed is the credit.
+
+## Batch 605
+
+Batch 605: `frozenSectionSuggestionReview.ts` (accept or dismiss suggested 88331/88332; decisions only, no charge posted); `jsonWebhookBuilder` adds the performing facility place of service; `markSent` on the outbound charge queue; the financial-class payload is shown beside the billing export preview.
+
+## Batch 607
+
+`jsonWebhookBuilder.ts` leaves ICD-10 diagnosis codes out of the charge message when the performing lab's code-system policy has ICD-10 off.
+
+## Batch 616 (part C): server versions (PS-498 to PS-504)
+
+Each service here (the billing and charge-capture services) now has an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/BILLING_API.md`. The mocks are unchanged.
+
+## Batch 617 (part A): server versions (PS-514)
+
+`codeImportService`, `ncciEditService`, `billingTypeTriggerConfigService` now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (the mock without an API server address, the server version with one). One route per interface method; the calls are listed in `docs/architecture/BILLING_API.md`. The mocks are unchanged. The instance file imports the mock, so a test that loads the mock first may need to load the instance first (the mock can reach `@/services`, which reaches the instance).
+
+## Batch 618 (PS-336): which lab performed each charge
+
+`resolveChargeFacilities.ts` (+ test): `resolveSplitTechnicalFacility` (a technical lab that is a different lab from the reporting lab) and `resolveChargePerformingFacilityId` (TC goes to the technical lab on a split case; 26 and Global to the reporting lab). `jsonWebhookBuilder.ts` adds `performingFacilityId` per charge and `technicalComponentFacility` on a split case. Release rules are unchanged (`codeMapTable.ts`); the test proves TC at grossing and 26 at sign-out.
+
+- Batch 663: `canDraftOrApproveBillingCharge.ts` was removed (no caller passed a role). Charges are guarded by `billing:charge:approve` in `chargeApproval.ts`; the `actorRole` parameter on submit, approve and reject is ignored and kept only so the API contract is unchanged.
+
+## Batch 728
+
+- `mockOutboundChargeQueueService.ts`: `enqueue` refuses a research case's charge (`RESEARCH_NO_CHARGE`). The API server applies the same rule.

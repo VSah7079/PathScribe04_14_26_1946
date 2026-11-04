@@ -21,7 +21,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router';
 import { caseRouter } from '@/services/cases/CaseRouter';
 import { extractCaseIdFromPath } from '@/services/session/ISessionTimeoutService';
-import { mockSessionTimeoutService } from '@/services/session/mockSessionTimeoutService';
+import { sessionTimeoutService } from '@/services';
+
 
 const WARNING_WINDOW_SECONDS = 60;
 const FALLBACK_MINUTES = 15; // used only until the real org default resolves async
@@ -86,7 +87,7 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
     let cancelled = false;
 
     if (!caseId) {
-      mockSessionTimeoutService.getOrgDefault().then(res => {
+      sessionTimeoutService.getOrgDefault().then(res => {
         if (!cancelled && res.ok) setEffectiveMinutes(res.data);
       });
       return () => { cancelled = true; };
@@ -95,11 +96,11 @@ export function useIdleTimeout(enabled: boolean): UseIdleTimeoutResult {
     caseRouter.getCase(caseId).then(async (caseData) => {
       if (cancelled) return;
       const orderingFacilityId = caseData?.order?.facilityId;
-      const res = await mockSessionTimeoutService.resolveEffectiveMinutes(orderingFacilityId);
+      const res = await sessionTimeoutService.resolveEffectiveMinutes(orderingFacilityId);
       if (!cancelled && res.ok) setEffectiveMinutes(res.data);
     }).catch(async () => {
       if (cancelled) return;
-      const res = await mockSessionTimeoutService.getOrgDefault();
+      const res = await sessionTimeoutService.getOrgDefault();
       if (!cancelled && res.ok) setEffectiveMinutes(res.data);
     });
 

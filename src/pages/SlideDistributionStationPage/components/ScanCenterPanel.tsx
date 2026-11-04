@@ -14,13 +14,24 @@
 // session-scoped "never resolved to a real slide" exceptions and the
 // per-slide "Missing Glass" exception already recorded on the active
 // item).
+//
+// Batch 402 (PS-359): flagging an exception can carry a note, which the
+// organisation can require (Field Requirements page "slideDistribution"); the
+// reason buttons stay off, with "Still required", until it is there. Statuses,
+// reasons and the split warning are shown in the user's language (stored in
+// English), and times in the user's locale. The chain-of-custody lines are a
+// traceability record and stay in English.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SlideQueueItem, ScanException } from '../hooks/useSlideDistributionStation';
 import type { SplitDestinationWarning, SlideExceptionReason } from '@/utils/slideDistributionOperations';
-import { SLIDE_EXCEPTION_REASONS } from '@/utils/slideDistributionOperations';
+import { SLIDE_EXCEPTION_REASONS, SLIDE_EXCEPTION_REASON_KEYS, DISTRIBUTION_STATUS_KEYS } from '@/utils/slideDistributionOperations';
+import { slideExceptionMissing, slideDistributionFieldRequired } from '@/services';
+import type { ResolvedFieldRequirement } from '@/services/fieldRequirements/fieldRequirementRules';
+import { formatTime } from '@/utils/formatDate';
+import { formatList } from '@/utils/formatList';
 
 export interface ScanCenterPanelProps {
   queue: SlideQueueItem[];
@@ -29,10 +40,11 @@ export interface ScanCenterPanelProps {
   onSelect: (id: string) => void;
   splitWarning: SplitDestinationWarning | null;
   scanExceptions: ScanException[];
-  onFlagException: (reason: SlideExceptionReason) => void;
+  onFlagException: (reason: SlideExceptionReason, note: string) => void;
   onResolveException: () => void;
   onRequestReprint: () => void;
   reprintFeedback: string | null;
+  requirements: readonly ResolvedFieldRequirement[];
 }
 
 function slotClass(item: SlideQueueItem, isActive: boolean): string {
@@ -46,9 +58,17 @@ function slotClass(item: SlideQueueItem, isActive: boolean): string {
 
 const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
   queue, activeItem, activeQueueId, onSelect, splitWarning, scanExceptions,
-  onFlagException, onResolveException, onRequestReprint, reprintFeedback,
+  onFlagException, onResolveException, onRequestReprint, reprintFeedback, requirements,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [exceptionNote, setExceptionNote] = useState('');
+  useEffect(() => { setExceptionNote(''); }, [activeQueueId]);
+  const exceptionMissing = slideExceptionMissing(exceptionNote, requirements);
+  const flag = (reason: SlideExceptionReason) => {
+    if (exceptionMissing.length > 0) return;
+    onFlagException(reason, exceptionNote.trim());
+    setExceptionNote('');
+  };
 
   return (
     <div>
@@ -62,7 +82,7 @@ const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
               <button
                 key={item.queueId} type="button" className={slotClass(item, item.queueId === activeQueueId)}
                 onClick={() => onSelect(item.queueId)}
-                title={`${item.specimen.label}${item.block.label} — ${item.stain.stainName}`}
+                title={t('slideDistribution.slots.chipTitle', { slide: `${item.specimen.label}${item.block.label}`, stain: item.stain.stainName })}
               >
                 {item.block.label}
               </button>
@@ -76,7 +96,11 @@ const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
             <ul className="ps-slidedist-event-list">
               {scanExceptions.slice(-5).reverse().map(exc => (
                 <li key={exc.id} className="ps-slidedist-event-item">
-                  {t(`slideDistribution.exceptions.reason.${exc.reason === 'Unreadable Barcode' ? 'unreadableBarcode' : 'unassignedAccession'}`)} — “{exc.rawScan}” ({new Date(exc.timestamp).toLocaleTimeString()})
+                  {t('slideDistribution.exceptions.scanLogLine', {
+                    reason: t(`slideDistribution.exceptions.reason.${SLIDE_EXCEPTION_REASON_KEYS[exc.reason]}`),
+                    scan: exc.rawScan,
+                    time: formatTime(exc.timestamp, i18n.language),
+                  })}
                 </li>
               ))}
             </ul>
@@ -89,32 +113,42 @@ const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
           <p className="ps-slidedist-panel-title">{t('slideDistribution.activeSlide.title')}</p>
           <div className="ps-slidedist-context-field">
             {t('slideDistribution.activeSlide.slide')}
-            <strong>{activeItem.specimen.label}{activeItem.block.label} — {activeItem.stain.stainName}</strong>
+            <strong>{t('slideDistribution.slots.chipTitle', { slide: `${activeItem.specimen.label}${activeItem.block.label}`, stain: activeItem.stain.stainName })}</strong>
           </div>
           <div className="ps-slidedist-context-field">
             {t('slideDistribution.activeSlide.status')}
-            <strong>{activeItem.stain.distributionStatus ?? t('slideDistribution.queue.unrouted')}</strong>
+            <strong>{activeItem.stain.distributionStatus ? t(`slideDistribution.status.${DISTRIBUTION_STATUS_KEYS[activeItem.stain.distributionStatus]}`) : t('slideDistribution.queue.unrouted')}</strong>
           </div>
 
           {splitWarning?.conflict && (
-            <div className="ps-slidedist-split-warning">⚠ {splitWarning.detail}</div>
+            <div className="ps-slidedist-split-warning">⚠ {t(`slideDistribution.splitWarning.${splitWarning.kind}`)}</div>
           )}
 
           {activeItem.stain.activeExceptionReason ? (
             <div className="ps-slidedist-exception-banner">
-              <span>⚠ {t(`slideDistribution.exceptions.reason.${exceptionKey(activeItem.stain.activeExceptionReason)}`)}</span>
+              <span>⚠ {t(`slideDistribution.exceptions.reason.${SLIDE_EXCEPTION_REASON_KEYS[activeItem.stain.activeExceptionReason as SlideExceptionReason] ?? 'other'}`)}</span>
               <button type="button" className="ps-slidedist-row-btn" onClick={onResolveException}>{t('slideDistribution.exceptions.resolve')}</button>
             </div>
           ) : (
             <>
               <p className="ps-slidedist-panel-title ps-mt-10">{t('slideDistribution.exceptions.title')}</p>
+              <label className="ps-slidedist-field-label" htmlFor="slidedist-exception-note">
+                {t('slideDistribution.exceptions.note')}{slideDistributionFieldRequired(requirements, 'exceptionNote') && <span className="ps-conf-required"> *</span>}
+              </label>
+              <input id="slidedist-exception-note" type="text" className="ps-slidedist-field-input" value={exceptionNote}
+                onChange={e => setExceptionNote(e.target.value)} placeholder={t('slideDistribution.exceptions.notePlaceholder') ?? ''} />
               <div className="ps-slidedist-exception-grid">
                 {SLIDE_EXCEPTION_REASONS.map(reason => (
-                  <button key={reason} type="button" className="ps-slidedist-exception-btn" onClick={() => onFlagException(reason)}>
-                    {t(`slideDistribution.exceptions.reason.${exceptionKey(reason)}`)}
+                  <button key={reason} type="button" className="ps-slidedist-exception-btn" disabled={exceptionMissing.length > 0} onClick={() => flag(reason)}>
+                    {t(`slideDistribution.exceptions.reason.${SLIDE_EXCEPTION_REASON_KEYS[reason]}`)}
                   </button>
                 ))}
               </div>
+              {exceptionMissing.length > 0 && (
+                <p className="ps-field-still-required" role="status">
+                  {t('fieldRequirements.stillRequired', { fields: formatList(exceptionMissing.map(id => t(`fieldRequirements.fields.slideDistribution.${id}`)), i18n.language) })}
+                </p>
+              )}
             </>
           )}
 
@@ -128,7 +162,7 @@ const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
               <p className="ps-slidedist-panel-title ps-mt-10">{t('slideDistribution.activeSlide.history')}</p>
               <ul className="ps-slidedist-event-list">
                 {activeItem.stain.distributionEvents!.slice().reverse().map(ev => (
-                  <li key={ev.id} className="ps-slidedist-event-item">{ev.detail} — {new Date(ev.timestamp).toLocaleTimeString()}</li>
+                  <li key={ev.id} className="ps-slidedist-event-item">{t('slideDistribution.activeSlide.historyLine', { detail: ev.detail, time: formatTime(ev.timestamp, i18n.language) })}</li>
                 ))}
               </ul>
             </>
@@ -142,14 +176,5 @@ const ScanCenterPanel: React.FC<ScanCenterPanelProps> = ({
     </div>
   );
 };
-
-function exceptionKey(reason: SlideExceptionReason): string {
-  switch (reason) {
-    case 'Unreadable Barcode': return 'unreadableBarcode';
-    case 'Unassigned Accession': return 'unassignedAccession';
-    case 'Missing Glass': return 'missingGlass';
-    default: return 'other';
-  }
-}
 
 export default ScanCenterPanel;

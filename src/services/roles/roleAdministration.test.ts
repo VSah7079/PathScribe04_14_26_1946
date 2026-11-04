@@ -85,3 +85,18 @@ describe('the Superadmin role is not a hospital\'s to change (Batch 371)', () =>
     expect(res).toMatchObject({ ok: false, reason: 'invalidCapabilities' });
   });
 });
+
+describe('saveRole (Batch 441): the Cytotechnologist role never lists a pathologist type', () => {
+  const catalog = [role('admin', ['config:roles:manage']), role('cytotechnologist', [], { name: 'Cytotechnologist', participationTypeIds: ['cytotechnologist'] })];
+  it('refuses primary on the Cytotechnologist role and writes nothing', async () => {
+    const { deps, writes } = setup(true, catalog);
+    const res = await saveRole({ mode: 'edit', id: 'cytotechnologist', draft: { ...catalog[1], participationTypeIds: ['cytotechnologist', 'primary'] } }, deps as any);
+    expect(res).toEqual({ ok: false, reason: 'cytotechPathologistType', detail: 'primary' });
+    expect(writes).toEqual([]);
+  });
+  it('saves a non-pathologist list', async () => {
+    const { deps } = setup(true, catalog);
+    expect((await saveRole({ mode: 'edit', id: 'cytotechnologist', draft: { ...catalog[1], participationTypeIds: ['cytotechnologist'] } }, deps as any)).ok).toBe(true);
+  });
+});
+

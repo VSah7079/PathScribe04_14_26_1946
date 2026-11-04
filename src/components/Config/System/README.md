@@ -1,3 +1,13 @@
+**Batch 758:** `PrintSettingsSection.tsx`: the Default Print Behavior card is now Grossing Print Behavior, and a Microtome Print Behavior card (On-Demand, Block, Batch) follows it.
+
+**Batch 747:** `DemoDisplayTokensCard.tsx` (+ `.css`, new), on `DemoResetTab.tsx`: Issue tokens shows a fresh token for each demo wall display and the OR Suite terminal, once (`services/demoReset/demoDisplayTokens.ts`).
+
+**Batch 737:** `StainingRacksPanel.tsx` (new), shown in `EquipmentSection.tsx`: the lab's reusable staining racks with **Takes large-format slides** (saved at once; the rack registry checks `config:equipment:manage`).
+
+**Batch 736:** `BenchReasonsSection.tsx` (+ `.css`), section `bench_reasons` (Administration & Compliance): reword, add, order, retire and restore the bench's reasons; codes shown, never changed (`config:bench-reasons:manage`).
+
+**Batch 724:** the English text now says Microtome, not Microtomy (wording only; routes, keys and stored values unchanged). See `src/i18n/README.md`.
+
 # components/Config/System/
 
 The biggest, most central components folder after Config/ itself — every
@@ -9,7 +19,11 @@ earlier rename → 26 after `specimenTypes.ts`'s relocation → 27 again with
 relocating below, 31 with `CytologyCategoriesSection.tsx`'s addition,
 32 with `DisplayProfilesSection.tsx` (PS-288) — the data-only device
 registry for the five Facility Ops Dashboard wall displays, same real
-group as `OrSuiteTerminalsSection.tsx`).
+group as `OrSuiteTerminalsSection.tsx`). That running count is history:
+the folder now holds 98 source files (85 of them `*Section.tsx`), and
+`systemSections.ts` lists 77 sidebar sections in six groups.
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): current file and section counts added (was "32 files").*
 
 **Real, per direct request: reversed since.** `LISSection.tsx` and
 `IdentifierFormatsSection.tsx` had briefly moved to
@@ -117,9 +131,18 @@ this folder, this file's own import of it updated to the local path,
 and `Config/Integrations/index.tsx` finally, genuinely deleted. See
 that folder's own README for the fuller account.
 
-Wired entirely through `index.tsx`'s `SECTIONS` registry + `renderSection()`
-switch; every section listed there is confirmed live (all 23 sidebar items
-render a real, non-stub component — see Notes on `TATConfigSection.tsx`).
+Wired through `systemSections.ts`'s `SECTIONS` list (Batch 431) + `index.tsx`'s
+`renderSection()` switch; all 77 sidebar items render a real component, each
+wrapped in `ConfigSectionGate`. Not every file here is a System sidebar item:
+`TATConfigSection.tsx` is Configuration's own **TAT** tab and `DemoResetTab.tsx`
+its **Demo** tab (`pages/ConfigurationPage.tsx`); `CytologyCategoriesSection.tsx`
+and `SnomedCervicalHistologySeverityMappingSection.tsx` render in the Cytology
+tab (`Config/Cytology/index.tsx`); `FppeAssignmentsSection.tsx` and
+`CytotechCompetencyAssignmentsSection.tsx` in the Staff tab (`Config/Staff/StaffTab.tsx`);
+`VoiceSection.tsx` and `FootPedalSection.tsx` in Voice settings
+(`components/Voice/VoiceSettings.tsx`).
+
+*Corrected in the Batch 496 README audit (Oct 9, 2026): was "all 23 sidebar items"; the list moved to `systemSections.ts` and several files render outside the System tab.*
 
 **Pattern:** Each dictionary/admin concern is one file — table + modal,
 usually backed by a real `services/` interface/mock pair.
@@ -150,7 +173,11 @@ usually backed by a real `services/` interface/mock pair.
   programmatically, not eyeballed: every group's own label order
   checked against its own alphabetically-sorted copy after the edit.
   Group order itself (Workstation & Hardware → ... → Integrations)
-  is unchanged — only item order within each group.
+  is unchanged — only item order within each group. *(Since drifted: items
+  added later, now in `systemSections.ts`, were not re-sorted — e.g.
+  Workstation & Hardware runs Print Settings, Label Designer, Printer
+  Profiles, Scan Stations, Equipment, Grossing Hardware — checked in the
+  Batch 496 README audit.)*
 
   **One real, worth-knowing side effect, not a bug**: `SECTIONS[0].id`
   is this file's own real fallback default — whichever section a user
@@ -186,19 +213,6 @@ usually backed by a real `services/` interface/mock pair.
   rather than folded into `RetentionSection.tsx` (a related-sounding but
   conceptually different concept — how long *data* is retained, not how
   long an *active session* stays live) — also a natural home for Phase
-
-- **`ContributionSettingsSection.tsx`** — **NEW.** Single admin toggle
-  (`showPeerAveragesToPathologists`, on `SystemConfig` itself, not a
-  bespoke new service — same shape as `voiceEnabled`) controlling whether
-  the plain `pathologist` role sees peer-average/top-performer comparisons
-  on their own My Contribution dashboard. Admin/pathologist-admin/
-  superadmin roles always see it regardless — real, tested gating logic
-  lives in `components/Contribution/productivityCalculations.ts`
-  (`canSeePeerComparison`), not duplicated here. Phase 1 of the
-  Orchestration Intelligent Charge Capture & Workload Analytics spec's
-  `System_Configuration` toggle infrastructure — deliberately scoped to
-  just this one flag; the spec's actual AI charge-capture/billing logic
-  (Phase 2/3) is not built, pending legal/compliance review.
   2/3's related settings (draft retention days, encryption toggle) once
   those are built, rather than needing a second new section added later.
   Per-performing-lab overrides are set separately, on Facility
@@ -210,6 +224,22 @@ usually backed by a real `services/` interface/mock pair.
   pattern once caught (see `services/session/README.md`), which is why
   this screen now loads its initial value via a real `useEffect` rather
   than a synchronous `useState` initializer.
+  *(Batch 496 README audit: this entry had been split by the Contribution
+  entry below; text rejoined, wording unchanged.)*
+
+- **`ContributionSettingsSection.tsx`** — **NEW.** Single admin toggle
+  (`showPeerAveragesToPathologists`, on `SystemConfig` itself, not a
+  bespoke new service — same shape as `voiceEnabled`) controlling whether
+  the plain `pathologist` role sees peer-average/top-performer comparisons
+  on their own My Contribution dashboard. Every other role always sees
+  it regardless (the check only restricts `pathologist`; corrected in the
+  Batch 496 README audit, was "admin/pathologist-admin/superadmin") — real, tested gating logic
+  lives in `components/Contribution/productivityCalculations.ts`
+  (`canSeePeerComparison`), not duplicated here. Phase 1 of the
+  Orchestration Intelligent Charge Capture & Workload Analytics spec's
+  `System_Configuration` toggle infrastructure — deliberately scoped to
+  just this one flag; the spec's actual AI charge-capture/billing logic
+  (Phase 2/3) is not built, pending legal/compliance review.
 
 - **`QAConfigurationCenterSection.tsx`** — **New (PS-115).** The real
   admin UI for the two QA activity archetypes PS-113/PS-114 already
@@ -237,10 +267,12 @@ usually backed by a real `services/` interface/mock pair.
   read-only in the Custom-tab edit modal — Duplicate still clones it
   correctly, but a full add/remove/reorder field-schema editor is real,
   separate work. Wired into the sidebar under Administration &
-  Compliance. Zero dedicated test file, matching this app's own
-  consistent convention — no Config/System section anywhere has one;
-  the real business logic lives in the already-tested services this
-  screen orchestrates.
+  Compliance. Zero dedicated test file; the real business logic lives
+  in the already-tested services this screen orchestrates. (Other
+  System sections do have screen tests now, e.g.
+  `PrintSettingsSection.test.tsx`, `DepartmentsSection.test.tsx`,
+  `FollowUpTrackingSection.test.tsx` — corrected in the Batch 496 README
+  audit; it said no Config/System section had one.)
 
 - **`ExternalResourcesSection.tsx`** — **NEW.** Real admin management for
   the reference links shown in the Worklist's Resources panel — CAP
@@ -317,7 +349,11 @@ usually backed by a real `services/` interface/mock pair.
   specific reason stated in its own header: an OXC/rolldown build-tool
   parse issue with chevron SVG template literals in co-located component
   functions. Not a stylistic split — don't re-inline it.
-- **`TATConfigSection.tsx`** (833 lines, the largest file here) — **STATUS
+- **`TATConfigSection.tsx`** (about 1,020 lines; `StainDictionarySection.tsx`
+  is now the largest file here) — shown as Configuration's own **TAT** tab
+  (`pages/ConfigurationPage.tsx`, gated on `config:tat-targets:manage`), not
+  a System sidebar item. *(Corrected in the Batch 496 README audit: was
+  "833 lines, the largest file here".)* **STATUS
   UPDATE:** earlier planning notes described this as a stub pending a full
   build. It is NOT a stub — full `TATEntry` data model, the 5-dimension
   uniqueness guard, and the complete 7-level most-specific-wins resolution
@@ -330,7 +366,10 @@ usually backed by a real `services/` interface/mock pair.
   UI, not a callable "resolve the real target for a case" function, which
   didn't exist anywhere until now. `SYSTEM_DEFAULTS` (previously private)
   is now exported so the same real 24h-routine/4h-STAT fallback applies
-  in both places. Real bug caught while wiring this: the consumer's first
+  in both places. *(Since moved: Batch 353 put the defaults in
+  `services/tatConfig/systemDefaultTatEntries.ts`; this file no longer
+  exports them or touches browser storage — checked in the Batch 496
+  README audit.)* Real bug caught while wiring this: the consumer's first
   draft read entries via `storageGet()` (this app's usual localStorage
   helper), but this file actually writes/reads via raw
   `localStorage.getItem`/`setItem` directly, not `storageGet`/`storageSet`
@@ -374,7 +413,7 @@ usually backed by a real `services/` interface/mock pair.
   before this pass — replaced with a direct call to the real resolver
   (`resolveTatEntry()`, newly extracted), so the simulator can never
   show anything other than what the real, live pipeline would compute.
-- **`ProtocolDictionarySection.tsx`** — Real, substantial (~870 lines).
+- **`ProtocolDictionarySection.tsx`** — Real, substantial (~970 lines; was ~870, updated in the Batch 496 README audit).
   Second-pass rebuild of its own editor (own header documents why: a flat
   pill grid for stain selection didn't scale to a real customer's Stain
   Dictionary). Real 2-column layout + search+multiselect. Per PS-73: had
@@ -401,7 +440,7 @@ usually backed by a real `services/` interface/mock pair.
   (no Performing Lab column) is scoped to only ever match/update global
   entries, so a re-import can't silently collide with a lab-specific
   protocol.
-- **`SubspecialtiesSection.tsx`** — Real, substantial (635 lines). No
+- **`SubspecialtiesSection.tsx`** — Real, substantial (~840 lines; was 635, updated in the Batch 496 README audit). No
   issues found in this pass. **Per FEAT-ROUT-01:** gained a Performing
   Lab selector (shown only when a subspecialty is a real pool) and an
   `isCatchAll` toggle ("Default / Catch-All Pool for `<lab>`"), enforcing
@@ -435,7 +474,9 @@ usually backed by a real `services/` interface/mock pair.
   same pass — see `services/delegationTypes/README.md` for the full
   account: the "ID" field's own value used to be silently discarded on
   save, so the on-screen "ID already exists" check was validating a
-  value that never actually persisted. Added Duplicate, Performing Lab
+  value that never actually persisted. Added Duplicate *(since removed in
+  Batch 317: a flat lookup, per `services/duplication/duplicatePolicy.ts` —
+  checked in the Batch 496 README audit)*, Performing Lab
   (field/dropdown/column/filter), and real uniqueness on both `label`
   and `id`, each independently compound-scoped by Performing Lab — same
   proven pattern as `ContainerTypesSection.tsx` (PS-75). All 13 inline
@@ -469,12 +510,16 @@ usually backed by a real `services/` interface/mock pair.
   bug found and fixed along the way) — a real `EntryModal`, "+ Add
   Code" button, and per-row Edit/Duplicate actions, all routing
   through the same `createVersion`/`activateVersion` pair the upload
-  flow already used. See `services/billing/README.md`
+  flow already used. *(Duplicate since removed in Batch 317 — a flat
+  lookup per `duplicatePolicy.ts`; add and edit remain. Checked in the
+  Batch 496 README audit.)* See `services/billing/README.md`
   for the full versioning design and a real, deep TypeScript
   (`strictNullChecks`) issue found and worked around while building this.
+  *Since Batch 511 (PS-478) the app type-checks in full strict mode (`"strict": true`, `strictNullChecks` included), so ordinary `if (res.ok) … else …` narrowing works; the workaround described here is no longer needed.*
 - **`PhysiciansSection.tsx`** — Completed CSS migration (off the deprecated
   `modalStyles.ts` inline-constant pattern, per that file's own header
-  marking it deprecated). Later, PS-73/PS-75 rollout: added `physicianCode`
+  marking it deprecated; `modalStyles.ts` no longer exists anywhere in the
+  repo — noted in the Batch 496 README audit). Later, PS-73/PS-75 rollout: added `physicianCode`
   (new field, required, globally unique, independent of NPI — NPI itself
   stays optional, per direct confirmation not every physician has one,
   e.g. UK physicians; uniqueness only checked when NPI is present). Added
@@ -488,7 +533,10 @@ usually backed by a real `services/` interface/mock pair.
   (specialty, `clientIds`, `preferredContact`) as a real starting
   template — same "opens the Add modal pre-filled, real save only on
   explicit Save" pattern as every other Duplicate button in this folder,
-  just with different field-clearing semantics underneath. Confirmed,
+  just with different field-clearing semantics underneath. *(Since
+  removed in Batch 317: Physicians offers no Duplicate — a real person,
+  per `duplicatePolicy.ts` and the file's own header. Checked in the
+  Batch 496 README audit.)* Confirmed,
   not assumed, on PS-75: `clientIds[]` — this section's existing
   multi-facility affiliation model — is the right mechanism for
   physicians and does NOT get a separate `performingLabFacilityId` field
@@ -503,8 +551,12 @@ usually backed by a real `services/` interface/mock pair.
   import path matches Physician Code first, else NPI; a row with
   neither gets a fresh sequential `PHY-####` code auto-assigned,
   flagged in the preview.
-- **`DemoResetTab.tsx`** — Real two-level mock data reset (full vs.
-  "my hospital's data only"), both paths gated behind confirmation.
+- **`DemoResetTab.tsx`** — Configuration's own **Demo** tab
+  (`pages/ConfigurationPage.tsx`), not a System sidebar item. One reset
+  only now — the Full Reset, behind a confirmation and
+  `config:demo-data:reset`; the "my hospital's data only" reset was
+  removed in Batch 455 (see below). *(Corrected in the Batch 496 README
+  audit: was "two-level mock data reset".)*
 
   **Batch 320 (PS-58):** `pathscribe_model_adoptions` (per-organisation
   AI model adoptions) added to `SETTINGS_KEYS` beside the legacy
@@ -547,8 +599,9 @@ usually backed by a real `services/` interface/mock pair.
   supersede dialog appeared).
 
 - **`GoverningBodiesSection.tsx`** — Standard bodies (CAP/RCPath/ICCR/RCPA)
-  toggle-only, custom bodies full CRUD with an ID-conflict guard. **See
-  Notes — hardcoded `isSuperAdmin`.**
+  toggle-only, custom bodies full CRUD with an ID-conflict guard. Editing
+  needs `platform:governing-bodies:manage` (Batch 371); the old hardcoded
+  `isSuperAdmin` prop is gone. *(Corrected in the Batch 496 README audit.)*
 - **`ParticipationTypesSection.tsx`** — System-level master list; roles
   then select from it. Same pattern as Facility Configuration/Subspecialties.
 
@@ -677,7 +730,9 @@ usually backed by a real `services/` interface/mock pair.
   whole review is built on.
 - **`ContainerTypesSection.tsx`** — Full CRUD (deactivate, not delete) over
   the Container Type Dictionary, beyond the 9 seeded APLIS-standard
-  defaults. Real fixes since: added Duplicate (matching the same,
+  defaults. Real fixes since: added Duplicate *(since removed in Batch
+  317 — a flat lookup per `duplicatePolicy.ts`; checked in the Batch 496
+  README audit)* (matching the same,
   proven `duplicateEntry.ts`/`validateUnique.ts` pattern as
   `StainDictionarySection.tsx` — see `utils/README.md`), real
   uniqueness validation on both `name` and `aplisMapping`, and — per
@@ -700,10 +755,11 @@ usually backed by a real `services/` interface/mock pair.
   used real CSS classes throughout and the correct `{ mode, entry? }`
   modal-state shape before any of this — no cleanup needed here, unlike
   `CrosswalkSection.tsx`.
-- **`RetentionSection.tsx`** — Data retention policy editor. Its own header
-  flags its own tech debt honestly: persists directly to localStorage
-  pending a `SystemConfigContext` retention-fields addition. Not urgent,
-  self-documented.
+- **`RetentionSection.tsx`** — Data retention policy editor. Loads and
+  saves through `services/retention/retentionPolicyService.ts`
+  (`config:retention-policy:manage`) since Batch 428; it no longer writes
+  browser storage. *(Corrected in the Batch 496 README audit: was
+  "persists directly to localStorage".)*
 - **`DeficienciesSection.tsx`** — Deficiency Types + Resolution Types as
   one tabbed section rather than two sidebar entries — own header
   correctly reasons why (Resolution Type has no independent use elsewhere,
@@ -818,7 +874,10 @@ invented per screen.
   not this folder's own established "no inline CSS, named classes
   only" convention (see `PrintSettingsSection.tsx`'s own header) — a
   real inconsistency, found while adding this entry, not yet
-  reconciled.
+  reconciled. *(Since closed: `LabelDesignerPage.tsx` now passes only CSS
+  custom properties in its two `style` props, and the app-wide
+  `inlineCss.guard.test.ts` has no exception list — checked in the Batch
+  496 README audit.)*
 - **`index.tsx`** (this folder's own router/shell) — **Real addition
   (Workstation & Hardware redesign), per direct guidance:** a single
   facility selector (`workstationFacilityId`/`workstationLabs` state),
@@ -905,7 +964,10 @@ full test suite run afterward before considering it done.
   higher up the tree (outside this folder, not confirmed in this pass), or
   this prop isn't actually wired to a real permission check yet. Worth a
   targeted look before treating either section as genuinely
-  access-controlled.
+  access-controlled. *(Since closed in Batch 371: `GoverningBodiesSection`
+  takes no such prop and its edits need `platform:governing-bodies:manage`;
+  `TerminologyServicesSection` receives the real `useIsSuperAdmin()` value
+  from `index.tsx` — checked in the Batch 496 README audit.)*
 - **Fixes applied, earliest pass:** `CaseRoutingSection.tsx` →
   `CasePoolAssignmentSection.tsx` rename (file + component + import site);
   `specimenTypes.ts` comment cleanup; **`specimenTypes.ts` relocated to
@@ -1021,7 +1083,7 @@ working tooltip.
 
 Two new admin CRUD screens for the two Financial Class reference dictionaries (`services/billing/README.md` has the full data-model account) — registered in the pre-existing `Financial & Revenue Lookups` sidebar group alongside Billing Dictionary/RVU Code Map/NCCI Edit Rules, not a new group invented for this feature. Both use the simple, direct CRUD pattern (no versioned/dual-control-approval workflow) — this is structural reference data an admin configures directly, not licensed content with a real regulatory reason to track who approved which version. `MasterPaymentTypeDictionarySection.tsx`'s own Category ID field locks on edit — real, deliberate: `JurisdictionPaymentMappingSection.tsx`'s own rows reference it by id directly, so renaming one in place would silently orphan every real mapping that points at it.
 
-Explicitly the first step of a larger, staged rollout (see the source spec's own phased roadmap) — the Accessioning Screen redesign that actually consumes these two dictionaries (Client Account/Outside Client selection, Primary Jurisdiction, Payment Category → Primary Payer → Coverage, split-billing toggle) is real, separate, not-yet-built work.
+Explicitly the first step of a larger, staged rollout (see the source spec's own phased roadmap) — the Accessioning Screen redesign that actually consumes these two dictionaries (Client Account/Outside Client selection, Primary Jurisdiction, Payment Category → Primary Payer → Coverage, split-billing toggle) is real, separate, not-yet-built work. *(Since built, at least in part: `pages/AccessionPage/AccessionPage.tsx` now loads both through `masterPaymentTypeService`/`jurisdictionPaymentMappingService` — checked in the Batch 496 README audit.)*
 
 ## `OutboundMessagePreviewSection.tsx` — real, per direct guidance ("How do users test this... should be comprehensive tool so that formats can be verified")
 
@@ -1033,13 +1095,13 @@ Deliberately its own new screen, not bolted onto `DftExportPreviewSection.tsx` �
 
 Two real, honest caveats surfaced directly in the UI rather than silently glossed over:
 - A40/A47 previews show `casesRepointed`/`encountersRepointed` as `0` — this tool builds a payload on demand without performing the real merge/rebind, so those real counts genuinely aren't available outside an actual operation. Every other field is accurate.
-- ORU^R01 previews show `reportPdfBase64`/`reportNarrativeText` as absent — generating either requires the real report-rendering pipeline's own React-component closures (`SynopticReportPage.tsx`), which a standalone admin tool has no access to. `structuredDiagnosisAnswers` and the direct narrative fields (`clinicalHistory`/`grossDescription`/`microscopicDescription`/`diagnosisComment`) are all real and accurate.
+- ORU^R01 previews show `reportPdfBase64`/`reportNarrativeText` as absent — generating either requires the real report-rendering pipeline's own React-component closures (`SynopticReportPage.tsx`), which a standalone admin tool has no access to. *(Since closed in Batch 392: the ORU^R01 preview is the message exactly as a release sends it, report PDF included — see Batch 392 below; checked in the Batch 496 README audit.)* `structuredDiagnosisAnswers` and the direct narrative fields (`clinicalHistory`/`grossDescription`/`microscopicDescription`/`diagnosisComment`) are all real and accurate.
 
 No new component-level test file — matches the established, un-tested convention `DftExportPreviewSection.tsx` itself already has: a thin UI wrapper over already-tested service functions (`buildAdt08Payload`/`buildAdt40Payload`/`buildAdt47Payload` all covered by `services/patients/outboundPatientAdt.test.ts`'s own 9 real tests) doesn't need a second, duplicate layer of coverage for the same logic.
 
 ## `CytologyCategoriesSection.tsx` — new (Sep 2026), Phase 1 of the Cytology & Cervical Screening module
 
-Real, per direct guidance: any configuration for the new Cytology module lives here, as a new subtab under System — same interface/mock pattern every other admin dictionary in this file already follows, not a new, separate configuration surface (registered under the existing `Clinical Lookups` group, alongside Protocol Dictionary/Subspecialties/Departments).
+Real, per direct guidance: any configuration for the new Cytology module lives here, as a new subtab under System — same interface/mock pattern every other admin dictionary in this file already follows, not a new, separate configuration surface (registered under the existing `Clinical Lookups` group, alongside Protocol Dictionary/Subspecialties/Departments). *(Since moved: the file still lives in this folder, but it is shown in Configuration's own **Cytology** tab (`Config/Cytology/cytologySections.ts`, section `cytology_categories`), not in the System sidebar — checked in the Batch 496 README audit.)*
 
 A real, standard 2014 Bethesda System category dictionary — three configurable components (Specimen Adequacy, General Categorization, Interpretation/Result), verified against IARC's own published Bethesda reference before building the seed data, not improvised. See `services/cytology/README.md` for the full account, including the real, forward-compatible link each interpretation/result category carries to this app's own existing `AbnormalSeverity` vocabulary — recorded now, not consumed anywhere yet.
 
@@ -1159,6 +1221,8 @@ Saving goes through `services/templates/templateGovernanceSettings.ts → saveTe
 - **`index.tsx`:** registers the section.
 - **`DemoResetTab.tsx`:** clears the `instruments` key.
 
+*(Since replaced: `InstrumentsSection.tsx` and `services/instruments/` no longer exist; Batch 358's `EquipmentSection.tsx` and `services/equipment/` took over — checked in the Batch 496 README audit.)*
+
 ## Batch 358: the Equipment register
 
 - **`EquipmentSection.tsx`** replaces `InstrumentsSection.tsx`, still under Workstation & Hardware.
@@ -1246,7 +1310,450 @@ Saving goes through `services/templates/templateGovernanceSettings.ts → saveTe
 - **Batch 381, `FieldRequirementsSection`:** the Case report page's group 2: Holds, Comments, Delegation, Biopsy arrays, and Block cancellation and restains.
 
 - **Batch 382, `FieldRequirementsSection`:** two more Case report groups: Frozen-final reconciliation, and Billing changes after sign-out (all locked).
+- **Batch 383, `FieldRequirementsSection`:** the last two Case report groups: Autopsy forms and Sign-out gates (mostly locked; the consent scope and the fixation "no time possible" reason are optional switches).
+- **Batch 384, `FieldRequirementsSection`:** a fourth page, Messaging, with the groups New message, Secure email and Reply (recipient and text locked; the subject is a switch).
+- **Batch 390, `FieldRequirementsSection`:** the Cytology page's sixth group, Correction / addendum (reason and addendum text, both locked).
+
+## Batch 386
+
+`FieldRequirementsSection`: the Cytology screening page, with the groups Cytology review (Bethesda), CISOE-A review, 5-year retrospective review and Cyto-histologic correlation.
+
+## Batch 388
+
+`FieldRequirementsSection`: the Microtome workstation page, with the group Slide orders (Comments already existed).
+
+## Batch 392
+
+`OutboundMessagePreviewSection`: an ORU^R01 preview is the message exactly as a release sends it, report PDF included; a result without a PDF says it would be held.
+
+## Batch 397
+
+`FieldRequirementsSection.tsx` takes its group order from `FIELD_GROUP_ORDER` in `services/fieldRequirements/fieldRequirementRules.ts`, so a new group can't be left off the screen. It now lists the Intraop page.
+
+## Batch 399
+
+`IntraopCriticalResultsSection.tsx`: **Intraoperative critical results** (Lab Materials & Workflows). Add, edit, deactivate entries: a name, a description, match terms and preliminary categories. Buttons are greyed without `config:intraop-critical-results:manage`; the service checks it.
+
+## Batch 403
+
+`StainDictionarySection.tsx` (Molecular tests) has two new controls: "Reference labs approved for this test" (ticks), and a "Default lab" choice when more than one lab is ticked. Add-on orders use them to fill in the lab and to limit the choices. Molecular targets now come through `@/services`, so the file is off the deployment baseline.
+
+## Batch 406
+
+`DeckLayoutEditor.tsx`, shown in the equipment editor for analysers, edits the deck layout (instrument profile). Each slot has its id, deck or bay, and the rack types it takes (sample tube rack, extraction plate, reagent cartridge). `EquipmentSection.tsx` saves it with the rest of the record. Rack Loading and the plate builder offer only the slots that fit.
+
+## Batch 422
+
+`CancerRegistrySettingsSection.tsx` rebuilt: the thirteen registries from `cancerRegistryDefinitions.ts` (COSD relabelled England, since Scotland and Northern Ireland now have their own), each registry's jurisdictions, identifier, wire format and a "confirm with the registry" badge; the environment (test / live) and whether the jurisdiction honours a patient's opt-out (both read by the services since Batches 418–419 with no control until now); every save through `saveCancerRegistrySettings` (`config:cancer-registry:manage`, `CapabilityButton`, audited). No direct mock imports: off the deployment baseline.
+
+## Batch 423
+
+The test/live selector on Cancer Registry Reporting is replaced by the go-live panel (`components/Config/RegistryGoLive/`), with a registry chooser when facility overrides use other registries.
+
+## Batch 424
+
+Cancer Registry Reporting's connection panel now works per registry. Going live with one cancer registry no longer switches the others.
+
+## Batch 425
+
+`TemplateGovernanceSection` greys its two controls out without `config:template-governance:manage` and says why. The save checks the capability too.
+
+## Batch 428: Configuration permissions
+
+Each section's save is checked in its service; the table is in `docs/architecture/AUTHORIZATION_API.md`. Changes in this folder:
+- `RetentionSection.tsx`: loads and saves through `services/retention/retentionPolicyService.ts` (`config:retention-policy:manage`) instead of browser storage; off the deployment baseline.
+- `DocumentStyleSection.tsx`: saves through `services/reportAppearance/saveDocumentStyle.ts` (`config:report-appearance:manage`).
+- `DepartmentsSection.tsx`: the below-floor retention audit entry is written by `services/departments/auditRetentionOverride.ts` under the signed-in person (it said "super-admin"); case masks come from the barrel; off the deployment baseline.
+- `CasePoolAssignmentSection.tsx`, `RoutingRulesSection.tsx`: saves and "Run now" wait for the check (`config:case-routing:manage`, `case:routing:run`).
+- `AssistLisPollingSection.tsx`: poll now, paste a message and retry need `assist:lis-message:ingest`; a refusal shows the Configuration page's banner.
+- `CountrySigningRulesSection.tsx`: saved under `platform:signing-rules:manage` (ForMedrixAI support), which replaces the role check.
+- `OutboundMessagePreviewSection.tsx`, `DftExportPreviewSection.tsx`: each preview needs `config:interface-preview:view` (they show patient data).
+- **Deleted:** `SpecimenCategoriesSection.tsx` and `PatientMatchReviewSection.tsx` here (unused; the live patient-match review is `components/QualityAssurance/PatientMatchReviewSection.tsx`). References to them above are historical.
+
+## Batch 429: view-only sections, equipment log for the bench
+
+Every section here is wrapped in `ConfigSectionGate` (`index.tsx`). Navigation and view buttons in Vendor integrations, Storage locations, Processing protocols (history), TAT (simulator, filter), the modifier and RVU tables (older versions) are marked `data-config-nav` so they stay usable view only. The equipment log is also on Batch Management (`pages/BatchManagement/EquipmentServiceLogPage.tsx`).
+
+## Batch 430: personal settings per person; view-only fields
+
+Search and filter fields here are marked `data-config-nav`, so they keep working when the section is shown view only.
+
+## Batch 431
+
+- The section list and group labels moved to `systemSections.ts` (shared with the Configuration search).
+- Document Style has a "Page size and margins" block: the lab's page size and margins (`services/reportAppearance/pageSetup.ts`).
+- `documentStyleConfig.ts` keeps the styles in the lab settings store.
+
+## Batch 432
+
+`SurgicalPeerReviewRiskWeights.tsx` (new), shown in the QA Configuration Center editor for the Surgical Post-Sign-Out Peer Review type.
+
+## Batch 433
+
+`BiometricPolicyCard.tsx` in Session security: the lab's biometric e-signature policy (on/off, how often, days). Saving needs `config:session-security:manage` (`services/biometric/mockBiometricService.ts` `saveBiometricPolicy`).
+
+## Batch 437
+
+Sections that keep a draft report it (`useReportConfigDirty`, PS-128): Cytology QC settings, Cancer Registry, Country Signing Rules, Governing Bodies, Retention, Crosswalk, SNOMED cervical severity mapping, Support Access, Research Feed. The section list and group tabs ask before leaving unsaved changes. Print Settings has a new card, "Ask for a reason when a report is reprinted" (PS-282). Configuration exports are audited (PS-282).
+
+## Batch 438 (PS-146)
+
+`RevisionReasonsSection.tsx`: Configuration → System → Revision Reasons (Administration & Compliance). The amendment and correction reasons with their "clinically significant" switch. A change saves at once and needs `config:revision-reasons:manage`.
+
+## Batch 439 (PS-144)
+
+`PeerReviewGateSection.tsx`: Configuration → System → Peer Review Before Sign-Out. Where sign-out waits for a first-time malignancy's review: the organisation, each performing lab, each department (subspecialty); inherit / on / off. Off by default. Saves at once; `config:peer-review:manage`.
+
+## Batch 441
+
+`QAConfigurationCenterSection.tsx`:
+- an "Only for reviews after the report was released" checkbox (`capaTriggerRule.postSignOutOnly`, PS-148);
+- the CAPA Trigger column now comes from `services/quality/capaTriggerSummary.ts`, with severities translated and joined in the user's language, and "(after release only)" when set;
+- jurisdictions show their translated names, and the sampling percentage is formatted per language.
+
+## Batch 442 (PS-147)
+
+`QaTrendPolicySection.tsx` is **Discordance Trend Policy** (Administration & Compliance):
+- the organisation's policy, plus "has its own policy" for any performing lab;
+- the fields are: watch pathologists / specimen types, window (months), minimum reviews, major severities, count, rate, and what crossing produces;
+- saving is validated, checked (`config:qa-trend-policy:manage`) and audited.
+
+Registered in `systemSections.ts`, `index.tsx`, `services/screens/configSectionAccess.ts` and `constants/configSearchIndex.ts`.
+
+## Batch 444
+
+`ScanStationsSection.tsx` is translated. The `scanStationsSection.*` keys already existed in all five languages, but the screen never used them; it does now.
+- New keys: the four validation messages, the eight suggested workflow stages, and plainer wording for the subtitle and four hints.
+- It reaches stations through `@/services` instead of the mock service, so it's off the deployment baseline.
+- The list filter moved to `services/scanStations/scanStationList.ts`.
+
+## Batch 447
+
+`FeedbackSection.tsx` is **Feedback** (Administration & Compliance):
+- whether the QA feedback button shows: the default for this instance, always shown, or always hidden;
+- the QA recipients and the administrator cc.
+
+Saving is checked, validated and audited. Registered in `systemSections.ts`, `index.tsx`, `configSectionAccess.ts` and `configSearchIndex.ts`.
+
+## Batch 450 — test evidence for Priority 1 and 2 tickets
+
+`TATConfigSection.tsx` calls `services/tatConfig/tatEntryActions.ts` (PS-38); `AbnormalTriggerRulesSection.tsx` calls `services/abnormalDetection/abnormalTriggerRuleEditing.ts` (PS-129).
+
+## Batch 451 — screen-level test evidence for Priority 2 tickets
+
+Tests for the Cytology QC Settings section (PS-155), Print Settings (PS-233; decisions moved to `services/printSettings/printSettingsForm.ts`), the CPT Modifier and NCCI dictionaries' template export and re-upload (PS-48; template rows moved to the billing services), and `addButtonsNoWrap.guard.test.ts` (PS-90). `CytologyQcSettingsSection`, `ModifierDictionarySection` and `NcciEditRulesSection` now reach their services through `@/services` and are off the deployment baseline (99 left). `ModifierDictionarySection`'s hidden upload errors and fixed `'en-US'` date were fixed in Batch 452.
+
+## Batch 452 — Closing the review gaps (PS-131, PS-105, PS-133/PS-323, PS-57), PS-156 correlation window, decant ↔ billing sync, Phase 1 fixes
+
+`ModifierDictionarySection`: errors before a preview opens (wrong file type, empty file, unreadable file) are now shown. A failed or refused save, an invalid effective date, or an exception is shown in the preview and never left silent. Dates follow the user's language, and the default version label is translated.
+
+## Batch 453 — The Batch 452 open items, and the native-speaker review register
+
+New section `BiopsyResectionCorrelationSection.tsx` ("Biopsy-to-resection correlation", under Administration & Compliance). It sets the surgical window's length and start date per enterprise, jurisdiction and facility. It is the shared `CorrelationWindowSettings` from `Config/Cytology/CytologyHistologyCorrelationSection.tsx`, wired to the surgical services. It's registered in `systemSections.ts` and `index.tsx`. Test: `BiopsyResectionCorrelationSection.test.tsx`.
+
+## Batch 454 — Follow-up not received: report, alerts and clinician email
+
+New `FollowUpTrackingSection.tsx` (Configuration → System → Follow-up tracking, under Administration & Compliance). It sets the warning days, whether the clinician email is offered and its wording, for the enterprise and per facility. The wording fields show only when the email is on, and an unknown placeholder can't be saved. It is registered in `systemSections.ts` and `index.tsx`. Test: `FollowUpTrackingSection.test.tsx`.
+
+## Batch 455 — Demo baseline: people, pools, cases and the reset
+
+`DemoResetTab.tsx` now has only the Full Reset; the "My data only" card was removed. The card text says what is restored.
+
+## Batch 461: Organ maps (Clinical Lookups, `organ_maps`)
+
+**`OrganMapsSection`**, two tabs:
+- **Colours & patterns**: choose a level (Enterprise, a jurisdiction, a facility). Each row shows what a map category or outline looks like at that level; **Override here** starts from what it inherits, then colour, pattern and legend wording can change; **Use inherited** gives it back. A preview map shows every colour and pattern. Every colour keeps a pattern (only "No tumour" and "Not sampled" may have none). **Save** / **Remove this level's overrides** need `config:organ-map-scheme:manage` (for that facility, on a facility level).
+- **Map bindings**: choose a synoptic template. PathScribe's own prostate templates (and copies of them) show "PathScribe map questions" and need nothing. For a lab's own template, choose the map, then for each input the question and what each of its answers means (for the biopsy map: the results grid question, its columns, and what the site, carcinoma, Grade Group and Gleason answers mean). **Save** / **Remove your lab's binding** need `config:organ-map-bindings:manage`.
+
+**The maps are always drawn from the synoptic answers**; nothing here stores case data. Rendering only: edits in `services/organMapping/organMapConfigDraft.ts`, saves in `organMapConfig.ts` (checked, validated, audited), loading in `hooks/useOrganMapConfig.ts`. Registered in `systemSections.ts`, `index.tsx`, `services/screens/configSectionAccess.ts` and `constants/configSearchIndex.ts` (`sys-organ-maps`).
+
+## Batch 462: Organ maps — breast
+
+- **Colours & patterns**: the breast categories, a second preview (a sample breast map that follows the level's colours and close-margin threshold), and "Breast: a margin is close below (mm)" with **Override here** / **Use inherited** (2 mm unless set; 0.1–10).
+- **Map bindings**: the map "Breast" binds a side question, a foci grid (columns and the meaning of type and clock answers) and a margins grid (only one with its own rows; each row → a margin). Choosing another column starts that column's meanings again.
+
+## Batch 463
+
+`OrganMapsSection.tsx`: a Mohs binding editor (which Mohs stage question) and a Mohs map in the colours preview, so "Residual tumour" and "Perineural invasion" can be seen while changing them.
+
+## Batch 464
+
+`OrganMapsSection.tsx`: the thresholds are rows from `THRESHOLD_ROWS` — the breast close margin, and the malignant-polyp and rectal CRM involved margins, each a distance with its operator (≤, <, =), overridden or inherited together; a generic binding editor for the colorectal maps (each input a question, and for a choice input what its answers mean); colorectal previews.
+
+## Batch 465
+
+`OrganMapsSection.tsx`: the oral cavity involved and close margin rows (from `THRESHOLD_ROWS`); a neck dissection binding editor (the levels grid, each fixed row's level, the four columns, the ENE answers' meanings); the field-input editor names oral answers by their subsite or value (`fieldInputValueKey`); head and neck previews.
+
+## Batch 465b
+
+`OrganMapsSection.tsx`: a standing warning for each layer whose oral cavity rules conflict with what it inherits, and the save message lists them.
+
+## Batch 466
+
+`OrganMapsSection.tsx`: kidney margin rule rows, and renal previews (radical right, partial left). The renal map's questions use the generic field-input editor.
+
+## Batch 466b
+
+`OrganMapsSection.tsx`: a "Generic margin questions (calculated from the map)" block in Map bindings. It sets which question is the margin status and which lists the margins involved, and what each answer means.
+
+## Batch 466c
+
+- `OrganMapsSection.tsx`: under the colorectal polyp's generic margin questions, a checkbox "Adenoma at the lateral margin counts as involved". It is on by default. (Replaced in Batch 466d by margins per component.)
+
+## Batch 466d
+
+`OrganMapsSection.tsx`:
+- Margin questions are bound per component ("Invasive carcinoma: margin status question", "Adenoma: …", "DCIS: …", "Dysplasia: …").
+- Binding problems name the role.
+- A pre-466d binding shows "Margin questions to review".
+- The 466c adenoma checkbox is removed.
+
+## Batch 467 — In-house molecular orders
+
+Stain Dictionary: a molecular test's "Run in-house at" (the performing labs that run it in-house).
+
+## Batch 482 — Structured Inking, Module 3 (PS-359 follow-up)
+
+- **`InkColorsSection.tsx`** — real admin UI for the new margin ink-colour dictionary (`services/inkColors/`): name, hex code, active toggle. Deliberately simpler than `CassetteColorsSection.tsx` — no key/fallback-policy/performing-lab fields, since a margin ink colour isn't hopper hardware (see `IInkColorService.ts`'s own header). Same table+modal pattern; registered in `systemSections.ts`, this folder's own `index.tsx` switch, and `services/screens/configSectionAccess.ts` (`ink_colors`). Reuses `.ps-cassette-color-swatch`/`.ps-cassclr-color-input` from `pathscribe.css` rather than duplicating them. *(Batch 496 README audit note: `InkColorsSection.tsx` and `CassetteColorsSection.tsx` use plain buttons, not `CapabilityButton`; without the capability (`config:ink-color:manage` / `config:cassette-colors:manage`) the section is shown view only by `ConfigSectionGate`. A known convention gap, not fixed.)*
+
+## Batch 484 — new: InkingValidationModeSection.tsx (PS-519 follow-up, "Organisation/Site admin UI, full build")
+
+The one genuinely missing piece of "Organisation/Site admin UI" this batch's own research confirmed — Facility already has a comprehensive admin UI (`components/FacilityDictionary/`); the real gap was a settings screen for the facility-scoped `inking_validation_mode` (`services/grossing/inkingSiteSettings.ts`, existing since Batch 480 with no UI consumer). New **`InkingValidationModeSection.tsx`** (+ test): a facility picker, then a WARN_ONLY/STRICT_ENFORCE radio choice for that facility, gated by the existing `config:inking-validation-mode:manage` (`CapabilityButton`). Registered in `systemSections.ts` (`inking_validation_mode`), this folder's own `index.tsx` switch, and `services/screens/configSectionAccess.ts`.
+
+## Batch 491 — new: TumorBoardRulesSection.tsx (Hybrid Inheritance Model; PS-359 follow-up)
+
+New **`TumorBoardRulesSection.tsx`**: an enterprise-baseline card (per-rule editable margin threshold/active, per-row dirty tracking and Save) and a facility-overrides card (add/list/remove a per-facility+rule override), gated by the new `config:tumor-board-rules:manage` (`CapabilityButton`, `useReportConfigDirty` for the unsaved-changes guard). Reads `tumorBoardRuleService`/`facilityTumorBoardRuleOverrideService`/`facilityService` from `@/services`. Registered in `systemSections.ts` (`tumor_board_rules`), this folder's own `index.tsx` switch, and `services/screens/configSectionAccess.ts`. See `services/tumorBoardRules/README.md` for the full Hybrid Inheritance Model account.
+
+## Batch 494 — TumorBoardRulesSection: new Batching Cut-Off card (PS-359 follow-up — MDT Self-Service Assignment & Batching redesign)
+
+**`TumorBoardRulesSection.tsx`** gains a new "Batching cut-off" card, between the enterprise-baseline and facility-overrides cards — one hours input + Save, same dirty-draft pattern as the per-rule threshold inputs. Reads/writes `tumorBoardBatchSettingsService.get()`/`update()` (new, in `services/tumorBoardRules/`), gated by the same `config:tumor-board-rules:manage` this screen already checks — no new capability needed. Folded into the existing `anyDirty`/`useReportConfigDirty` unsaved-changes guard. See `services/tumorBoardRules/README.md`'s own Batch 494 entry for the enterprise-wide-vs-per-facility scope decision.
+
+## Batch 612 (part C)
+
+Document Style: sizes are points (labelled pt, with the printed size shown); the built-in defaults are body 10, header 11 bold, footer 10 pt (`documentStyleConfig.ts`). A lab style saved before is read as `legacy_px` and prints as before until **Convert to points**.
+
+## Batch 610 (#71)
+
+`TumorBoardCriteriaRulesCard.tsx`: the diagnosis and biomarker rules card on Tumor Board Auto-Flag Rules.
 
 ---
 *See [components/Config/README.md](../README.md) for how this folder fits Config/.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master components/README.md or Config/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 499 — Organ maps: switching asks before dropping unsaved edits (PS-479)
+
+Changing level (enterprise / jurisdiction / facility, or which jurisdiction or facility), template, map type, or the Colours / Bindings tab starts a new draft. Each of those now goes through `useConfigNavigationGuard()`, so with unsaved changes the Configuration page asks "Discard changes?" first, as every other section's own navigation does (PS-128). Cancel leaves the level and the edits as they were. Whether the draft is unsaved is still decided in services (`schemeDraftDirty`, `bindingDraftDirty`). Tests: `OrganMapsSection.guard.test.tsx`.
+
+*Not offered:* a "Save" choice in the dialog. The shared Configuration dialog offers Discard or Cancel everywhere; Cancel returns the user to the Save button on screen.
+
+## Batch 501 — Cytology QC Rules now take effect
+
+Rules saved in `CytologyQcRulesSection` are evaluated at every cytology sign-out (until now they changed nothing). A matching rule creates, or upgrades, the specimen's one open QC assignment with its tier, SLA and reviewer pool; ROSE discrepancies rank above rules; QC Settings' random and high-risk peer-review selection still only flag the specimen. See `services/cytologyQc/README.md`.
+
+## Batch 506 (PS-477)
+
+`DemoResetTab.auditTest.ts` moved to `services/demoReset/demoResetKeys.auditTest.ts`, next to the key lists it checks (listed in `DELETED_FILES.txt`). The configuration sections here that imported mock services now import them from `@/services`.
+
+## Batch 508
+
+Full Reset on this tab now also clears every screen display preference. The demo-reset key check (`services/demoReset/demoResetKeys.guard.test.ts`) is now part of the automated suite. No change to this tab's screen or text.
+
+## Batch 511 (PS-478): full strict type-checking
+
+- **Bug fixed, `PhysiciansSection.tsx` (CSV import):** a row with a blank NPI never matched an existing physician by physician code, so the import added a duplicate. It now matches by code when the NPI is blank.
+- Typing only: `OrganMapsSection`, `CytologyQcSettingsSection`, `TypeModal`, `ParticipationTypesSection` (its save takes the service's `NewParticipationType` directly). No visible change.
+
+## Batch 512
+
+`CytologyQcSettingsSection` shows each override rate as the override's own value or as inherited (`services/cytology/describeQcOverrideRates.ts`), never "undefined%". New text keys `cytologyQcSettingsSection.rate.*` and `rateSummaryParts` in all five languages; `rateSummary` removed.
+
+## Batch 513 (PS-269): the UI translation sweep is complete
+
+Every visible string here now goes through `t()`, in all five languages, and `src/i18n/uiText.guard.test.ts` keeps it that way. `ScanStationsSection`: the "STATION:" prefix is the literal barcode text the scanner reads, so it is data, not UI wording. The table now shows it through `barcodePayloadForStation()`.
+
+## Batch 514 (PS-269)
+
+`PhysiciansSection.tsx`: names show in the screen's language (Korean: 이서연 선생님). The title dropdown uses the shared `common.honorifics.*` keys; the duplicate `physiciansSection.modal.prefix*` keys are gone (their French Ms. lacked the "(Ms)" qualifier).
+
+## Batch 515 (PS-124)
+
+`FppeAssignmentsSection.tsx` reads and writes `qaSupervisionAssignmentService` (FPPE activity) only; its decisions moved to `services/quality/fppeAssignmentForm.ts`. Dates use the user's format.
+
+## Batch 516
+
+- **`QaFieldSchemaEditor.tsx`** (+ test), used by `QAConfigurationCenterSection.tsx`, edits a Custom QA activity's review fields: add, reorder, relabel, required or optional, and options.
+- **Saved fields:** they keep their type and can't be removed (PS-125). A refused save now keeps the dialog open and says why; before, it closed silently.
+- **`FlagConfigPage.tsx`:** a **Restricts printing** switch for case flags (PS-283).
+- **`OrganMapsSection.guard.test.tsx`:** now covers a map-type switch, and a clean switch that goes straight through (PS-479 gaps from the Oct 10 audit).
+
+## Batch 520 (PS-280)
+
+`DeliveryRulesSection.tsx`: a rule sets each channel (electronic, print, e-fax, file drop) as primary, secondary, fallback or off, with a fax number (optional; else the ordering physician's) and a file-drop target name. The table and the Test panel show the channels by role. A fallback without a primary, a file drop without a target, or a fax number that isn't one stops the save. Test: `DeliveryRulesSection.test.tsx`.
+
+## Batch 521 (PS-281)
+
+`DeliveryRulesSection.tsx`: the automatic retry waits (default 1, 5, 15 minutes), saved with `config:delivery-rules:manage`.
+
+## Batch 524 (PS-491): accessibility
+
+Clickable elements here work from the keyboard (`pressable` / `switchable`, `utils/a11y/pressable.ts`), on/off tracks are named switches, and every form field has a name a screen reader reads. Guarded by `services/accessibility/a11y.guard.test.ts`; checked in the browser by `e2e/a11y.spec.ts` (`npm run test:a11y`).
+
+- Every on/off track is a `switchable(...)` switch with a name: the field label, or "Active: <row>" in tables (Governing Bodies enabled / auto-sync, Routing Rules, TAT, Delegation types, Identifier formats). Disabled ones say so (`aria-disabled`).
+- `TerminologyServicesSection`: the `<Trans>` component `link` is now `licence` in code and all five languages. `link` is an HTML void element, so the link text was being dropped.
+- `DelegationTypeSection`: the scrolling table is a named, focusable region (`a11y.scrollableTable`).
+- `EquipmentSection`, `GrossingHardwareSection`: the status toggle buttons have a name.
+- `StainDictionarySection`: the auto-append switch was named after the wrong field; fixed.
+
+## Batch 529 (PS-554): Clinical Mismatch Rules
+
+`ClinicalMismatchRulesSection.tsx`: the mismatch risk rules. A threshold saves when the field is left (or on Enter), an action when chosen; a problem shows under the row. Without `config:clinical-mismatch-rules:view` the section says so; with view only, it is view only (`configSectionAccess.ts`).
+
+## Batch 536 (PS-554)
+
+`AiInstructionsSection.tsx` (new): Configuration → System → AI Instructions. Per discipline: the version in use, the version awaiting approval (Approve; Reject with a reason; the editor is told someone else must approve), the editor (Save for approval), the Test panel on a sample case, and the history. Every action goes through `aiInstructionService`.
+
+## Batch 548
+
+Loading text here now uses `components/Common/LoadingState.tsx`: nothing for 300 ms, a placeholder, then "still working" from 3 s.
+
+## Batch 549 (PS-539 phase 2d: items carried over from earlier batches)
+
+- `DepartmentsSection.tsx`: the department's logo, when given, must be an https link (message under the field; not saved until fixed). Test added.
+- `GrossImagingVendorDictionarySection.tsx`: the vendor's address, when given, must be an https link; Save stays off until it is. First test file for this screen.
+- Loading text here now goes through `LoadingState` (`components/Common`): nothing for 300 ms, then the screen's own loading text, and "Still working…" from 3 s. Carried over from Batch 548; `services/connectivity/latency.guard.test.ts` now covers every loading text in the app.
+
+## Batch 552 (PS-539 phase 2d: site agent screens)
+
+- `SiteAgentsSection.tsx` (new): Site agents, in Workstation & Hardware (`systemSections.ts`, `index.tsx`). The site is the facility in the group's picker; with "All facilities" it asks for one. Agents with their status (refreshed every minute), a one-time enrolment code (Copy), Revoke with a reason, and the site's agent printers and file shares, saved together (unsaved edits guarded; the facility picker is guarded too now). Capabilities `config:site-agents:enroll` and `config:site-agent-config:manage` (`configSectionAccess.ts`).
+
+## Batch 553 (PS-539 phase 2d: site agent printers in routing)
+
+Batch 553:
+- **`PrintRoutingRuleSection.tsx`:**
+  - The destination is edited with `PrintDestinationFields`. A facility-tier rule uses that facility's printers; other tiers choose a performing lab.
+  - A refused save keeps the window open with the reason.
+  - The list names a printer with its site.
+  - Punctuation between translated pieces is now in the locale files.
+- **`SiteAgentsSection.tsx`:**
+  - Revoke uses quick-pick reasons.
+  - The update window can be edited.
+  - A pickup share hands over to an import picked from a list, or to a channel (the channels already used are offered).
+
+## Batch 555 (PS-539 phase 2d: browser stand-ins for server jobs)
+
+- `SupportAccessSection.tsx` (Batch 555): a support approval past its time reads "Expired" (`effectiveSupportStatus`).
+
+## Batch 595 — Code Systems
+
+`CodeSystemsSection.tsx` (Configuration → System → Code Systems, group Clinical Lookups): for each jurisdiction served, which code systems (ICD-10, ICD-11, ICD-O, SNOMED CT and others) are off, optional or required, and from what date. Uses `codeSystemPolicyService` (`services/coding/`); edits need `config:code-systems:manage` and are audited. The Add Code window and sign-out do not read the policy yet (Planned). `CodeSystemsSection.test.tsx`.
+- Batch 604: SimulatedMailOutboxSection (Integrations group).
+
+## Batch 606
+
+- `SimulatedPrintLogSection.tsx` (+ test): the Simulated print log (section `simulated_print`, capability `config:printers:manage`), with the failure switch.
+- `SlideLabelLayoutEditor.tsx` (+ test): slide label face, module size and font height with a fit check, preview and test print; mounted in `PrintSettingsSection.tsx`.
+
+## Batch 609 (#179)
+
+`VoiceSection.tsx` gained the "Match English commands loosely in other languages" switch (`voiceEnglishFuzzyFallback`) and a review list of the AI dictation instructions per language. Tests: `VoiceSection.test.tsx`.
+
+## Batch 609 (#31)
+
+`ClinicalMismatchRulesSection.tsx` has a new card, "Amendments, corrections and addenda": a switch for whether a high-risk mismatch holds the release (on by default). Needs `config:clinical-mismatch-rules:manage`; the change is audited. Tests added to `ClinicalMismatchRulesSection.test.tsx`.
+
+## Batch 610 (part A) — TAT configuration
+
+Autopsy PAD and FAD rule types; warning-minutes field for frozen section (`tat-rule-warning-minutes`); all `as any` casts removed.
+
+## Batch 610 (part B)
+
+New sections `PerformanceTargetsSection`, `ClientSlaSection` and `JurisdictionOverviewSection` (Administration & Compliance group; ids `performance_targets`, `client_sla`, `jurisdiction_overview`), registered in `systemSections.ts`, `index.tsx`, `configSearchIndex.ts` and `configSectionAccess.ts` (the first two need `config:tat-targets:manage`). Values save on change; the overview is read-only.
+
+## Batch 611 (part G)
+
+New section `SmartCaptureSection` (id `smart_capture`, Lab Materials & Workflows group): the prototype switch and the six-item production checklist for Smart Capture. Needs `config:smart-capture:manage`.
+
+## Batch 611 (#157)
+
+**`MfaPolicyCard.tsx`**: in Session Security, below the biometric card: who is asked for a second factor, the step-up minutes and the session hours, and the people enrolled in the Simulated authenticator with **Reset enrolment** (`CapabilityButton`, `auth:mfa-enrolment:reset`). Saving is checked in `mfaService` (`config:session-security:manage`). Test: `MfaPolicyCard.test.tsx`.
+
+## Batch 642
+
+**`SignOutPolicyCard.tsx`**: in Session Security, below the second-factor card: the enterprise sign-out authentication default (password every sign-out or once per session, session length, second factor at sign-out), the lock on facility overrides, a table of performing facilities (default or override, with the policy in force) and an audit CSV export. Saving needs `config:session-security:manage`; the service audits who changed what. Test: `SignOutPolicyCard.test.tsx`.
+
+## Batch 612 (workstations and scope reference)
+
+**`WorkstationsSection.tsx`**: register, change, rotate, revoke and test workstations; token shown once. **`ScopeReferenceSection.tsx`**: read-only list of enterprise versus facility scope by setting area. **`PrintRoutingRuleSection.tsx`**: the workstation field now suggests registered workstations.
+
+## Batch 612 (Interface Dictionary)
+
+**`InterfaceDictionarySection.tsx`**: vendor profiles, mapping editor, test, publish, roll back, scope reference. Registered in `systemSections.ts` (group Integrations) and shown only to holders of `platform:interface-dictionary:manage`.
+
+**Batch 617:** `BiometricPolicyCard` disables its switch and shows a note when the deployment has biometric sign-in turned off (`VITE_BIOMETRIC_SIGN_IN`).
+
+### DeliverySchedulesSection (Batch 619, PS-800)
+
+When each feed (and each registry separately) goes out, set for the enterprise and overridden per performing facility: card per feed or registry showing the schedule and where it comes from, an editor (immediate, set hours, batch with cutoff, hold until sign-out, review hold; reporting deadline; amendment re-queue), and a "Try a schedule" panel. Registered as `delivery_schedules` (Administration & Compliance), capability `config:delivery-schedules:manage`. Logic in `services/deliverySchedules/`; the editor's helpers in `deliveryScheduleForm.ts`; styles in `DeliverySchedulesSection.css` (own file, so `pathscribe.css` does not grow). Contract: `docs/architecture/DELIVERY_SCHEDULES_API.md`.
+
+### BillingReleaseSection (Batch 619, PS-800)
+When a generated charge is released to billing, set for the enterprise and overridden per performing facility: a card per rule (billing type, optional case types, ordering site, pathologist, amended/original; release at once, after a hold, in a batch or by a person), an editor (`BillingReleaseEditor.tsx`), and a "Try a charge" panel (`BillingReleaseTestPanel.tsx`). Registered as `billing_release` (Administration & Compliance), capability `config:billing-release:manage`. Logic in `services/billingRelease/`; the draft helpers in `billingReleaseForm.ts`; styles reuse `DeliverySchedulesSection.css`. Contract: `docs/architecture/BILLING_RELEASE_API.md`.
+
+### CosdDestinationSection (Batch 620 part C, PS-800)
+
+How the UK cancer registry submission is sent and how many working days a rejected one has to be corrected (5 by default), set for the enterprise and overridden per performing facility: a card showing the settings in force and where they come from, an editor (transport label, working days, the lab's non-working dates), and a check panel (`CosdCheckPanel.tsx`) for a sample submission with its findings, a labelled simplified preview, and a correction due date. Logic in `services/cosd/` and `cosdDestinationForm.ts`. Needs `config:cosd-destination:manage`.
+
+### HistoryExtractionSection (Batch 621)
+
+Whether the AI reads historical reports and keeps the synoptic fields it finds beside the case (advisory only, off by default): choose the enterprise or a performing facility, a card showing whether it is on and where that comes from, turn on / turn off (behind `config:history-extraction:manage`), use the enterprise setting again, and the accuracy counts (reports read, fields extracted, flagged as wrong). Logic: `services/historyExtraction/`. Contract: `docs/architecture/HISTORY_AI_EXTRACTION_API.md`.
+
+### UsEpathSection (Batch 620 part E, PS-800)
+US ePath: a card per state profile (the labelled example plus any added), add, edit (`UsEpathProfileEditor`, state, required and optional fields, transport, checks, field extensions, facility basis) and remove; choose the profile for the enterprise or a performing facility, with the profile its state would use shown. Needs `config:us-epath:manage`. Contract: `docs/architecture/US_EPATH_API.md`.
+
+### BatchRegistryFeedSection (Batch 620 part S, PS-800)
+Registry batch files: a card per profile (example and NAACCR XML shipped; NAACCR XML marked later and not selectable), turn on/off, edit, remove, check (counts of waiting, due, held back, overdue, next run) and make the file now (downloads it; behind `registry:batch-file:generate`). `BatchProfileEditor.tsx` edits the format, columns and file name with a live layout preview; `batchRegistryFeedForm.ts` holds the draft logic; styles in `BatchRegistryFeedSection.css`. Logic: `services/batchRegistryFeed/`.
+
+## Batch 623 (PS-130)
+
+`TerminologyLicencesCard.tsx` (new, shown under the table in `CodeSystemsSection.tsx`): record the SNOMED CT and ICD-O-3 licences the customer holds. Saves through the enterprise settings (`updateEnterpriseConfig`), which checks `config:code-systems:manage`. `AbnormalTriggerRulesSection.tsx`: the rule form has optional Real codes (SNOMED CT and ICD-O-3 code and term), used only while that licence is on. Tests: `TerminologyLicencesCard.test.tsx`.
+
+## Batch 626 (PS-163)
+
+`ReactiveChangesPolicyCard.tsx` (+ test), shown at the top of `CytologyCategoriesSection` for Bethesda: the lab's choice of who signs out a negative GYN case with reactive changes.
+
+## Batch 652 (defect fixes)
+
+`ExternalResourcesSection.tsx` (+ `.css`): https-only validation through `externalResourceUrl.ts`; stored http links show an "Insecure link" warning.
+
+Batch 706 (Pete, Oct 28 2026, Provenance Over Confidence): the AI instructions test result no longer prints a confidence percentage. Admin threshold inputs (Clinical Mismatch Rules, Confidence Threshold) stay numeric: they are settings.
+
+`FeedbackSection.tsx` (Oct 28, 2026): two more cards, **Validation recipients** and **Enhancement request destination URL** (with a line saying which host is in use). Rules in `services/feedback/`.
+
+## Batch 727
+
+`DisplayProfilesSection.tsx`: the Stations view in the view list, and **Time limit X (minutes)** when Embedding & Microtome or Stations is ticked (15 to 1440; Save stays off outside that).
+
+## Batch 728
+
+- `ResearchCasesSection.tsx` (+ `.css`, new): Research Cases & Batch Purposes (section `research_cases`). `DisplayProfilesSection.tsx`: the purpose filter.
+
+## Batch 729
+
+- `DisplayProfilesSection.tsx`: Not-scanned warning (minutes) for the Stations view.
+
+## Batch 730
+
+- `EquipmentSection.tsx`: the temperature range; `EquipmentLogModal.tsx`: Temperature check with its reading and automatic outcome.
+
+## Batch 732
+
+- Batch 732: Equipment window, "Takes large-format slides" for stainers and slide scanners (`EquipmentSection.css`, new).
+
+## Batch 750
+
+- `SlideImageSettingsCard.tsx` (new), at the top of the WSI Viewers section (`WsiViewerVendorDictionarySection.tsx`): the laboratory's viewer and preview addresses, and a facility's own; saved through the enterprise settings (`config:vendor-integrations:manage`). The section's inactive marker no longer joins text with a hard-coded dot.
+
+## Batch 762
+
+- `RequisitionIngestionSection.tsx` (new), Integrations → Requisition ingestion: the source (watched folder or sending system), schedule and separator-sheet barcode, saved through `requisitionService.saveSource` (`config:requisition-ingestion:manage`).
+
+- `RequisitionExpectationCard.tsx` (new, Batch 762): Expected requisitions, the organisation default and each facility's own: which origins need a scan, hours before a case is flagged, hours before a scan with no case is flagged.

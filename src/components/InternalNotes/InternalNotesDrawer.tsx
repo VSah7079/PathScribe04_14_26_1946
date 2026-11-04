@@ -20,6 +20,7 @@ import { internalNoteService, informalReviewService } from '../../services';
 import type { InternalNote, InternalNoteType, InternalNoteVisibility } from '../../services';
 import { useVoice, reportDictationCorrection } from '../../contexts/VoiceProvider';
 import ConfirmModal from '../Common/ConfirmModal';
+import { LoadingState } from '@/components/Common/LoadingState';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ const NOTE_TYPE_COLORS: Record<InternalNoteType, { bg: string; color: string; bo
   clinical_observation: { bg: 'rgba(16,185,129,0.12)',  color: '#10B981', border: 'rgba(16,185,129,0.3)'  },
   consultation:         { bg: 'rgba(139,92,246,0.12)',  color: '#8B5CF6', border: 'rgba(139,92,246,0.3)'  },
   addendum_request:     { bg: 'rgba(245,158,11,0.12)',  color: '#F59E0B', border: 'rgba(245,158,11,0.3)'  },
-  other:                { bg: 'rgba(100,116,139,0.12)', color: '#64748b', border: 'rgba(100,116,139,0.3)' },
+  other:                { bg: 'rgba(100,116,139,0.12)', color: '#8794a8', border: 'rgba(100,116,139,0.3)' },
 };
 
 // The real InternalNoteType value stays untouched (used for the color
@@ -120,6 +121,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
   }, []); // once on mount
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- rebuilt each render on purpose, so the voice listeners below always save the current note
   const handleAdd = async () => {
     if (!noteBody.trim()) return;
     setSubmitting(true);
@@ -158,6 +160,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
     setSubmitting(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- as handleAdd above
   const handleCancel = () => {
     setIsAdding(false);
     setNoteBody('');
@@ -174,15 +177,15 @@ const InternalNotesDrawer: React.FC<Props> = ({
       setTimeout(() => {
         startDictation({
           fieldId:  'internal-note-body',
-          label:    'Internal Note',
+          label:    t('internalNotesDrawer.dictationLabel'),
           context:  'clinical note',
-          onText:   (t, isInterim) => {
+          onText:   (text, isInterim) => {
             if (isInterim) {
               setIsInterimNote(true);
-              setNoteBody(committedNoteRef.current + t);
+              setNoteBody(committedNoteRef.current + text);
             } else {
               setIsInterimNote(false);
-              committedNoteRef.current = committedNoteRef.current + t;
+              committedNoteRef.current = committedNoteRef.current + text;
               setNoteBody(committedNoteRef.current);
             }
           },
@@ -214,7 +217,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
       window.removeEventListener('PATHSCRIBE_NOTE_CANCEL',            cancelNote);
       window.removeEventListener('PATHSCRIBE_NOTE_CLOSE',             closeDrawer);
     };
-  }, [isAdding, startDictation, stopDictation, handleAdd, handleCancel, onClose]);
+  }, [isAdding, startDictation, stopDictation, handleAdd, handleCancel, onClose, noteBody, t]);
 
   // Real fix: was window.confirm() — replaced with the shared ConfirmModal.
   // Needs pending-delete state since ConfirmModal is async/UI-driven
@@ -320,7 +323,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
                 <label className="ind-form-label">
                   {t('internalNotesDrawer.noteLabel')}
                 </label>
-                <textarea
+                <textarea aria-label={t('internalNotesDrawer.noteLabel')}
                   ref={textareaRef}
                   autoFocus
                   value={noteBody}
@@ -328,8 +331,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
                   onBlur={e => reportDictationCorrection(e.target.value)}
                   placeholder={t('internalNotesDrawer.notePlaceholder')}
                   rows={4}
-                  className="ind-textarea"
-                  style={{ '--ind-textarea-border': isInterimNote ? 'rgba(8,145,178,0.6)' : 'rgba(255,255,255,0.1)' } as React.CSSProperties}
+                  className={`ind-textarea${isInterimNote ? ' ind-textarea--interim' : ''}`}
                 />
                 <div className="ind-note-hint-row">
                   {isInterimNote ? (
@@ -350,12 +352,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
                     <button
                       key={v}
                       onClick={() => setNoteVisibility(v)}
-                      className="ind-visibility-btn"
-                      style={{
-                        '--ind-vis-bg':     noteVisibility === v ? 'rgba(8,145,178,0.15)' : 'rgba(255,255,255,0.03)',
-                        '--ind-vis-border': noteVisibility === v ? 'rgba(8,145,178,0.4)' : 'rgba(255,255,255,0.07)',
-                        '--ind-vis-color':  noteVisibility === v ? '#0891B2' : '#64748b',
-                      } as React.CSSProperties}
+                      className={`ind-visibility-btn${noteVisibility === v ? ' ind-visibility-btn--active' : ''}`}
                     >
                       {v === 'shared' ? t('internalNotesDrawer.sharedOption') : t('internalNotesDrawer.privateOption')}
                     </button>
@@ -382,12 +379,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
                 <button
                   onClick={handleAdd}
                   disabled={!noteBody.trim() || submitting}
-                  className="ind-save-btn"
-                  style={{
-                    '--ind-save-bg':     noteBody.trim() ? '#0891B2' : 'rgba(255,255,255,0.05)',
-                    '--ind-save-color':  noteBody.trim() ? '#FFF' : '#64748b',
-                    '--ind-save-cursor': noteBody.trim() ? 'pointer' : 'default',
-                  } as React.CSSProperties}
+                  className={`ind-save-btn${noteBody.trim() ? ' ind-save-btn--ready' : ''}`}
                 >
                   {submitting ? t('internalNotesDrawer.saving') : t('internalNotesDrawer.saveNote')}
                 </button>
@@ -399,7 +391,7 @@ const InternalNotesDrawer: React.FC<Props> = ({
         {/* ── Notes List ── */}
         <div className="ind-notes-list">
           {loading ? (
-            <div className="ind-loading">{t('internalNotesDrawer.loadingNotes')}</div>
+            <LoadingState variant="inline" className="ind-loading" label={t('internalNotesDrawer.loadingNotes')} />
           ) : notes.length === 0 ? (
             <div className="ind-empty-state">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">

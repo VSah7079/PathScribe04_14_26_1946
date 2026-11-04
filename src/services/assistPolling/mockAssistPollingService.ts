@@ -9,6 +9,7 @@ import type { ServiceResult } from '../types';
 import { storageGet, storageSet } from '../mockStorage';
 import type { AssistPollingSettings, AssistPollingState } from './types';
 import { DEFAULT_ASSIST_POLLING_SETTINGS, findCrosswalkProblems } from './assistMilestoneRules';
+import { guardConfigWrites } from '../authorization/guardConfigWrites';
 
 export const ASSIST_POLLING_STORAGE_KEY = 'pathscribe_assist_lis_polling';
 
@@ -39,7 +40,7 @@ export function validateAssistPollingSettings(s: AssistPollingSettings): string 
   return null;
 }
 
-export const mockAssistPollingService: IAssistPollingService = {
+const assistPollingServiceUnchecked: IAssistPollingService = {
   async getState() {
     return storageGet<AssistPollingState>(ASSIST_POLLING_STORAGE_KEY, initialState());
   },
@@ -53,8 +54,13 @@ export const mockAssistPollingService: IAssistPollingService = {
       ...settings,
       statusCrosswalk: settings.statusCrosswalk.map(e => ({ ...e, lisStatus: e.lisStatus.trim() })),
     };
-    const state = await mockAssistPollingService.getState();
+    const state = await assistPollingServiceUnchecked.getState();
     storageSet(ASSIST_POLLING_STORAGE_KEY, { ...state, settings: clean });
     return { ok: true, data: clean };
   },
 };
+
+/** Batch 428: every change needs its Configuration capability (guardConfigWrites). */
+export const mockAssistPollingService: IAssistPollingService = guardConfigWrites(assistPollingServiceUnchecked, [
+  ['config:assist-polling:manage', ['saveSettings']],
+]);

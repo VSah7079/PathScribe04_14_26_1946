@@ -11,6 +11,7 @@
 // matrixBlocks (those two) — never both from one real event.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { stainIndexAtLevel } from '../material/slideLevels';
 import type { Specimen, StainOrder } from '../../types/case/Specimen';
 import type { MatrixBlock } from '../../types/case/MatrixBlock';
 import type { MaterialLocation, Aliquot } from '../../types/case/Material';
@@ -96,7 +97,7 @@ export function applyMaterialLocation(
     if (!matrixBlock) {
       return { outcome: 'target-not-found', reason: `No matrix block ${matrixBlockId}.` };
     }
-    const slideIndex = Number(input.target.slideLevel.replace(/^L/i, '')) - 1;
+    const slideIndex = stainIndexAtLevel(matrixBlock.slides, input.target.slideLevel);
     const slide = (matrixBlock.slides ?? [])[slideIndex];
     if (!slide) {
       return { outcome: 'target-not-found', reason: `Matrix block ${matrixBlock.label} has no slide ${input.target.slideLevel}.` };
@@ -129,7 +130,7 @@ export function applyMaterialLocation(
   } else if (target.level === 'slide') {
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
     if (!block) return { outcome: 'target-not-found', reason: `Specimen ${specimen.label} has no block ${target.blockNumber}.` };
-    const slideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
+    const slideIndex = stainIndexAtLevel(block.stains, target.slideLevel);
     const stain = (block.stains ?? [])[slideIndex];
     if (!stain) return { outcome: 'target-not-found', reason: `Block ${specimen.label}${target.blockNumber} has no slide ${target.slideLevel}.` };
     targetDescription = `${specimen.label}${target.blockNumber}-${target.slideLevel}`;
@@ -143,7 +144,7 @@ export function applyMaterialLocation(
   } else if (target.level === 'aliquot') {
     const block = (specimen.blocks ?? []).find(b => b.label === target.blockNumber);
     if (!block) return { outcome: 'target-not-found', reason: `Specimen ${specimen.label} has no block ${target.blockNumber}.` };
-    const slideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
+    const slideIndex = stainIndexAtLevel(block.stains, target.slideLevel);
     const stain = (block.stains ?? [])[slideIndex];
     if (!stain) return { outcome: 'target-not-found', reason: `Block ${specimen.label}${target.blockNumber} has no slide ${target.slideLevel}.` };
     const { aliquot, isNew } = findOrCreateAliquot(stain, target.aliquotLabel, input.sourceSystem);
@@ -167,7 +168,7 @@ export function applyMaterialLocation(
   } else if (target.level === 'decant_slide') {
     const decant = (specimen.decants ?? []).find(d => d.label === target.decantLabel);
     if (!decant) return { outcome: 'target-not-found', reason: `Specimen ${specimen.label} has no decant ${target.decantLabel}.` };
-    const slideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
+    const slideIndex = stainIndexAtLevel(decant.stains, target.slideLevel);
     const stain = (decant.stains ?? [])[slideIndex];
     if (!stain) return { outcome: 'target-not-found', reason: `Decant ${specimen.label}${target.decantLabel} has no slide ${target.slideLevel}.` };
     targetDescription = `${specimen.label}${target.decantLabel}-${target.slideLevel}`;
@@ -182,7 +183,7 @@ export function applyMaterialLocation(
     // target.level === 'decant_aliquot'
     const decant = (specimen.decants ?? []).find(d => d.label === target.decantLabel);
     if (!decant) return { outcome: 'target-not-found', reason: `Specimen ${specimen.label} has no decant ${target.decantLabel}.` };
-    const slideIndex = Number(target.slideLevel.replace(/^L/i, '')) - 1;
+    const slideIndex = stainIndexAtLevel(decant.stains, target.slideLevel);
     const stain = (decant.stains ?? [])[slideIndex];
     if (!stain) return { outcome: 'target-not-found', reason: `Decant ${specimen.label}${target.decantLabel} has no slide ${target.slideLevel}.` };
     const { aliquot, isNew } = findOrCreateAliquot(stain, target.aliquotLabel, input.sourceSystem);

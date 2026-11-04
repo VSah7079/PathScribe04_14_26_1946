@@ -139,7 +139,10 @@ Notes.
   alongside the existing PDF generator) serving all clients from one call per
   day globally. Not built. Flagged here rather than discovered in production.
 
-- **`VITE_NCBI_API_KEY` is a deliberate exception to this codebase's own
+- *Superseded in Batch 499 (PS-476): the browser no longer reads any NCBI
+  key; PubMed is called without one (3 requests a second per IP). The note
+  below is kept as history.*
+- **`VITE_NCBI_API_KEY` was a deliberate exception to this codebase's own
   rule.** Anything `VITE_`-prefixed is inlined into the client bundle and is
   publicly readable — which is exactly why the AI, Gemini and UMLS keys had
   that prefix *removed* (see the June 2026 security work). An NCBI key is
@@ -165,6 +168,24 @@ Notes.
   answers. The abort signal alone would not catch that case, and the ticker
   would sit in its loading skeleton forever.
 
+## Batch 428: Configuration permissions
+
+- `mockResearchFeedConfigService`: `saveConfig` need `config:research-feed:manage`.
+
+Before, anyone who could open Configuration could change this; now each change is checked in the service (`authorization/guardConfigWrites.ts`, audited) and a refusal changes nothing. Reads are unchanged. Seeds: Admin and Lab Director; see `docs/architecture/AUTHORIZATION_API.md`.
+
+## Batch 444
+
+`VITE_NCBI_API_KEY` stays the one allowed browser key (`services/security/envExposure.guard.test.ts` lists it with the reason above). It's now read as `import.meta.env.VITE_NCBI_API_KEY`. The old `(import.meta as …).env?.` form was one of the reads that made Vite copy every `VITE_` variable into the bundle.
+
 ---
 *See [services/README.md](../README.md) for how this folder fits the whole services/ layer.*
 *When this folder's contents change meaningfully, update THIS file. Only touch the master services/README.md if this folder's overall PURPOSE changes.*
+
+## Batch 499 (PS-476): no key in the browser
+
+`pubmedResearchFeedService.ts` no longer reads `VITE_NCBI_API_KEY` and no longer sends `api_key`. NCBI E-utilities work without a key at 3 requests a second per IP; the 30-minute park after a 429 still covers a throttled hospital gateway. The variable is gone from `vite-env.d.ts` and `.env.example`, and `services/security/envExposure.guard.test.ts` now allows no secret-looking `VITE_` name at all. A keyed, server-side fetch can come with the terminology/AI proxy (PS-488).
+
+## Batch 617 (part C): server versions (PS-514)
+
+The research feed settings service here now have an API-server version, `http<Name>Service.ts`, chosen by `<name>ServiceInstance.ts` (mock without an API server address, server version with one). One route per interface method; the calls are listed in `docs/architecture/REFERRAL_RESEARCH_API.md`. The mocks are unchanged.

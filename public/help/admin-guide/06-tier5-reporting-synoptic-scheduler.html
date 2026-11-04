@@ -1,0 +1,2316 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tier 5: Reporting, Synoptic Forms and Scheduler Configuration · PathScribe Administrator Guide</title>
+<meta name="robots" content="noindex"><link rel="stylesheet" href="guide.css"></head>
+<body data-edition="customer" data-lang="en" data-root="">
+<header class="top"><a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span>PathScribe <span>Administrator Guide</span></a>
+<form class="search" role="search" onsubmit="return false"><input id="q" type="search" placeholder="Search screens, fields, error codes" aria-label="Search the guide" autocomplete="off"><ul id="results" hidden></ul></form>
+<select id="lang" class="langsel" aria-label="Language"><option value="en" selected>English</option></select>
+<button class="print" type="button" onclick="window.print()">Print / PDF</button></header>
+<div class="layout"><nav class="side" aria-label="Guide chapters"><a href="index.html">Contents</a><a href="setup-sequence.html">Setup order</a><a href="01-system-overview.html">1. System Overview and Architecture</a><a href="02-tier1-primary-prerequisites.html">2. Tier 1: Primary System Prerequisites (Configure First)</a><a href="03-tier2-master-dictionaries.html">3. Tier 2: Master Dictionaries and Clinical Foundational Data (Configure Second)</a><a href="04-tier3-workflow-engines.html">4. Tier 3: Workflow Engines and Operational Configuration (Configure Third)</a><a href="05-tier4-ai-framework.html">5. Tier 4: The PathScribe Embedded AI Framework</a><a href="06-tier5-reporting-synoptic-scheduler.html" aria-current=page>6. Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</a><a href="07-tier6-interface-engine.html">7. Tier 6: Interface Engine and External System Integrations</a><a href="08-tier7-billing-registry.html">8. Tier 7: Billing, Revenue Cycle Management and Registry Reporting</a><a href="09-appendices.html">9. Appendices: Troubleshooting and Audit Log Verification</a><a href="10-procedures-reporting.html">10. Step-by-step procedures: report templates, synoptic templates, JSON files and scheduled reports</a><a href="11-procedures-labels-billing.html">11. Step-by-step procedures: labels, billing and charge capture</a><a href="99-glossary.html">99. Appendix: Glossary of Terms and Abbreviations</a></nav><main id="main"><aside class="pagetoc" aria-label="On this page"><b>On this page</b><ul><li class="l2"><a href="#ch6-report-templates">Report Template Designer and Branding Setup</a></li><li class="l3"><a href="#screen-tab-templates">Report Templates tab</a></li><li class="l3"><a href="#screen-templates-parts">Part Library</a></li><li class="l3"><a href="#screen-templates-templates">Report Templates</a></li><li class="l3"><a href="#screen-templates-routing">Routing Rules</a></li><li class="l3"><a href="#screen-fonts">Approved Fonts</a></li><li class="l3"><a href="#screen-document_style">Document Style</a></li><li class="l3"><a href="#screen-template_governance">Template Review</a></li><li class="l2"><a href="#ch6-synoptic">CAP Synoptic Reporting Module Setup</a></li><li class="l3"><a href="#screen-tab-protocols">Synoptic Library tab</a></li><li class="l3"><a href="#screen-protocols-review">Review queue</a></li><li class="l3"><a href="#screen-protocols-active">Active protocols</a></li><li class="l3"><a href="#screen-protocols-all">All protocols</a></li><li class="l2"><a href="#ch6-scheduled-delivery">Scheduled Report Engine and Auto-Distribution Rules</a></li><li class="l3"><a href="#screen-delivery_rules">Delivery Configuration Rules</a></li><li class="l3"><a href="#screen-delivery_schedules">Delivery Schedules</a></li><li class="l3"><a href="#screen-print_routing_rules">Print Destination Routing Rules</a></li><li class="l3"><a href="#screen-my-exports">My exports</a></li><li class="l2"><a href="#ch6-batch-jobs">Batch Printing and Nightly Job Scheduler Setup</a></li></ul></aside><article><h1 id="ch6"><a class="anchor" href="#ch6" aria-label="Link to this section">#</a> Tier 5: Reporting, Synoptic Forms and Scheduler Configuration</h1>
+<p>This chapter covers what a released report looks like, which structured (<a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a>) forms pathologists fill in, and how a released report is sent, printed and scheduled. It documents 15 screens in four parts. Three things in the outline are not built, and each one is marked where it comes up: a patient portal delivery channel, automated loading of <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> versions, and a nightly job scheduler that an administrator can configure. The nearest working things are named in each section.</p>
+<p><strong>Setup order for this tier.</strong> Do Tier 1 to Tier 4 first (in particular facilities, physicians, roles, and site agents). Then work through this tier in this order. Each screen's own "Setup sequence" box repeats its place in the list.</p>
+<ol>
+<li><a href="#screen-fonts">Approved Fonts</a>: choose which fonts the report editors offer.</li>
+<li><a href="#screen-document_style">Document Style</a>: set the lab's default report text style, page size and margins.</li>
+<li><a href="#screen-template_governance">Template Review</a>: decide who may approve and publish synoptic templates.</li>
+<li><a href="#screen-templates-parts">Part Library</a>: build or copy the reusable headers, bodies and footers.</li>
+<li><a href="#screen-templates-templates">Report Templates</a>: assemble parts into report templates and publish them.</li>
+<li><a href="#screen-templates-routing">Routing Rules</a>: choose which template a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> uses for a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>, physician or protocol.</li>
+<li><a href="#screen-protocols-review">Review queue</a>: bring synoptic protocols through draft, review and approval.</li>
+<li><a href="#screen-protocols-active">Active protocols</a>: check and maintain the published synoptic protocols.</li>
+<li><a href="#screen-print_routing_rules">Print Destination Routing Rules</a>: decide which printer a released report goes to.</li>
+<li><a href="#screen-delivery_rules">Delivery Configuration Rules</a>: decide how each released report is sent (result message, print, e-fax, file drop).</li>
+<li><a href="#screen-delivery_schedules">Delivery Schedules</a>: decide when things go out.</li>
+</ol>
+<p>Screens that are not part of setup and so have no step number: the two tab pages (<a href="#screen-tab-templates">Report Templates tab</a> and <a href="#screen-tab-protocols">Synoptic Library tab</a>), <a href="#screen-protocols-all">All protocols</a> and <a href="#screen-my-exports">My exports</a>.</p>
+<p><strong>Delivery channels at a glance.</strong> Each is stated again, with its limits, in <a href="#ch6-scheduled-delivery">Part 3</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Status</th>
+<th>What exists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Print queue</td>
+<td>Built</td>
+<td>Delivery rules send a print job; print routing rules pick the printer; the Print Queue screen manages jobs.</td>
+</tr>
+<tr>
+<td>Result message to the interface engine (electronic)</td>
+<td>Built</td>
+<td>The default channel.</td>
+</tr>
+<tr>
+<td>E-fax</td>
+<td>Built</td>
+<td>Sent to the interface server, which hands the <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> to an e-mail-to-fax gateway.</td>
+</tr>
+<tr>
+<td>File drop</td>
+<td>Built</td>
+<td>Sent to the interface server, which writes the file to a folder or <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> target set up on that server.</td>
+</tr>
+<tr>
+<td>Secure e-mail</td>
+<td>Demonstration</td>
+<td>A person sends a case-linked message from a window; mail goes to the <a href="07-tier6-interface-engine.html#screen-simulated_mail">Simulated mail outbox</a>. It is not a delivery rule channel.</td>
+</tr>
+<tr>
+<td>Patient or provider portal</td>
+<td>Not built</td>
+<td>No portal channel exists.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Where the batch and nightly job tools are.</strong> Batch printing and the nightly job scheduler are not one screen. <a href="#ch6-batch-jobs">Part 4</a> lists the screens that exist and where each is documented.</p>
+<h2 id="ch6-report-templates"><a class="anchor" href="#ch6-report-templates" aria-label="Link to this section">#</a> Report Template Designer and Branding Setup</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<p>A report is built from three kinds of <strong>part</strong> (header, body, footer). A <strong>template</strong> places parts into five slots (page 1 header, pages 2 and later header, body, pages 2 and later footer, page 1 footer). <strong>Routing rules</strong> decide which template a <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> gets. The lab's default fonts, page size and margins sit underneath all of it.</p>
+<p><strong>How a template is chosen for a case.</strong> The router tries these in order and stops at the first match: a preliminary-report gate first; then a <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> override (Pass 0); then, for an affiliate facility with no rule of its own, its <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> parent's override (Pass 0a); then a physician preference (Pass 0b); then a <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> match, where admin-defined rules are checked before the built-in table (Pass 1); then the <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a> fallback (Pass 2); then the gold-standard fallback (Pass 3). Within one rule type, a rule for one <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a> beats a Global rule for the same facility or physician.</p>
+<p><strong>Text style layers.</strong> The text style of a report comes from three layers; the most specific wins: the lab default (Document Style) is overridden by a template's own Style panel, which is overridden by a component's label formatting in the inspector.</p>
+<p><strong>Branding.</strong> The report header takes its logo, laboratory director name and accreditation number from the Department, falling back to the Facility, then the enterprise. Those fields are set on other screens; this chapter does not repeat them:
+- Department branding: <a href="03-tier2-master-dictionaries.html#screen-departments">Department Dictionary</a> (Laboratory Director Name, accreditation number, Header Logo URL).
+- Facility branding and reporting options: <a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a> and <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>.</p>
+<p>PathScribe stores only the address of a hosted logo image, never the image. A header part with <strong>Show institution logo</strong> switched on uses it.</p>
+<h3 id="screen-tab-templates"><a class="anchor" href="#screen-tab-templates" aria-label="Link to this section">#</a> Report Templates tab</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Report Templates</strong>
+<strong>2. Maintenance item:</strong> The tab itself, with sub-tabs <strong>Report Templates</strong>, <strong>Part Library</strong> and <strong>Routing Rules</strong>.</p>
+<p><strong>3. Business purpose and scope.</strong> The tab groups the three screens that define report layout: the template list, the reusable <a class="term" href="99-glossary.html#g-part-library" title="The reusable parts, such as a block of questions, from which report templates are assembled.">part library</a> and the template routing rules. The tab page has no fields of its own. The sub-tab buttons are the only controls.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The tab opens for anyone with <code>screen:configuration:open</code>. Each sub-tab is then limited by its own <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>, so a person without it sees the list but cannot change anything.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-document_style">Document Style</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/tab-templates.webp" alt="Report Templates tab with the three sub-tabs" loading="lazy"><figcaption>Report Templates tab with the three sub-tabs</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-templates-report-templates-sub-tab"><td>Report Templates (sub-tab)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#screen-templates-templates">template list</a>.</td>
+<td>Selected</td>
+</tr>
+<tr id="f-tab-templates-part-library-sub-tab"><td>Part Library (sub-tab)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#screen-templates-parts">part library</a>.</td>
+<td>Not selected</td>
+</tr>
+<tr id="f-tab-templates-routing-rules-sub-tab"><td>Routing Rules (sub-tab)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#screen-templates-routing">template routing rules</a>.</td>
+<td>Not selected</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open the tab: <code>screen:configuration:open</code>. Each sub-tab's actions use their own capabilities, listed on the sub-tab.
+<strong>Known limits.</strong> None known.</p>
+<h3 id="screen-templates-parts"><a class="anchor" href="#screen-templates-parts" aria-label="Link to this section">#</a> Part Library</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Part Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Part Library</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Report Templates</strong> &gt; sub-tab <strong>Part Library</strong>
+<strong>2. Maintenance item:</strong> Report parts (header, body, footer)</p>
+<p><strong>3. Business purpose and scope.</strong> A part is one reusable <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> of a report: a <strong>header</strong> (institution branding, <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>, patient demographics), a <strong>body</strong> part (diagnosis, gross description, microscopic, <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> data) or a <strong>footer</strong> (page numbers, confidentiality notice, patient identity line). Parts are built once here and placed into any number of templates. A part can be Global (offered to every <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>) or belong to one performing lab. The library ships with built-in parts, shown with a <strong>Built-in</strong> badge. Built-in parts cannot be edited or archived; duplicate one to change it.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Parts do not need other parts, but the lab text style and the performing labs they refer to should exist first. Skip the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> setup and the Performing Lab list offers only Global.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 4</p><dl><dt>Configure first</dt><dd><a href="#screen-document_style">Document Style</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a></dd><dt>This unlocks</dt><dd><a href="#screen-templates-templates">Report Templates</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/templates-parts.webp" alt="Part Library with headers, bodies and footers grouped" loading="lazy"><figcaption>Part Library with headers, bodies and footers grouped</figcaption></figure>
+
+<p><strong>What the screen shows.</strong> Archived parts are hidden from the list. Parts are grouped under Headers, Bodies and Footers. Each card shows the name, a status badge (Draft, Published or Archived), the Built-in badge where it applies, the performing lab, and the type, specialty and description. A card offers <strong>Edit</strong> (not on built-in parts), <strong>Duplicate</strong>, and <strong>Archive</strong> with a Yes/No confirmation (not on built-in parts).</p>
+<p><strong>6. Field reference.</strong></p>
+<p>List controls:</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filters the list by part name.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-parts-type-filter"><td>Type filter</td>
+<td>Choice: All, Headers, Bodies, Footers</td>
+<td>Optional</td>
+<td>Shows one kind of part.</td>
+<td>All</td>
+</tr>
+<tr id="f-templates-parts-lab-filter"><td>Lab filter</td>
+<td>Choice: all labs, Global, or one performing lab</td>
+<td>Optional</td>
+<td>Shows parts for one lab.</td>
+<td>All</td>
+</tr>
+<tr id="f-templates-parts-new-part"><td>New Part</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the part type chooser (header, body or footer), then the part builder.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-part-builder"><a class="anchor" href="#ch6-part-builder" aria-label="Link to this section">#</a> Part builder</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Part Library &gt; Part builder"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Part Library</span> <span aria-hidden="true">›</span> <span>Part builder</span></nav>
+
+<figure class="shot"><img src="img/templates-parts-builder.webp" alt="Part builder with canvas, palette and inspector" loading="lazy"><figcaption>Part builder with canvas, palette and inspector</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-parts-part-type"><td>Part type</td>
+<td>Choice: Header Part, Body Part, Footer Part</td>
+<td>Required</td>
+<td>Chosen once, when the part is created. Decides which slot the part can be placed in.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-parts-name"><td>Name</td>
+<td>Text</td>
+<td>Required</td>
+<td>Shown in the library and in the template slot. Click the name to edit it.</td>
+<td><code>New Header Part</code>, <code>New Body Part</code> or <code>New Footer Part</code></td>
+</tr>
+<tr id="f-templates-parts-specialty"><td>Specialty</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Groups the part. <code>General</code> means every specialty.</td>
+<td>Blank (shown as General)</td>
+</tr>
+<tr id="f-templates-parts-description"><td>Description</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Short note shown on the library card.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-parts-standard"><td>Standard</td>
+<td>Choice: None, <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, Custom</td>
+<td>Optional</td>
+<td>A label only. It records the source of the layout and does not load or check any <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-parts-performing-lab"><td>Performing Lab</td>
+<td>Choice: Global (every <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>), or one performing lab</td>
+<td>Optional</td>
+<td>A lab-specific part is offered only for that lab's templates.</td>
+<td>Global</td>
+</tr>
+<tr id="f-templates-parts-grid"><td>Grid</td>
+<td>Switch: Grid on / Grid off</td>
+<td>Optional</td>
+<td>Shows or hides the layout grid on the canvas. Display only.</td>
+<td>On</td>
+</tr>
+<tr id="f-templates-parts-components-canvas"><td>Components (canvas)</td>
+<td>Drag from the palette</td>
+<td>Optional</td>
+<td>The part's content. See the inspector fields under <a href="#screen-templates-templates">Report Templates</a>. The count of components is shown.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-parts-save-state"><td>Save state</td>
+<td>Indicator: Unsaved, Saving, Saved, Error</td>
+<td>Not applicable</td>
+<td>The part saves as you edit.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-parts-publish"><td>Publish</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Makes the part available to templates (only published parts can be placed). A final-diagnosis check applies; see the template editor.</td>
+<td>Draft</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Create, save, archive, duplicate: <code>config:report-template:manage</code>. Publish: <code>config:report-template:publish</code>. Both are high risk and audited. Admin and Lab Director hold both; Template Author holds manage; Template Approver holds publish.
+<strong>Template variables for patient sex and <a class="term" href="99-glossary.html#g-nhs-number" title="The ten-digit patient identifier used in the NHS in England and Wales. The last digit is a check digit.">NHS number</a> (Batch 662).</strong> Report templates print <code>{{patient.sexAtBirth}}</code> and can use <code>{{patient.nhsNumber}}</code>. Sex is still stored as the same code (M, F, U) plus I for indeterminate, so templates that test <code>patient.sex == 'M'</code> keep working. The badge on the patient banner shows "traced" only when the stored NHS Number Status Indicator is 01.
+<strong>Known limits.</strong> The Standard field is a label. It does not link a part to a CAP or RCPath protocol.</p>
+<h3 id="screen-templates-templates"><a class="anchor" href="#screen-templates-templates" aria-label="Link to this section">#</a> Report Templates</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Report Templates</strong> &gt; sub-tab <strong>Report Templates</strong>
+<strong>2. Maintenance item:</strong> Report templates</p>
+<p><strong>3. Business purpose and scope.</strong> A report template defines the structure of a report: which header, body and footer parts it uses, in which slots, and (optionally) the lab's AI-assisted generation steps for it. A template is Draft, Published or Archived. Only a published template can be chosen by routing. The list shows every template with its status, an <strong>AI</strong> badge when AI generation is on, a <strong>STANDARD</strong> badge on the standard surgical layout, the number of active slots and the last update time.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Templates are built from published parts, so the Part Library comes first. Skip it and the part picker in the editor shows "No published parts found". The lab text style should be set so the template's Style panel has a default to fall back on.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 5</p><dl><dt>Configure first</dt><dd><a href="#screen-templates-parts">Part Library</a>, <a href="#screen-document_style">Document Style</a></dd><dt>This unlocks</dt><dd><a href="#screen-templates-routing">Routing Rules</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/templates-templates.webp" alt="Report Templates list with status filter, search, From Standard and New Template" loading="lazy"><figcaption>Report Templates list with status filter, search, From Standard and New Template</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>List controls:</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-status-filter"><td>Status filter</td>
+<td>Choice: All, Published, Draft, Archived, each with a count</td>
+<td>Optional</td>
+<td>Shows one status.</td>
+<td>All</td>
+</tr>
+<tr id="f-templates-templates-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filters by name.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-new-template-start-blank"><td>New Template (Start Blank)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Creates an empty draft and opens the editor.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-templates-from-standard-use-standard-template"><td>From Standard (Use Standard Template)</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Copies the standard surgical pathology layout as a new draft named <code>My Surgical Pathology Report</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-templates-edit"><td>Edit</td>
+<td>Button on every row except the standard template</td>
+<td>Not applicable</td>
+<td>Opens the editor.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-templates-duplicate"><td>Duplicate</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Makes a copy named <code>&lt;name&gt; (Copy)</code> (in the language you are using).</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-templates-delete-archive"><td>Delete / Archive</td>
+<td>Button with Yes/No confirmation</td>
+<td>Not applicable</td>
+<td>A draft is deleted; a published template is archived.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-editor"><a class="anchor" href="#ch6-template-editor" aria-label="Link to this section">#</a> Template editor</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates &gt; Template editor"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Template editor</span></nav>
+
+<figure class="shot"><img src="img/templates-templates-editor.webp" alt="Template editor with Part Library panel, page slots and preview" loading="lazy"><figcaption>Template editor with Part Library panel, page slots and preview</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-template-name"><td>Template name</td>
+<td>Text</td>
+<td>Required</td>
+<td>Click to edit. Saved when you leave the box.</td>
+<td>The name given at creation</td>
+</tr>
+<tr id="f-templates-templates-specialty-and-standard-line"><td>Specialty and standard line</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>Shows the template's specialty and its standard (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath or Custom). A blank template starts as <code>general</code> and <code>custom</code>.</td>
+<td><code>general</code>, <code>custom</code></td>
+</tr>
+<tr id="f-templates-templates-status"><td>Status</td>
+<td>Draft, Published or Archived</td>
+<td>Not applicable</td>
+<td><strong>Publish</strong> moves a draft to Published. Publish is disabled when the template has more than one field marked Final diagnosis.</td>
+<td>Draft</td>
+</tr>
+<tr id="f-templates-templates-performing-lab-filter-part-library-panel"><td>Performing lab filter (Part Library panel)</td>
+<td>Choice: All Labs (Global + every lab), Global, or one lab</td>
+<td>Optional</td>
+<td>Narrows the parts offered.</td>
+<td>All Labs</td>
+</tr>
+<tr id="f-templates-templates-part-search"><td>Part search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filters the published parts.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-header"><td>Slot: Page 1 Header</td>
+<td>One header part</td>
+<td>Optional</td>
+<td>Header on the first page.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-header"><td>Slot: Pages 2+ Header</td>
+<td>One header part, or "same as Page 1"</td>
+<td>Optional</td>
+<td>Header on later pages.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-templates-slot-body"><td>Slot: Body</td>
+<td>Ordered list of body parts</td>
+<td>Optional</td>
+<td>Drag to reorder. Body parts continue across all pages. Each can be switched off with the slot toggle without removing it.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-templates-slot-pages-2-footer"><td>Slot: Pages 2+ Footer</td>
+<td>One footer part</td>
+<td>Optional</td>
+<td>Footer on later pages.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-templates-slot-page-1-footer"><td>Slot: Page 1 Footer</td>
+<td>One footer part</td>
+<td>Optional</td>
+<td>Footer on the first page.</td>
+<td>Empty</td>
+</tr>
+<tr id="f-templates-templates-style-font-family"><td>Style (Font family)</td>
+<td>Choice from the approved fonts</td>
+<td>Optional</td>
+<td>Template-level default text style for header, body or footer. Falls back to the lab default when blank.</td>
+<td>Lab default</td>
+</tr>
+<tr id="f-templates-templates-style-font-size-pt"><td>Style (Font size, pt)</td>
+<td>Number</td>
+<td>Optional</td>
+<td>Same. Sizes are in points.</td>
+<td>Lab default</td>
+</tr>
+<tr id="f-templates-templates-style-bold-underline"><td>Style (Bold, Underline)</td>
+<td>Switches</td>
+<td>Optional</td>
+<td>Same.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-style-text-transform"><td>Style (Text transform)</td>
+<td>Choice: As typed, Capitalize, UPPERCASE</td>
+<td>Optional</td>
+<td>Same.</td>
+<td>As typed</td>
+</tr>
+<tr id="f-templates-templates-preview"><td>Preview</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows the template with mock <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data, the page count, and the mock context.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-templates-preview-margins-top-right-bottom-left-mm"><td>Preview margins (Top, Right, Bottom, Left, mm)</td>
+<td>Number</td>
+<td>Optional</td>
+<td>For this preview only. The lab's real page size and margins are set in Document Style.</td>
+<td>The lab setting</td>
+</tr>
+<tr id="f-templates-templates-preview-page-size"><td>Preview page size</td>
+<td>Choice: A4, US Letter, US Legal, A3, B5</td>
+<td>Optional</td>
+<td>For this preview only.</td>
+<td>The lab setting</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-template-inspector"><a class="anchor" href="#ch6-template-inspector" aria-label="Link to this section">#</a> Inspector: fields on the selected component</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Report Templates &gt; Template editor &gt; Inspector"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Template editor</span> <span aria-hidden="true">›</span> <span>Inspector</span></nav>
+
+<p>The inspector shows the properties of whatever you select on the canvas. The same inspector is used in the part builder.</p>
+<figure class="shot"><img src="img/templates-templates-inspector.webp" alt="Inspector panel for a selected field" loading="lazy"><figcaption>Inspector panel for a selected field</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-templates-label"><td>Label</td>
+<td>Text</td>
+<td>Optional</td>
+<td>The field's printed label.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-width"><td>Width</td>
+<td>Columns out of 12</td>
+<td>Optional</td>
+<td>Drag the handle on the canvas for finer control.</td>
+<td>Set by component type</td>
+</tr>
+<tr id="f-templates-templates-required"><td>Required</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>The field must be filled in.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-hide-when-empty"><td>Hide when empty</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Leaves the field out of the printed report when it has no value.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-page-break-before-this-field"><td>Page break before this field</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Starts a new page.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-final-diagnosis-field"><td>Final diagnosis field</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Marks the field that carries the final diagnosis. A template may have only one.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-include-in-fhir-export"><td>Include in <a class="term" href="99-glossary.html#g-fhir" title="Fast Healthcare Interoperability Resources, an HL7 standard for exchanging health data through web interfaces.">FHIR</a> export</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Stored with the field. No FHIR export screen is built; see <a href="07-tier6-interface-engine.html#ch7">Chapter 7</a>.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-show-when-visibility"><td>Show when (visibility)</td>
+<td>Condition list with AND/OR</td>
+<td>Optional</td>
+<td>Conditions on other fields: equals, does not equal, contains, is empty, is not empty, greater than, less than, and so on.</td>
+<td>Always shown</td>
+</tr>
+<tr id="f-templates-templates-label-position"><td>Label position</td>
+<td>Choice: Above field, Adjacent to field, Hidden</td>
+<td>Optional</td>
+<td>Label formatting.</td>
+<td>Above</td>
+</tr>
+<tr id="f-templates-templates-label-font-size-pt-bold-underline-text-transform"><td>Label font size (pt), Bold, Underline, Text transform</td>
+<td>Number and switches</td>
+<td>Optional</td>
+<td>Component-level label formatting. Wins over the template and lab styles.</td>
+<td>Inherited</td>
+</tr>
+<tr id="f-templates-templates-binding-key"><td>Binding key</td>
+<td>Text</td>
+<td>Required for bound fields</td>
+<td>The case-data field a Text, Dropdown, Number, Date, Image or Data Paragraph reads.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-text-field-placeholder-max-length-validation-pattern-regex"><td>Text field: Placeholder, Max length, Validation pattern (regex)</td>
+<td>Text, number, text</td>
+<td>Optional</td>
+<td>Entry limits on a text field.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-dropdown-options"><td>Dropdown: Options</td>
+<td>One <code>value|Label</code> per line</td>
+<td>Required</td>
+<td>The choices.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-dropdown-allow-multiple-selection-allow-free-text-entry"><td>Dropdown: Allow multiple selection, Allow free text entry</td>
+<td>Switches</td>
+<td>Optional</td>
+<td></td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-number-unit-unit-options-decimal-places-min-max"><td>Number: Unit, Unit options, Decimal places, Min, Max</td>
+<td>Text and numbers</td>
+<td>Optional</td>
+<td></td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-date-format-default-to-today-s-date"><td>Date: Format, Default to today's date</td>
+<td>Choice: Date, Date &amp; time, Year only; switch</td>
+<td>Optional</td>
+<td></td>
+<td>Date, off</td>
+</tr>
+<tr id="f-templates-templates-computed-expression-output-type-unit"><td>Computed: Expression, Output type, Unit</td>
+<td>Text; choice Text, Number, Date</td>
+<td>Required</td>
+<td>A value calculated from other fields.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-static-label-text-variant-bold-italic"><td>Static label: Text, Variant, Bold, Italic</td>
+<td>Text; choice Heading 1, 2, 3, Body, Caption</td>
+<td>Required</td>
+<td>Fixed heading or text.</td>
+<td>Body</td>
+</tr>
+<tr id="f-templates-templates-rich-text-block-content-font-size-px-text-alignment"><td>Rich text <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a>: Content, Font size (px), Text alignment</td>
+<td>Text, number, choice Left, Center, Right</td>
+<td>Optional</td>
+<td>Fixed prose, the same in every report.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-templates-templates-data-paragraph-binding-key-rich-text-formatting-allow-ai-to-write-this-paragraph"><td>Data paragraph: Binding key, Rich text formatting, Allow AI to write this paragraph</td>
+<td>Text and switches</td>
+<td>Optional</td>
+<td>A slot filled from <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> data.</td>
+<td>AI write off</td>
+</tr>
+<tr id="f-templates-templates-image-embed-binding-key-or-static-image-url-alt-text-caption-alignment-width-height-px"><td>Image embed: Binding key or Static image URL, Alt text, Caption, Alignment, Width, Height (px)</td>
+<td>Text, numbers</td>
+<td>Optional</td>
+<td>A hosted image address, never an uploaded file.</td>
+<td>Auto size</td>
+</tr>
+<tr id="f-templates-templates-section-print-heading-collapsible-start-collapsed"><td>Section: Print heading, Collapsible, Start collapsed</td>
+<td>Text and switches</td>
+<td>Optional</td>
+<td>A group of fields.</td>
+<td>Off</td>
+</tr>
+<tr id="f-templates-templates-column-layout-number-of-columns-column-gap-px"><td>Column layout: Number of columns, Column gap (px)</td>
+<td>Numbers</td>
+<td>Optional</td>
+<td>The columns the content flows across.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-repeat-group-iterate-over-item-alias-min-items-max-items"><td>Repeat group: Iterate over, Item alias, Min items, Max items</td>
+<td>Text, numbers</td>
+<td>Optional</td>
+<td>Repeats its contents for each item in a list.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-if-block-show-children-when-else-branch"><td>If block: Show children when, Else branch</td>
+<td>Condition list</td>
+<td>Optional</td>
+<td>Shows contents when the condition holds.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-switch-block-switch-on-cases-case-label-when"><td>Switch block: Switch on, Cases (Case label, When)</td>
+<td>Field and condition list</td>
+<td>Optional</td>
+<td>Shows the contents of the matching case.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-page-break-break-behavior"><td>Page break: Break behavior</td>
+<td>Choice: Automatic, Always break, Avoid breaking</td>
+<td>Optional</td>
+<td></td>
+<td>Automatic</td>
+</tr>
+<tr id="f-templates-templates-template-reference-referenced-template-id-name-context-overrides"><td>Template reference: Referenced template ID, name, Context overrides</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Inserts another template's content.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-templates-header-show-institution-logo-show-patient-name-show-accession-number-page-scope-height-px-custom-html"><td>Header: Show institution logo, Show patient name, Show <a class="term" href="99-glossary.html#g-accession-number" title="The permanent identifier of a case, built from the facility&#x27;s case mask. It is treated as a patient identifier on screen: it is shown inside patient-data tags so that screenshots can be redacted.">accession number</a>, Page scope, Height (px), Custom HTML</td>
+<td>Switches, choice All pages, Page 1 only, Pages 2+ only; number; text</td>
+<td>Optional</td>
+<td>Header content switches.</td>
+<td>Off, all pages</td>
+</tr>
+<tr id="f-templates-templates-footer-show-page-numbers-page-number-format-page-scope-height-px-custom-html"><td>Footer: Show page numbers, Page number format, Page scope, Height (px), Custom HTML</td>
+<td>Switch, text, choice, number, text</td>
+<td>Optional</td>
+<td>Footer content switches.</td>
+<td>Off, all pages</td>
+</tr>
+<tr id="f-templates-templates-ai-generation-enable-ai-assisted-generation-system-instruction-temperature-max-tokens"><td>AI generation: Enable AI-assisted generation, System instruction, Temperature, Max tokens</td>
+<td>Switch, text, number, number</td>
+<td>Optional</td>
+<td>Per-section AI settings used by Orchestration mode. Set up in <a href="05-tier4-ai-framework.html#ch5">Chapter 5</a>.</td>
+<td>Off</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Create, save, duplicate, delete, archive: <code>config:report-template:manage</code>. Publish: <code>config:report-template:publish</code>. Both high risk, audited. Holders as for the Part Library.
+<strong>Known limits.</strong> Final-diagnosis checks run in the editor before publishing. The template lifecycle here is Draft, Published, Archived; there is no review step like the <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> one (see <a href="#screen-template_governance">Template Review</a>).</p>
+<h3 id="screen-templates-routing"><a class="anchor" href="#screen-templates-routing" aria-label="Link to this section">#</a> Routing Rules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Routing Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Routing Rules</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Report Templates</strong> &gt; sub-tab <strong>Routing Rules</strong>
+<strong>2. Maintenance item:</strong> Template Routing Rules</p>
+<p><strong>3. Business purpose and scope.</strong> Rules override the default chain (<a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>, then <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a>, then the gold standard) for specific facilities, physicians or <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> protocols. A <strong>Protocol Mapping</strong> lets you map a new or changed synoptic protocol to a template without a software release. This is not the same screen as <a href="04-tier3-workflow-engines.html#screen-routing_rules">Routing Rules</a> under System, which routes cases to pathologists.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Rules point at published templates, facilities, physicians and protocols. Skip templates and the Report Template list is empty. A protocol mapping picks from the protocols in the Synoptic Library, so it is most useful after <a href="#screen-protocols-review">Review queue</a> work; a rule can be added later.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 6</p><dl><dt>Configure first</dt><dd><a href="#screen-templates-templates">Report Templates</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Physicians</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/templates-routing.webp" alt="Template Routing Rules with facility, physician and protocol sections and the test panel" loading="lazy"><figcaption>Template Routing Rules with <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>, physician and protocol sections and the test panel</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-overrides"><td>Facility Overrides</td>
+<td>List of rules</td>
+<td>Optional</td>
+<td>Pass 0 and Pass 0a. An affiliate facility with no rule of its own uses its <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> parent's.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-routing-physician-preferences"><td>Physician Preferences</td>
+<td>List of rules</td>
+<td>Optional</td>
+<td>Pass 0b.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-routing-protocol-mappings"><td>Protocol Mappings</td>
+<td>List of rules</td>
+<td>Optional</td>
+<td>Pass 1. They supplement, and take precedence over, the built-in protocol table.</td>
+<td>None (built-in table only)</td>
+</tr>
+<tr id="f-templates-routing-priority-panel"><td>Priority panel</td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Shows each pass and whether it is admin-defined or admin-extensible; the pass that resolved the last test is highlighted.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-templates-routing-enable-disable-rule"><td>Enable / Disable rule</td>
+<td>Switch on each row</td>
+<td>Optional</td>
+<td>A disabled rule is skipped.</td>
+<td>Enabled</td>
+</tr>
+<tr id="f-templates-routing-delete"><td>Delete</td>
+<td>Button with confirmation</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-rule-window"><a class="anchor" href="#ch6-routing-rule-window" aria-label="Link to this section">#</a> Add or edit a rule</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Routing Rules &gt; Add rule"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Routing Rules</span> <span aria-hidden="true">›</span> <span>Add rule</span></nav>
+
+<figure class="shot"><img src="img/templates-routing-rule.webp" alt="Add Facility Routing Rule window" loading="lazy"><figcaption>Add Facility Routing Rule window</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-facility-physician-or-protocol"><td>Facility, Physician or Protocol</td>
+<td>Picklist</td>
+<td>Required</td>
+<td>Which entity the rule applies to. The label follows the section you opened.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-routing-performing-lab"><td>Performing Lab</td>
+<td>Choice: Global (every <a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>), or one lab</td>
+<td>Optional</td>
+<td>A rule for a lab is checked before a Global rule for that lab's own cases.</td>
+<td>Global</td>
+</tr>
+<tr id="f-templates-routing-report-template"><td>Report Template</td>
+<td>Picklist of templates</td>
+<td>Required</td>
+<td>The template the entity always uses.</td>
+<td>None</td>
+</tr>
+<tr id="f-templates-routing-note"><td>Note</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Why the override exists.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-routing-test"><a class="anchor" href="#ch6-routing-test" aria-label="Link to this section">#</a> Test Template Routing</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Report Templates &gt; Routing Rules &gt; Test"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Report Templates</span> <span aria-hidden="true">›</span> <span>Routing Rules</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="img/templates-routing-test.webp" alt="Test Template Routing panel" loading="lazy"><figcaption>Test Template Routing panel</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-templates-routing-performing-facility"><td>Performing Facility</td>
+<td>Picklist</td>
+<td>Optional</td>
+<td>The <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>'s <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>.</td>
+<td>Any</td>
+</tr>
+<tr id="f-templates-routing-ordering-physician"><td>Ordering Physician</td>
+<td>Picklist</td>
+<td>Optional</td>
+<td></td>
+<td>Any</td>
+</tr>
+<tr id="f-templates-routing-subspecialty"><td>Subspecialty</td>
+<td>Picklist</td>
+<td>Optional</td>
+<td></td>
+<td>Any</td>
+</tr>
+<tr id="f-templates-routing-synoptic-template-id"><td>Synoptic Template ID</td>
+<td>Picklist</td>
+<td>Optional</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-templates-routing-test-routing"><td>Test Routing</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows the template chosen and the pass that chose it. An ambiguous result lists the candidates.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, change, delete: <code>config:template-routing:manage</code> (high risk, audited). Admin and Lab Director hold it; Template Author and Template Approver do not.
+<strong>Known limits.</strong> The <a class="term" href="99-glossary.html#g-subspecialty" title="An area of pathology, such as breast or gastrointestinal, used to route cases. A subspecialty can be switched to pool mode.">subspecialty</a> and gold-standard tables (Pass 2 and 3) are built in and cannot be edited here. The preliminary-report gate is built in.</p>
+<h3 id="screen-fonts"><a class="anchor" href="#screen-fonts" aria-label="Link to this section">#</a> Approved Fonts</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Approved Fonts"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Approved Fonts</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Approved Fonts</p>
+<p><strong>3. Business purpose and scope.</strong> Controls which fonts the free-text editors offer pathologists in their toolbar (the report editor, narrative editor, <a class="term" href="99-glossary.html#g-macro" title="A saved piece of text or a set of settings, such as a report phrase or a stain order, that can be inserted in one step.">macro</a> editors and comment windows read the list). A font that is switched off is kept in the list but hidden from users. The pool is fixed at 14 fonts in three groups. You cannot add a font name here.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. This setting only filters a toolbar. It does not change the lab's default report font; that is set in <a href="#screen-document_style">Document Style</a>, which offers its own shorter list of seven fonts and does not read this list.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 1</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-fonts.webp" alt="Approved Fonts with search and per-font switches" loading="lazy"><figcaption>Approved Fonts with search and per-font switches</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-fonts-search-fonts"><td>Search fonts</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Filters the 14 fonts by name.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-fonts-count-badge"><td>Count badge</td>
+<td>Read-only text, "N of 14 enabled"</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-fonts-font-switch-one-per-font"><td>Font switch (one per font)</td>
+<td>Yes/No switch, shown Active or Inactive</td>
+<td>Optional</td>
+<td>On means the font appears in editor toolbars. The pool: Serif (Times New Roman, Georgia, Garamond, Palatino), Sans-Serif (Arial, Helvetica, Calibri, Verdana, Trebuchet MS, Tahoma, Roboto), Monospace (Courier New, Consolas, Lucida Console).</td>
+<td>On for Arial, Times New Roman and Courier New; off for the rest</td>
+</tr>
+<tr id="f-fonts-last-font-guard"><td>Last-font guard</td>
+<td>Message "At least one font must remain enabled"</td>
+<td>Not applicable</td>
+<td>The last enabled font cannot be switched off.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Change: <code>config:report-appearance:manage</code> (high risk, audited). The section is greyed to view-only without it. Admin and Lab Director hold it by default.
+<strong>Known limits.</strong> None known.</p>
+<h3 id="screen-document_style"><a class="anchor" href="#screen-document_style" aria-label="Link to this section">#</a> Document Style</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Document Style"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Document Style</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Document Style</p>
+<p><strong>3. Business purpose and scope.</strong> Sets the lab's default text style for the header, body and footer of every report, and the lab's page size and print margins. A template's own Style panel overrides the default for that template, and a component's label formatting overrides both. Sizes are stored in points, the size that prints, and nothing prints below 8 pt. A style saved before points existed is held in pixels (each pixel prints as 0.75 pt) and keeps printing as it did until you convert it.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None. Do this before building templates so each template starts from the right default.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 2</p><dl><dt>Configure first</dt><dd><span class="none">None, this is a starting point.</span></dd><dt>This unlocks</dt><dd><a href="#screen-templates-parts">Part Library</a>, <a href="#screen-templates-templates">Report Templates</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-document_style.webp" alt="Document Style with header, body and footer styles and page setup" loading="lazy"><figcaption>Document Style with header, body and footer styles and page setup</figcaption></figure>
+
+<p><strong>6. Field reference.</strong> The same five style fields appear once each for header, body and footer.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-document_style-font-family-header-body-footer"><td>Font family (header, body, footer)</td>
+<td>Choice: Arial, Helvetica, Times New Roman, Georgia, Calibri, Verdana, Courier New</td>
+<td>Optional</td>
+<td>The default report font for that area.</td>
+<td>Arial</td>
+</tr>
+<tr id="f-document_style-font-size-pt"><td>Font size (pt)</td>
+<td>Number of points, minimum 8</td>
+<td>Optional</td>
+<td>The printed size. Shown as "Font size (px, saved before points)" with a hint when the style is still in pixels.</td>
+<td>Body 10, header 11, footer 10</td>
+</tr>
+<tr id="f-document_style-bold"><td>Bold</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td></td>
+<td>Header on; body and footer off</td>
+</tr>
+<tr id="f-document_style-underline"><td>Underline</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td></td>
+<td>Off</td>
+</tr>
+<tr id="f-document_style-text-transform"><td>Text transform</td>
+<td>Choice: As typed, Capitalize, UPPERCASE</td>
+<td>Optional</td>
+<td></td>
+<td>As typed</td>
+</tr>
+<tr id="f-document_style-preview"><td>Preview</td>
+<td>Read-only sample text</td>
+<td>Not applicable</td>
+<td>Shows the chosen style live.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-document_style-convert-to-points"><td>Convert to points</td>
+<td>Button, shown only for a style saved in pixels</td>
+<td>Not applicable</td>
+<td>Opens a confirmation listing each size and what it will print at. The numbers stay the same and now mean points, so text prints larger. Recorded in the <a class="term" href="99-glossary.html#g-audit-log" title="The record of what people, the system and the AI did, read on the System Logs screen. Its detail text is English and contains no patient names or clinical values.">audit log</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-document_style-page-size"><td>Page size</td>
+<td>Choice: A4 (210 x 297 mm), US Letter (216 x 279), US Legal (216 x 356), A3 (297 x 420), B5 (176 x 250)</td>
+<td>Optional</td>
+<td>The lab's paper size. The template preview opens with it.</td>
+<td>A4</td>
+</tr>
+<tr id="f-document_style-top-right-bottom-left-margin-mm"><td>Top, Right, Bottom, Left margin (mm)</td>
+<td>Whole number from 5 to 50</td>
+<td>Optional</td>
+<td>Print margins.</td>
+<td>Top 25, Right 20, Bottom 25, Left 20</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Change: <code>config:report-appearance:manage</code> (high risk, audited), checked in the service as well as on the screen. Admin and Lab Director hold it.
+<strong>Known limits.</strong> The development report renderer (<code>functions/</code>) still prints A4 and does not yet read the lab's page size; the setting is sent in the render payload so the production server can use it. Page size and margins are policy for the lab, set by the printer stock, not a personal choice.</p>
+<h3 id="screen-template_governance"><a class="anchor" href="#screen-template_governance" aria-label="Link to this section">#</a> Template Review</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Template Review"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Template Review</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Template Review</p>
+<p><strong>3. Business purpose and scope.</strong> Sets who may approve and publish <strong><a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> templates</strong> (the Synoptic Library) at this site. It does not govern report templates, which have their own simple draft, publish and archive lifecycle. Two settings apply, plus a fixed rule: a diagnostic synoptic template cannot be published below 80% field-level SNOMED coverage. Procedural templates, such as <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> checklists, are exempt because they are never coded.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> The built-in roles Template Author, Template Approver, Lab Director and Admin do the work, so Staff roles are set up first. Skip this and nobody can approve a template, because approval needs the approver capabilities.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 3</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></dd><dt>This unlocks</dt><dd><a href="#screen-protocols-review">Review queue</a>, <a href="#screen-protocols-active">Active protocols</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-template_governance.webp" alt="Template Review with self-approval and required reviewers" loading="lazy"><figcaption>Template Review with self-approval and required reviewers</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-template_governance-allow-template-self-approval"><td>Allow Template Self-Approval</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>Off (recommended): an author cannot approve or publish a template they authored or edited. Every person who saved the template counts as an author. Turn on only for solo practices, small sites or testing.</td>
+<td>Off</td>
+</tr>
+<tr id="f-template_governance-required-reviewers"><td>Required Reviewers</td>
+<td>Choice: 1, 2 or 3 independent reviewers</td>
+<td>Optional</td>
+<td>Approvals a template needs before it can be published. Each must come from a different Template Approver, Lab Director or Admin who is not one of its authors (unless self-approval is on).</td>
+<td>1</td>
+</tr>
+<tr id="f-template_governance-snomed-threshold"><td>SNOMED threshold</td>
+<td>Read-only text, 80%</td>
+<td>Not applicable</td>
+<td>Shown in the subtitle. Not editable.</td>
+<td>80%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Change: <code>config:template-governance:manage</code> (high risk, audited; the change is recorded with the old and new values). Admin holds it by default; Lab Director does not, so grant it in Staff &gt; Roles if the Lab Director should manage it. Without it the screen shows a notice that you can view but not change the settings.
+<strong>Known limits.</strong> None known.</p>
+<h2 id="ch6-synoptic"><a class="anchor" href="#ch6-synoptic" aria-label="Link to this section">#</a> CAP Synoptic Reporting Module Setup</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span></nav>
+
+<p>The Synoptic Library holds the structured checklists (protocols) pathologists fill in for cancer and other reporting. It is separate from report templates: a <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> defines the questions and their coding, a report template defines how a report looks. The Routing Rules screen links the two.</p>
+<p><strong>What is actually in the library today (read this first).</strong> On the demonstration data the <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> holds 36 protocols: 32 Published, 3 In Review and 1 Draft. By source, 23 are <code>Custom</code> and 13 are <code>PathScribe</code>. <strong>None is a licensed <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a> or RCPath checklist.</strong> The CAP, RCPath and ICCR names exist only as source labels on the Upload window and as the names of governing bodies. The 19 demonstration checklists (breast, lung, prostate, colon, kidney, Wilms, melanoma and others) have plain names such as "Colon resection" and a "Demo wording" tag, at version <code>0.1.0-generic</code>; they cannot be copied, and a customer build leaves them out. The rest are two generic <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> test forms, PathScribe forms such as <a class="term" href="99-glossary.html#g-mohs" title="Mohs micrographic surgery, where skin cancer is removed in thin layers and each layer is checked under the microscope before the next is taken.">Mohs</a> and neck dissection, medical liver, placenta and renal-transplant forms, autopsy gross examination, the three gold-standard <a class="term" href="99-glossary.html#g-grossing" title="The examination and cutting of a surgical specimen by a pathologist or pathologists&#x27; assistant, describing it and choosing the pieces to process.">grossing</a> routes, and five cytology reporting systems (<a class="term" href="99-glossary.html#g-bethesda" title="The reporting system for cervical cytology results and specimen adequacy, used in the United States and widely elsewhere.">Bethesda</a> thyroid, Milan salivary, Paris urinary, Papanicolaou pancreaticobiliary, lymph node <a class="term" href="99-glossary.html#g-fna" title="Fine-needle aspiration, a biopsy that draws cells through a thin needle.">FNA</a>). A hospital that needs a CAP protocol must obtain it under CAP's own licence and bring it in by the routes below.</p>
+<p><strong>How a protocol version gets in, and out.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Status</th>
+<th>What exists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Import a PathScribe protocol file (<a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>)</td>
+<td>Built</td>
+<td><strong>Upload Protocol</strong> reads the file, checks it, and saves it as a draft. It then goes through review like any other draft.</td>
+</tr>
+<tr>
+<td>Check a CAP electronic checklist (eCC, <a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, the XML form standard used to distribute CAP electronic cancer checklists.">SDC</a> <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a>) or an Excel workbook</td>
+<td>Partial</td>
+<td>The file's format is checked and the number of sections and questions shown. It cannot be imported yet, and the content is not verified against CAP or RCPath.</td>
+</tr>
+<tr>
+<td>Build a protocol in the editor</td>
+<td>Built</td>
+<td><strong>Build / Customise</strong> starts from scratch or from a copy of an existing protocol.</td>
+</tr>
+<tr>
+<td>Load a new version of an existing protocol</td>
+<td>Built</td>
+<td><strong>New Version</strong> opens the editor with the next version number. Publishing it archives the version it came from.</td>
+</tr>
+<tr>
+<td>Automatic nightly sync of CAP, RCPath or ICCR updates</td>
+<td>Not built</td>
+<td>The Governing Bodies screen has an Auto-sync switch per body, and the Upload window and notification texts mention a nightly sync, but no sync job exists in this build and none is in the server job list. The notification contract (<code>TEMPLATE_NOTIFICATIONS_API.md</code>) describes the messages a future sync job would send. Until then, load updates by hand.</td>
+</tr>
+<tr>
+<td>Retire a protocol</td>
+<td>Built</td>
+<td><strong>Archive</strong> removes it from new reports; reports already written keep their content. <strong>Restore as draft</strong> brings it back for review and republishing.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Lifecycle.</strong> Draft, In Review, Needs Changes, Approved, Published, Archived. Action names follow the source: for CAP the approval step is <strong>Accept</strong> and the publish step <strong>Release</strong>; for RCPath they are <strong>Ratify</strong> and <strong>Publish</strong>; for Custom, PathScribe and ICCR they are <strong>Approve</strong> and <strong>Publish</strong>. Governance (self-approval, number of reviewers, the 80% SNOMED rule) is set in <a href="#screen-template_governance">Template Review</a>.</p>
+<h3 id="screen-tab-protocols"><a class="anchor" href="#screen-tab-protocols" aria-label="Link to this section">#</a> Synoptic Library tab</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Synoptic Library</strong>
+<strong>2. Maintenance item:</strong> The tab, with three sub-pages: <strong>Active Protocols</strong> (Validated, in-use checklists), <strong>Review Queue</strong> (Staged for approval) and <strong>All Protocols</strong> (Complete library).</p>
+<p><strong>3. Business purpose and scope.</strong> One place for the whole <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> lifecycle. The tab has no fields of its own; its three navigation entries open the sub-pages below.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Opens for anyone with <code>screen:configuration:open</code>. Which governing bodies appear in the library is set in <a href="#" data-removed="1">Governing Bodies</a>.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#" data-removed="1">Governing Bodies</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/tab-protocols.webp" alt="Synoptic Library tab with Active, Review Queue and All Protocols" loading="lazy"><figcaption>Synoptic Library tab with Active, Review Queue and All Protocols</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-tab-protocols-active-protocols"><td>Active Protocols</td>
+<td>Navigation entry, "Validated, in-use checklists"</td>
+<td>Not applicable</td>
+<td>Opens <a href="#screen-protocols-active">Active protocols</a>.</td>
+<td>Selected</td>
+</tr>
+<tr id="f-tab-protocols-review-queue"><td>Review Queue</td>
+<td>Navigation entry, "Staged for approval"</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#screen-protocols-review">Review queue</a>.</td>
+<td>Not selected</td>
+</tr>
+<tr id="f-tab-protocols-all-protocols"><td>All Protocols</td>
+<td>Navigation entry, "Complete library"</td>
+<td>Not applicable</td>
+<td>Opens <a href="#screen-protocols-all">All protocols</a>.</td>
+<td>Not selected</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Actions use the protocol capabilities listed on each sub-page.
+<strong>Known limits.</strong> None known.</p>
+<h3 id="screen-protocols-review"><a class="anchor" href="#screen-protocols-review" aria-label="Link to this section">#</a> Review queue</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Review Queue"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Review Queue</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Synoptic Library</strong> &gt; <strong>Review Queue</strong>
+<strong>2. Maintenance item:</strong> Protocols waiting before publication</p>
+<p><strong>3. Business purpose and scope.</strong> Lists every <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> in a pre-publish state (In Review, Needs Changes, Approved), grouped by anatomical category, with a count tile for each state. A banner repeats the rule: templates need at least 80% SNOMED coverage and clinical sign-off before publishing. Click a card to open the reviewer (In Review, Approved) or the editor (Needs Changes). Draft protocols do not appear here; find them in All protocols.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Needs the review settings and the roles that do the work. Skip them and approval is refused because the person lacks the <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a>, or because a single author is trying to approve their own work.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 7</p><dl><dt>Configure first</dt><dd><a href="#screen-template_governance">Template Review</a>, <a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a>, <a href="#" data-removed="1">Governing Bodies</a></dd><dt>This unlocks</dt><dd><a href="#screen-protocols-active">Active protocols</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/protocols-review.webp" alt="Review Queue with state counts and cards" loading="lazy"><figcaption>Review Queue with state counts and cards</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches protocol name, category or source.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-review-state-tiles"><td>State tiles</td>
+<td>Read-only counts: In Review, Needs Changes, Approved</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-upload-protocol"><td>Upload Protocol</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#ch6-upload-window">Upload window</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-build-customise"><td>Build / Customise</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#ch6-build-window">Build window</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-card-name-version-source-badge-type-owner"><td>Card: name, version, source badge, type, owner</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>Protocol data.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-card-lifecycle-badge"><td>Card: lifecycle badge</td>
+<td>Read-only: In Review, Needs Changes, Approved</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-card-review-note"><td>Card: review note</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The reviewer's last note, shown with a return or warning marker.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-review-card-action"><td>Card action</td>
+<td>Opens reviewer ("Open Reviewer", or "Open Reviewer to Publish" when Approved) or editor ("Open Editor to Address Changes")</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-reviewer-actions"><a class="anchor" href="#ch6-reviewer-actions" aria-label="Link to this section">#</a> Reviewer actions</h4>
+<p>The reviewer page (opened from a card) moves a <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> between states. Each move asks for confirmation and, for a return, a reason.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-review-mark-in-review"><td>Mark In Review</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Puts a draft in the review queue.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-approve-cap-accept-rcpath-ratify"><td>Approve (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>: Accept; RCPath: Ratify)</td>
+<td>Button with confirmation and optional final notes</td>
+<td>Optional notes</td>
+<td>Needs <code>config:protocol:approve</code>. A person who authored or edited the template cannot approve it unless self-approval is on, and cannot approve twice.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-publish-cap-release"><td>Publish (CAP: Release)</td>
+<td>Button with confirmation</td>
+<td>Not applicable</td>
+<td>Needs <code>config:protocol:publish</code>, the required number of independent approvals, and at least 80% field-level SNOMED coverage for a diagnostic template. Publishing makes it available to all pathologists at once.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-needs-changes"><td>Needs Changes</td>
+<td>Button with required reason</td>
+<td>Required reason</td>
+<td>Returns the protocol to the author. Needs <code>config:protocol:approve</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-review-reset-to-draft"><td>Reset to Draft</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Returns a protocol to draft.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Draft, import, build, save, submit: <code>config:protocol:draft</code>. Approve and return for changes: <code>config:protocol:approve</code>. Publish: <code>config:protocol:publish</code>. Retire (archive, restore): <code>config:protocol:retire</code>. All high risk and audited. Template Author holds draft; Template Approver holds approve, publish and retire; Admin holds all four; Lab Director holds all but draft. Submitting, returning, approving and publishing each send a notification (to approvers, the author and so on).
+<strong>Known limits.</strong> The reviewer and editor are separate full pages (<code>/template-review/:id</code>, <code>/template-editor/:id</code>). Their field-by-field reference is not part of this chapter's 15 screens; see <a href="#ch6-protocol-editor">Template editor fields</a>.</p>
+<h3 id="screen-protocols-active"><a class="anchor" href="#screen-protocols-active" aria-label="Link to this section">#</a> Active protocols</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Active Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Active Protocols</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Synoptic Library</strong> &gt; <strong>Active Protocols</strong>
+<strong>2. Maintenance item:</strong> Published protocols</p>
+<p><strong>3. Business purpose and scope.</strong> The checklists currently offered in the <a class="term" href="99-glossary.html#g-synoptic" title="A report built from a fixed set of structured questions, so that each required item is answered in the same form.">synoptic</a> reporting workflow (state Published), grouped by category and filtered by Surgical Pathology, Non-GYN Cytology, <a class="term" href="99-glossary.html#g-gyn" title="Gynaecologic, as in GYN cytology, the screening of cervical samples.">GYN</a> Cytology or Grossing. Click a row to expand it for statistics, the lifecycle tracker and actions.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Protocols reach this list by being published from the review queue, so work the queue first. Skip it and the list is empty ("No protocols found").</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 8</p><dl><dt>Configure first</dt><dd><a href="#screen-protocols-review">Review queue</a>, <a href="#" data-removed="1">Governing Bodies</a></dd><dt>This unlocks</dt><dd><a href="#screen-templates-routing">Routing Rules</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/protocols-active.webp" alt="Active Protocols grouped by category with an expanded row" loading="lazy"><figcaption>Active Protocols grouped by category with an expanded row</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-active-group-filter"><td>Group filter</td>
+<td>Choice: All, Surgical Pathology, Non-GYN Cytology, GYN Cytology, Grossing, each with a count</td>
+<td>Optional</td>
+<td></td>
+<td>All</td>
+</tr>
+<tr id="f-protocols-active-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches name, category or source.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-active-upload-protocol"><td>Upload Protocol</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#ch6-upload-window">Upload window</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-build-customise"><td>Build / Customise</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the <a href="#ch6-build-window">Build window</a>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-row-name-version-source-badge-type-lifecycle-badge"><td>Row: name, version, source badge, type, lifecycle badge</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-sections"><td>Sections</td>
+<td>Read-only number</td>
+<td>Not applicable</td>
+<td>An estimate: the field count divided by 7, rounded, minimum 1. It is not a count of the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>'s real sections.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-fields"><td>Fields</td>
+<td>Read-only number</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-last-modified"><td>Last Modified</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-owner"><td>Owner</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-snomed-ct-coverage-icd-10-11-coverage"><td><a class="term" href="99-glossary.html#g-snomed-ct" title="Systematized Nomenclature of Medicine, Clinical Terms, a large clinical terminology.">SNOMED CT</a> coverage, <a class="term" href="99-glossary.html#g-icd-10" title="The International Classification of Diseases, tenth revision, a diagnosis code set.">ICD-10</a>/11 coverage</td>
+<td>Read-only bars, percent</td>
+<td>Not applicable</td>
+<td>Field-level coding coverage.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-view-protocol"><td>View Protocol</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the read-only reviewer.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-duplicate"><td>Duplicate</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the editor with a copy (a new protocol).</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-export-json"><td>Export <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a></td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Downloads the protocol as a PathScribe JSON file; the export is audited.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-new-version"><td>New Version</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the editor on the next version. Publishing the new version archives this one.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-active-archive"><td>Archive</td>
+<td>Button with confirmation</td>
+<td>Not applicable</td>
+<td>Removes it from new reports. A published protocol shows a stronger warning. Reports already written keep their content. Needs <code>config:protocol:retire</code>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> As for the <a href="#screen-protocols-review">Review queue</a>. Viewing and exporting need only the screen.
+<strong>Known limits.</strong> The Sections figure is an estimate.</p>
+<h3 id="screen-protocols-all"><a class="anchor" href="#screen-protocols-all" aria-label="Link to this section">#</a> All protocols</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; All Protocols"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>All Protocols</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>Synoptic Library</strong> &gt; <strong>All Protocols</strong>
+<strong>2. Maintenance item:</strong> The complete library</p>
+<p><strong>3. Business purpose and scope.</strong> Every <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> in every state, grouped by category. This is the only place to find drafts and archived protocols and to restore an archived one.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None beyond the library having content.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="#screen-protocols-review">Review queue</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/protocols-all.webp" alt="All Protocols with status filter pills" loading="lazy"><figcaption>All Protocols with status filter pills</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-status-filter"><td>Status filter</td>
+<td>Choice: All, Published, Approved, In Review, Needs Changes, Draft, Archived, each with a count</td>
+<td>Optional</td>
+<td><strong>All</strong> hides archived protocols; they show only under <strong>Archived</strong>.</td>
+<td>All</td>
+</tr>
+<tr id="f-protocols-all-search"><td>Search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Matches name, category or source.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-upload-protocol-build-customise"><td>Upload Protocol, Build / Customise</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>As above.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-row-name-version-source-type-lifecycle-badge-review-note"><td>Row: name, version, source, type, lifecycle badge, review note</td>
+<td>Read-only</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-open-reviewer"><td>Open Reviewer</td>
+<td>Button, not on Published or Archived</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-open-editor"><td>Open Editor</td>
+<td>Button, not on Published or Archived</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-duplicate-export-json-archive"><td>Duplicate, Export <a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>, Archive</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>As on Active protocols (Duplicate and Archive are not offered on an archived row).</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-restore-as-draft"><td>Restore as draft</td>
+<td>Button, archived rows only</td>
+<td>Not applicable</td>
+<td>Brings an archived protocol back as a draft; it must go through review again.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> As for the Review queue.
+<strong>Known limits.</strong> None known.</p>
+<h4 id="ch6-upload-window"><a class="anchor" href="#ch6-upload-window" aria-label="Link to this section">#</a> Upload window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Upload Protocol"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Upload Protocol</span></nav>
+
+<figure class="shot"><img src="img/protocols-upload.webp" alt="Upload Protocol window with governing body and file drop zone" loading="lazy"><figcaption>Upload Protocol window with <a class="term" href="99-glossary.html#g-governing-body" title="The authority whose rules a jurisdiction follows, such as CAP or a national college, which sets minimum retention periods and requirements.">governing body</a> and file drop zone</figcaption></figure>
+
+<p>Subtitle: "Manual upload, the fallback if nightly sync misses an update". A warning states that an imported <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> is saved as a draft and must be submitted for review and approved before it can be published.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-governing-body"><td>Governing Body</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, ICCR, RCPA, Other</td>
+<td>Required</td>
+<td>Recorded as the draft's source.</td>
+<td>CAP</td>
+</tr>
+<tr id="f-protocols-all-file"><td>File</td>
+<td><a class="term" href="99-glossary.html#g-json" title="JavaScript Object Notation, a plain-text data format used by the API, by `config.json` and by webhooks.">JSON</a>, <a class="term" href="99-glossary.html#g-xml" title="Extensible Markup Language, a text format used by CAP SDC forms and some registry files.">XML</a> or XLSX file, up to 10 MB, dropped or browsed</td>
+<td>Required</td>
+<td>Read and checked as soon as it is chosen.</td>
+<td>None</td>
+</tr>
+<tr id="f-protocols-all-format-check-result"><td>Format check result</td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Says whether the format is valid, lists problems, and always states that the content is unverified against CAP or RCPath. Only a PathScribe JSON protocol is importable. A <a class="term" href="99-glossary.html#g-cap-ecc" title="CAP electronic Cancer Checklists, the structured form of the CAP cancer protocols, distributed as SDC XML.">CAP eCC</a> (<a class="term" href="99-glossary.html#g-sdc" title="Structured Data Capture, the XML form standard used to distribute CAP electronic cancer checklists.">SDC</a>) XML form or an Excel workbook is checked but "can be checked here but not imported yet".</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-import-as-draft"><td>Import as draft</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Saves the draft. Refused if a protocol with the same name exists, or without <code>config:protocol:draft</code>.</td>
+<td>Disabled until the file is importable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-build-window"><a class="anchor" href="#ch6-build-window" aria-label="Link to this section">#</a> Build / Customise window</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Build / Customise"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Build / Customise</span></nav>
+
+<figure class="shot"><img src="img/protocols-build.webp" alt="Build / Customise window" loading="lazy"><figcaption>Build / Customise window</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-start-from-scratch"><td>Start from Scratch</td>
+<td>Choice</td>
+<td>Optional</td>
+<td>Opens the editor on a blank template.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-existing-template-search"><td>Existing Template search</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Searches by name, source or category.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-existing-template"><td>Existing Template</td>
+<td>Choice from the library, each showing version and field count</td>
+<td>Optional</td>
+<td>The template to copy.</td>
+<td>None</td>
+</tr>
+<tr id="f-protocols-all-customise-this-template"><td>Customise This Template</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the editor on a copy.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-protocol-editor"><a class="anchor" href="#ch6-protocol-editor" aria-label="Link to this section">#</a> Template editor fields</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; Synoptic Library &gt; Template editor"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>Synoptic Library</span> <span aria-hidden="true">›</span> <span>Template editor</span></nav>
+
+<figure class="shot"><img src="img/protocols-editor.webp" alt="Synoptic template editor with metadata, sections and fields" loading="lazy"><figcaption>Synoptic template editor with metadata, sections and fields</figcaption></figure>
+
+<p>The editor is a full page. Its <strong>Template Metadata</strong> <a class="term" href="99-glossary.html#g-block" title="A piece of tissue embedded in wax inside a cassette, from which slides are cut.">block</a> is below; sections and fields carry many further settings (field type, answer options with SNOMED and ICD coding, conditions, count rules, reporting roles pT, pN, pM, FIGO stage and block identifier). The full reference for that page is an open question for the guide.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-protocols-all-template-name"><td>Template Name</td>
+<td>Text</td>
+<td>Required</td>
+<td>Must be unique among non-archived protocols.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-anatomical-category"><td>Anatomical Category</td>
+<td>Choice of category pills</td>
+<td>Optional</td>
+<td>Groups the <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> in the lists.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-source-governing-body"><td>Source / Governing Body</td>
+<td>Choice of source pills</td>
+<td>Required</td>
+<td>Decides the action names (Accept, Ratify, Approve).</td>
+<td>Custom</td>
+</tr>
+<tr id="f-protocols-all-reporting-standard"><td>Reporting standard</td>
+<td>Text</td>
+<td>Optional</td>
+<td>For cytology systems, for example the <a class="term" href="99-glossary.html#g-bethesda" title="The reporting system for cervical cytology results and specimen adequacy, used in the United States and widely elsewhere.">Bethesda</a> edition.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-staging-edition"><td>Staging edition</td>
+<td>Text</td>
+<td>Optional</td>
+<td>For example <code>AJCC 8th</code>.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-protocols-all-version"><td>Version</td>
+<td>Major, minor and patch numbers with bump buttons</td>
+<td>Required</td>
+<td>Bumped automatically on New Version.</td>
+<td><code>1.0.0</code></td>
+</tr>
+<tr id="f-protocols-all-save-draft"><td>Save Draft</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Needs <code>config:protocol:draft</code>.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-protocols-all-submit-for-review"><td>Submit for Review</td>
+<td>Button with confirmation</td>
+<td>Not applicable</td>
+<td>Moves the template to the Review queue and notifies admins and clinical leads. You cannot edit it until it is returned.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ch6-scheduled-delivery"><a class="anchor" href="#ch6-scheduled-delivery" aria-label="Link to this section">#</a> Scheduled Report Engine and Auto-Distribution Rules</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span></nav>
+
+<p>Three settings decide what happens to a report after sign-out: <strong>Delivery Configuration Rules</strong> pick the channels, <strong>Print Destination Routing Rules</strong> pick the printer for the print channel, and <strong>Delivery Schedules</strong> pick the time. A fourth screen, <strong>My exports</strong>, lists files a person asked for.</p>
+<p><strong>Channel status, one by one.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Channel</th>
+<th>Status</th>
+<th>What exists today</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fax</td>
+<td>Built</td>
+<td>A delivery rule can set a channel to E-fax with a fax number (7 to 15 digits, optional leading <code>+</code>). PathScribe sends the signed <a class="term" href="99-glossary.html#g-pdf" title="Portable Document Format, the form in which a signed report is stored and printed.">PDF</a> and its details to the interface server as a <code>REPORT_DELIVERY</code> message; the server hands it to an e-mail-to-fax gateway. The gateway is set up on the server, not in PathScribe. If the server has no fax channel it answers 503 and the delivery fails with that reason. Contract: <code>REPORT_DELIVERY_API.md</code>; development receiver: <code>functions/report_delivery.py</code>. Maximum PDF size 20 MB.</td>
+</tr>
+<tr>
+<td>Portal</td>
+<td>Not built</td>
+<td>There is no portal channel in the delivery rules. The Facility record has a <strong>Delivery Method</strong> choice (Email, Fax, Portal, <a class="term" href="99-glossary.html#g-hl7" title="Health Level Seven, the family of standards for exchanging healthcare information between systems.">HL7</a>) that is stored but nothing reads it when a report is sent.</td>
+</tr>
+<tr>
+<td>Secure e-mail</td>
+<td>Demonstration</td>
+<td>Not a delivery rule channel. A person starts a case-linked secure message from a window; it is delivered to the <a href="07-tier6-interface-engine.html#screen-simulated_mail">Simulated mail outbox</a> and nothing leaves the building. A real mail channel is not connected.</td>
+</tr>
+<tr>
+<td>Print queue</td>
+<td>Built</td>
+<td>The Print channel creates a print job. The printer comes from the print routing rules, else the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own default destination. Jobs are managed on the Print Queue screen (see <a href="#ch6-batch-jobs">Part 4</a>).</td>
+</tr>
+<tr>
+<td>Electronic (result message)</td>
+<td>Built</td>
+<td>The result message to the interface engine. It is the default when no rule matches.</td>
+</tr>
+<tr>
+<td>File drop</td>
+<td>Built</td>
+<td>The server writes the PDF to a folder or <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> target. The rule names the target; the server holds its address and sign-in details.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="screen-delivery_rules"><a class="anchor" href="#screen-delivery_rules" aria-label="Link to this section">#</a> Delivery Configuration Rules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Configuration Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Configuration Rules</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Delivery Configuration Rules</p>
+<p><strong>3. Business purpose and scope.</strong> Decides how each released report is sent: through the result message, printed, faxed, dropped to a file target, or held for manual retrieval. A rule matches on provider, ordering <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>, patient location (point of care) and report type. The rule matching the most fields wins. When nothing matches, the report goes <strong>Electronic Only</strong>. The screen also holds the site's automatic retry setting and a test panel.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> Rules point at providers, facilities and locations, and a print channel needs somewhere to print. Skip the facilities and physicians and the criteria lists are empty. Skip print routing and a print job falls back to the facility's own default destination.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 10</p><dl><dt>Configure first</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a>, <a href="03-tier2-master-dictionaries.html#screen-physicians">Physicians</a>, <a href="#screen-print_routing_rules">Print Destination Routing Rules</a></dd><dt>This unlocks</dt><dd><a href="#screen-delivery_schedules">Delivery Schedules</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-delivery_rules.webp" alt="Delivery Configuration Rules with the rules table, retry setting and test panel" loading="lazy"><figcaption>Delivery Configuration Rules with the rules table, retry setting and test panel</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Screen controls:</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-rules-table-criteria-channels-note"><td>Rules table: Criteria, Channels, Note</td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Criteria read as Provider, Facility, Location and Report, or "Matches every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> (lowest priority)". Channels read as Primary, Secondary and Fallback lists, or "Nothing is sent".</td>
+<td>Empty: every case resolves to Electronic Only</td>
+</tr>
+<tr id="f-delivery_rules-add-rule"><td>Add Rule</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Opens the rule window.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-delivery_rules-edit-delete"><td>Edit, Delete</td>
+<td>Row buttons</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-delivery_rules-automatic-retries-wait-before-each-minutes"><td>Automatic retries: wait before each (minutes)</td>
+<td>Whole minutes separated by commas, each 1 to 1,440, at most 10</td>
+<td>Optional</td>
+<td>A print, fax or file drop that fails is retried after each wait in turn. After the last try it goes to the delivery exceptions, Admin and Lab Director are sent a message, and the rule's fallback channels are sent. Blank means no retries.</td>
+<td><code>1, 5, 15</code></td>
+</tr>
+<tr id="f-delivery_rules-save-retries"><td>Save retries</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Needs <code>config:delivery-rules:manage</code>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-delivery-rule-window"><a class="anchor" href="#ch6-delivery-rule-window" aria-label="Link to this section">#</a> Add or edit a delivery rule</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Configuration Rules &gt; Add rule"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Configuration Rules</span> <span aria-hidden="true">›</span> <span>Add rule</span></nav>
+
+<figure class="shot"><img src="img/system-delivery_rules-edit.webp" alt="Add Delivery Rule window with criteria and channels" loading="lazy"><figcaption>Add Delivery Rule window with criteria and channels</figcaption></figure>
+
+<p>Every criterion is optional. A rule with none set matches every <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a>, but only as the lowest-priority match. The window warns about this.</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider"><td>Provider</td>
+<td>Picklist of physicians</td>
+<td>Optional</td>
+<td></td>
+<td>Any provider</td>
+</tr>
+<tr id="f-delivery_rules-ordering-facility"><td>Ordering Facility</td>
+<td>Picklist of facilities</td>
+<td>Optional</td>
+<td></td>
+<td>Any <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a></td>
+</tr>
+<tr id="f-delivery_rules-patient-location-point-of-care"><td>Patient Location (Point of Care)</td>
+<td>Picklist of locations</td>
+<td>Optional</td>
+<td></td>
+<td>Any location</td>
+</tr>
+<tr id="f-delivery_rules-report-type"><td>Report Type</td>
+<td>Choice: Preliminary, Final, Corrected, Addendum</td>
+<td>Optional</td>
+<td></td>
+<td>Any report type</td>
+</tr>
+<tr id="f-delivery_rules-channel-electronic-result-message-to-the-interface-engine"><td>Channel: Electronic (result message to the interface engine)</td>
+<td>Choice: Off, Primary, Secondary, Fallback</td>
+<td>Optional</td>
+<td>Primary and secondary channels go at once. Fallback channels go when a primary print, fax or file drop has nowhere to go or still fails after its retries.</td>
+<td>Off</td>
+</tr>
+<tr id="f-delivery_rules-channel-print"><td>Channel: Print</td>
+<td>Same</td>
+<td>Optional</td>
+<td></td>
+<td>Off</td>
+</tr>
+<tr id="f-delivery_rules-channel-e-fax"><td>Channel: E-fax</td>
+<td>Same</td>
+<td>Optional</td>
+<td></td>
+<td>Off</td>
+</tr>
+<tr id="f-delivery_rules-channel-file-drop"><td>Channel: File drop</td>
+<td>Same</td>
+<td>Optional</td>
+<td></td>
+<td>Off</td>
+</tr>
+<tr id="f-delivery_rules-fax-number"><td>Fax number</td>
+<td>Text, 7 to 15 digits with optional <code>+</code></td>
+<td>Optional</td>
+<td>Leave blank to fax the ordering physician, or without a fax number the ordering facility.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_rules-file-drop-target"><td>File-drop target</td>
+<td>Text, the target's name as set up on the interface server</td>
+<td>Required when File drop is on</td>
+<td>The folder or <a class="term" href="99-glossary.html#g-sftp" title="SSH File Transfer Protocol, a secure way of copying files to another system.">SFTP</a> server and its sign-in details are kept on the server, not in PathScribe.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_rules-note"><td>Note</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Why the rule exists.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<p>A fallback with no primary is refused ("A fallback needs a primary channel to fall back from"). A fax number that is not 7 to 15 digits, or a file drop with no target, is refused.</p>
+<h4 id="ch6-delivery-test"><a class="anchor" href="#ch6-delivery-test" aria-label="Link to this section">#</a> Test Delivery Resolution</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Configuration Rules &gt; Test"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Configuration Rules</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="img/system-delivery_rules-test.webp" alt="Test Delivery Resolution panel" loading="lazy"><figcaption>Test Delivery Resolution panel</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_rules-provider-ordering-facility-patient-location-report-type"><td>Provider, Ordering Facility, Patient Location, Report Type</td>
+<td>Pickers, as above</td>
+<td>Optional</td>
+<td>The <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> details to test.</td>
+<td>Any</td>
+</tr>
+<tr id="f-delivery_rules-resolve"><td>Resolve</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows the matched rule, the resolved action (Electronic Only, Print Only, Dual Delivery, Suppress) and the channel plan. With no match it says the default Electronic Only applies.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, change, delete rules and save retries: <code>config:delivery-rules:manage</code> (high risk, audited). Admin and Lab Director hold it. Resending a failed delivery uses the Print Queue or Outbound screens and their own capabilities.
+<strong>Known limits.</strong> Fax and file drop need the interface server to have those channels and targets set up. Portal is Not built. Secure e-mail is not a channel here.</p>
+<h3 id="screen-delivery_schedules"><a class="anchor" href="#screen-delivery_schedules" aria-label="Link to this section">#</a> Delivery Schedules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Schedules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Schedules</span></nav>
+
+<p><strong>Status:</strong> Partial</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Delivery Schedules</p>
+<p><strong>3. Business purpose and scope.</strong> Sets <strong>when</strong> things go out, per feed, for the whole <a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a>, with an optional override for a performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>. Registries get a schedule each. PathScribe decides when an item may leave its queue; the interface engine decides how it is sent. Feeds: Report delivery, Billing delivery, Results feed, Admissions feed (<a class="term" href="99-glossary.html#g-adt" title="Admit, Discharge, Transfer. The family of HL7 messages that carry patient registration and movement, such as A01 (admit), A08 (update patient) and A40 (merge patients).">ADT</a>), Accession feed, <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> sync, Registry. <strong>Partial:</strong> the schedule is stored, resolved and evaluated, and the <a class="term" href="99-glossary.html#g-outbound-queue" title="The list of messages and charges PathScribe has built and not yet sent, held, sent or failed.">outbound queue</a> shows each item's scheduled time and reporting-deadline <a class="term" href="99-glossary.html#g-flag" title="A marker placed on a case or specimen, for example to order an extra stain or to hold a case.">flag</a>. The contract says the production server must apply the same rules before handing an item on; a browser or development build does not hold a send until its time.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A facility override picks from the facilities, so those come first. Skip that and only the enterprise schedule can be set.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 11</p><dl><dt>Configure first</dt><dd><a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a>, <a href="#screen-delivery_rules">Delivery Configuration Rules</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-delivery_schedules.webp" alt="Delivery Schedules by feed with enterprise and facility scope" loading="lazy"><figcaption>Delivery Schedules by feed with enterprise and facility scope</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Screen controls:</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-schedules-for"><td>Schedules for</td>
+<td>Choice: Whole enterprise, or one performing facility</td>
+<td>Optional</td>
+<td>The scope being edited.</td>
+<td>Whole enterprise</td>
+</tr>
+<tr id="f-delivery_schedules-feed-card-summary-and-source"><td>Feed card: summary and source</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The summary reads for example "Batch Mon, Wed at 06:00 (America/New_York)". The source reads "No schedule set: sent immediately", "Follows the enterprise schedule" or "Set for this facility".</td>
+<td>Sent immediately</td>
+</tr>
+<tr id="f-delivery_schedules-registry-cards"><td>Registry cards</td>
+<td>One card per <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a></td>
+<td>Optional</td>
+<td>Each registry has its own schedule and never borrows another's.</td>
+<td>Hold 240 minutes after sign-out; an amendment re-queues</td>
+</tr>
+<tr id="f-delivery_schedules-edit-set-for-this-facility-follow-the-enterprise"><td>Edit, Set for this facility, Follow the enterprise</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Create or remove a facility override. Removing it makes the facility follow the enterprise.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-editor"><a class="anchor" href="#ch6-schedule-editor" aria-label="Link to this section">#</a> Schedule editor</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Schedules &gt; Edit"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Schedules</span> <span aria-hidden="true">›</span> <span>Edit</span></nav>
+
+<figure class="shot"><img src="img/system-delivery_schedules-edit.webp" alt="Schedule editor" loading="lazy"><figcaption>Schedule editor</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-how-it-goes-out"><td>How it goes out</td>
+<td>Choice: Send immediately, Only during set hours, In a batch at set times, Hold until final sign-out, At sign-out after a review hold</td>
+<td>Required</td>
+<td></td>
+<td>Send immediately</td>
+</tr>
+<tr id="f-delivery_schedules-hours-when-items-may-go-out"><td>Hours when items may go out</td>
+<td>Rows of Days, From, Until (24-hour); Add hours / Remove</td>
+<td>Required for set hours</td>
+<td>Each must end after it starts on the same day.</td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-frequency-how-often"><td>Frequency (How often)</td>
+<td>Choice: Every day, Weekly, Monthly</td>
+<td>Required for batch</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-batch-days"><td>Batch days</td>
+<td>Weekdays Mon to Sun</td>
+<td>Required for weekly</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-days-of-the-month"><td>Days of the month</td>
+<td>Numbers 1 to 28, comma separated</td>
+<td>Required for monthly</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-batch-times-24-hour"><td>Batch times (24-hour)</td>
+<td>Times such as <code>06:00, 22:00</code></td>
+<td>Required for batch</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-cutoff-time-optional"><td>Cutoff time (optional)</td>
+<td>Time, 24-hour</td>
+<td>Optional</td>
+<td>Items signed out after this time on a run day wait for the next run. Blank uses the run time.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_schedules-review-hold-minutes-after-sign-out"><td>Review hold (minutes after sign-out)</td>
+<td>Whole number, 1 to 10,080</td>
+<td>Required for review hold</td>
+<td>Match it to the <a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a> and amendment window.</td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-days-with-no-sending"><td>Days with no sending</td>
+<td>Dates <code>YYYY-MM-DD</code>, comma separated</td>
+<td>Optional</td>
+<td>For example holidays. Applies to hours and batch.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_schedules-time-zone"><td>Time zone</td>
+<td>IANA name, for example <code>America/New_York</code></td>
+<td>Required</td>
+<td>The times above are read in this zone.</td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-reporting-deadline-days-from-sign-out"><td>Reporting deadline (days from sign-out)</td>
+<td>Whole number, 1 to 3,650</td>
+<td>Optional</td>
+<td>The queue flags cases near (within 3 days) or past it.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_schedules-an-amendment-puts-the-item-back-in-the-queue"><td>An amendment puts the item back in the queue</td>
+<td>Yes/No switch</td>
+<td>Optional</td>
+<td>A corrected report is sent again under this schedule. On by default for registries.</td>
+<td>Off, except registries</td>
+</tr>
+<tr id="f-delivery_schedules-save-schedule"><td>Save schedule</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Refused if invalid or without permission.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-schedule-test"><a class="anchor" href="#ch6-schedule-test" aria-label="Link to this section">#</a> Try a schedule</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Delivery Schedules &gt; Try a schedule"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Delivery Schedules</span> <span aria-hidden="true">›</span> <span>Try a schedule</span></nav>
+
+<figure class="shot"><img src="img/system-delivery_schedules-test.webp" alt="Try a schedule panel" loading="lazy"><figcaption>Try a schedule panel</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-delivery_schedules-feed"><td>Feed</td>
+<td>Choice of feeds</td>
+<td>Required</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-performing-facility"><td>Performing <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a></td>
+<td>Choice, or None (<a class="term" href="99-glossary.html#g-enterprise" title="The top level of a customer&#x27;s organisation in PathScribe. Settings made here apply to every jurisdiction and facility below unless they are overridden.">enterprise</a> schedule)</td>
+<td>Optional</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-registry"><td>Registry</td>
+<td>Choice</td>
+<td>Required for the Registry feed</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-delivery_schedules-date-and-time-in-the-schedule-s-time-zone"><td>Date and time (in the schedule's time zone)</td>
+<td>Date and time</td>
+<td>Required</td>
+<td></td>
+<td>Now</td>
+</tr>
+<tr id="f-delivery_schedules-the-case-is-finally-signed-out"><td>The <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> is finally signed out</td>
+<td>Yes/No</td>
+<td>Optional</td>
+<td></td>
+<td>No</td>
+</tr>
+<tr id="f-delivery_schedules-signed-out-at"><td>Signed out at</td>
+<td>Date and time</td>
+<td>Optional</td>
+<td></td>
+<td>Blank</td>
+</tr>
+<tr id="f-delivery_schedules-check"><td>Check</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Answers "It goes out" or "It waits", with the reason and the next opportunity.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Change: <code>config:delivery-schedules:manage</code> (high risk, audited by feed, facility, <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> and kind only; no patient data). Admin and Lab Director hold it.
+<strong>Known limits.</strong> Registry destinations, required fields, go-live approval and transport belong to the registry's own setup, not the schedule. See <code>DELIVERY_SCHEDULES_API.md</code>.</p>
+<h3 id="screen-print_routing_rules"><a class="anchor" href="#screen-print_routing_rules" aria-label="Link to this section">#</a> Print Destination Routing Rules</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Print Destination Routing Rules"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Print Destination Routing Rules</span></nav>
+
+<p><strong>Status:</strong> Built</p>
+<p><strong>1. Navigation:</strong> Configuration tab <strong>System</strong> &gt; group <strong>Administration &amp; Compliance</strong>
+<strong>2. Maintenance item:</strong> Print Destination Routing Rules</p>
+<p><strong>3. Business purpose and scope.</strong> Decides which network printer a released report's print job goes to. A rule's scope is a tier: <strong>Workstation / User</strong>, <strong>Location</strong>, <strong>Client Account (Ordering Facility)</strong> or <strong>Facility (Performing Lab)</strong>. The most specific tier with any matching, active rule wins outright over less specific tiers. Within a tier, a rule may be narrowed by <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> or <a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> type and by event trigger. When nothing matches, the job goes to the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s own default destination.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> A rule names a printer reached through a <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a> or by address, and a scope drawn from workstations, locations and facilities. Skip the site agents and only a printer address can be given. A facility rule must use that facility's own site agent printers.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Tier 5, step 9</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-site_agents">Site agents</a>, <a href="03-tier2-master-dictionaries.html#screen-clients">Facility Configuration</a>, <a href="02-tier1-primary-prerequisites.html#screen-workstations">Workstations</a></dd><dt>This unlocks</dt><dd><a href="#screen-delivery_rules">Delivery Configuration Rules</a></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/system-print_routing_rules.webp" alt="Print Destination Routing Rules with table and test panel" loading="lazy"><figcaption>Print Destination Routing Rules with table and test panel</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<p>Screen controls:</p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-rules-table-scope-criteria-destination-note"><td>Rules table: Scope, Criteria, Destination, Note</td>
+<td>Read-only list</td>
+<td>Not applicable</td>
+<td>Criteria read "Specimen: ...", "Trigger: ...", or "Matches every job at this tier".</td>
+<td>Empty: jobs use each facility's default destination</td>
+</tr>
+<tr id="f-print_routing_rules-add-rule-edit-delete"><td>Add Rule, Edit, Delete</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-rule-window"><a class="anchor" href="#ch6-print-rule-window" aria-label="Link to this section">#</a> Add or edit a print routing rule</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Print Destination Routing Rules &gt; Add rule"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Print Destination Routing Rules</span> <span aria-hidden="true">›</span> <span>Add rule</span></nav>
+
+<figure class="shot"><img src="img/system-print_routing_rules-edit.webp" alt="Add Print Routing Rule window" loading="lazy"><figcaption>Add Print Routing Rule window</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-scope-tier"><td>Scope Tier</td>
+<td>Choice: Workstation / User, Location, Client Account (Ordering Facility), Facility (Performing Lab)</td>
+<td>Required</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-scope"><td>Scope</td>
+<td>Workstation or user id (text, for example <code>ws-fgh-theatre2-01</code>), or a location or <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a> picklist</td>
+<td>Required</td>
+<td>A warning shows when it is missing.</td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type"><td>Specimen / Case Type</td>
+<td>Choice: Routine Surgical, Frozen Section, Cytology</td>
+<td>Optional</td>
+<td></td>
+<td>Any <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a>/<a class="term" href="99-glossary.html#g-case" title="One patient episode in the laboratory, identified by an accession number and made up of one or more specimens and one report.">case</a> type</td>
+</tr>
+<tr id="f-print_routing_rules-event-trigger"><td>Event Trigger</td>
+<td>Choice: Initial Sign-out, Amended Sign-out (Corrected/Addendum), Preliminary</td>
+<td>Optional</td>
+<td></td>
+<td>Any event trigger</td>
+</tr>
+<tr id="f-print_routing_rules-print-destination-printer"><td>Print Destination: Printer</td>
+<td>Choice: Site agent printer, or Printer address (sent directly)</td>
+<td>Required</td>
+<td>A direct address works only from a PathScribe server inside the hospital network; from the cloud use a <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a> printer.</td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-site-performing-lab"><td>Site (<a class="term" href="99-glossary.html#g-performing-lab" title="The facility that does the testing and issues the report, as opposed to a client that only sends specimens.">performing lab</a>)</td>
+<td>Picklist</td>
+<td>Required for a site agent printer</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-printer"><td>Printer</td>
+<td>Picklist of the site agent's report printers</td>
+<td>Required for a site agent printer</td>
+<td>Needs permission to see that site's printers.</td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-address"><td>Address</td>
+<td>IP address or host name, no <code>http://</code> or path</td>
+<td>Required for a direct address</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-protocol"><td>Protocol</td>
+<td>Choice: <a class="term" href="99-glossary.html#g-ipp" title="Internet Printing Protocol, a network print protocol. In French text IPP is also the patient identifier used in place of MRN.">IPP</a>, <a class="term" href="99-glossary.html#g-lpr" title="Line Printer Remote, an older network print protocol (also written LPR/LPD). It cannot confirm that a page was printed.">LPR</a>/LPD, Raw (port 9100)</td>
+<td>Required for a direct address</td>
+<td></td>
+<td>None</td>
+</tr>
+<tr id="f-print_routing_rules-port"><td>Port</td>
+<td>Whole number 1 to 65535</td>
+<td>Optional</td>
+<td></td>
+<td>The <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a>'s default</td>
+</tr>
+<tr id="f-print_routing_rules-ipp-path"><td>IPP path</td>
+<td>Text</td>
+<td>Optional, IPP only</td>
+<td></td>
+<td><code>/ipp/print</code></td>
+</tr>
+<tr id="f-print_routing_rules-lpr-queue"><td>LPR queue</td>
+<td>Text</td>
+<td>Optional, LPR/LPD only</td>
+<td></td>
+<td><code>lp</code></td>
+</tr>
+<tr id="f-print_routing_rules-name"><td>Name</td>
+<td>Text</td>
+<td>Optional</td>
+<td>A friendly name for the printer.</td>
+<td>Blank</td>
+</tr>
+<tr id="f-print_routing_rules-note"><td>Note</td>
+<td>Text</td>
+<td>Optional</td>
+<td>Why the rule exists.</td>
+<td>Blank</td>
+</tr>
+</tbody>
+</table>
+<h4 id="ch6-print-test"><a class="anchor" href="#ch6-print-test" aria-label="Link to this section">#</a> Test Print Destination Resolution</h4>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration &gt; System &gt; Administration &amp; Compliance &gt; Print Destination Routing Rules &gt; Test"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span> <span aria-hidden="true">›</span> <span>System</span> <span aria-hidden="true">›</span> <span>Administration &amp; Compliance</span> <span aria-hidden="true">›</span> <span>Print Destination Routing Rules</span> <span aria-hidden="true">›</span> <span>Test</span></nav>
+
+<figure class="shot"><img src="img/system-print_routing_rules-test.webp" alt="Test Print Destination Resolution panel" loading="lazy"><figcaption>Test Print Destination Resolution panel</figcaption></figure>
+
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-print_routing_rules-workstation-user-id"><td>Workstation / User ID</td>
+<td>Text</td>
+<td>Optional</td>
+<td></td>
+<td>Blank</td>
+</tr>
+<tr id="f-print_routing_rules-location-ordering-facility-performing-facility"><td>Location, Ordering <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>, Performing facility</td>
+<td>Pickers</td>
+<td>Optional</td>
+<td></td>
+<td>Any</td>
+</tr>
+<tr id="f-print_routing_rules-specimen-case-type-event-trigger"><td>Specimen / Case Type, Event Trigger</td>
+<td>Choices</td>
+<td>Optional</td>
+<td></td>
+<td>Any</td>
+</tr>
+<tr id="f-print_routing_rules-resolve"><td>Resolve</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td>Shows the matched rule and its tier, and the resolved destination. With no match it says the job would fall back to the facility's default destination.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> Open: <code>screen:configuration:open</code>. Add, change, delete: <code>config:print-routing:manage</code> (high risk, audited). Naming a site's agent printer is checked at that site, as is seeing its printers. Admin and Lab Director hold it.
+<strong>Known limits.</strong> The facility's default destination and print mode (<a class="term" href="99-glossary.html#g-qz-tray" title="A small program on a computer that lets a web page print to a local printer, such as a label printer, without a print dialog.">QZ Tray</a> named printer, interface engine hand-off, or direct network print), and its paper size, are set on the Printing tab of the facility record in the <a href="02-tier1-primary-prerequisites.html#screen-facility-dictionary">Facility Dictionary</a>, not here. Direct network printing needs a PathScribe server or <a class="term" href="99-glossary.html#g-site-agent" title="A small Windows service installed at a laboratory that prints reports and labels and writes files to shares on the hospital network, on instructions from the API server.">site agent</a> inside the hospital network; a browser cannot open a printer socket.</p>
+<h3 id="screen-my-exports"><a class="anchor" href="#screen-my-exports" aria-label="Link to this section">#</a> My exports</h3>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; My exports"><span>Home</span> <span aria-hidden="true">›</span> <span>My exports</span></nav>
+
+<p><strong>Status:</strong> Demonstration</p>
+<p><strong>1. Navigation:</strong> The exports button in the top bar, which shows a count of exports ready to download. The button appears only when an <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server is connected; in the demonstration, open the page at <code>/my-exports</code>.
+<strong>2. Maintenance item:</strong> The signed-in person's own export files</p>
+<p><strong>3. Business purpose and scope.</strong> Large exports (<a class="term" href="99-glossary.html#g-qa" title="Quality assurance, the review of work to find and correct problems.">QA</a>, audit, disposal and search reports) are prepared as background jobs. The person asks, is told when the file is ready, and downloads it here. Files are kept 7 days and only the person who asked can download them. In this demonstration exports download at once, so the list is normally empty. A banner marks the simulated server: exports are prepared in the browser and kept only until sign-out. The API contract is <code>ASYNC_EXPORT_API.md</code>; with the PathScribe server connected, a large export is prepared there and appears here when ready.</p>
+<p><strong>4. Prerequisites and dependencies.</strong> None to open it. An export appears only if its own export <a class="term" href="99-glossary.html#g-capability" title="One permission, named in the form `domain:object:verb`, such as `config:roles:manage`. Roles are granted capabilities, and every protected action checks one.">capability</a> was granted (for example <code>qa:deficiencies:export</code>), so grant those in Staff roles for the people who need them.</p>
+<aside class="setup" aria-label="Setup sequence"><p class="setup-step"><b>Setup sequence</b> · Reference, not part of setup</p><dl><dt>Configure first</dt><dd><a href="02-tier1-primary-prerequisites.html#screen-staff-roles">Roles</a></dd><dt>This unlocks</dt><dd><span class="none">None.</span></dd></dl></aside>
+
+<p><strong>5. Screen.</strong></p>
+<figure class="shot"><img src="img/screen-my-exports.webp" alt="My exports list with status, rows and download" loading="lazy"><figcaption>My exports list with status, rows and download</figcaption></figure>
+
+<p><strong>6. Field reference.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field Name</th>
+<th>Data Type / Format</th>
+<th>Required/Optional</th>
+<th>Description &amp; Business Logic</th>
+<th>System Default</th>
+</tr>
+</thead>
+<tbody>
+<tr id="f-my-exports-export"><td>Export</td>
+<td>Read-only text</td>
+<td>Not applicable</td>
+<td>The export's title.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-requested"><td>Requested</td>
+<td>Read-only date and time</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-status"><td>Status</td>
+<td>Read-only: Waiting, Preparing, Ready, Failed, Cancelled, Expired</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-rows"><td>Rows</td>
+<td>Read-only number</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-deleted-after"><td>Deleted after</td>
+<td>Read-only date</td>
+<td>Not applicable</td>
+<td>Seven days after the request.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-actions-download-cancel"><td>Actions: Download, Cancel</td>
+<td>Buttons</td>
+<td>Not applicable</td>
+<td>Download when Ready; Cancel while Waiting or Preparing.</td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-refresh"><td>Refresh</td>
+<td>Button</td>
+<td>Not applicable</td>
+<td></td>
+<td>Not applicable</td>
+</tr>
+<tr id="f-my-exports-make-exports-take-longer-to-try-the-waiting-experience"><td>Make exports take longer (to try the waiting experience)</td>
+<td>Yes/No switch, shown only on the simulated server</td>
+<td>Optional</td>
+<td>A demonstration control.</td>
+<td>Off</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7. Permissions.</strong> The page needs only a signed-in person, and lists that person's own exports. Each export is requested under its own <code>...:export</code> capability, which is high risk and audited as <code>DOCUMENT_EXPORTED</code> with the row count.
+<strong>Known limits.</strong> The server side is not connected. Configuration exports (dictionaries, crosswalks, the physician list) are small, stay in the browser and do not appear here. Scheduled saved-report runs (Search page, Report &gt; Schedules) are Simulated and send nothing; they have their own contract in <code>SCHEDULED_REPORTS_API.md</code>.</p>
+<h2 id="ch6-batch-jobs"><a class="anchor" href="#ch6-batch-jobs" aria-label="Link to this section">#</a> Batch Printing and Nightly Job Scheduler Setup</h2>
+<nav class="crumb" aria-label="Breadcrumb" data-crumb="Home &gt; Configuration"><span>Home</span> <span aria-hidden="true">›</span> <span>Configuration</span></nav>
+
+<p><strong>Status of this part:</strong> Partial. There is no single "batch printing and nightly job scheduler" screen, and an administrator cannot create or edit a scheduled job. What exists is below, with the chapter that documents each screen.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Status</th>
+<th>Where it is configured</th>
+<th>Where it is documented</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Print queue (hold, release, cancel, retry, redirect, bulk actions)</td>
+<td>Built</td>
+<td>Jobs are managed on System Logs &gt; Interfaces &gt; Print queue. Printers and routing are set in <a href="#screen-print_routing_rules">Print Destination Routing Rules</a> and on the <a class="term" href="99-glossary.html#g-facility" title="One laboratory or site within an enterprise. A performing-lab facility does the testing; a client facility only sends specimens.">facility</a>'s Printing tab.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>Batch print aggregation ("Run Batch Now")</td>
+<td>Partial</td>
+<td>A button on the Print Queue screen with a window start and end (24-hour times, read as <a class="term" href="99-glossary.html#g-utc" title="Coordinated Universal Time, the time standard in which audit entries are stored and shown.">UTC</a>) and a grouping choice (Client account or Delivery route). It groups queued, non-interfaced jobs signed out in the window under shared batch ids. It runs only when someone presses it. A recurring job named <code>print.batchAggregation</code> appears in the server job list with no fixed interval, but no timetable is set in this build.</td>
+<td><a href="07-tier6-interface-engine.html#screen-audit-interfaces">System Logs: interfaces</a></td>
+</tr>
+<tr>
+<td>Label batch reprint</td>
+<td>Built</td>
+<td>Batch Management &gt; Label reprint: find cases by <a class="term" href="99-glossary.html#g-accession" title="The act of receiving a specimen and giving it a permanent case number; also that number (the accession number). It ties a case to the physical tissue and its chain of custody.">accession</a> date or number, pick cassettes, <a class="term" href="99-glossary.html#g-specimen" title="A sample taken from a patient, such as one biopsy or one resected organ. A case holds one or more specimens.">specimen</a> containers or requisitions, pick a <a class="term" href="99-glossary.html#g-cassette" title="The plastic holder in which a tissue block is embedded and labelled for cutting.">cassette</a> printer, reprint one label at a time. Every label is audited; failed labels can be retried. Needs <code>label:batch:reprint</code>.</td>
+<td><a href="04-tier3-workflow-engines.html#screen-batch-management">Batch Management</a></td>
+</tr>
+<tr>
+<td>Scheduled exports</td>
+<td>Demonstration</td>
+<td>Saved case-search reports can be scheduled (daily, weekly or monthly) from the Search page, Report &gt; Schedules. A run is simulated and sends nothing. Large exports run as background jobs and are listed in <a href="#screen-my-exports">My exports</a>.</td>
+<td><code>SCHEDULED_REPORTS_API.md</code>, <code>ASYNC_EXPORT_API.md</code></td>
+</tr>
+<tr>
+<td>Server jobs (queue health, dead letters, requeue)</td>
+<td>Built, read and requeue only</td>
+<td>System Logs &gt; Server jobs. Shows job kinds (interface dispatch, delivery attempt, print dispatch, held report release, charge dispatch, export build, event) and the recurring jobs with how often each runs. Needs <code>jobs:server-job:view</code>; requeueing a dead-lettered job needs <code>jobs:server-job:requeue</code>.</td>
+<td><a href="09-appendices.html#screen-audit-log">System Logs</a></td>
+</tr>
+<tr>
+<td>Nightly job scheduler (create, edit, enable or disable jobs)</td>
+<td>Not built</td>
+<td>Recurring jobs are fixed on the <a class="term" href="99-glossary.html#g-api" title="Application programming interface. The PathScribe API server is the ASP.NET Core service the browser calls for all production data.">API</a> server. The Server jobs screen lists them and shows their health but has no controls to change a time or switch one off.</td>
+<td>Not applicable</td>
+</tr>
+<tr>
+<td>Nightly <a class="term" href="99-glossary.html#g-protocol" title="A structured set of questions for reporting one kind of case, such as a CAP cancer protocol, from which a synoptic report is built.">protocol</a> sync (<a class="term" href="99-glossary.html#g-cap" title="The College of American Pathologists. It accredits laboratories and publishes the cancer protocols (checklists) that PathScribe&#x27;s synoptic reports follow.">CAP</a>, RCPath, ICCR)</td>
+<td>Not built</td>
+<td>See <a href="#ch6-synoptic">Synoptic Library</a>.</td>
+<td>Not applicable</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recurring jobs the server lists today</strong> (minutes between runs): delivery retry sweep (0.5), release due sweep (0.25), <a class="term" href="99-glossary.html#g-consult-link" title="A view-only link issued to an outside consultant for one case. It can be revoked at once and expires on its own. After the consultant signs, it allows at most 3 more views over 48 hours, and by default shows initials and birth year only.">consult link</a> expiry (5), <a class="term" href="99-glossary.html#g-registry" title="A body that collects reports of a disease or a screening result for a country or program, such as a cancer or cervical screening registry.">registry</a> stale escalation (60), follow-up daily alerts (1440), support access expiry (5), cytology histology correlation sweep (1440), <a class="term" href="99-glossary.html#g-lis" title="Laboratory information system, the software that runs a laboratory&#x27;s orders, specimens and results.">LIS</a> polling (its own schedule), print batch aggregation (its own schedule), cytology <a class="term" href="99-glossary.html#g-rose" title="Rapid on-site evaluation, where a specimen&#x27;s adequacy is judged at the time it is taken.">ROSE</a> <a class="term" href="99-glossary.html#g-sla" title="Service level agreement, an agreed time in which work is done.">SLA</a> monitor (5), message bus purge (1440).</p>
+<p><strong>Setup order for batch work.</strong> There is nothing to configure for server jobs. For printing, finish <a href="#screen-print_routing_rules">Print Destination Routing Rules</a>, then check the Print Queue. For label reprint, set up the cassette printer under Printer Profiles first. Grant <code>label:batch:reprint</code> and the <code>print:job:*</code> capabilities in Staff roles to the people who run these.</p></article></main></div>
+<script src="anchors.js"></script><script src="search-index.js"></script><script src="guide.js"></script></body></html>
