@@ -1,9 +1,13 @@
 {
   "_comment": "Batch 503 (PS-474): the Vercel demo site. Mock data in the browser; only public reference look-ups leave it.",
-  "connect": [],
+  "connect": [
+    "https://us-central1-formedrixai-pathscribe-14a39.cloudfunctions.net"
+  ],
   "formAction": [],
   "frame": [],
-  "img": [],
+  "img": [
+    "https://slides-demo.formedrix.ai"
+  ],
   "https": true,
   "hub": []
 }

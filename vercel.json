@@ -16,7 +16,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://eutils.ncbi.nlm.nih.gov https://clinicaltables.nlm.nih.gov https://*.cloudfunctions.net wss://127.0.0.1:9100 https://127.0.0.1:9100 wss://127.0.0.1:9101 https://127.0.0.1:9101 wss://127.0.0.1:9102 https://127.0.0.1:9102 wss://localhost:8181 wss://localhost:8282 wss://localhost:8383 wss://localhost:8484 wss://localhost.qz.io:8181 wss://localhost.qz.io:8282 wss://localhost.qz.io:8383 wss://localhost.qz.io:8484; worker-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; manifest-src 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://slides-demo.formedrix.ai; font-src 'self' data:; connect-src 'self' https://eutils.ncbi.nlm.nih.gov https://clinicaltables.nlm.nih.gov https://us-central1-formedrixai-pathscribe-14a39.cloudfunctions.net wss://127.0.0.1:9100 https://127.0.0.1:9100 wss://127.0.0.1:9101 https://127.0.0.1:9101 wss://127.0.0.1:9102 https://127.0.0.1:9102 wss://localhost:8181 wss://localhost:8282 wss://localhost:8383 wss://localhost:8484 wss://localhost.qz.io:8181 wss://localhost.qz.io:8282 wss://localhost.qz.io:8383 wss://localhost.qz.io:8484; worker-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; manifest-src 'self'; upgrade-insecure-requests"
         },
         {
           "key": "Strict-Transport-Security",
